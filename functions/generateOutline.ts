@@ -44,26 +44,26 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\n\n');
     const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
 
-    const systemPrompt = `You are an expert book editor and story architect. Generate a comprehensive book outline and story bible in JSON format.
+    const systemPrompt = `You are an expert book editor and story architect. Generate a book outline and story bible in JSON format.
 
 Return ONLY valid JSON with this exact structure:
 {
   "outline": {
     "title": "string",
-    "narrative_arc": "string (describe the overall story arc)",
-    "themes": ["theme1", "theme2", ...],
+    "narrative_arc": "string (1-2 sentences)",
+    "themes": ["theme1", "theme2"],
     "chapters": [
       {
         "number": 1,
         "title": "string",
-        "summary": "string (2-3 sentences)",
+        "summary": "string (1-2 sentences)",
         "key_events": ["event1", "event2"],
-        "prompt": "string (detailed writing prompt for this chapter, 3-5 sentences describing what to write)"
+        "prompt": "string (2-3 sentences writing prompt)"
       }
     ]
   },
   "story_bible": {
-    "world": "string (world/setting description)",
+    "world": "string",
     "characters": [
       {
         "name": "string",
@@ -72,11 +72,11 @@ Return ONLY valid JSON with this exact structure:
         "arc": "string"
       }
     ],
-    "settings": ["setting1", "setting2"],
+    "settings": ["setting1"],
     "tone_voice": "string",
     "style_guidelines": "string",
-    "thematic_elements": ["element1", "element2"],
-    "rules": "string (world rules, narrative rules, or writing rules)"
+    "thematic_elements": ["element1"],
+    "rules": "string"
   }
 }`;
 
