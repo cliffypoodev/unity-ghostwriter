@@ -95,10 +95,11 @@ Deno.serve(async (req) => {
     // Helper: call OpenAI with timeout and retry
     async function callOpenAI(messages, maxTokens = 1500, retryCount = 0) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout after 8s')), 8000)
+        );
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const fetchPromise = fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -110,10 +111,9 @@ Deno.serve(async (req) => {
             max_tokens: maxTokens,
             temperature: 0.7,
           }),
-          signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (!response.ok) {
           const errData = await response.json();
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         const data = await response.json();
         return data.choices[0]?.message?.content || '';
       } catch (err) {
-        if (retryCount < 1 && err.name !== 'AbortError') {
+        if (retryCount < 1) {
           console.warn(`Retry ${retryCount + 1}: ${err.message}`);
           return callOpenAI(messages, 1000, retryCount + 1);
         }
