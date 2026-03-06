@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Menu } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function Layout({ children }) {
   const [isMobileMode, setIsMobileMode] = useState(false);
@@ -17,18 +18,39 @@ export default function Layout({ children }) {
             <span className="text-base font-semibold text-slate-800">Book Generation Platform</span>
           </Link>
           
-          <button
-            onClick={() => setIsMobileMode(!isMobileMode)}
-            className="ml-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-slate-100 transition-colors"
-            aria-label="Toggle mobile view"
-          >
-            <span className="text-xs font-medium text-slate-600">
-              {isMobileMode ? 'Mobile' : 'Desktop'}
-            </span>
-            <div className={`w-9 h-5 rounded-full transition-colors ${isMobileMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-              <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform transform ${isMobileMode ? 'translate-x-4' : 'translate-x-0.5'}`} style={{ marginTop: '2px' }} />
-            </div>
-          </button>
+          <div className="flex items-center gap-3 ml-auto">
+            <button
+              onClick={() => setIsMobileMode(!isMobileMode)}
+              className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="Toggle mobile view"
+            >
+              <span className="text-xs font-medium text-slate-600">
+                {isMobileMode ? 'Mobile' : 'Desktop'}
+              </span>
+              <div className={`w-9 h-5 rounded-full transition-colors ${isMobileMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform transform ${isMobileMode ? 'translate-x-4' : 'translate-x-0.5'}`} style={{ marginTop: '2px' }} />
+              </div>
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors" aria-label="Menu">
+                  <Menu className="w-5 h-5 text-slate-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('saveProject'))}>
+                  Save
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={createPageUrl("Settings")}>Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('deleteProject'))} className="text-red-600">
+                  Delete Project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
