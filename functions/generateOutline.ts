@@ -5,47 +5,57 @@ const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
 const CHUNK_SIZE = 10; // Generate 10 chapters at a time (max batch size)
-const OPENAI_TIMEOUT = 8000; // 8 seconds
+const OPENAI_TIMEOUT = 12000; // 12 seconds (Deno Deploy has ~15s limit, leave buffer)
 
-async function callOpenAIWithTimeout(messages) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
-  
-  try {
-    console.log('Calling OpenAI API...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 1500,
-        temperature: 0.7,
-        messages,
-      }),
-      signal: controller.signal,
-    });
+async function callOpenAIWithTimeout(messages, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
     
-    clearTimeout(timeout);
-    console.log('OpenAI response status:', response.status);
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+    try {
+      console.log(`OpenAI call attempt ${attempt + 1}/${retries + 1}...`);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 1500,
+          temperature: 0.7,
+          messages,
+        }),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      console.log('OpenAI response status:', response.status);
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('OpenAI response received successfully');
+      return data;
+    } catch (e) {
+      clearTimeout(timeout);
+      console.error(`Attempt ${attempt + 1} failed:`, e.name, e.message);
+      
+      if (attempt < retries) {
+        const waitMs = 1000 * Math.pow(2, attempt);
+        console.log(`Waiting ${waitMs}ms before retry...`);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      
+      if (e.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw e;
     }
-    
-    const data = await response.json();
-    console.log('OpenAI response received successfully');
-    return data;
-  } catch (e) {
-    clearTimeout(timeout);
-    console.error('OpenAI call error:', e.name, e.message);
-    if (e.name === 'AbortError') {
-      throw new Error('Request timeout (8s exceeded)');
-    }
-    throw e;
   }
 }
 
