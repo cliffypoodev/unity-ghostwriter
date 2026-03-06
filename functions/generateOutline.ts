@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
           temperature: 0.7,
           messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timeout')), 9000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timeout')), 8000))
       ]);
     } catch (apiErr) {
       console.error('AI API error:', apiErr.message);
