@@ -15,8 +15,18 @@ Deno.serve(async (req) => {
     // Save user message
     await base44.entities.Conversation.create({ project_id, role: 'user', content: message });
 
-    // Fetch existing conversation history
-    const history = await base44.entities.Conversation.filter({ project_id }, 'created_date');
+    // Fetch conversation history and source files in parallel
+    const [history, sourceFiles] = await Promise.all([
+      base44.entities.Conversation.filter({ project_id }, 'created_date'),
+      base44.entities.SourceFile.filter({ project_id }),
+    ]);
+
+    // Build source files context
+    const sourceFilesContext = sourceFiles.length > 0
+      ? `\n\nSource files provided by the author:\n${sourceFiles.map(f =>
+          `--- ${f.filename} (${f.file_type})${f.description ? ': ' + f.description : ''} ---\n${f.content}`
+        ).join('\n\n')}`
+      : '';
 
     // Build system prompt with current spec context
     const specContext = spec ? `
