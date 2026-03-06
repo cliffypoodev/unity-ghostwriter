@@ -28,12 +28,7 @@ Deno.serve(async (req) => {
     if (!spec) return Response.json({ error: 'No specification found' }, { status: 400 });
 
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
-    // Cap chapters based on topic length to avoid token overflow
-    const topicLen = (spec.topic || '').length;
-    const rawTarget = Math.floor((chapterRange.min + chapterRange.max) / 2);
-    // Cap chapters to prevent output token overflow (each chapter ~400 tokens)
-    const maxChapters = topicLen > 2000 ? 10 : topicLen > 500 ? 15 : rawTarget;
-    const targetChapters = Math.min(rawTarget, maxChapters);
+    const targetChapters = Math.floor((chapterRange.min + chapterRange.max) / 2);
 
     // Truncate source files context to prevent token overflow
     const sourceContext = allSourceFiles.length > 0
