@@ -121,33 +121,163 @@ function DocSettingsSidebar({ settings, onChange }) {
 
 function FindBar({ quillRef, onClose }) {
   const [term, setTerm] = useState("");
-  const [replace, setReplace] = useState("");
+  const [replaceText, setReplaceText] = useState("");
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [matches, setMatches] = useState([]); // array of {index, length}
+  const [currentIdx, setCurrentIdx] = useState(-1);
+  const findInputRef = useRef(null);
 
-  const doFind = () => {
-    if (!term || !quillRef.current) return;
-    const text = quillRef.current.getText();
-    const idx = text.toLowerCase().indexOf(term.toLowerCase());
-    if (idx !== -1) quillRef.current.setSelection(idx, term.length);
-  };
+  // Focus find input on mount
+  useEffect(() => { findInputRef.current?.focus(); }, []);
 
-  const doReplace = () => {
-    if (!term || !quillRef.current) return;
-    const text = quillRef.current.getText();
-    const idx = text.toLowerCase().indexOf(term.toLowerCase());
-    if (idx !== -1) {
-      quillRef.current.deleteText(idx, term.length);
-      quillRef.current.insertText(idx, replace);
+  const clearHighlights = useCallback(() => {
+    if (!quillRef.current) return;
+    const len = quillRef.current.getLength();
+    quillRef.current.formatText(0, len, { background: false });
+  }, [quillRef]);
+
+  const runFind = useCallback((searchTerm, cs) => {
+    if (!quillRef.current || !searchTerm) {
+      clearHighlights();
+      setMatches([]);
+      setCurrentIdx(-1);
+      return [];
     }
-  };
+    const text = quillRef.current.getText();
+    const needle = cs ? searchTerm : searchTerm.toLowerCase();
+    const haystack = cs ? text : text.toLowerCase();
+    const found = [];
+    let start = 0;
+    while (true) {
+      const idx = haystack.indexOf(needle, start);
+      if (idx === -1) break;
+      found.push({ index: idx, length: searchTerm.length });
+      start = idx + 1;
+    }
+    // Clear all highlights first
+    quillRef.current.formatText(0, text.length, { background: false });
+    // Highlight all matches
+    found.forEach(m => quillRef.current.formatText(m.index, m.length, { background: "#fef08a" }));
+    setMatches(found);
+    return found;
+  }, [quillRef, clearHighlights]);
+
+  const doFind = useCallback(() => {
+    const found = runFind(term, caseSensitive);
+    if (found.length > 0) {
+      const next = 0;
+      setCurrentIdx(next);
+      quillRef.current.setSelection(found[next].index, found[next].length);
+      // Highlight current match brighter
+      quillRef.current.formatText(found[next].index, found[next].length, { background: "#fb923c" });
+    }
+  }, [term, caseSensitive, runFind, quillRef]);
+
+  const navigate = useCallback((dir) => {
+    if (matches.length === 0) return;
+    const next = (currentIdx + dir + matches.length) % matches.length;
+    // Restore previous highlight
+    if (currentIdx >= 0) {
+      quillRef.current.formatText(matches[currentIdx].index, matches[currentIdx].length, { background: "#fef08a" });
+    }
+    setCurrentIdx(next);
+    quillRef.current.setSelection(matches[next].index, matches[next].length);
+    quillRef.current.formatText(matches[next].index, matches[next].length, { background: "#fb923c" });
+  }, [matches, currentIdx, quillRef]);
+
+  const doReplace = useCallback(() => {
+    if (!term || !quillRef.current || currentIdx < 0 || matches.length === 0) return;
+    const m = matches[currentIdx];
+    quillRef.current.deleteText(m.index, m.length);
+    quillRef.current.insertText(m.index, replaceText);
+    // Re-run find after replacement
+    const found = runFind(term, caseSensitive);
+    if (found.length > 0) {
+      const next = Math.min(currentIdx, found.length - 1);
+      setCurrentIdx(next);
+      quillRef.current.setSelection(found[next].index, found[next].length);
+      quillRef.current.formatText(found[next].index, found[next].length, { background: "#fb923c" });
+    }
+  }, [term, replaceText, caseSensitive, currentIdx, matches, quillRef, runFind]);
+
+  const doReplaceAll = useCallback(() => {
+    if (!term || !quillRef.current) return;
+    const found = runFind(term, caseSensitive);
+    // Replace from end to start to preserve indices
+    for (let i = found.length - 1; i >= 0; i--) {
+      quillRef.current.deleteText(found[i].index, found[i].length);
+      quillRef.current.insertText(found[i].index, replaceText);
+    }
+    clearHighlights();
+    setMatches([]);
+    setCurrentIdx(-1);
+  }, [term, replaceText, caseSensitive, quillRef, runFind, clearHighlights]);
+
+  const handleClose = useCallback(() => {
+    clearHighlights();
+    onClose();
+  }, [clearHighlights, onClose]);
+
+  // Re-run find when term or case changes
+  useEffect(() => {
+    if (term) {
+      const found = runFind(term, caseSensitive);
+      if (found.length > 0) {
+        setCurrentIdx(0);
+        quillRef.current.setSelection(found[0].index, found[0].length);
+        quillRef.current.formatText(found[0].index, found[0].length, { background: "#fb923c" });
+      } else {
+        setCurrentIdx(-1);
+      }
+    } else {
+      clearHighlights();
+      setMatches([]);
+      setCurrentIdx(-1);
+    }
+  }, [term, caseSensitive]);
+
+  const matchLabel = matches.length === 0
+    ? (term ? "0/0" : "")
+    : `${currentIdx + 1}/${matches.length}`;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 flex-wrap">
-      <span className="text-xs font-semibold text-amber-700">Find & Replace</span>
-      <input className="border border-slate-200 rounded px-2 py-1 text-sm w-36" placeholder="Find…" value={term} onChange={e => setTerm(e.target.value)} onKeyDown={e => e.key === "Enter" && doFind()} />
-      <input className="border border-slate-200 rounded px-2 py-1 text-sm w-36" placeholder="Replace…" value={replace} onChange={e => setReplace(e.target.value)} />
-      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={doFind}>Find</Button>
-      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={doReplace}>Replace</Button>
-      <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500" onClick={onClose}>✕</Button>
+    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 space-y-1.5">
+      {/* Row 1: Find */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          ref={findInputRef}
+          className="border border-slate-200 rounded-md px-2.5 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          style={{ width: 220 }}
+          placeholder="Find…"
+          value={term}
+          onChange={e => setTerm(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.shiftKey ? navigate(-1) : navigate(1); } if (e.key === "Escape") handleClose(); }}
+        />
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={doFind}>Find</Button>
+        <Button size="sm" variant="outline" className="h-7 w-7 px-0 text-xs" title="Previous (▲)" onClick={() => navigate(-1)}>▲</Button>
+        <Button size="sm" variant="outline" className="h-7 w-7 px-0 text-xs" title="Next (▼)" onClick={() => navigate(1)}>▼</Button>
+        <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+          <input type="checkbox" checked={caseSensitive} onChange={e => setCaseSensitive(e.target.checked)} className="rounded border-slate-300" />
+          <span className="font-mono font-bold">Aa</span>
+        </label>
+        {matchLabel && (
+          <span className="text-xs text-slate-500 font-mono min-w-[40px]">{matchLabel}</span>
+        )}
+      </div>
+      {/* Row 2: Replace */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          className="border border-slate-200 rounded-md px-2.5 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          style={{ width: 220 }}
+          placeholder="Replace…"
+          value={replaceText}
+          onChange={e => setReplaceText(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") doReplace(); if (e.key === "Escape") handleClose(); }}
+        />
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={doReplace}>Replace</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={doReplaceAll}>Replace All</Button>
+        <Button size="sm" variant="ghost" className="h-7 w-7 px-0 text-slate-500 hover:text-red-500" onClick={handleClose}>✕</Button>
+      </div>
     </div>
   );
 }
