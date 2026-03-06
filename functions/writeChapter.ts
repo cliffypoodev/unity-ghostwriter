@@ -82,101 +82,126 @@ Deno.serve(async (req) => {
     const LENGTH_WORDS = { short: 2000, medium: 3500, long: 5000, epic: 6500 };
     const targetWords = LENGTH_WORDS[spec?.target_length] || 3000;
 
-    const systemPrompt = `You are a professional author writing a ${spec?.genre || ''} ${spec?.book_type || 'fiction'} book. Write immersive, engaging prose that matches the established tone and style.${bibleContext}${sourceContext}${globalContext}
+    // Break chapter into 3 sections for faster generation
+    const sections = [
+      { num: 1, title: 'Opening', words: 500 },
+      { num: 2, title: 'Middle', words: 600 },
+      { num: 3, title: 'Closing', words: 500 }
+    ];
 
-Write approximately ${targetWords} words for this chapter. Write the chapter content directly without any meta-commentary, headers, or explanations. Just the story.`;
+    const sectionContents = [];
+    const shortSystemPrompt = `You are a professional author. Write in the style of ${spec?.genre || 'fiction'}, matching the established tone: ${appSettings.global_style_instructions ? appSettings.global_style_instructions.slice(0, 100) : 'immersive and engaging'}.`;
 
-    const userPrompt = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
+    // Helper: call OpenAI with timeout and retry
+    async function callOpenAI(messages, maxTokens = 1500, retryCount = 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-Chapter Summary: ${chapter.summary || ''}
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages,
+            max_tokens: maxTokens,
+            temperature: 0.7,
+          }),
+          signal: controller.signal,
+        });
 
-Writing Prompt: ${chapter.prompt || ''}
+        clearTimeout(timeoutId);
 
-${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''}`;
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(`OpenAI API error: ${errData.error?.message || response.statusText}`);
+        }
 
-    // Determine which AI client to use
-    const modelName = appSettings.ai_model || 'claude-opus-4-5';
-    let stream;
-
-    if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
-      // OpenAI models
-      stream = await openai.chat.completions.create({
-        model: modelName,
-        max_tokens: 8192,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        stream: true,
-      });
-    } else if (modelName === 'deepseek-chat') {
-      // DeepSeek model
-      stream = await deepseek.chat.completions.create({
-        model: 'deepseek-chat',
-        max_tokens: 8192,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        stream: true,
-      });
-    } else {
-      // Claude models (default)
-      stream = await anthropic.messages.create({
-        model: modelName,
-        max_tokens: 8192,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-        stream: true,
-      });
+        const data = await response.json();
+        return data.choices[0]?.message?.content || '';
+      } catch (err) {
+        if (retryCount < 1 && err.name !== 'AbortError') {
+          console.warn(`Retry ${retryCount + 1}: ${err.message}`);
+          return callOpenAI(messages, 1000, retryCount + 1);
+        }
+        throw err;
+      }
     }
 
-    let fullContent = '';
+    // Generate each section
+    for (const section of sections) {
+      const previousContext = sectionContents.length > 0
+        ? `\n\nPrevious sections summary:\n${sectionContents.map((c, i) => `Section ${i + 1}: ${c.slice(0, 200)}...`).join('\n')}`
+        : '';
 
-    try {
-      for await (const event of stream) {
-        // Handle OpenAI/DeepSeek stream format
-        if (event.choices?.[0]?.delta?.content) {
-          fullContent += event.choices[0].delta.content;
-        }
-        // Handle Claude stream format
-        else if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-          fullContent += event.delta.text;
-        } else if (event.type === 'message_stop') {
-          const wordCount = fullContent.trim().split(/\s+/).length;
-          console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
+      const sectionPrompt = `Write Section ${section.num} (${section.title}) of Chapter ${chapter.chapter_number}: "${chapter.title}"
 
-          // Store content - either as entity content or file URL depending on size
-          let contentValue = fullContent;
-          if (fullContent.length > 50000) {
-            // For very large content, attempt to use file storage
-            try {
-              // Upload using the public file storage
-              const uploadResult = await base44.integrations.Core.UploadFile({
-                file: fullContent
-              });
-              if (uploadResult?.file_url) {
-                contentValue = uploadResult.file_url;
-              }
-            } catch (uploadErr) {
-              console.warn('File upload failed, storing content directly:', uploadErr.message);
-            }
-          }
+Summary: ${chapter.summary || ''}
+Prompt: ${chapter.prompt || ''}${previousContext}
 
+Write approximately ${section.words} words. Content only, no meta-commentary.`;
+
+      console.log(`Generating section ${section.num}/${sections.length}...`);
+
+      try {
+        const content = await callOpenAI([
+          { role: 'system', content: shortSystemPrompt },
+          { role: 'user', content: sectionPrompt }
+        ]);
+        sectionContents.push(content);
+      } catch (err) {
+        console.error(`Section ${section.num} failed: ${err.message}`);
+        // Return partial results
+        if (sectionContents.length > 0) {
+          const partialContent = sectionContents.join('\n\n');
+          const wordCount = partialContent.trim().split(/\s+/).length;
           await base44.entities.Chapter.update(chapter_id, {
-            content: contentValue,
+            content: partialContent,
             status: 'generated',
             word_count: wordCount,
             generated_at: new Date().toISOString(),
           });
-          console.log('Chapter saved successfully');
+          return Response.json({
+            text: partialContent,
+            success: true,
+            partial: true,
+            completedSections: sectionContents.length,
+            totalSections: sections.length,
+          });
         }
+        throw err;
       }
-    } catch (err) {
-      console.error('Stream error:', err.message);
-      await base44.entities.Chapter.update(chapter_id, { status: 'error' });
-      return Response.json({ error: err.message }, { status: 500 });
     }
+
+    const fullContent = sectionContents.join('\n\n');
+    const wordCount = fullContent.trim().split(/\s+/).length;
+
+    // Store content
+    let contentValue = fullContent;
+    if (fullContent.length > 50000) {
+      try {
+        const uploadResult = await base44.integrations.Core.UploadFile({
+          file: fullContent
+        });
+        if (uploadResult?.file_url) {
+          contentValue = uploadResult.file_url;
+        }
+      } catch (uploadErr) {
+        console.warn('File upload failed, storing content directly:', uploadErr.message);
+      }
+    }
+
+    await base44.entities.Chapter.update(chapter_id, {
+      content: contentValue,
+      status: 'generated',
+      word_count: wordCount,
+      generated_at: new Date().toISOString(),
+    });
+
+    console.log(`Chapter ${chapter.chapter_number} generated (${wordCount} words)`)
 
     return Response.json({ text: fullContent, success: true });
   } catch (error) {
