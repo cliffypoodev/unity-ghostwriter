@@ -14,10 +14,15 @@ Deno.serve(async (req) => {
     const { project_id } = await req.json();
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
-    const [specs, sourceFiles] = await Promise.all([
+    const [specs, sourceFiles, globalSourceFiles, appSettingsList] = await Promise.all([
       base44.entities.Specification.filter({ project_id }),
       base44.entities.SourceFile.filter({ project_id }),
+      base44.entities.SourceFile.filter({ project_id: "global" }),
+      base44.entities.AppSettings.list(),
     ]);
+
+    const appSettings = appSettingsList[0] || {};
+    const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
 
     const spec = specs[0];
     if (!spec) return Response.json({ error: 'No specification found' }, { status: 400 });
