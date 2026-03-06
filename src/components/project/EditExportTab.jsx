@@ -401,6 +401,7 @@ export default function EditExportTab({ projectId }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showFind, setShowFind] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
   const [docSettings, setDocSettings] = useState({
     pageSize: "letter", margins: "normal", lineSpacing: "1.5", pageBg: "#ffffff", showToc: true
   });
