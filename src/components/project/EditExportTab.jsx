@@ -59,59 +59,153 @@ const SIZES = ["8px","9px","10px","11px","12px","14px","16px","18px","20px","22p
 
 // ── Document Settings Sidebar ─────────────────────────────────────────────────
 
-function DocSettingsSidebar({ settings, onChange }) {
+const FONT_FAMILIES = {
+  "georgia": "Georgia, serif",
+  "times-new-roman": '"Times New Roman", Times, serif',
+  "garamond": 'Garamond, "EB Garamond", serif',
+  "palatino": 'Palatino, "Palatino Linotype", serif',
+  "baskerville": 'Baskerville, "Baskerville Old Face", serif',
+  "arial": "Arial, sans-serif",
+  "helvetica": "Helvetica, Arial, sans-serif",
+  "verdana": "Verdana, Geneva, sans-serif",
+  "trebuchet-ms": '"Trebuchet MS", Helvetica, sans-serif',
+  "calibri": "Calibri, Candara, sans-serif",
+  "courier-new": '"Courier New", Courier, monospace',
+  "consolas": 'Consolas, "Courier New", monospace',
+};
+
+const MARGIN_OPTIONS = [
+  { label: 'Narrow (0.5")', value: "0.5in" },
+  { label: 'Moderate (0.75")', value: "0.75in" },
+  { label: 'Normal (1.0")', value: "1in" },
+  { label: 'Wide (1.25")', value: "1.25in" },
+  { label: 'Extra Wide (1.5")', value: "1.5in" },
+];
+
+const LINE_SPACING_OPTIONS = [
+  { label: "Single (1.0)", value: "1" },
+  { label: "Tight (1.15)", value: "1.15" },
+  { label: "1.5", value: "1.5" },
+  { label: "Comfortable (1.8)", value: "1.8" },
+  { label: "Double (2.0)", value: "2" },
+  { label: "Extra (2.5)", value: "2.5" },
+];
+
+const PAGE_NUMBER_OPTIONS = [
+  { label: "None", value: "none" },
+  { label: "Bottom Center", value: "bottom-center" },
+  { label: "Bottom Right", value: "bottom-right" },
+  { label: "Top Right", value: "top-right" },
+];
+
+function SField({ label, children }) {
   return (
-    <aside className="w-64 flex-shrink-0 bg-slate-50 border-r border-slate-200 overflow-y-auto p-4 space-y-5">
-      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Document Settings</h3>
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-slate-500">{label}</label>
+      {children}
+    </div>
+  );
+}
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Page Size</label>
-        <select className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white"
-          value={settings.pageSize} onChange={e => onChange({ ...settings, pageSize: e.target.value })}>
-          <option value="letter">Letter (8.5×11)</option>
-          <option value="a4">A4</option>
-          <option value="legal">Legal (8.5×14)</option>
-        </select>
+function SInput({ value, onChange, placeholder }) {
+  return (
+    <input
+      className="w-full text-sm border border-slate-200 rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  );
+}
+
+function SSelect({ value, onChange, options }) {
+  return (
+    <select
+      className="w-full text-sm border border-slate-200 rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+    >
+      {options.map(o => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  );
+}
+
+function DocSettingsSidebar({ settings, onChange }) {
+  const set = (key, val) => onChange({ ...settings, [key]: val });
+
+  return (
+    <aside className="flex-shrink-0 bg-slate-50 border-r border-slate-200 overflow-y-auto p-4 space-y-4" style={{ width: 280 }}>
+      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-200">Document Settings</h3>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Book Info</p>
+        <SField label="Book Title">
+          <SInput value={settings.bookTitle} onChange={v => set("bookTitle", v)} placeholder="Book title" />
+        </SField>
+        <SField label="Author Name">
+          <SInput value={settings.authorName} onChange={v => set("authorName", v)} placeholder="Author name" />
+        </SField>
+        <SField label="Subtitle">
+          <SInput value={settings.subtitle} onChange={v => set("subtitle", v)} placeholder="Subtitle (optional)" />
+        </SField>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Margins</label>
-        <select className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white"
-          value={settings.margins} onChange={e => onChange({ ...settings, margins: e.target.value })}>
-          <option value="normal">Normal (1 in)</option>
-          <option value="narrow">Narrow (0.5 in)</option>
-          <option value="wide">Wide (1.5 in)</option>
-        </select>
+      <div className="space-y-3 pt-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Typography</p>
+        <SField label="Body Font">
+          <SSelect value={settings.bodyFont} onChange={v => set("bodyFont", v)} options={FONTS.map(f => ({ label: f.label, value: f.value }))} />
+        </SField>
+        <SField label="Heading Font">
+          <SSelect value={settings.headingFont} onChange={v => set("headingFont", v)} options={FONTS.map(f => ({ label: f.label, value: f.value }))} />
+        </SField>
+        <SField label="Body Font Size">
+          <SSelect value={settings.bodyFontSize} onChange={v => set("bodyFontSize", v)} options={SIZES.map(s => ({ label: s, value: s }))} />
+        </SField>
+        <SField label="Line Spacing">
+          <SSelect value={settings.lineSpacing} onChange={v => set("lineSpacing", v)} options={LINE_SPACING_OPTIONS} />
+        </SField>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Line Spacing</label>
-        <select className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white"
-          value={settings.lineSpacing} onChange={e => onChange({ ...settings, lineSpacing: e.target.value })}>
-          <option value="1">Single</option>
-          <option value="1.5">1.5x</option>
-          <option value="2">Double</option>
-        </select>
+      <div className="space-y-3 pt-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Layout</p>
+        <SField label="Page Margins">
+          <SSelect value={settings.margins} onChange={v => set("margins", v)} options={MARGIN_OPTIONS} />
+        </SField>
+        <SField label="Page Numbers">
+          <SSelect value={settings.pageNumbers} onChange={v => set("pageNumbers", v)} options={PAGE_NUMBER_OPTIONS} />
+        </SField>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Editor Background</label>
-        <div className="flex gap-2">
-          {["#ffffff","#faf7f2","#f0ede8","#1e1e1e"].map(c => (
-            <button key={c} onClick={() => onChange({ ...settings, pageBg: c })}
-              className="w-7 h-7 rounded border-2 transition-all"
-              style={{ background: c, borderColor: settings.pageBg === c ? "#6366f1" : "#e2e8f0" }} />
-          ))}
-        </div>
+      <div className="space-y-3 pt-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Header & Footer</p>
+        <SField label="Header Text">
+          <SInput value={settings.headerText} onChange={v => set("headerText", v)} placeholder="Text shown at top of pages" />
+        </SField>
+        <SField label="Footer Text">
+          <SInput value={settings.footerText} onChange={v => set("footerText", v)} placeholder="Text shown at bottom of pages" />
+        </SField>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Show TOC</label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={settings.showToc} onChange={e => onChange({ ...settings, showToc: e.target.checked })}
-            className="rounded border-slate-300 text-indigo-600" />
-          <span className="text-sm text-slate-600">Include table of contents</span>
-        </label>
+      <div className="space-y-3 pt-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Editor</p>
+        <SField label="Background">
+          <div className="flex gap-2 pt-0.5">
+            {["#ffffff","#faf7f2","#f0ede8","#1e1e1e"].map(c => (
+              <button key={c} onClick={() => set("pageBg", c)}
+                className="w-7 h-7 rounded border-2 transition-all"
+                style={{ background: c, borderColor: settings.pageBg === c ? "#6366f1" : "#e2e8f0" }} />
+            ))}
+          </div>
+        </SField>
+        <SField label="Table of Contents">
+          <label className="flex items-center gap-2 cursor-pointer mt-0.5">
+            <input type="checkbox" checked={settings.showToc} onChange={e => set("showToc", e.target.checked)}
+              className="rounded border-slate-300 text-indigo-600" />
+            <span className="text-sm text-slate-600">Include TOC</span>
+          </label>
+        </SField>
       </div>
     </aside>
   );
