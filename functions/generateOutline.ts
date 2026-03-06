@@ -105,7 +105,9 @@ Deno.serve(async (req) => {
 
      console.log(`Generating chapters ${chunkStart}-${chunkEnd}...`);
 
-     const chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${spec.genre} ${spec.book_type} about "${truncatedTopic}". Return JSON array with {number, title, summary} fields only.`;
+     let chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${spec.genre} ${spec.book_type} about "${truncatedTopic}". `;
+     if (spec.subgenre) chunkPrompt += `Subgenre: ${spec.subgenre}. `;
+     chunkPrompt += `Return JSON array with {number, title, summary} fields only.`;
 
      try {
        const response = await callOpenAIWithTimeout([
