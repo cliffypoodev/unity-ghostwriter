@@ -91,25 +91,24 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       // OpenAI models
       response = await openai.chat.completions.create({
         model: modelName,
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        max_tokens: 6000,
+        temperature: 0.7,
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
       });
     } else if (modelName === 'deepseek-chat') {
-      // DeepSeek model
-      response = await deepseek.messages.create({
+      // DeepSeek model (also uses OpenAI client)
+      response = await deepseek.chat.completions.create({
         model: 'deepseek-chat',
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        max_tokens: 6000,
+        temperature: 0.7,
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
       });
     } else {
       // Claude models (default)
       response = await anthropic.messages.create({
         model: modelName,
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        max_tokens: 6000,
+        messages: [{ role: 'user', content: systemPrompt + '\n\n' + userPrompt }],
       });
     }
 
