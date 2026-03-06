@@ -35,7 +35,7 @@ function safeParse(str) {
 
 // ── Collapsible wrapper ───────────────────────────────────────────────────────
 
-function CollapsibleCard({ title, icon: Icon, defaultOpen = true, children }) {
+function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Card className="border-slate-200 shadow-sm">
