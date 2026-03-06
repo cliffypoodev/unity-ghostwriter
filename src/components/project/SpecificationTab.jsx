@@ -147,6 +147,15 @@ export default function SpecificationTab({ projectId, onProceed }) {
             />
           </div>
 
+          {/* Prompt Catalog Suggestions */}
+          <PromptSuggestions
+            bookType={form.book_type}
+            genre={form.genre}
+            onSelect={(entry) => {
+              handleChange("topic", entry.series_title + (entry.description ? ` — ${entry.description}` : ""));
+            }}
+          />
+
           {/* Target Length */}
           <div>
             <Label className="text-sm font-medium">Target Length</Label>
