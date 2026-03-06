@@ -142,7 +142,7 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     }
 
     // Save or update outline — store data inline
-    const existing = await base44.entities.Outline.filter({ project_id });
+    const existing = await base44.asServiceRole.entities.Outline.filter({ project_id });
     const outlinePayload = {
       project_id,
       outline_data: JSON.stringify(parsed.outline),
@@ -151,9 +151,9 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       story_bible_url: '',
     };
     if (existing[0]) {
-      await base44.entities.Outline.update(existing[0].id, outlinePayload);
+      await base44.asServiceRole.entities.Outline.update(existing[0].id, outlinePayload);
     } else {
-      await base44.entities.Outline.create(outlinePayload);
+      await base44.asServiceRole.entities.Outline.create(outlinePayload);
     }
 
     // Delete existing chapters and create new ones
