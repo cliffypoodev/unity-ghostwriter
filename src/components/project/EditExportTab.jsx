@@ -610,7 +610,7 @@ export default function EditExportTab({ projectId }) {
     setPlainText(quillRef.current.getText());
   }, [docSettings.showToc]);
 
-  const MARGIN_MAP = { normal: "48px 60px", narrow: "28px 32px", wide: "72px 96px" };
+  // No longer need a hard-coded MARGIN_MAP — margins come from docSettings.margins directly
 
   const handleCopyAll = () => {
     if (!quillRef.current) return;
