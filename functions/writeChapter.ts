@@ -101,18 +101,24 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
             } else if (event.type === 'message_stop') {
               const wordCount = fullContent.trim().split(/\s+/).length;
-              // Upload content as file to avoid field size limit
-              let contentToSave = fullContent;
+              // Upload content as a file to avoid entity field size limits
+              let contentUrl = null;
               try {
-                const encoder2 = new TextEncoder();
-                const bytes = encoder2.encode(fullContent);
-                const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: bytes });
-                if (uploadRes?.file_url) contentToSave = uploadRes.file_url;
+                const blob = new Blob([fullContent], { type: 'text/plain' });
+                const form = new FormData();
+                form.append('file', blob, `chapter_${chapter_id}.txt`);
+                const appId = Deno.env.get('BASE44_APP_ID');
+                const uploadResp = await fetch(`https://api.base44.com/api/apps/${appId}/integrations/Core/UploadFile`, {
+                  method: 'POST',
+                  body: form,
+                });
+                const uploadData = await uploadResp.json();
+                contentUrl = uploadData?.file_url || null;
               } catch (uploadErr) {
-                console.error('Upload failed, saving inline:', uploadErr.message);
+                console.error('Upload error:', uploadErr.message);
               }
               await base44.entities.Chapter.update(chapter_id, {
-                content: contentToSave,
+                content: contentUrl || fullContent.slice(0, 50000),
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
