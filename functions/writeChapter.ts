@@ -1,13 +1,109 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import Anthropic from 'npm:@anthropic-ai/sdk';
-import OpenAI from 'npm:openai';
 
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
-const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-const deepseek = new OpenAI({ 
-  apiKey: Deno.env.get("DEEPSEEK_API_KEY"),
-  baseURL: 'https://api.deepseek.com'
-});
+const openai_key = Deno.env.get("OPENAI_API_KEY");
+
+async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
+  try {
+    const chapters = await base44.entities.Chapter.filter({ project_id: projectId });
+    const chapter = chapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+
+    const sections = [
+      { num: 1, title: 'Opening', words: 500 },
+      { num: 2, title: 'Middle', words: 600 },
+      { num: 3, title: 'Closing', words: 500 }
+    ];
+
+    const sectionContents = [];
+
+    async function callOpenAI(messages, maxTokens = 1500) {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openai_key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.message?.content || '';
+    }
+
+    const shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
+
+    for (const section of sections) {
+      const previousContext = sectionContents.length > 0
+        ? `\n\nPrevious sections: ${sectionContents.map((c, i) => `Section ${i + 1}: ${c.slice(0, 150)}...`).join('\n')}`
+        : '';
+
+      const sectionPrompt = `Write Section ${section.num} (${section.title}) of Chapter ${chapter.chapter_number}: "${chapter.title}"
+
+Summary: ${chapter.summary || ''}
+Prompt: ${chapter.prompt || ''}${previousContext}
+
+Write ~${section.words} words. Content only, no meta-commentary.`;
+
+      try {
+        const content = await callOpenAI([
+          { role: 'system', content: shortSystemPrompt },
+          { role: 'user', content: sectionPrompt }
+        ]);
+        sectionContents.push(content);
+      } catch (err) {
+        console.error(`Section ${section.num} failed:`, err.message);
+        if (sectionContents.length > 0) {
+          const partialContent = sectionContents.join('\n\n');
+          const wordCount = partialContent.trim().split(/\s+/).length;
+          await base44.entities.Chapter.update(chapterId, {
+            content: partialContent,
+            status: 'generated',
+            word_count: wordCount,
+            generated_at: new Date().toISOString(),
+          });
+          return;
+        }
+        throw err;
+      }
+    }
+
+    const fullContent = sectionContents.join('\n\n');
+    const wordCount = fullContent.trim().split(/\s+/).length;
+
+    let contentValue = fullContent;
+    if (fullContent.length > 50000) {
+      try {
+        const uploadResult = await base44.integrations.Core.UploadFile({
+          file: fullContent
+        });
+        if (uploadResult?.file_url) {
+          contentValue = uploadResult.file_url;
+        }
+      } catch (uploadErr) {
+        console.warn('File upload failed, storing directly');
+      }
+    }
+
+    await base44.entities.Chapter.update(chapterId, {
+      content: contentValue,
+      status: 'generated',
+      word_count: wordCount,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Async generation error:', err.message);
+  }
+}
 
 Deno.serve(async (req) => {
   try {
