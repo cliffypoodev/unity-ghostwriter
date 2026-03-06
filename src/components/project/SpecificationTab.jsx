@@ -292,5 +292,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
         </CardContent>
       </Card>
     </div>
+    <SourceFilesCard projectId={projectId} />
+    </div>
   );
 }
