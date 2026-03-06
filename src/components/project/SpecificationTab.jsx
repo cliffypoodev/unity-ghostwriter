@@ -340,6 +340,13 @@ export default function SpecificationTab({ projectId, onProceed }) {
             />
           </div>
 
+          {/* AI Model Recommendation Panel */}
+          <ModelSuggestionPanel
+            genre={form.genre}
+            selectedModel={form.ai_model}
+            onSelectModel={(id) => handleChange("ai_model", id)}
+          />
+
           {/* Author Voice */}
            <div>
              <Label className="text-sm font-medium">Author Voice</Label>
