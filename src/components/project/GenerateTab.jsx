@@ -252,6 +252,11 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [generating, setGenerating] = useState(false);
   const [streamingChapterId, setStreamingChapterId] = useState(null);
   const [streamingContent, setStreamingContent] = useState({});
+  const [writeAllModalOpen, setWriteAllModalOpen] = useState(false);
+  const [currentWritingChapter, setCurrentWritingChapter] = useState(0);
+  const [writeAllComplete, setWriteAllComplete] = useState(false);
+  const [writeAllResults, setWriteAllResults] = useState([]);
+  const [writeAllTotalTime, setWriteAllTotalTime] = useState(0);
 
   const { data: outlines = [] } = useQuery({
     queryKey: ["outline", projectId],
