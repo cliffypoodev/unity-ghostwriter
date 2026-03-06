@@ -122,10 +122,13 @@ export default function Home() {
             const chapterCount = getChapterCount(project.id);
             return (
               <div
-                key={project.id}
-                onClick={() => navigate(createPageUrl("ProjectDetail") + `?id=${project.id}`)}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer p-5 group"
-              >
+                 key={project.id}
+                 onClick={() => {
+                   window.scrollTo(0, 0);
+                   navigate(createPageUrl("ProjectDetail") + `?id=${project.id}`);
+                 }}
+                 className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer p-5 group"
+               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors text-base leading-snug flex-1 min-w-0 pr-2 truncate">
                     {project.name}
