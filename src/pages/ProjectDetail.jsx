@@ -83,6 +83,8 @@ export default function ProjectDetail() {
   const [deleting, setDeleting] = useState(false);
   const [activePhase, setActivePhase] = useState("specify");
 
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
