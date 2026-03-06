@@ -85,14 +85,16 @@ export default function SpecificationTab({ projectId, onProceed }) {
     const msg = chatInput.trim();
     setChatInput("");
     setIsChatting(true);
-    await fetch(`/api/functions/bookConsultantChat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ project_id: projectId, message: msg, spec: form }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
-    setIsChatting(false);
+    try {
+      await base44.functions.invoke('bookConsultantChat', { 
+        project_id: projectId, 
+        message: msg, 
+        spec: form 
+      });
+      await queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
+    } finally {
+      setIsChatting(false);
+    }
   };
 
   const handleChange = (field, value) => {
