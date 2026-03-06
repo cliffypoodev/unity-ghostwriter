@@ -111,27 +111,27 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     // Return raw AI text for debugging if parse fails
     let parsed = null;
     const start = cleanText.indexOf('{');
-    if (start === -1) return Response.json({ error: 'No JSON found in response', raw: text.slice(0, 500) }, { status: 500 });
+    if (start === -1) return Response.json({ error: 'No JSON found in response', raw: cleanText.slice(0, 500) }, { status: 500 });
 
     let depth = 0;
     let end = -1;
-    for (let i = start; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+    for (let i = start; i < cleanText.length; i++) {
+      if (cleanText[i] === '{') depth++;
+      else if (cleanText[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
     }
-    if (end === -1) return Response.json({ error: 'Malformed JSON in response', raw: text.slice(0, 500) }, { status: 500 });
+    if (end === -1) return Response.json({ error: 'Malformed JSON in response', raw: cleanText.slice(0, 500) }, { status: 500 });
 
     try {
-      parsed = JSON.parse(text.slice(start, end + 1));
+      parsed = JSON.parse(cleanText.slice(start, end + 1));
     } catch (parseErr) {
       // Try to fix common issues: trailing commas before ] or }
-      const cleaned = text.slice(start, end + 1)
+      const cleaned = cleanText.slice(start, end + 1)
         .replace(/,\s*\]/g, ']')
         .replace(/,\s*\}/g, '}');
       try {
         parsed = JSON.parse(cleaned);
       } catch (e2) {
-        return Response.json({ error: 'JSON parse failed: ' + e2.message, raw: text.slice(0, 1000) }, { status: 500 });
+        return Response.json({ error: 'JSON parse failed: ' + e2.message, raw: cleanText.slice(0, 1000) }, { status: 500 });
       }
     }
 
