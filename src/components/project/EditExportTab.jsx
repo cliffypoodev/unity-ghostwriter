@@ -555,6 +555,11 @@ export default function EditExportTab({ projectId }) {
   const editorRef = useRef(null);
   const quillRef = useRef(null);
   const [quillReady, setQuillReady] = useState(false);
+
+  // Scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [plainText, setPlainText] = useState("");
   const [zoom, setZoom] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);

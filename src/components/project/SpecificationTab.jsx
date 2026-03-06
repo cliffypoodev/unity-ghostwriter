@@ -52,6 +52,11 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [authorsData, setAuthorsData] = useState([]);
   const chatBottomRef = useRef(null);
 
+  // Scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load config data on mount
   useEffect(() => {
     const loadConfigs = async () => {

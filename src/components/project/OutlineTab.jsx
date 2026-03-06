@@ -12,6 +12,11 @@ export default function OutlineTab({ projectId }) {
   const [outlineData, setOutlineData] = useState("");
   const [storyBible, setStoryBible] = useState("");
 
+  // Scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const { data: outlines = [], isLoading } = useQuery({
     queryKey: ["outline", projectId],
     queryFn: () => base44.entities.Outline.filter({ project_id: projectId }),
