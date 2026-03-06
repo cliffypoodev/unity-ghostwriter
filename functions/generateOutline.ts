@@ -30,8 +30,12 @@ Deno.serve(async (req) => {
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
     const targetChapters = Math.floor((chapterRange.min + chapterRange.max) / 2);
 
+    // Truncate source files context to prevent token overflow
     const sourceContext = allSourceFiles.length > 0
-      ? `\n\nSource files for context:\n${allSourceFiles.map(f => `--- ${f.filename} (${f.file_type}) ---\n${f.content}`).join('\n\n')}`
+      ? `\n\nSource files for context:\n${allSourceFiles.map(f => {
+          const content = f.content?.length > 1000 ? f.content.slice(0, 1000) + '...' : f.content;
+          return `--- ${f.filename} (${f.file_type}) ---\n${content}`;
+        }).join('\n\n')}`
       : '';
 
     const globalInstructions = [
