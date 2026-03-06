@@ -323,21 +323,20 @@ export default function GenerateTab({ projectId, onProceed }) {
     try {
       console.log('Starting write for chapter:', chapter.id);
       
-      // Use SDK invoke which handles auth automatically
-      const response = await base44.functions.invoke('writeChapter', { 
-        project_id: projectId, 
-        chapter_id: chapter.id 
+      // Use native fetch with streaming for SSE
+      const response = await fetch(`/api/functions/writeChapter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id })
       });
       
-      console.log('writeChapter response:', response.status);
-      
-      if (response.status !== 200) {
-        console.error('writeChapter error:', response.data);
+      if (!response.ok) {
+        console.error('writeChapter error:', response.statusText);
         return;
       }
       
-      // Parse the streaming response
-      const reader = response.data.getReader?.() || response.data.body?.getReader?.();
+      const reader = response.body?.getReader();
       if (!reader) {
         console.error('No reader available for streaming');
         return;
