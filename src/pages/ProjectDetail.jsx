@@ -145,11 +145,14 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <div className="text-center py-24">
-        <p className="text-slate-500">Project not found</p>
-        <Button variant="link" onClick={() => navigate(createPageUrl("Home"))} className="mt-2 text-indigo-600">
-          Go back
-        </Button>
-      </div>
+         <p className="text-slate-500">Project not found</p>
+         <Button variant="link" onClick={() => {
+           window.scrollTo(0, 0);
+           navigate(createPageUrl("Home"));
+         }} className="mt-2 text-indigo-600">
+           Go back
+         </Button>
+       </div>
     );
   }
 
