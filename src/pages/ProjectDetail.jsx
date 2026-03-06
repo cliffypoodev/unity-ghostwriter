@@ -83,9 +83,14 @@ export default function ProjectDetail() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activePhase, setActivePhase] = useState("specify");
 
+  // Scroll to top on phase change and on initial mount
   useEffect(() => { 
-    setTimeout(() => window.scrollTo(0, 0), 0);
+    window.scrollTo(0, 0);
   }, [activePhase]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [projectId]);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
