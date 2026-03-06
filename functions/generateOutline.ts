@@ -112,6 +112,7 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       });
     }
 
+    console.log('AI Response:', JSON.stringify(response).slice(0, 500));
     const text = modelName.startsWith('gpt-') || modelName === 'gpt-4o' 
       ? response.choices[0].message.content 
       : response.content[0].text;
