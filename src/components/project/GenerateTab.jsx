@@ -42,7 +42,7 @@ function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }
       <CardHeader className="py-3 px-4 cursor-pointer" onClick={() => setOpen(o => !o)}>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Icon className="w-4 h-4 text-indigo-500" />
+            <CardIcon className="w-4 h-4 text-indigo-500" />
             {title}
           </CardTitle>
           {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
