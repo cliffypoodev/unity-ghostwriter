@@ -74,7 +74,10 @@ export default function Home() {
             <Settings className="w-4 h-4" />
           </Button>
           <Button
-            onClick={() => createMutation.mutate()}
+            onClick={() => {
+              window.scrollTo(0, 0);
+              createMutation.mutate();
+            }}
             disabled={createMutation.isPending}
             className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
           >
