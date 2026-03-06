@@ -505,6 +505,28 @@ export default function EditExportTab({ projectId }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        setShowFind(s => !s);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+        e.preventDefault();
+        setShowFind(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        setAutoSaved(true);
+        setTimeout(() => setAutoSaved(false), 2000);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+        e.preventDefault();
+        window.print();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const title = project?.name || "Untitled";
 
   const wrapperClass = fullscreen
