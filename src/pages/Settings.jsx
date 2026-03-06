@@ -77,6 +77,11 @@ export default function Settings() {
   const [editFile, setEditFile] = useState(null);
   const [showFileDialog, setShowFileDialog] = useState(false);
 
+  // Scroll to top on page mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const { data: settingsRecords = [], isLoading } = useQuery({
     queryKey: ["app-settings"],
     queryFn: () => base44.entities.AppSettings.list(),
