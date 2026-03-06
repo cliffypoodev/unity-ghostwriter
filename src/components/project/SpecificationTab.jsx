@@ -209,25 +209,35 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
 
           {/* Topic */}
-          <div>
-            <Label className="text-sm font-medium">Topic / Premise</Label>
-            <Textarea
-              className="mt-1.5"
-              rows={3}
-              placeholder="A story about..."
-              value={form.topic}
-              onChange={e => handleChange("topic", e.target.value)}
-            />
-          </div>
+           <div>
+             <Label className="text-sm font-medium">Topic / Premise</Label>
+             <Textarea
+               className="mt-1.5"
+               rows={3}
+               placeholder="A story about..."
+               value={form.topic}
+               onChange={e => handleChange("topic", e.target.value)}
+             />
+             <Button
+               onClick={handleAutoExtract}
+               disabled={!form.topic.trim() || extracting}
+               variant="outline"
+               size="sm"
+               className="mt-2 w-full"
+             >
+               {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+               Auto-Extract Details from Premise
+             </Button>
+           </div>
 
-          {/* Prompt Catalog Suggestions */}
-          <PromptSuggestions
-            bookType={form.book_type}
-            genre={form.genre}
-            onSelect={(entry) => {
-              handleChange("topic", entry.series_title + (entry.description ? ` — ${entry.description}` : ""));
-            }}
-          />
+           {/* Prompt Catalog Suggestions */}
+           <PromptSuggestions
+             bookType={form.book_type}
+             genre={form.genre}
+             onSelect={(entry) => {
+               handleChange("topic", entry.series_title + (entry.description ? ` — ${entry.description}` : ""));
+             }}
+           />
 
           {/* Target Length */}
           <div>
