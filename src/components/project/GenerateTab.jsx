@@ -325,7 +325,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       // Get auth token from base44 SDK
       const authToken = base44.auth?.getToken?.();
       
-      const res = await fetch(`/api/functions/writeChapter`, {
+      const res = await fetch(`https://${window.location.host}/api/functions/writeChapter`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
