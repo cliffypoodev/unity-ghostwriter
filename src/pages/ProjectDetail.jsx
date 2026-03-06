@@ -122,6 +122,7 @@ export default function ProjectDetail() {
       body: JSON.stringify({ project_id: projectId }),
     });
     queryClient.invalidateQueries({ queryKey: ["projects"] });
+    window.scrollTo(0, 0);
     navigate(createPageUrl("Home"));
   };
 
