@@ -147,7 +147,7 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
 
     const uploadJson = async (content, filename) => {
       const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({
-        file: new File([new Blob([content], { type: 'application/json' })], filename, { type: 'application/json' })
+        file: new Blob([content], { type: 'application/json' })
       });
       return uploadRes.file_url;
     };
