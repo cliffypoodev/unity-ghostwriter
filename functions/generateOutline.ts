@@ -49,41 +49,14 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\n\n');
     const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
 
-    const systemPrompt = `You are an expert book editor and story architect. Generate a book outline and story bible in JSON format.
+    const systemPrompt = `You are an expert book editor. Generate a book outline in JSON format.
 
-Return ONLY valid JSON with this exact structure:
-{
-  "outline": {
-    "title": "string",
-    "narrative_arc": "string (1-2 sentences)",
-    "themes": ["theme1", "theme2"],
-    "chapters": [
-      {
-        "number": 1,
-        "title": "string",
-        "summary": "string (1-2 sentences)",
-        "key_events": ["event1", "event2"],
-        "prompt": "string (2-3 sentences writing prompt)"
-      }
-    ]
-  },
-  "story_bible": {
-    "world": "string",
-    "characters": [
-      {
-        "name": "string",
-        "role": "string (protagonist/antagonist/supporting/minor)",
-        "description": "string",
-        "arc": "string"
-      }
-    ],
-    "settings": ["setting1"],
-    "tone_voice": "string",
-    "style_guidelines": "string",
-    "thematic_elements": ["element1"],
-    "rules": "string"
-  }
-}`;
+CRITICAL: Return ONLY raw valid JSON. No markdown, no code fences, no explanation. Start with { and end with }.
+
+Required structure:
+{"outline":{"title":"string","narrative_arc":"string","themes":["t1"],"chapters":[{"number":1,"title":"string","summary":"string","key_events":["e1"],"prompt":"string"}]},"story_bible":{"world":"string","characters":[{"name":"string","role":"protagonist","description":"string","arc":"string"}],"settings":["s1"],"tone_voice":"string","style_guidelines":"string","thematic_elements":["e1"],"rules":"string"}}
+
+Keep each field concise. Summary = 1 sentence. Prompt = 2 sentences. narrative_arc = 1 sentence.`;
 
     // Truncate topic to avoid exceeding token limits
     const truncatedTopic = spec.topic?.length > 3000 ? spec.topic.slice(0, 3000) + '...' : spec.topic;
