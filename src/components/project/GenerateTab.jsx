@@ -449,6 +449,13 @@ export default function GenerateTab({ projectId, onProceed }) {
     }
   };
 
+  const TARGET_WORDS_PER_CHAPTER = {
+    short: 3750,
+    medium: 3750,
+    long: 4166,
+    epic: 4375,
+  };
+
   const handleWriteAllChapters = async () => {
     // Filter chapters that don't have content yet (not generated)
     const toWrite = chapters.filter(c => c.status !== 'generated');
@@ -457,6 +464,14 @@ export default function GenerateTab({ projectId, onProceed }) {
       alert("All chapters are already written!");
       return;
     }
+
+    // Get target length from spec
+    const spec = specifications?.[0];
+    const tLen = spec?.target_length || "medium";
+    setTargetLength(tLen);
+
+    const targetChapterWords = TARGET_WORDS_PER_CHAPTER[tLen];
+    const targetTotalWords = toWrite.length * targetChapterWords;
 
     writeAllAbortRef.current = false;
     setWriteAllActive(true);
@@ -473,9 +488,14 @@ export default function GenerateTab({ projectId, onProceed }) {
       startTime,
       done: false,
       elapsed: "",
+      wordsWritten: 0,
+      totalWords: targetTotalWords,
+      chapterWords: 0,
+      targetChapterWords,
     });
 
     let successes = 0;
+    let totalWordsWritten = 0;
     const failures = [];
 
     // SEQUENTIAL: Each chapter must finish before next one starts
@@ -483,13 +503,16 @@ export default function GenerateTab({ projectId, onProceed }) {
       if (writeAllAbortRef.current) break;
 
       const chapter = toWrite[i];
+      let chapterWordsCount = 0;
       
       setWriteAllProgress(prev => ({
         ...prev,
-        current: i + 1,
+        current: i,
         currentTitle: chapter.title,
         successes,
         failures: [...failures],
+        wordsWritten: totalWordsWritten,
+        chapterWords: 0,
       }));
 
       try {
@@ -503,9 +526,10 @@ export default function GenerateTab({ projectId, onProceed }) {
         });
 
         if (response.status === 200) {
-          // Poll for chapter completion
+          // Poll for chapter completion with streaming word tracking
           let pollCount = 0;
           let isComplete = false;
+          let lastWordCount = 0;
           
           while (!isComplete && pollCount < 150) { // 5 min timeout (2s * 150)
             if (writeAllAbortRef.current) break;
@@ -515,8 +539,20 @@ export default function GenerateTab({ projectId, onProceed }) {
               const updatedChapter = updated.find(c => c.id === chapter.id);
               
               if (updatedChapter?.status === 'generated') {
+                // Final word count
+                const finalContent = updatedChapter.content;
+                const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
+                chapterWordsCount = finalWords;
+                totalWordsWritten += finalWords;
+                
                 successes++;
                 isComplete = true;
+                
+                setWriteAllProgress(prev => ({
+                  ...prev,
+                  chapterWords: chapterWordsCount,
+                  wordsWritten: totalWordsWritten,
+                }));
               } else if (updatedChapter?.status === 'error') {
                 failures.push({
                   number: chapter.chapter_number,
@@ -524,6 +560,19 @@ export default function GenerateTab({ projectId, onProceed }) {
                   error: 'Generation failed',
                 });
                 isComplete = true;
+              } else if (updatedChapter?.content) {
+                // Streaming: update word count
+                const currentWords = updatedChapter.content.split(/\s+/).filter(Boolean).length;
+                if (currentWords > lastWordCount) {
+                  const chunkWords = currentWords - lastWordCount;
+                  chapterWordsCount = currentWords;
+                  lastWordCount = currentWords;
+                  
+                  setWriteAllProgress(prev => ({
+                    ...prev,
+                    chapterWords: chapterWordsCount,
+                  }));
+                }
               }
             } catch (e) {
               console.warn('Poll error:', e);
@@ -569,6 +618,8 @@ export default function GenerateTab({ projectId, onProceed }) {
       failures,
       done: true,
       elapsed: `${mins}m ${secs}s`,
+      wordsWritten: totalWordsWritten,
+      chapterWords: 0,
     }));
 
     setWriteAllActive(false);
