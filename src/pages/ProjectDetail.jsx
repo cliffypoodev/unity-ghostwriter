@@ -206,18 +206,7 @@ export default function ProjectDetail() {
           </div>
         )}
         {activePhase === "generate" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-base font-semibold text-slate-800 mb-4">Outline</h3>
-                <OutlineTab projectId={projectId} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-slate-800 mb-4">Chapters</h3>
-                <ChaptersTab projectId={projectId} />
-              </div>
-            </div>
-          </div>
+          <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
         )}
         {activePhase === "export" && (
           <div className="space-y-6">
