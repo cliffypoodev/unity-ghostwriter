@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Settings, Star } from "lucide-react";
 
 const AI_MODEL_PROFILES = {
   "claude-opus": {
