@@ -36,6 +36,7 @@ export default function Home() {
     mutationFn: () => base44.entities.Project.create({ name: "Untitled Project", status: "draft" }),
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      window.scrollTo(0, 0);
       navigate(createPageUrl("ProjectDetail") + `?id=${project.id}`);
     },
   });
