@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     
     let text;
     if (!response) {
-      return Response.json({ error: 'No response from AI', model: modelName }, { status: 500 });
+      return Response.json({ error: 'No response from AI' }, { status: 500 });
     }
     
     if (response.choices) {
