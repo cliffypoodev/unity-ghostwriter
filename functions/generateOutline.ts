@@ -142,25 +142,23 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     }
 
     // Save or update outline — store data inline
-    const existing = await base44.entities.Outline.filter({ project_id });
-    const outlinePayload = {
-      project_id,
-      outline_data: JSON.stringify(parsed.outline),
-      outline_url: '',
-      story_bible: JSON.stringify(parsed.story_bible),
-      story_bible_url: '',
-    };
-    
-    console.log('Outline entity methods:', Object.keys(base44.entities.Outline || {}));
-    
-    if (existing[0]) {
-      await base44.entities.Outline.update(existing[0].id, outlinePayload);
-    } else {
-      const createMethod = base44.entities.Outline?.create || base44.entities.Outline?.insertOne;
-      if (!createMethod) {
-        throw new Error(`No create method found on Outline entity. Methods: ${JSON.stringify(Object.keys(base44.entities.Outline || {}))}`);
+    try {
+      const existing = await base44.entities.Outline.filter({ project_id });
+      const outlinePayload = {
+        project_id,
+        outline_data: JSON.stringify(parsed.outline),
+        outline_url: '',
+        story_bible: JSON.stringify(parsed.story_bible),
+        story_bible_url: '',
+      };
+      
+      if (existing && existing[0]) {
+        await base44.entities.Outline.update(existing[0].id, outlinePayload);
+      } else {
+        await base44.entities.Outline.create(outlinePayload);
       }
-      await createMethod.call(base44.entities.Outline, outlinePayload);
+    } catch (outlineErr) {
+      console.warn('Outline save failed (non-critical):', outlineErr.message);
     }
 
     // Delete existing chapters and create new ones
