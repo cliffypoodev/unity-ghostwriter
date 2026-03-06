@@ -100,6 +100,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const genres = form.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
 
   return (
+    <div className="space-y-6">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* LEFT: Project Settings */}
       <Card className="border-slate-200 shadow-sm">
