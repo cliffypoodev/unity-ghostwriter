@@ -9,98 +9,101 @@ export default function WriteAllChaptersModal({ isOpen, onClose, progress, onSto
   const progressPercent = total > 0 ? (current / total) * 100 : 0;
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Writing All Chapters</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Main progress bar */}
+        <div className="space-y-4 py-4">
+          {/* Progress bar */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-700">
-                {isComplete ? "Complete!" : `Chapter ${currentChapter} of ${totalChapters}`}
+                {done ? "Complete!" : `Chapter ${current} of ${total}`}
               </span>
               <span className="text-sm font-mono text-slate-500">
                 {Math.round(progressPercent)}%
               </span>
             </div>
-            <Progress value={progressPercent} className="h-3" />
+            <Progress value={progressPercent} className="h-2" />
           </div>
 
-          {/* Timing info */}
-          {!isComplete && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-slate-50 rounded-lg p-3">
-                <div className="text-xs text-slate-500 mb-1">Elapsed</div>
-                <div className="font-mono font-semibold text-slate-900">{formatTime(elapsedTime)}</div>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-3">
-                <div className="text-xs text-slate-500 mb-1">Est. Remaining</div>
-                <div className="font-mono font-semibold text-slate-900">{formatTime(estimatedRemaining)}</div>
+          {/* Current chapter being written */}
+          {!done && (
+            <div className="flex items-center gap-3 bg-indigo-50 rounded-lg p-3">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-600 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-slate-500">Writing:</p>
+                <p className="text-sm font-semibold text-slate-900 truncate">{currentTitle}</p>
               </div>
             </div>
           )}
 
           {/* Completion summary */}
-          {isComplete && (
+          {done && (
             <div className="space-y-3">
               <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-emerald-900">All chapters written!</p>
+                    <p className="text-sm font-semibold text-emerald-900">Writing complete!</p>
                     <p className="text-xs text-emerald-700 mt-1">
-                      Completed in {formatTime(totalTimeSeconds)}
+                      {successes} successful, {failures.length} failed • {elapsed}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Results summary */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span className="text-sm font-semibold text-emerald-900">{successCount} Success</span>
+                    <span className="text-sm font-semibold text-emerald-900">{successes}</span>
                   </div>
+                  <p className="text-xs text-emerald-700 mt-1">Success</p>
                 </div>
-                {failCount > 0 && (
+                {failures.length > 0 && (
                   <div className="bg-red-50 rounded-lg p-3 border border-red-100">
                     <div className="flex items-center gap-2">
                       <XCircle className="w-4 h-4 text-red-600" />
-                      <span className="text-sm font-semibold text-red-900">{failCount} Failed</span>
+                      <span className="text-sm font-semibold text-red-900">{failures.length}</span>
                     </div>
+                    <p className="text-xs text-red-700 mt-1">Failed</p>
                   </div>
                 )}
               </div>
 
               {/* Failed chapters list */}
-              {failCount > 0 && results && (
-                <div className="bg-red-50 rounded-lg p-3 border border-red-100">
+              {failures.length > 0 && (
+                <div className="bg-red-50 rounded-lg p-3 border border-red-100 max-h-48 overflow-y-auto">
                   <p className="text-xs font-semibold text-red-900 mb-2">Failed Chapters:</p>
                   <ul className="space-y-1">
-                    {results
-                      .filter(r => !r.success)
-                      .map((r, idx) => (
-                        <li key={idx} className="text-xs text-red-700">
-                          • Chapter {r.chapterNumber}: {r.message}
-                        </li>
-                      ))}
+                    {failures.map((f, idx) => (
+                      <li key={idx} className="text-xs text-red-700">
+                        • Ch {f.number}: {f.error}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
             </div>
           )}
-
-          {/* Loading indicator */}
-          {!isComplete && (
-            <div className="flex justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-            </div>
-          )}
         </div>
+
+        <DialogFooter>
+          {!done && (
+            <Button variant="outline" onClick={onStop} className="text-slate-600">
+              Stop After Current
+            </Button>
+          )}
+          {done && (
+            <Button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-700">
+              Close
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
