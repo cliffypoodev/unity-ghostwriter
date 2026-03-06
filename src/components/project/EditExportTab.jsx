@@ -431,90 +431,6 @@ function buildHtml(project, spec, chapters, showToc) {
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 
-function buildExportStyle(ds) {
-  const bodyFamily = FONT_FAMILIES[ds.bodyFont] || "Georgia, serif";
-  const headingFamily = FONT_FAMILIES[ds.headingFont] || "Georgia, serif";
-  const margin = ds.margins || "1in";
-  const lineH = ds.lineSpacing || "1.5";
-  const fontSize = ds.bodyFontSize || "14px";
-
-  let pageNumberCSS = "";
-  if (ds.pageNumbers === "bottom-center") pageNumberCSS = `@page { @bottom-center { content: counter(page); } }`;
-  else if (ds.pageNumbers === "bottom-right") pageNumberCSS = `@page { @bottom-right { content: counter(page); } }`;
-  else if (ds.pageNumbers === "top-right") pageNumberCSS = `@page { @top-right { content: counter(page); } }`;
-
-  const headerCSS = ds.headerText ? `.page-header { position: running(header); } @page { @top-left { content: element(header); } }` : "";
-  const footerCSS = ds.footerText ? `.page-footer { position: running(footer); } @page { @bottom-left { content: element(footer); } }` : "";
-
-  return `
-    body { font-family: ${bodyFamily}; font-size: ${fontSize}; line-height: ${lineH}; color: #1e293b; margin: ${margin}; }
-    h1, h2, h3, h4 { font-family: ${headingFamily}; }
-    h1 { font-size: 2.2em; font-weight: 700; margin-bottom: 0.4em; }
-    h2 { font-size: 1.5em; font-weight: 600; margin-top: 2em; margin-bottom: 0.4em; }
-    h3 { font-size: 1.2em; font-weight: 600; margin-top: 1.5em; }
-    p { margin-bottom: 0.8em; }
-    .page-header, .page-footer { font-size: 0.8em; color: #64748b; }
-    ${pageNumberCSS}
-    ${headerCSS}
-    ${footerCSS}
-  `;
-}
-
-function buildExportHeader(ds) {
-  let html = "";
-  if (ds.headerText) html += `<div class="page-header">${ds.headerText}</div>\n`;
-  if (ds.footerText) html += `<div class="page-footer">${ds.footerText}</div>\n`;
-  if (ds.bookTitle) html += `<h1>${ds.bookTitle}${ds.subtitle ? `<br/><small style="font-size:0.55em;font-weight:400">${ds.subtitle}</small>` : ""}</h1>\n`;
-  if (ds.authorName) html += `<p style="font-style:italic;margin-bottom:2em">${ds.authorName}</p>\n`;
-  return html;
-}
-
-function exportTxt(quill, ds) {
-  const text = quill.getText();
-  const blob = new Blob([text], { type: "text/plain" });
-  download(blob, `${ds.bookTitle || "book"}.txt`);
-}
-
-function exportMd(quill, ds) {
-  const html = quill.root.innerHTML;
-  let md = html
-    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
-    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
-    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n")
-    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, "#### $1\n\n")
-    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
-    .replace(/<em[^>]*>(.*?)<\/em>/gi, "_$1_")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/li>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\n{3,}/g, "\n\n");
-  const blob = new Blob([md], { type: "text/markdown" });
-  download(blob, `${ds.bookTitle || "book"}.md`);
-}
-
-function exportHtml(quill, ds) {
-  const body = quill.root.innerHTML;
-  const style = buildExportStyle(ds);
-  const header = buildExportHeader(ds);
-  const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${ds.bookTitle || "Book"}</title><style>${style}</style></head><body>${header}${body}</body></html>`;
-  const blob = new Blob([full], { type: "text/html" });
-  download(blob, `${ds.bookTitle || "book"}.html`);
-}
-
-function exportDocx(quill, ds) {
-  const body = quill.root.innerHTML;
-  const style = buildExportStyle(ds);
-  const header = buildExportHeader(ds);
-  const mhtml = `MIME-Version: 1.0\nContent-Type: multipart/related; boundary="boundary"\n\n--boundary\nContent-Type: text/html; charset="utf-8"\n\n<html><head><title>${ds.bookTitle || "Book"}</title><style>${style}</style></head><body>${header}${body}</body></html>\n\n--boundary--`;
-  const blob = new Blob([mhtml], { type: "application/msword" });
-  download(blob, `${ds.bookTitle || "book"}.doc`);
-}
-
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -522,6 +438,101 @@ function download(blob, filename) {
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function buildFullHtml(bodyHtml, ds, forPrint = false) {
+  const bodyFamily = FONT_FAMILIES[ds.bodyFont] || "Georgia, serif";
+  const headingFamily = FONT_FAMILIES[ds.headingFont] || "Georgia, serif";
+  const margin = ds.margins || "1in";
+  const lineH = ds.lineSpacing || "1.5";
+  const fontSize = ds.bodyFontSize || "14px";
+
+  let pageNumCSS = "";
+  if (ds.pageNumbers === "bottom-center") pageNumCSS = `@page { @bottom-center { content: counter(page); } }`;
+  else if (ds.pageNumbers === "bottom-right") pageNumCSS = `@page { @bottom-right { content: counter(page); } }`;
+  else if (ds.pageNumbers === "top-right") pageNumCSS = `@page { @top-right { content: counter(page); } }`;
+
+  const printPageCSS = forPrint ? `
+    @page { margin: ${margin}; ${pageNumCSS ? pageNumCSS.replace(/@page\s*\{([^}]+)\}/g, "$1") : ""} }
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; }
+    }
+  ` : "";
+
+  const style = `
+    body { font-family: ${bodyFamily}; font-size: ${fontSize}; line-height: ${lineH}; color: #1e293b;
+           ${forPrint ? "" : `margin: ${margin};`} max-width: 800px; margin-left: auto; margin-right: auto; padding: 2em; }
+    h1, h2, h3, h4 { font-family: ${headingFamily}; }
+    h1 { font-size: 2.2em; font-weight: 700; margin-bottom: 0.4em; }
+    h2 { font-size: 1.5em; font-weight: 600; margin-top: 2em; margin-bottom: 0.4em; }
+    h3 { font-size: 1.2em; font-weight: 600; margin-top: 1.5em; }
+    p { margin-bottom: 0.8em; }
+    .page-header { color: #64748b; font-size: 0.8em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4em; margin-bottom: 1.5em; }
+    .page-footer { color: #64748b; font-size: 0.8em; border-top: 1px solid #e2e8f0; padding-top: 0.4em; margin-top: 2em; }
+    .title-block { margin-bottom: 3em; }
+    ${forPrint ? printPageCSS : ""}
+    ${forPrint ? "" : pageNumCSS}
+  `;
+
+  const titleBlock = (ds.bookTitle || ds.authorName || ds.subtitle) ? `
+    <div class="title-block">
+      ${ds.bookTitle ? `<h1>${ds.bookTitle}${ds.subtitle ? `<br/><small style="font-size:0.5em;font-weight:400;color:#64748b">${ds.subtitle}</small>` : ""}</h1>` : ""}
+      ${ds.authorName ? `<p style="font-style:italic;font-size:1.1em;margin-bottom:0">${ds.authorName}</p>` : ""}
+    </div>` : "";
+
+  const headerHtml = ds.headerText ? `<div class="page-header">${ds.headerText}</div>` : "";
+  const footerHtml = ds.footerText ? `<div class="page-footer">${ds.footerText}</div>` : "";
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${ds.bookTitle || "Book"}</title><style>${style}</style></head><body>${headerHtml}${titleBlock}${bodyHtml}${footerHtml}</body></html>`;
+}
+
+// Client-side HTML export
+function exportHtml(quill, ds) {
+  const full = buildFullHtml(quill.root.innerHTML, ds);
+  const blob = new Blob([full], { type: "text/html" });
+  download(blob, `${ds.bookTitle || "book"}.html`);
+}
+
+// Server-side TXT export
+async function exportTxt(projectId, ds) {
+  const resp = await base44.functions.invoke("exportProject", { projectId, format: "txt" });
+  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
+
+// Server-side Markdown export
+async function exportMd(projectId, ds) {
+  const resp = await base44.functions.invoke("exportProject", { projectId, format: "md" });
+  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
+  const blob = new Blob([text], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
+
+// Server-side DOCX export
+async function exportDocx(projectId, quill, ds) {
+  const resp = await base44.functions.invoke("exportProject", {
+    projectId,
+    format: "docx",
+    html: quill.root.innerHTML,
+    settings: ds,
+  });
+  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
+  const blob = new Blob([text], { type: "application/msword" });
+  download(blob, `${ds.bookTitle || "book"}.doc`);
+}
+
+// Print/PDF — opens styled window and triggers print dialog
+function exportPrint(quill, ds) {
+  const full = buildFullHtml(quill.root.innerHTML, ds, true);
+  const w = window.open("", "_blank");
+  w.document.write(full);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 500);
 }
 
 // ── Main EditExportTab ────────────────────────────────────────────────────────
