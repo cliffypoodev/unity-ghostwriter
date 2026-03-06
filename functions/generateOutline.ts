@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
 
-    // Truncate source files context to prevent token overflow
+    // Truncate source files context to prevent token overflow - limit to first 2 files only
     const sourceContext = allSourceFiles.length > 0
-      ? `\n\nSource files for context:\n${allSourceFiles.map(f => {
-          const content = f.content?.length > 1000 ? f.content.slice(0, 1000) + '...' : f.content;
+      ? `\n\nSource files for context:\n${allSourceFiles.slice(0, 2).map(f => {
+          const content = f.content?.length > 500 ? f.content.slice(0, 500) + '...' : f.content;
           return `--- ${f.filename} (${f.file_type}) ---\n${content}`;
         }).join('\n\n')}`
       : '';
