@@ -416,7 +416,8 @@ function buildHtml(project, spec, chapters, showToc) {
     html += `</ol>\n<hr/>\n`;
   }
 
-  sortedChapters.forEach(ch => {
+  sortedChapters.forEach((ch, idx) => {
+    if (idx > 0) html += `<div style="page-break-before: always;"></div>\n`;
     html += `<h2>Chapter ${ch.chapter_number}: ${ch.title}</h2>\n`;
     if (ch.content) {
       const paragraphs = ch.content.split(/\n\n+/).filter(p => p.trim());
