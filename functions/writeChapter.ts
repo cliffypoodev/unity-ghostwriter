@@ -128,6 +128,7 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
             }
           }
         } catch (err) {
+          console.error('Stream error:', err.message);
           await base44.entities.Chapter.update(chapter_id, { status: 'error' });
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));
           controller.close();
