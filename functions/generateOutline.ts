@@ -148,20 +148,23 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     }
 
     // Save or update outline — store data inline
+    console.log('Available entities:', Object.keys(base44.entities || {}));
     try {
-      const existing = await base44.entities.Outline.filter({ project_id });
-      const outlinePayload = {
-        project_id,
-        outline_data: JSON.stringify(parsed.outline),
-        outline_url: '',
-        story_bible: JSON.stringify(parsed.story_bible),
-        story_bible_url: '',
-      };
-      
-      if (existing && existing[0]) {
-        await base44.entities.Outline.update(existing[0].id, outlinePayload);
-      } else {
-        await base44.entities.Outline.create(outlinePayload);
+      if (base44.entities?.Outline) {
+        const existing = await base44.entities.Outline.filter({ project_id });
+        const outlinePayload = {
+          project_id,
+          outline_data: JSON.stringify(parsed.outline),
+          outline_url: '',
+          story_bible: JSON.stringify(parsed.story_bible),
+          story_bible_url: '',
+        };
+        
+        if (existing && existing[0]) {
+          await base44.entities.Outline.update(existing[0].id, outlinePayload);
+        } else if (base44.entities.Outline.create) {
+          await base44.entities.Outline.create(outlinePayload);
+        }
       }
     } catch (outlineErr) {
       console.warn('Outline save failed (non-critical):', outlineErr.message);
