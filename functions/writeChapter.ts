@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const LENGTH_WORDS = { short: 2000, medium: 3500, long: 5000, epic: 6500 };
     const targetWords = LENGTH_WORDS[spec?.target_length] || 3000;
 
-    const systemPrompt = `You are a professional author writing a ${spec?.genre || ''} ${spec?.book_type || 'fiction'} book. Write immersive, engaging prose that matches the established tone and style.${bibleContext}${sourceContext}
+    const systemPrompt = `You are a professional author writing a ${spec?.genre || ''} ${spec?.book_type || 'fiction'} book. Write immersive, engaging prose that matches the established tone and style.${bibleContext}${sourceContext}${globalContext}
 
 Write approximately ${targetWords} words for this chapter. Write the chapter content directly without any meta-commentary, headers, or explanations. Just the story.`;
 
