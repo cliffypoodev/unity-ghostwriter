@@ -78,7 +78,7 @@ ${sourceContext}${globalContext}
 Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
 
     // Determine which AI client to use
-    const modelName = appSettings.ai_model || 'claude-haiku-4-5';
+    const modelName = appSettings.ai_model || 'gpt-4o';
     let response;
 
     if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
