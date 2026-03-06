@@ -323,53 +323,22 @@ export default function GenerateTab({ projectId, onProceed }) {
     try {
       console.log('Starting write for chapter:', chapter.id);
       
-      // Use native fetch with streaming for SSE
-      const response = await fetch(`/api/functions/writeChapter`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id })
+      // Use SDK invoke which handles auth and routing properly
+      const response = await base44.functions.invoke('writeChapter', { 
+        project_id: projectId, 
+        chapter_id: chapter.id 
       });
       
-      if (!response.ok) {
-        console.error('writeChapter error:', response.statusText);
+      console.log('writeChapter response:', response.status);
+      
+      if (response.status !== 200) {
+        console.error('writeChapter error:', response.data);
         return;
       }
       
-      const reader = response.body?.getReader();
-      if (!reader) {
-        console.error('No reader available for streaming');
-        return;
-      }
-      
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          console.log('Stream finished');
-          break;
-        }
-        
-        if (value) {
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || "";
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.text) {
-                  setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
-                }
-              } catch (e) {
-                console.warn('Failed to parse SSE data:', line, e);
-              }
-            }
-          }
-        }
+      // Parse the streaming response - response.data contains the complete text
+      if (response.data?.text) {
+        setStreamingContent(prev => ({ ...prev, [chapter.id]: response.data.text }));
       }
     } catch (err) {
       console.error('writeChapter error:', err.message);
