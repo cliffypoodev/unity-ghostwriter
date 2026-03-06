@@ -150,10 +150,17 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       story_bible: JSON.stringify(parsed.story_bible),
       story_bible_url: '',
     };
+    
+    console.log('Outline entity methods:', Object.keys(base44.entities.Outline || {}));
+    
     if (existing[0]) {
       await base44.entities.Outline.update(existing[0].id, outlinePayload);
     } else {
-      await base44.entities.Outline.create(outlinePayload);
+      const createMethod = base44.entities.Outline?.create || base44.entities.Outline?.insertOne;
+      if (!createMethod) {
+        throw new Error(`No create method found on Outline entity. Methods: ${JSON.stringify(Object.keys(base44.entities.Outline || {}))}`);
+      }
+      await createMethod.call(base44.entities.Outline, outlinePayload);
     }
 
     // Delete existing chapters and create new ones
