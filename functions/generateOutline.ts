@@ -85,7 +85,7 @@ Return ONLY valid JSON with this exact structure:
 - Tone & Style: ${spec.tone_style || 'not specified'}
 - Detail Level: ${spec.detail_level}
 - Additional Requirements: ${spec.additional_requirements || 'none'}
-${sourceContext}
+${sourceContext}${globalContext}
 
 Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
 
