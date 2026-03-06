@@ -143,10 +143,14 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               // Upload content as a file to avoid entity field size limits
               let contentUrl = null;
               try {
-                const uploadResult = await base44.integrations.Core.UploadFile({ file: fullContent });
+                // Convert string to Blob for UploadFile
+                const blob = new Blob([fullContent], { type: 'text/plain' });
+                const uploadResult = await base44.integrations.Core.UploadFile({ file: blob });
                 contentUrl = uploadResult?.file_url || null;
               } catch (uploadErr) {
                 console.error('Upload error:', uploadErr.message);
+                // Fall back to storing directly if upload fails
+                contentUrl = null;
               }
               console.log('Saving chapter, contentUrl:', contentUrl ? 'got url' : 'no url', 'wordCount:', wordCount, 'contentLength:', fullContent.length);
               await base44.entities.Chapter.update(chapter_id, {
