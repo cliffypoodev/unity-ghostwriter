@@ -38,7 +38,7 @@ function PhaseTabs({ activePhase, setActivePhase, projectStatus }) {
       {PHASES.map((phase, i) => {
         const state = getPhaseState(phase.id);
         return (
-          <React.Fragment key={phase.id}>
+          <div key={phase.id} className="flex items-center gap-0">
             <button
               onClick={() => setActivePhase(phase.id)}
               className={cn(
@@ -63,7 +63,7 @@ function PhaseTabs({ activePhase, setActivePhase, projectStatus }) {
             {i < PHASES.length - 1 && (
               <div className="w-px h-5 bg-slate-200 mx-1" />
             )}
-          </React.Fragment>
+          </div>
         );
       })}
     </div>
