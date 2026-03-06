@@ -66,34 +66,23 @@ Deno.serve(async (req) => {
 
     const userPrompt = `Generate a ${targetChapters}-chapter outline for: ${spec.genre} ${spec.book_type} about "${truncatedTopic.slice(0, 200)}". Target audience: ${spec.target_audience || 'general'}. Tone: ${spec.tone_style || 'standard'}. Return JSON with chapter array only.`;
 
-    // Determine which AI client to use - default to faster mini model for outlines
-    const modelName = appSettings.ai_model || 'gpt-4o-mini';
-    console.log('Using model:', modelName);
+    // Use GPT-4o-mini for fast outline generation
+    console.log('Requesting outline from OpenAI GPT-4o-mini');
     let response;
-
-    if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
-      // OpenAI models
-      response = await openai.chat.completions.create({
-        model: modelName,
-        max_tokens: 6000,
-        temperature: 0.7,
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
-      });
-    } else if (modelName === 'deepseek-chat') {
-      // DeepSeek model (also uses OpenAI client)
-      response = await deepseek.chat.completions.create({
-        model: 'deepseek-chat',
-        max_tokens: 6000,
-        temperature: 0.7,
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
-      });
-    } else {
-      // Claude models (default)
-      response = await anthropic.messages.create({
-        model: modelName,
-        max_tokens: 6000,
-        messages: [{ role: 'user', content: systemPrompt + '\n\n' + userPrompt }],
-      });
+    
+    try {
+      response = await Promise.race([
+        openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          max_tokens: 4000,
+          temperature: 0.7,
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timeout')), 8000))
+      ]);
+    } catch (apiErr) {
+      console.error('AI API error:', apiErr.message);
+      return Response.json({ error: 'AI generation failed: ' + apiErr.message }, { status: 500 });
     }
 
     console.log('AI Response keys:', response ? Object.keys(response) : 'undefined');
