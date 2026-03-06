@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Trash2, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
 import SpecificationTab from "../components/project/SpecificationTab";
-import OutlineTab from "../components/project/OutlineTab";
-import ChaptersTab from "../components/project/ChaptersTab";
+import GenerateTab from "../components/project/GenerateTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
 import { cn } from "@/lib/utils";
