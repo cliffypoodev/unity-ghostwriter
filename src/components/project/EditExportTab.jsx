@@ -781,11 +781,19 @@ export default function EditExportTab({ projectId }) {
               background: ${docSettings.pageBg};
               box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
               border-radius: 4px;
-              padding: ${MARGIN_MAP[docSettings.margins]};
+              padding: ${docSettings.margins || "1in"};
               transform-origin: top center;
               transform: scale(${zoom / 100});
               line-height: ${docSettings.lineSpacing};
+              font-size: ${docSettings.bodyFontSize};
+              font-family: ${FONT_FAMILIES[docSettings.bodyFont] || "Georgia, serif"};
               color: ${docSettings.pageBg === "#1e1e1e" ? "#f1f5f9" : "#1e293b"};
+            }
+            .quill-page-wrapper .ql-editor h1,
+            .quill-page-wrapper .ql-editor h2,
+            .quill-page-wrapper .ql-editor h3,
+            .quill-page-wrapper .ql-editor h4 {
+              font-family: ${FONT_FAMILIES[docSettings.headingFont] || "Georgia, serif"};
             }
             .quill-page-wrapper .ql-editor h1 { font-size: 2em; font-weight: 700; margin-bottom: 0.4em; }
             .quill-page-wrapper .ql-editor h2 { font-size: 1.4em; font-weight: 600; margin-top: 1.8em; margin-bottom: 0.4em; }
