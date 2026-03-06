@@ -32,8 +32,20 @@ Deno.serve(async (req) => {
 
     let outlineData = null;
     let storyBible = null;
-    try { outlineData = outline?.outline_data ? JSON.parse(outline.outline_data) : null; } catch {}
-    try { storyBible = outline?.story_bible ? JSON.parse(outline.story_bible) : null; } catch {}
+
+    // Resolve outline data — prefer inline, fall back to URL
+    let outlineRaw = outline?.outline_data || '';
+    if (!outlineRaw && outline?.outline_url) {
+      try { outlineRaw = await (await fetch(outline.outline_url)).text(); } catch {}
+    }
+    try { outlineData = outlineRaw ? JSON.parse(outlineRaw) : null; } catch {}
+
+    // Resolve story bible — prefer inline, fall back to URL
+    let bibleRaw = outline?.story_bible || '';
+    if (!bibleRaw && outline?.story_bible_url) {
+      try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {}
+    }
+    try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
 
     // Mark as generating
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
