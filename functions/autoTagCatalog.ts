@@ -34,6 +34,9 @@ Deno.serve(async (req) => {
         }
 
         try {
+          const promptText = (prompt.content || prompt.title || '').substring(0, 500);
+          if (!promptText) continue;
+
           const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -46,7 +49,7 @@ Deno.serve(async (req) => {
                 role: 'user',
                 content: `Analyze this book prompt and extract structured metadata. Return ONLY valid JSON (no markdown, no extra text):
 
-PROMPT: "${prompt.content.substring(0, 500)}"
+PROMPT: "${promptText}"
 
 Return JSON with these fields (all required):
 {
