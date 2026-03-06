@@ -12,12 +12,17 @@ Deno.serve(async (req) => {
     const { project_id, chapter_id } = await req.json();
     if (!project_id || !chapter_id) return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
 
-    const [chapters, specs, outlines, sourceFiles] = await Promise.all([
+    const [chapters, specs, outlines, sourceFiles, globalSourceFiles, appSettingsList] = await Promise.all([
       base44.entities.Chapter.filter({ project_id }),
       base44.entities.Specification.filter({ project_id }),
       base44.entities.Outline.filter({ project_id }),
       base44.entities.SourceFile.filter({ project_id }),
+      base44.entities.SourceFile.filter({ project_id: "global" }),
+      base44.entities.AppSettings.list(),
     ]);
+
+    const appSettings = appSettingsList[0] || {};
+    const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
 
     const chapter = chapters.find(c => c.id === chapter_id);
     if (!chapter) return Response.json({ error: 'Chapter not found' }, { status: 404 });
