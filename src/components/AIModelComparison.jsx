@@ -1,12 +1,25 @@
 import React from "react";
 import { Star } from "lucide-react";
 
+const DollarRating = ({ count, max = 5 }) => (
+  <div className="flex gap-0.5">
+    {[...Array(max)].map((_, i) => (
+      <span
+        key={i}
+        className={`text-sm font-semibold ${i < count ? "text-green-600" : "text-slate-300"}`}
+      >
+        $
+      </span>
+    ))}
+  </div>
+);
+
 const AI_MODELS = {
   "claude-opus-4-5": {
     label: "Claude Opus (Most Powerful)",
     proseQuality: 5,
-    tokenCost: 1,
-    verdict: "Elite prose quality but expensive. Best for premium output.",
+    tokenCost: 5,
+    verdict: "Elite prose quality but very expensive. Best for premium output.",
   },
   "claude-sonnet-4-5": {
     label: "Claude Sonnet (Balanced)",
@@ -17,7 +30,7 @@ const AI_MODELS = {
   "claude-haiku-4-5": {
     label: "Claude Haiku (Fastest)",
     proseQuality: 3,
-    tokenCost: 5,
+    tokenCost: 2,
     verdict: "Functional and clear, but lacks emotional nuance.",
   },
   "gpt-4o": {
@@ -35,7 +48,7 @@ const AI_MODELS = {
   "deepseek-chat": {
     label: "DeepSeek Chat (Cost-Effective)",
     proseQuality: 3,
-    tokenCost: 5,
+    tokenCost: 1,
     verdict: "Incredible value. Prose is efficient but often clinical.",
   },
 };
@@ -65,7 +78,7 @@ export default function AIModelComparison({ selectedModel }) {
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-600 mb-1">Token Cost</p>
-            <StarRating count={model.tokenCost} />
+            <DollarRating count={model.tokenCost} />
           </div>
         </div>
         <p className="text-xs text-slate-700 leading-relaxed">{model.verdict}</p>
