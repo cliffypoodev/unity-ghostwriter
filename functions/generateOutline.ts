@@ -20,12 +20,14 @@ Deno.serve(async (req) => {
     const { project_id } = await req.json();
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
+    console.log('Loading entities for project:', project_id);
     const [specs, sourceFiles, globalSourceFiles, appSettingsList] = await Promise.all([
-      base44.entities.Specification.filter({ project_id }),
-      base44.entities.SourceFile.filter({ project_id }),
-      base44.entities.SourceFile.filter({ project_id: "global" }),
-      base44.entities.AppSettings.list(),
+      base44.entities.Specification?.filter({ project_id }) || [],
+      base44.entities.SourceFile?.filter({ project_id }) || [],
+      base44.entities.SourceFile?.filter({ project_id: "global" }) || [],
+      base44.entities.AppSettings?.list() || [],
     ]);
+    console.log('Entities loaded successfully');
 
     const appSettings = appSettingsList[0] || {};
     const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
