@@ -52,6 +52,23 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [authorsData, setAuthorsData] = useState([]);
   const chatBottomRef = useRef(null);
 
+  // Load config data on mount
+  useEffect(() => {
+    const loadConfigs = async () => {
+      try {
+        const [subRes, authRes] = await Promise.all([
+          base44.functions.invoke('configSubgenres', {}),
+          base44.functions.invoke('configAuthors', {}),
+        ]);
+        setSubgenresData(subRes.data || {});
+        setAuthorsData(authRes.data || []);
+      } catch (err) {
+        console.error('Failed to load configs:', err);
+      }
+    };
+    loadConfigs();
+  }, []);
+
   // Load existing spec
   const { data: specs = [] } = useQuery({
     queryKey: ["specification", projectId],
@@ -61,7 +78,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
   useEffect(() => {
     if (spec) {
-      setForm({ ...form, ...spec });
+      setForm(prev => ({ ...prev, ...spec }));
     }
   }, [spec]);
 
