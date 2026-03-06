@@ -110,36 +110,30 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       }
     }
 
-    // Upload outline and story bible as files to avoid entity size limits
+    // Always upload outline and story bible as files to avoid entity field size limits
     const outlineJson = JSON.stringify(parsed.outline);
     const storyBibleJson = JSON.stringify(parsed.story_bible);
 
     const uploadJson = async (content, filename) => {
-      const blob = new Blob([content], { type: 'application/json' });
-      const formData = new FormData();
-      formData.append('file', new File([blob], filename, { type: 'application/json' }));
-      const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: formData.get('file') });
+      const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({
+        file: new File([new Blob([content], { type: 'application/json' })], filename, { type: 'application/json' })
+      });
       return uploadRes.file_url;
     };
 
-    const SIZE_LIMIT = 40000; // stay well under the entity field limit
-    let outlineUrl = null, storyBibleUrl = null;
+    const [outlineUrl, storyBibleUrl] = await Promise.all([
+      uploadJson(outlineJson, `outline_${project_id}.json`),
+      uploadJson(storyBibleJson, `story_bible_${project_id}.json`),
+    ]);
 
-    if (outlineJson.length > SIZE_LIMIT) {
-      outlineUrl = await uploadJson(outlineJson, `outline_${project_id}.json`);
-    }
-    if (storyBibleJson.length > SIZE_LIMIT) {
-      storyBibleUrl = await uploadJson(storyBibleJson, `story_bible_${project_id}.json`);
-    }
-
-    // Save or update outline
+    // Save or update outline — store URLs only, no inline data
     const existing = await base44.entities.Outline.filter({ project_id });
     const outlinePayload = {
       project_id,
-      outline_data: outlineJson.length <= SIZE_LIMIT ? outlineJson : '',
-      outline_url: outlineUrl || '',
-      story_bible: storyBibleJson.length <= SIZE_LIMIT ? storyBibleJson : '',
-      story_bible_url: storyBibleUrl || '',
+      outline_data: '',
+      outline_url: outlineUrl,
+      story_bible: '',
+      story_bible_url: storyBibleUrl,
     };
     if (existing[0]) {
       await base44.entities.Outline.update(existing[0].id, outlinePayload);
