@@ -143,22 +143,14 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               // Upload content as a file to avoid entity field size limits
               let contentUrl = null;
               try {
-                const blob = new Blob([fullContent], { type: 'text/plain' });
-                const form = new FormData();
-                form.append('file', blob, `chapter_${chapter_id}.txt`);
-                const appId = Deno.env.get('BASE44_APP_ID');
-                const uploadResp = await fetch(`https://api.base44.com/api/apps/${appId}/integrations/Core/UploadFile`, {
-                  method: 'POST',
-                  body: form,
-                });
-                const uploadData = await uploadResp.json();
-                contentUrl = uploadData?.file_url || null;
+                const uploadResult = await base44.integrations.Core.UploadFile({ file: fullContent });
+                contentUrl = uploadResult?.file_url || null;
               } catch (uploadErr) {
                 console.error('Upload error:', uploadErr.message);
               }
-              console.log('Saving chapter, contentUrl:', contentUrl ? 'got url' : 'no url, using slice', 'wordCount:', wordCount, 'contentLength:', fullContent.length);
+              console.log('Saving chapter, contentUrl:', contentUrl ? 'got url' : 'no url', 'wordCount:', wordCount, 'contentLength:', fullContent.length);
               await base44.entities.Chapter.update(chapter_id, {
-                content: contentUrl || fullContent.slice(0, 20000),
+                content: contentUrl || fullContent,
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
