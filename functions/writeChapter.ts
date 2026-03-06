@@ -95,8 +95,9 @@ Deno.serve(async (req) => {
     // Helper: call OpenAI with timeout and retry
     async function callOpenAI(messages, maxTokens = 1500, retryCount = 0) {
       try {
+        const timeout = retryCount === 0 ? 12000 : 10000;
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout after 8s')), 8000)
+          setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout)
         );
 
         const fetchPromise = fetch('https://api.openai.com/v1/chat/completions', {
