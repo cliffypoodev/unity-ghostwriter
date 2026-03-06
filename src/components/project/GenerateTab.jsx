@@ -277,15 +277,8 @@ export default function GenerateTab({ projectId, onProceed }) {
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
 
-    const response = await base44.functions.invoke("writeChapter", { project_id: projectId, chapter_id: chapter.id });
-    // The invoke returns the full response; for SSE we need to call the function endpoint directly
-    // Since base44.functions.invoke doesn't support SSE natively, we call it and handle the streamed response
-    // by polling. We'll use fetch directly with the function URL pattern.
-    // Actually, let's use fetch with SSE:
-    const token = (await base44.auth.me())?.token;
-
-    setStreamingChapterId(chapter.id);
-    setStreamingContent(prev => ({ ...prev, [chapter.id]: "" }));
+    const user = await base44.auth.me();
+    const token = user?.token;
 
     const res = await fetch(`/functions/writeChapter`, {
       method: 'POST',
