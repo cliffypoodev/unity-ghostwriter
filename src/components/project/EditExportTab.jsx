@@ -586,6 +586,13 @@ export default function EditExportTab({ projectId }) {
     });
   }, []);
 
+  // Auto-populate bookTitle from project name on first load
+  useEffect(() => {
+    if (project?.name) {
+      setDocSettings(s => s.bookTitle ? s : { ...s, bookTitle: project.name });
+    }
+  }, [project]);
+
   // Load content into Quill when data + Quill are both ready
   useEffect(() => {
     if (!quillReady || !quillRef.current || !project) return;
