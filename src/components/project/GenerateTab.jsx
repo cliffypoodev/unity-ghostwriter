@@ -314,48 +314,35 @@ export default function GenerateTab({ projectId, onProceed }) {
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
 
-    let streamFinished = false;
-    
     try {
       console.log('Starting write for chapter:', chapter.id);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min timeout
-      
-      // Get auth token from base44 SDK
-      const authToken = base44.auth?.getToken?.();
-      
-      const res = await fetch(`https://${window.location.host}/api/functions/writeChapter`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
-        },
-        body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
-        signal: controller.signal,
+      // Use SDK invoke which handles auth automatically
+      const response = await base44.functions.invoke('writeChapter', { 
+        project_id: projectId, 
+        chapter_id: chapter.id 
       });
       
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error('writeChapter response error:', res.status, errText);
+      console.log('writeChapter response:', response.status);
+      
+      if (response.status !== 200) {
+        console.error('writeChapter error:', response.data);
         return;
       }
-
-      if (!res.body) {
-        console.error('writeChapter: no response body');
+      
+      // Parse the streaming response
+      const reader = response.data.getReader?.() || response.data.body?.getReader?.();
+      if (!reader) {
+        console.error('No reader available for streaming');
         return;
       }
-
-      const reader = res.body.getReader();
+      
       const decoder = new TextDecoder();
       let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          streamFinished = true;
           console.log('Stream finished');
           break;
         }
@@ -372,10 +359,6 @@ export default function GenerateTab({ projectId, onProceed }) {
                 if (data.text) {
                   setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
                 }
-                if (data.done || data.error) {
-                  streamFinished = true;
-                  break;
-                }
               } catch (e) {
                 console.warn('Failed to parse SSE data:', line, e);
               }
@@ -386,9 +369,6 @@ export default function GenerateTab({ projectId, onProceed }) {
     } catch (err) {
       console.error('writeChapter error:', err.message);
     } finally {
-      if (!streamFinished) {
-        console.log('Stream did not finish properly, refetching');
-      }
       setStreamingChapterId(null);
       await refetchChapters();
     }
