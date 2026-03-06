@@ -52,98 +52,60 @@ Deno.serve(async (req) => {
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
 
-    // Truncate source files context to prevent token overflow - limit to first 2 files only
-    const sourceContext = allSourceFiles.length > 0
-      ? `\n\nSource files for context:\n${allSourceFiles.slice(0, 2).map(f => {
-          const content = f.content?.length > 500 ? f.content.slice(0, 500) + '...' : f.content;
-          return `--- ${f.filename} (${f.file_type}) ---\n${content}`;
-        }).join('\n\n')}`
-      : '';
+    const truncatedTopic = spec.topic?.length > 500 ? spec.topic.slice(0, 500) : spec.topic;
+    const systemPrompt = `Return ONLY valid JSON: {"chapters":[{"number":int,"title":"str","summary":"str","prompt":"str"}]}`;
 
-    const globalInstructions = [
-      appSettings.global_style_instructions,
-      appSettings.global_content_guidelines,
-    ].filter(Boolean).join('\n\n');
-    const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
+    // Generate outline in chunks
+    console.log(`Generating outline in chunks of ${CHUNK_SIZE} chapters (total: ${targetChapters})`);
+    const allChapters = [];
 
-    const systemPrompt = `Return ONLY valid JSON. No markdown or explanation. Required structure:
-{"outline":{"chapters":[{"number":1,"title":"string","summary":"string","prompt":"string"}]}}`;
+    for (let chunkStart = 1; chunkStart <= targetChapters; chunkStart += CHUNK_SIZE) {
+      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
+      const chunkCount = chunkEnd - chunkStart + 1;
 
-    // Truncate topic to avoid exceeding token limits
-    const truncatedTopic = spec.topic?.length > 3000 ? spec.topic.slice(0, 3000) + '...' : spec.topic;
+      console.log(`Generating chapters ${chunkStart}-${chunkEnd}...`);
 
-    const userPrompt = `Generate a ${targetChapters}-chapter outline for: ${spec.genre} ${spec.book_type} about "${truncatedTopic.slice(0, 200)}". Target audience: ${spec.target_audience || 'general'}. Tone: ${spec.tone_style || 'standard'}. Return JSON with chapter array only.`;
+      const chunkPrompt = `Generate chapters ${chunkStart}-${chunkEnd} (${chunkCount} chapters) for a ${targetChapters}-chapter ${spec.genre} ${spec.book_type} about "${truncatedTopic}". Audience: ${spec.target_audience || 'general'}. Tone: ${spec.tone_style || 'standard'}. Return ONLY JSON array.`;
 
-    // Use GPT-4o-mini for fast outline generation
-    console.log('Requesting outline from OpenAI GPT-4o-mini');
-    let response;
-    
-    try {
-      response = await Promise.race([
-        openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          max_tokens: 4000,
-          temperature: 0.7,
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timeout')), 8000))
-      ]);
-    } catch (apiErr) {
-      console.error('AI API error:', apiErr.message);
-      return Response.json({ error: 'AI generation failed: ' + apiErr.message }, { status: 500 });
-    }
-
-    console.log('AI Response keys:', response ? Object.keys(response) : 'undefined');
-    console.log('AI Response (first 500):', JSON.stringify(response).slice(0, 500));
-    
-    let text;
-    if (!response) {
-      return Response.json({ error: 'No response from AI' }, { status: 500 });
-    }
-    
-    if (response.choices) {
-      // OpenAI format
-      text = response.choices[0]?.message?.content;
-    } else if (response.content) {
-      // Anthropic format
-      text = response.content[0]?.text;
-    } else {
-      return Response.json({ error: 'Unexpected AI response format', keys: Object.keys(response) }, { status: 500 });
-    }
-    
-    if (!text) {
-      return Response.json({ error: 'No text in AI response', response }, { status: 500 });
-    }
-
-    // Strip markdown code fences if present
-    const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-
-    // Return raw AI text for debugging if parse fails
-    let parsed = null;
-    const start = cleanText.indexOf('{');
-    if (start === -1) return Response.json({ error: 'No JSON found in response', raw: cleanText.slice(0, 500) }, { status: 500 });
-
-    let depth = 0;
-    let end = -1;
-    for (let i = start; i < cleanText.length; i++) {
-      if (cleanText[i] === '{') depth++;
-      else if (cleanText[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
-    }
-    if (end === -1) return Response.json({ error: 'Malformed JSON in response', raw: cleanText.slice(0, 500) }, { status: 500 });
-
-    try {
-      parsed = JSON.parse(cleanText.slice(start, end + 1));
-    } catch (parseErr) {
-      // Try to fix common issues: trailing commas before ] or }
-      const cleaned = cleanText.slice(start, end + 1)
-        .replace(/,\s*\]/g, ']')
-        .replace(/,\s*\}/g, '}');
       try {
-        parsed = JSON.parse(cleaned);
-      } catch (e2) {
-        return Response.json({ error: 'JSON parse failed: ' + e2.message, raw: cleanText.slice(0, 1000) }, { status: 500 });
+        const response = await retryWithBackoff(async () => {
+          return await Promise.race([
+            openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              max_tokens: 2000,
+              temperature: 0.7,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: chunkPrompt }
+              ],
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('chunk timeout')), 6000))
+          ]);
+        });
+
+        if (!response?.choices?.[0]?.message?.content) {
+          throw new Error('No content in response');
+        }
+
+        const text = response.choices[0].message.content;
+        const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+        
+        // Parse JSON array
+        const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('No JSON array found');
+        
+        const chapters = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(chapters)) throw new Error('Not an array');
+        
+        allChapters.push(...chapters);
+        console.log(`✓ Chunk ${chunkStart}-${chunkEnd} complete (${chapters.length} chapters)`);
+      } catch (err) {
+        console.error(`✗ Chunk ${chunkStart}-${chunkEnd} failed:`, err.message);
+        return Response.json({ error: `Chunk generation failed (chapters ${chunkStart}-${chunkEnd}): ${err.message}` }, { status: 500 });
       }
     }
+
+    const parsed = { outline: { chapters: allChapters } };
 
     // Save or update outline — store data inline
     console.log('Available entities:', Object.keys(base44.entities || {}));
