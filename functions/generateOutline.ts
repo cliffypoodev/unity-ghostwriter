@@ -1,15 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import Anthropic from 'npm:@anthropic-ai/sdk';
 import OpenAI from 'npm:openai';
 
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
 const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-const deepseek = new OpenAI({ 
-  apiKey: Deno.env.get("DEEPSEEK_API_KEY"),
-  baseURL: 'https://api.deepseek.com'
-});
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
+const CHUNK_SIZE = 5; // Generate 5 chapters at a time
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
+
+async function retryWithBackoff(fn, retries = MAX_RETRIES) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(r => setTimeout(r, RETRY_DELAYS[i]));
+    }
+  }
+}
 
 Deno.serve(async (req) => {
   try {
