@@ -90,7 +90,7 @@ ${sourceContext}
 Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: appSettings.ai_model || 'claude-opus-4-5',
       max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
