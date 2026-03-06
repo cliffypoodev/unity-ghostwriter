@@ -133,6 +133,17 @@ function StoryBibleCard({ storyBible }) {
 
 // ── Chapter item ──────────────────────────────────────────────────────────────
 
+function useResolvedContent(rawContent) {
+  const isUrl = rawContent && (rawContent.startsWith('http://') || rawContent.startsWith('https://'));
+  const { data: fetched } = useQuery({
+    queryKey: ["chapter_content", rawContent],
+    enabled: !!isUrl,
+    queryFn: () => fetch(rawContent).then(r => r.text()),
+    staleTime: Infinity,
+  });
+  return isUrl ? (fetched || "") : (rawContent || "");
+}
+
 function ChapterItem({ chapter, onWrite, streamingContent, isStreaming }) {
   const [expanded, setExpanded] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
@@ -140,7 +151,8 @@ function ChapterItem({ chapter, onWrite, streamingContent, isStreaming }) {
   const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
 
-  const content = isStreaming ? streamingContent : (chapter.content || "");
+  const resolvedContent = useResolvedContent(chapter.content);
+  const content = isStreaming ? streamingContent : resolvedContent;
   const status = isStreaming ? "generating" : chapter.status;
   const sc = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
