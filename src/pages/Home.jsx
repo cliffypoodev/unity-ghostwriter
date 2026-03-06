@@ -105,7 +105,10 @@ export default function Home() {
           <h2 className="text-xl font-semibold text-slate-800 mb-2">No projects yet</h2>
           <p className="text-slate-500 mb-6 max-w-sm">Start your first book project and bring your ideas to life with AI-powered generation.</p>
           <Button
-            onClick={() => createMutation.mutate()}
+            onClick={() => {
+              window.scrollTo(0, 0);
+              createMutation.mutate();
+            }}
             disabled={createMutation.isPending}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
