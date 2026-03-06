@@ -380,6 +380,31 @@ export default function GenerateTab({ projectId, onProceed }) {
     }
   };
 
+  const handleWriteAllChapters = async () => {
+    setWriteAllModalOpen(true);
+    setCurrentWritingChapter(0);
+    setWriteAllComplete(false);
+    setWriteAllResults([]);
+    setWriteAllTotalTime(0);
+
+    try {
+      const response = await base44.functions.invoke('writeAllChapters', {
+        projectId,
+      });
+
+      if (response.data?.success) {
+        setWriteAllResults(response.data.results || []);
+        setCurrentWritingChapter(response.data.totalChapters);
+        setWriteAllTotalTime(response.data.totalTimeSeconds || 0);
+        setWriteAllComplete(true);
+        await refetchChapters();
+      }
+    } catch (err) {
+      console.error('writeAllChapters error:', err.message);
+      setWriteAllComplete(true);
+    }
+  };
+
   // ── Empty state ──
   if (!hasOutline && !generating) {
     return (
