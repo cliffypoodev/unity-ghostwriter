@@ -113,10 +113,27 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       });
     }
 
-    console.log('AI Response:', JSON.stringify(response).slice(0, 500));
-    const text = modelName.startsWith('gpt-') || modelName === 'gpt-4o' 
-      ? response.choices[0].message.content 
-      : response.content[0].text;
+    console.log('AI Response keys:', response ? Object.keys(response) : 'undefined');
+    console.log('AI Response (first 500):', JSON.stringify(response).slice(0, 500));
+    
+    let text;
+    if (!response) {
+      return Response.json({ error: 'No response from AI', model: modelName }, { status: 500 });
+    }
+    
+    if (response.choices) {
+      // OpenAI format
+      text = response.choices[0]?.message?.content;
+    } else if (response.content) {
+      // Anthropic format
+      text = response.content[0]?.text;
+    } else {
+      return Response.json({ error: 'Unexpected AI response format', keys: Object.keys(response) }, { status: 500 });
+    }
+    
+    if (!text) {
+      return Response.json({ error: 'No text in AI response', response }, { status: 500 });
+    }
 
     // Strip markdown code fences if present
     const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
