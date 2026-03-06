@@ -663,11 +663,9 @@ export default function GenerateTab({ projectId, onProceed }) {
       {/* Write All Chapters Modal */}
       <WriteAllChaptersModal
         isOpen={writeAllModalOpen}
-        totalChapters={totalCount}
-        currentChapter={currentWritingChapter}
-        isComplete={writeAllComplete}
-        results={writeAllResults}
-        totalTimeSeconds={writeAllTotalTime}
+        onClose={() => setWriteAllModalOpen(false)}
+        progress={writeAllProgress}
+        onStop={stopWriteAll}
       />
     </div>
   );
