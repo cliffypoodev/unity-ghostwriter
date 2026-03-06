@@ -129,63 +129,48 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
 
     let fullContent = '';
 
-    const readable = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        try {
-          for await (const event of stream) {
-            if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-              const text = event.delta.text;
-              fullContent += text;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-            } else if (event.type === 'message_stop') {
-              const wordCount = fullContent.trim().split(/\s+/).length;
-              console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
+    try {
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          const text = event.delta.text;
+          fullContent += text;
+        } else if (event.type === 'message_stop') {
+          const wordCount = fullContent.trim().split(/\s+/).length;
+          console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
 
-              // Store content - either as entity content or file URL depending on size
-              let contentValue = fullContent;
-              if (fullContent.length > 50000) {
-                // For very large content, attempt to use file storage
-                try {
-                  // Upload using the public file storage
-                  const uploadResult = await base44.integrations.Core.UploadFile({
-                    file: fullContent
-                  });
-                  if (uploadResult?.file_url) {
-                    contentValue = uploadResult.file_url;
-                  }
-                } catch (uploadErr) {
-                  console.warn('File upload failed, storing content directly:', uploadErr.message);
-                }
-              }
-
-              await base44.entities.Chapter.update(chapter_id, {
-                content: contentValue,
-                status: 'generated',
-                word_count: wordCount,
-                generated_at: new Date().toISOString(),
+          // Store content - either as entity content or file URL depending on size
+          let contentValue = fullContent;
+          if (fullContent.length > 50000) {
+            // For very large content, attempt to use file storage
+            try {
+              // Upload using the public file storage
+              const uploadResult = await base44.integrations.Core.UploadFile({
+                file: fullContent
               });
-              console.log('Chapter saved successfully');
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, word_count: wordCount })}\n\n`));
-              controller.close();
+              if (uploadResult?.file_url) {
+                contentValue = uploadResult.file_url;
+              }
+            } catch (uploadErr) {
+              console.warn('File upload failed, storing content directly:', uploadErr.message);
             }
           }
-        } catch (err) {
-          console.error('Stream error:', err.message);
-          await base44.entities.Chapter.update(chapter_id, { status: 'error' });
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));
-          controller.close();
+
+          await base44.entities.Chapter.update(chapter_id, {
+            content: contentValue,
+            status: 'generated',
+            word_count: wordCount,
+            generated_at: new Date().toISOString(),
+          });
+          console.log('Chapter saved successfully');
         }
       }
-    });
+    } catch (err) {
+      console.error('Stream error:', err.message);
+      await base44.entities.Chapter.update(chapter_id, { status: 'error' });
+      return Response.json({ error: err.message }, { status: 500 });
+    }
 
-    return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    return Response.json({ text: fullContent, success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
