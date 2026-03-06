@@ -52,3 +52,220 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(240 4.8% 70%);
 }
+
+/* Mobile Mode Styles */
+.mobile {
+  --mobile: true;
+}
+
+.mobile main {
+  @apply px-2 sm:px-3;
+}
+
+.mobile .max-w-\[1200px\] {
+  @apply max-w-full;
+}
+
+/* Grid & Layout */
+.mobile .grid-cols-2,
+.mobile .grid-cols-3,
+.mobile .grid-cols-4 {
+  @apply grid-cols-1;
+}
+
+.mobile .md\:grid-cols-2,
+.mobile .md\:grid-cols-3 {
+  @apply grid-cols-1;
+}
+
+.mobile .flex-row,
+.mobile .flex-col {
+  @apply flex-col;
+}
+
+.mobile .md\:flex-row {
+  @apply flex-col;
+}
+
+.mobile .gap-6 {
+  @apply gap-3;
+}
+
+.mobile .gap-4 {
+  @apply gap-2;
+}
+
+.mobile .gap-8 {
+  @apply gap-3;
+}
+
+/* Typography */
+.mobile h1 {
+  @apply text-xl;
+}
+
+.mobile h2 {
+  @apply text-lg;
+}
+
+.mobile h3 {
+  @apply text-base;
+}
+
+.mobile .text-3xl {
+  @apply text-2xl;
+}
+
+.mobile .text-2xl {
+  @apply text-xl;
+}
+
+.mobile .text-lg {
+  @apply text-base;
+}
+
+/* Padding & Spacing */
+.mobile .p-6 {
+  @apply p-3;
+}
+
+.mobile .p-8 {
+  @apply p-4;
+}
+
+.mobile .px-6 {
+  @apply px-3;
+}
+
+.mobile .py-6 {
+  @apply py-3;
+}
+
+.mobile .px-8 {
+  @apply px-4;
+}
+
+.mobile .py-8 {
+  @apply py-4;
+}
+
+/* Cards */
+.mobile .rounded-lg {
+  @apply rounded-md;
+}
+
+/* Buttons */
+.mobile button {
+  @apply min-h-10;
+}
+
+.mobile [role="button"] {
+  @apply min-h-10;
+}
+
+.mobile .h-9 {
+  @apply h-10;
+}
+
+.mobile .px-4 {
+  @apply px-3;
+}
+
+.mobile .py-2 {
+  @apply py-3;
+}
+
+/* Full-width primary buttons */
+.mobile button:not([variant="ghost"]):not([variant="outline"]) {
+  @apply w-full;
+}
+
+/* Inputs */
+.mobile input,
+.mobile textarea,
+.mobile select {
+  @apply text-base min-h-10;
+}
+
+/* Modals */
+.mobile [role="dialog"] {
+  @apply w-[calc(100%-16px)] max-w-full mx-2;
+}
+
+/* Tables - horizontal scroll */
+.mobile .overflow-x-auto {
+  @apply overflow-x-auto overflow-y-hidden;
+}
+
+.mobile table {
+  @apply text-sm;
+}
+
+.mobile th,
+.mobile td {
+  @apply px-2 py-2;
+}
+
+/* Lists & Items */
+.mobile .flex-between,
+.mobile .flex.items-center.justify-between {
+  @apply flex-col gap-2;
+}
+
+.mobile [role="listitem"],
+.mobile .space-y-4 {
+  @apply space-y-2;
+}
+
+/* Navigation */
+.mobile nav {
+  @apply gap-1;
+}
+
+.mobile nav button,
+.mobile nav a {
+  @apply text-xs px-2 py-1;
+}
+
+/* Tabs */
+.mobile [role="tablist"] {
+  @apply gap-1;
+}
+
+.mobile [role="tab"] {
+  @apply px-2 py-1 text-sm;
+}
+
+/* Sidebar/Side panels */
+.mobile .sidebar,
+.mobile [class*="sidebar"] {
+  @apply w-full mb-4;
+}
+
+.mobile .flex.gap-6 > [class*="sidebar"],
+.mobile .flex.gap-6 > aside {
+  @apply w-full;
+}
+
+/* Dropdowns and Selects */
+.mobile [class*="dropdown"],
+.mobile [class*="popover"] {
+  @apply w-full;
+}
+
+/* Empty states and alerts */
+.mobile .text-center {
+  @apply mx-auto max-w-xs;
+}
+
+/* Toast notifications */
+.mobile [class*="toast"],
+.mobile [class*="sonner"] {
+  @apply fixed bottom-0 left-0 right-0 mx-0 rounded-b-none w-full;
+}
+
+/* Scrollable areas */
+.mobile [class*="scroll"],
+.mobile [class*="overflow"] {
+  @apply max-h-[70vh];
+}
