@@ -157,7 +157,10 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl("Home"))} className="h-9 w-9">
+          <Button variant="ghost" size="icon" onClick={() => {
+            window.scrollTo(0, 0);
+            navigate(createPageUrl("Home"));
+          }} className="h-9 w-9">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
