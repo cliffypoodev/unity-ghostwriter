@@ -663,8 +663,6 @@ export default function EditExportTab({ projectId }) {
     setPlainText(quillRef.current.getText());
   }, [docSettings.showToc]);
 
-  // No longer need a hard-coded MARGIN_MAP — margins come from docSettings.margins directly
-
   const handleCopyAll = () => {
     if (!quillRef.current) return;
     navigator.clipboard.writeText(quillRef.current.getText());
