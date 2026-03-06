@@ -64,7 +64,10 @@ export default function Home() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate(createPageUrl("Settings"))}
+            onClick={() => {
+              window.scrollTo(0, 0);
+              navigate(createPageUrl("Settings"));
+            }}
             className="h-9 w-9"
             title="Settings"
           >
