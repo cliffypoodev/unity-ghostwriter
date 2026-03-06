@@ -5,8 +5,17 @@ const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    let base44;
+    let user;
+    
+    try {
+      base44 = createClientFromRequest(req);
+      user = await base44.auth.me();
+    } catch (authErr) {
+      console.error('Auth error:', authErr.message);
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { project_id, chapter_id } = await req.json();
