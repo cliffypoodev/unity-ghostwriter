@@ -435,28 +435,134 @@ export default function GenerateTab({ projectId, onProceed }) {
   };
 
   const handleWriteAllChapters = async () => {
-    setWriteAllModalOpen(true);
-    setCurrentWritingChapter(0);
-    setWriteAllComplete(false);
-    setWriteAllResults([]);
-    setWriteAllTotalTime(0);
-
-    try {
-      const response = await base44.functions.invoke('writeAllChapters', {
-        projectId,
-      });
-
-      if (response.data?.success) {
-        setWriteAllResults(response.data.results || []);
-        setCurrentWritingChapter(response.data.totalChapters);
-        setWriteAllTotalTime(response.data.totalTimeSeconds || 0);
-        setWriteAllComplete(true);
-        await refetchChapters();
-      }
-    } catch (err) {
-      console.error('writeAllChapters error:', err.message);
-      setWriteAllComplete(true);
+    // Filter chapters that don't have content yet (not generated)
+    const toWrite = chapters.filter(c => c.status !== 'generated');
+    
+    if (toWrite.length === 0) {
+      alert("All chapters are already written!");
+      return;
     }
+
+    writeAllAbortRef.current = false;
+    setWriteAllActive(true);
+    setWriteAllModalOpen(true);
+    setGenerating(true);
+    
+    const startTime = Date.now();
+    setWriteAllProgress({
+      current: 0,
+      total: toWrite.length,
+      currentTitle: toWrite[0]?.title || "",
+      successes: 0,
+      failures: [],
+      startTime,
+      done: false,
+      elapsed: "",
+    });
+
+    let successes = 0;
+    const failures = [];
+
+    // SEQUENTIAL: Each chapter must finish before next one starts
+    for (let i = 0; i < toWrite.length; i++) {
+      if (writeAllAbortRef.current) break;
+
+      const chapter = toWrite[i];
+      
+      setWriteAllProgress(prev => ({
+        ...prev,
+        current: i + 1,
+        currentTitle: chapter.title,
+        successes,
+        failures: [...failures],
+      }));
+
+      try {
+        // Update status to generating
+        await base44.entities.Chapter.update(chapter.id, { status: 'generating' });
+
+        // Call writeChapter and await completion
+        const response = await base44.functions.invoke('writeChapter', {
+          project_id: projectId,
+          chapter_id: chapter.id,
+        });
+
+        if (response.status === 200) {
+          // Poll for chapter completion
+          let pollCount = 0;
+          let isComplete = false;
+          
+          while (!isComplete && pollCount < 150) { // 5 min timeout (2s * 150)
+            if (writeAllAbortRef.current) break;
+            
+            try {
+              const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+              const updatedChapter = updated.find(c => c.id === chapter.id);
+              
+              if (updatedChapter?.status === 'generated') {
+                successes++;
+                isComplete = true;
+              } else if (updatedChapter?.status === 'error') {
+                failures.push({
+                  number: chapter.chapter_number,
+                  title: chapter.title,
+                  error: 'Generation failed',
+                });
+                isComplete = true;
+              }
+            } catch (e) {
+              console.warn('Poll error:', e);
+            }
+            
+            if (!isComplete) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              pollCount++;
+            }
+          }
+
+          if (!isComplete) {
+            failures.push({
+              number: chapter.chapter_number,
+              title: chapter.title,
+              error: 'Generation timeout',
+            });
+          }
+        } else {
+          failures.push({
+            number: chapter.chapter_number,
+            title: chapter.title,
+            error: `Request failed: ${response.status}`,
+          });
+        }
+      } catch (err) {
+        failures.push({
+          number: chapter.chapter_number,
+          title: chapter.title,
+          error: err.message || 'Unknown error',
+        });
+      }
+    }
+
+    const elapsed = Date.now() - startTime;
+    const mins = Math.floor(elapsed / 60000);
+    const secs = Math.floor((elapsed % 60000) / 1000);
+
+    setWriteAllProgress(prev => ({
+      ...prev,
+      current: toWrite.length,
+      successes,
+      failures,
+      done: true,
+      elapsed: `${mins}m ${secs}s`,
+    }));
+
+    setWriteAllActive(false);
+    setGenerating(false);
+    await refetchChapters();
+  };
+
+  const stopWriteAll = () => {
+    writeAllAbortRef.current = true;
   };
 
   // ── Empty state ──
