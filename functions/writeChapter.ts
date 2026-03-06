@@ -38,9 +38,15 @@ Deno.serve(async (req) => {
     // Mark as generating
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
 
-    const sourceContext = sourceFiles.length > 0
-      ? `\n\nSource files:\n${sourceFiles.map(f => `--- ${f.filename} ---\n${f.content}`).join('\n\n')}`
+    const sourceContext = allSourceFiles.length > 0
+      ? `\n\nSource files:\n${allSourceFiles.map(f => `--- ${f.filename} (${f.file_type}) ---\n${f.content}`).join('\n\n')}`
       : '';
+
+    const globalInstructions = [
+      appSettings.global_style_instructions,
+      appSettings.global_content_guidelines,
+    ].filter(Boolean).join('\n\n');
+    const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
 
     const bibleContext = storyBible
       ? `\n\nStory Bible:\n- World: ${storyBible.world || ''}\n- Tone/Voice: ${storyBible.tone_voice || ''}\n- Style Guidelines: ${storyBible.style_guidelines || ''}\n- Rules: ${storyBible.rules || ''}`
