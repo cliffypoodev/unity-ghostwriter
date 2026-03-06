@@ -151,6 +151,7 @@ function ChapterItem({ chapter, onWrite, streamingContent, isStreaming }) {
   const [promptValue, setPromptValue] = useState(chapter.prompt || "");
   const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
+  const ref = React.useRef(null);
 
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
