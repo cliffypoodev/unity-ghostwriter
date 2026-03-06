@@ -526,6 +526,7 @@ export default function GenerateTab({ projectId, onProceed }) {
               onWrite={handleWriteChapter}
               streamingContent={streamingContent[chapter.id] || ""}
               isStreaming={streamingChapterId === chapter.id}
+              chapterProgress={chapterProgress[chapter.id] || null}
             />
           ))}
         </div>
