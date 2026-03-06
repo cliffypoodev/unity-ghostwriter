@@ -184,6 +184,8 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
 
     return Response.json({ success: true, chapter_count: chapters.length, outline: parsed });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('generateOutline error:', error);
+    console.error('Stack:', error.stack);
+    return Response.json({ error: error.message, stack: error.stack?.split('\n').slice(0, 5) }, { status: 500 });
   }
 });
