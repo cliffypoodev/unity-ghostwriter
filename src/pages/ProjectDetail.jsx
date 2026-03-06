@@ -210,18 +210,7 @@ export default function ProjectDetail() {
           <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
         )}
         {activePhase === "export" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-base font-semibold text-slate-800 mb-4">Conversation</h3>
-                <ConversationTab projectId={projectId} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-slate-800 mb-4">Source Files</h3>
-                <SourceFilesTab projectId={projectId} />
-              </div>
-            </div>
-          </div>
+          <EditExportTab projectId={projectId} />
         )}
       </div>
     </div>
