@@ -14,6 +14,7 @@ import SpecificationTab from "../components/project/SpecificationTab";
 import GenerateTab from "../components/project/GenerateTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
+import EditExportTab from "../components/project/EditExportTab";
 import { cn } from "@/lib/utils";
 
 const PHASES = [
