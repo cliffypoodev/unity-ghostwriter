@@ -35,16 +35,21 @@ export default function SpecificationTab({ projectId, onProceed }) {
     project_id: projectId,
     book_type: "fiction",
     genre: "",
+    subgenre: "",
     topic: "",
     target_length: "medium",
     chapter_count: "",
     detail_level: "moderate",
     target_audience: "",
     tone_style: "",
+    author_voice: "basic",
     additional_requirements: "",
   });
   const [chatInput, setChatInput] = useState("");
   const [isChatting, setIsChatting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [subgenresData, setSubgenresData] = useState({});
+  const [authorsData, setAuthorsData] = useState([]);
   const chatBottomRef = useRef(null);
 
   // Load existing spec
