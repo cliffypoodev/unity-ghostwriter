@@ -576,6 +576,12 @@ export default function EditExportTab({ projectId }) {
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setFullscreen(f => !f)}>
           {fullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
         </Button>
+
+        {autoSaved && (
+          <span className="ml-2 text-xs text-emerald-600 flex items-center gap-1 animate-pulse">
+            <Check className="w-3.5 h-3.5" /> Auto-saved
+          </span>
+        )}
       </div>
 
       {/* Find Bar */}
