@@ -582,6 +582,7 @@ export default function EditExportTab({ projectId }) {
   });
 
   const spec = specs[0];
+  // projectId comes from props
 
   // Load Quill
   useEffect(() => {
