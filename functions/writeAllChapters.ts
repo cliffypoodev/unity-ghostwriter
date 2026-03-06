@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     for (let i = startIndex; i < chapters.length; i++) {
       const chapter = chapters[i];
-      const chapterNum = i + 1;
+      const chapterNum = chapter.chapter_number;
 
       // Update chapter status to "generating"
       await base44.entities.Chapter.update(chapter.id, { status: 'generating' });
