@@ -64,18 +64,7 @@ Deno.serve(async (req) => {
     // Truncate topic to avoid exceeding token limits
     const truncatedTopic = spec.topic?.length > 3000 ? spec.topic.slice(0, 3000) + '...' : spec.topic;
 
-    const userPrompt = `Generate a ${targetChapters}-chapter outline for this book:
-- Type: ${spec.book_type}
-- Genre: ${spec.genre}
-- Topic/Premise: ${truncatedTopic}
-- Target Length: ${spec.target_length} (${chapterRange.min}-${chapterRange.max} chapters)
-- Target Audience: ${spec.target_audience || 'general'}
-- Tone & Style: ${spec.tone_style || 'not specified'}
-- Detail Level: ${spec.detail_level}
-- Additional Requirements: ${spec.additional_requirements || 'none'}
-${sourceContext}${globalContext}
-
-Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
+    const userPrompt = `Generate a ${targetChapters}-chapter outline for: ${spec.genre} ${spec.book_type} about "${truncatedTopic.slice(0, 200)}". Target audience: ${spec.target_audience || 'general'}. Tone: ${spec.tone_style || 'standard'}. Return JSON with chapter array only.`;
 
     // Determine which AI client to use - default to faster mini model for outlines
     const modelName = appSettings.ai_model || 'gpt-4o-mini';
