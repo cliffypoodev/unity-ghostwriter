@@ -252,7 +252,28 @@ export default function GenerateTab({ projectId, onProceed }) {
   });
 
   const outline = outlines[0];
-  const hasOutline = !!outline?.outline_data;
+  const hasOutline = !!(outline?.outline_data || outline?.outline_url);
+
+  // Fetch outline/story_bible from URL if inline data is empty
+  const { data: outlineData } = useQuery({
+    queryKey: ["outline_data", outline?.id],
+    enabled: !!outline?.outline_url && !outline?.outline_data,
+    queryFn: async () => {
+      const res = await fetch(outline.outline_url);
+      return res.text();
+    },
+  });
+  const { data: storyBibleData } = useQuery({
+    queryKey: ["story_bible_data", outline?.id],
+    enabled: !!outline?.story_bible_url && !outline?.story_bible,
+    queryFn: async () => {
+      const res = await fetch(outline.story_bible_url);
+      return res.text();
+    },
+  });
+
+  const resolvedOutlineData = outline?.outline_data || outlineData;
+  const resolvedStoryBible = outline?.story_bible || storyBibleData;
 
   const generatedCount = chapters.filter(c => c.status === "generated").length;
   const totalCount = chapters.length;
