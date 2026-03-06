@@ -494,27 +494,28 @@ function exportHtml(quill, ds) {
   download(blob, `${ds.bookTitle || "book"}.html`);
 }
 
-// Server-side TXT export
+// Server-side TXT export (opens in new tab)
 async function exportTxt(projectId, ds) {
-  const resp = await base44.functions.invoke("exportProject", { projectId, format: "txt" });
+  const { base44: sdk } = await import("@/api/base44Client");
+  const resp = await sdk.functions.invoke("exportProject", { projectId, format: "txt" });
   const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
   const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  window.open(URL.createObjectURL(blob), "_blank");
 }
 
-// Server-side Markdown export
+// Server-side Markdown export (opens in new tab)
 async function exportMd(projectId, ds) {
-  const resp = await base44.functions.invoke("exportProject", { projectId, format: "md" });
+  const { base44: sdk } = await import("@/api/base44Client");
+  const resp = await sdk.functions.invoke("exportProject", { projectId, format: "md" });
   const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
   const blob = new Blob([text], { type: "text/markdown" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  window.open(URL.createObjectURL(blob), "_blank");
 }
 
 // Server-side DOCX export
 async function exportDocx(projectId, quill, ds) {
-  const resp = await base44.functions.invoke("exportProject", {
+  const { base44: sdk } = await import("@/api/base44Client");
+  const resp = await sdk.functions.invoke("exportProject", {
     projectId,
     format: "docx",
     html: quill.root.innerHTML,
