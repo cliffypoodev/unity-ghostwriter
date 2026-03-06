@@ -280,9 +280,9 @@ export default function GenerateTab({ projectId, onProceed }) {
     const user = await base44.auth.me();
     const token = user?.token;
 
-    const res = await fetch(`/functions/writeChapter`, {
+    const res = await fetch(`/api/functions/writeChapter`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-token': token || '' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || ''}` },
       body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
     });
 
