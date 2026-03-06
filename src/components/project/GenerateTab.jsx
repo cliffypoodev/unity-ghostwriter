@@ -258,6 +258,7 @@ function ChapterItem({ chapter, onWrite, streamingContent, isStreaming }) {
 export default function GenerateTab({ projectId, onProceed }) {
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
   const [streamingChapterId, setStreamingChapterId] = useState(null);
   const [streamingContent, setStreamingContent] = useState({});
   const [writeAllModalOpen, setWriteAllModalOpen] = useState(false);
