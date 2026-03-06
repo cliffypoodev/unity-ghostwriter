@@ -314,41 +314,53 @@ export default function GenerateTab({ projectId, onProceed }) {
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
 
-    // Use fetch with credentials for SSE streaming (SDK invoke() doesn't support streaming)
-    const res = await fetch(`/api/functions/writeChapter`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
-    });
+    try {
+      // Use fetch with credentials for SSE streaming (SDK invoke() doesn't support streaming)
+      const res = await fetch(`/api/functions/writeChapter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
+      });
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+      if (!res.ok || !res.body) {
+        console.error('writeChapter response error:', res.status);
+        setStreamingChapterId(null);
+        await refetchChapters();
+        return;
+      }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.text) {
-              setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
-            }
-            if (data.done || data.error) {
-              setStreamingChapterId(null);
-              await refetchChapters();
-            }
-          } catch {}
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.text) {
+                setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
+              }
+              if (data.done || data.error) {
+                setStreamingChapterId(null);
+                await refetchChapters();
+              }
+            } catch {}
+          }
         }
       }
+    } catch (err) {
+      console.error('writeChapter stream error:', err);
+    } finally {
+      setStreamingChapterId(null);
+      await refetchChapters();
     }
-    setStreamingChapterId(null);
-    await refetchChapters();
   };
 
   // ── Empty state ──
