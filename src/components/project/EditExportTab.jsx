@@ -398,7 +398,7 @@ function StatusBar({ text }) {
 
 // ── Build HTML from project data ──────────────────────────────────────────────
 
-function buildHtml(project, spec, chapters, showToc) {
+async function buildHtml(project, spec, chapters, showToc) {
   const title = project?.name || "Untitled";
   const sortedChapters = [...chapters].sort((a, b) => a.chapter_number - b.chapter_number);
 
@@ -416,16 +416,28 @@ function buildHtml(project, spec, chapters, showToc) {
     html += `</ol>\n<hr/>\n`;
   }
 
-  sortedChapters.forEach((ch, idx) => {
+  for (let idx = 0; idx < sortedChapters.length; idx++) {
+    const ch = sortedChapters[idx];
     if (idx > 0) html += `<div style="page-break-before: always;"></div>\n`;
     html += `<h2>Chapter ${ch.chapter_number}: ${ch.title}</h2>\n`;
     if (ch.content) {
-      const paragraphs = ch.content.split(/\n\n+/).filter(p => p.trim());
+      let contentText = ch.content;
+      // If content is a URL, fetch it
+      if (ch.content.startsWith('http')) {
+        try {
+          const resp = await fetch(ch.content);
+          contentText = await resp.text();
+        } catch (err) {
+          console.error('Error fetching chapter content:', err);
+          contentText = '';
+        }
+      }
+      const paragraphs = contentText.split(/\n\n+/).filter(p => p.trim());
       paragraphs.forEach(p => { html += `<p>${p.replace(/\n/g, " ").trim()}</p>\n`; });
     } else {
       html += `<p><em>[Chapter not yet written]</em></p>\n`;
     }
-  });
+  }
 
   return html;
 }
