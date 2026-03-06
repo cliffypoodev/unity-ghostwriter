@@ -5,19 +5,72 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Trash2, Loader2, FileText, Map, BookOpenText, MessageSquare, File, Pencil, Check, X } from "lucide-react";
-import StatusBadge from "../components/StatusBadge";
+import { ArrowLeft, Trash2, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
 import SpecificationTab from "../components/project/SpecificationTab";
 import OutlineTab from "../components/project/OutlineTab";
 import ChaptersTab from "../components/project/ChaptersTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
+import { cn } from "@/lib/utils";
+
+const PHASES = [
+  { id: "specify", label: "1. Specify", description: "Define your book" },
+  { id: "generate", label: "2. Generate", description: "Build outline & chapters" },
+  { id: "export", label: "3. Edit & Export", description: "Polish & export" },
+];
+
+// Map phases to which status values count as "completed"
+const PHASE_ORDER = ["specify", "generate", "export"];
+
+function PhaseTabs({ activePhase, setActivePhase, projectStatus }) {
+  const getPhaseState = (phaseId) => {
+    const activeIdx = PHASE_ORDER.indexOf(activePhase);
+    const phaseIdx = PHASE_ORDER.indexOf(phaseId);
+    if (phaseId === activePhase) return "active";
+    if (phaseIdx < activeIdx) return "completed";
+    return "idle";
+  };
+
+  return (
+    <div className="flex items-center gap-0 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm">
+      {PHASES.map((phase, i) => {
+        const state = getPhaseState(phase.id);
+        return (
+          <React.Fragment key={phase.id}>
+            <button
+              onClick={() => setActivePhase(phase.id)}
+              className={cn(
+                "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                state === "active" && "bg-indigo-600 text-white shadow-md shadow-indigo-200",
+                state === "completed" && "text-emerald-600 hover:bg-emerald-50",
+                state === "idle" && "text-slate-500 hover:bg-slate-50"
+              )}
+            >
+              {state === "completed" ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              ) : (
+                <span className={cn(
+                  "w-5 h-5 rounded-full text-xs flex items-center justify-center flex-shrink-0 font-bold",
+                  state === "active" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                )}>
+                  {i + 1}
+                </span>
+              )}
+              {phase.label.replace(/^\d+\.\s/, "")}
+            </button>
+            {i < PHASES.length - 1 && (
+              <div className="w-px h-5 bg-slate-200 mx-1" />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ProjectDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -28,6 +81,7 @@ export default function ProjectDetail() {
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [activePhase, setActivePhase] = useState("specify");
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -75,12 +129,12 @@ export default function ProjectDetail() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-start justify-between mb-8 gap-4">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 mt-0.5 flex-shrink-0"
+            className="h-9 w-9 flex-shrink-0"
             onClick={() => navigate(createPageUrl("Home"))}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -93,6 +147,7 @@ export default function ProjectDetail() {
                   onChange={(e) => setNewName(e.target.value)}
                   className="text-xl font-bold h-10 max-w-md"
                   autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter") updateMutation.mutate({ name: newName }); if (e.key === "Escape") setEditingName(false); }}
                 />
                 <Button size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700" onClick={() => updateMutation.mutate({ name: newName })}>
                   <Check className="w-4 h-4" />
@@ -102,26 +157,16 @@ export default function ProjectDetail() {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 group">
                 <h1 className="text-2xl font-bold text-slate-900 truncate">{project.name}</h1>
-                <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => { setNewName(project.name); setEditingName(true); }}>
+                <Button
+                  variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => { setNewName(project.name); setEditingName(true); }}
+                >
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
               </div>
             )}
-            <div className="flex items-center gap-3 mt-2">
-              <StatusBadge status={project.status} />
-              <Select value={project.status} onValueChange={(v) => updateMutation.mutate({ status: v })}>
-                <SelectTrigger className="h-7 text-xs w-auto border-dashed">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {["draft", "outlining", "writing", "editing", "complete"].map((s) => (
-                    <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
 
@@ -135,13 +180,13 @@ export default function ProjectDetail() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Project</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete "{project.name}" and all its related data including specifications, outlines, chapters, conversations, and source files.
+                This will permanently delete "{project.name}" and all its related data.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
-                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Delete Project
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -149,44 +194,47 @@ export default function ProjectDetail() {
         </AlertDialog>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="spec" className="space-y-6">
-        <TabsList className="bg-white border border-slate-200 p-1 rounded-xl">
-          <TabsTrigger value="spec" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 gap-1.5">
-            <FileText className="w-4 h-4" /> Specification
-          </TabsTrigger>
-          <TabsTrigger value="outline" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 gap-1.5">
-            <Map className="w-4 h-4" /> Outline
-          </TabsTrigger>
-          <TabsTrigger value="chapters" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 gap-1.5">
-            <BookOpenText className="w-4 h-4" /> Chapters
-          </TabsTrigger>
-          <TabsTrigger value="conversation" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 gap-1.5">
-            <MessageSquare className="w-4 h-4" /> Conversation
-          </TabsTrigger>
-          <TabsTrigger value="files" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 gap-1.5">
-            <File className="w-4 h-4" /> Source Files
-          </TabsTrigger>
-        </TabsList>
+      {/* Phase Tabs */}
+      <div className="mb-6">
+        <PhaseTabs activePhase={activePhase} setActivePhase={setActivePhase} projectStatus={project.status} />
+      </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <TabsContent value="spec" className="mt-0">
+      {/* Phase Content */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        {activePhase === "specify" && (
+          <div className="space-y-6">
             <SpecificationTab projectId={projectId} />
-          </TabsContent>
-          <TabsContent value="outline" className="mt-0">
-            <OutlineTab projectId={projectId} />
-          </TabsContent>
-          <TabsContent value="chapters" className="mt-0">
-            <ChaptersTab projectId={projectId} />
-          </TabsContent>
-          <TabsContent value="conversation" className="mt-0">
-            <ConversationTab projectId={projectId} />
-          </TabsContent>
-          <TabsContent value="files" className="mt-0">
-            <SourceFilesTab projectId={projectId} />
-          </TabsContent>
-        </div>
-      </Tabs>
+          </div>
+        )}
+        {activePhase === "generate" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-base font-semibold text-slate-800 mb-4">Outline</h3>
+                <OutlineTab projectId={projectId} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-800 mb-4">Chapters</h3>
+                <ChaptersTab projectId={projectId} />
+              </div>
+            </div>
+          </div>
+        )}
+        {activePhase === "export" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-base font-semibold text-slate-800 mb-4">Conversation</h3>
+                <ConversationTab projectId={projectId} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-800 mb-4">Source Files</h3>
+                <SourceFilesTab projectId={projectId} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
