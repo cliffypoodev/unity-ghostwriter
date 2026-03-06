@@ -85,11 +85,15 @@ export default function ProjectDetail() {
 
   // Scroll to top on phase change and on initial mount
   useEffect(() => { 
-    window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
   }, [activePhase]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
   }, [projectId]);
 
   const { data: project, isLoading } = useQuery({
