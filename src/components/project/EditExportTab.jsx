@@ -707,10 +707,10 @@ export default function EditExportTab({ projectId }) {
 
         <div className="w-px h-5 bg-slate-200 mx-1" />
 
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportTxt(quillRef.current, title)}>TXT</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportMd(quillRef.current, title)}>MD</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportHtml(quillRef.current, title)}>HTML</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportDocx(quillRef.current, title)}>DOCX</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportTxt(quillRef.current, docSettings)}>TXT</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportMd(quillRef.current, docSettings)}>MD</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportHtml(quillRef.current, docSettings)}>HTML</Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportDocx(quillRef.current, docSettings)}>DOCX</Button>
         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => window.print()}>
           <Printer className="w-3.5 h-3.5" /> Print/PDF
         </Button>
