@@ -82,6 +82,8 @@ export default function ProjectDetail() {
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [activePhase, setActivePhase] = useState("specify");
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
