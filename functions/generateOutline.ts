@@ -77,57 +77,47 @@ Deno.serve(async (req) => {
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
 
-    const truncatedTopic = spec.topic?.length > 500 ? spec.topic.slice(0, 500) : spec.topic;
-    const systemPrompt = `Return ONLY valid JSON: {"chapters":[{"number":int,"title":"str","summary":"str","prompt":"str"}]}`;
+    const truncatedTopic = spec.topic?.length > 200 ? spec.topic.slice(0, 200) : spec.topic;
+    const systemPrompt = `You are a book outline generator. Return only valid JSON.`;
 
-    // Generate outline in chunks
-    console.log(`Generating outline in chunks of ${CHUNK_SIZE} chapters (total: ${targetChapters})`);
+    // Generate outline in batches of max 10 chapters
+    console.log(`Generating outline in batches of ${CHUNK_SIZE} chapters (total: ${targetChapters})`);
     const allChapters = [];
 
     for (let chunkStart = 1; chunkStart <= targetChapters; chunkStart += CHUNK_SIZE) {
-      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
-      const chunkCount = chunkEnd - chunkStart + 1;
+     const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
+     const chunkCount = chunkEnd - chunkStart + 1;
 
-      console.log(`Generating chapters ${chunkStart}-${chunkEnd}...`);
+     console.log(`Generating chapters ${chunkStart}-${chunkEnd}...`);
 
-      const chunkPrompt = `Generate chapters ${chunkStart}-${chunkEnd} (${chunkCount} chapters) for a ${targetChapters}-chapter ${spec.genre} ${spec.book_type} about "${truncatedTopic}". Audience: ${spec.target_audience || 'general'}. Tone: ${spec.tone_style || 'standard'}. Return ONLY JSON array.`;
+     const chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${spec.genre} ${spec.book_type} about "${truncatedTopic}". Return JSON array with {number, title, summary} fields only.`;
 
-      try {
-        const response = await retryWithBackoff(async () => {
-          return await Promise.race([
-            openai.chat.completions.create({
-              model: 'gpt-4o-mini',
-              max_tokens: 2000,
-              temperature: 0.7,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: chunkPrompt }
-              ],
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('chunk timeout')), 7000))
-          ]);
-        });
+     try {
+       const response = await callOpenAIWithTimeout([
+         { role: 'system', content: systemPrompt },
+         { role: 'user', content: chunkPrompt }
+       ]);
 
-        if (!response?.choices?.[0]?.message?.content) {
-          throw new Error('No content in response');
-        }
+       if (!response?.choices?.[0]?.message?.content) {
+         throw new Error('No content in response');
+       }
 
-        const text = response.choices[0].message.content;
-        const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-        
-        // Parse JSON array
-        const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('No JSON array found');
-        
-        const chapters = JSON.parse(jsonMatch[0]);
-        if (!Array.isArray(chapters)) throw new Error('Not an array');
-        
-        allChapters.push(...chapters);
-        console.log(`✓ Chunk ${chunkStart}-${chunkEnd} complete (${chapters.length} chapters)`);
-      } catch (err) {
-        console.error(`✗ Chunk ${chunkStart}-${chunkEnd} failed:`, err.message);
-        return Response.json({ error: `Chunk generation failed (chapters ${chunkStart}-${chunkEnd}): ${err.message}` }, { status: 500 });
-      }
+       const text = response.choices[0].message.content;
+       const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+
+       // Parse JSON array
+       const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+       if (!jsonMatch) throw new Error('No JSON array found');
+
+       const chapters = JSON.parse(jsonMatch[0]);
+       if (!Array.isArray(chapters)) throw new Error('Response is not a JSON array');
+
+       allChapters.push(...chapters);
+       console.log(`✓ Batch ${chunkStart}-${chunkEnd} complete (${chapters.length} chapters)`);
+     } catch (err) {
+       console.error(`✗ Batch ${chunkStart}-${chunkEnd} failed:`, err.message);
+       return Response.json({ error: `Generation failed: ${err.message}` }, { status: 500 });
+     }
     }
 
     const parsed = { outline: { chapters: allChapters } };
