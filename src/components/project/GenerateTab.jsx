@@ -282,7 +282,12 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleGenerateOutline = async () => {
     setGenerating(true);
-    await base44.functions.invoke("generateOutline", { project_id: projectId });
+    await fetch(`/api/functions/generateOutline`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ project_id: projectId }),
+    });
     await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
     await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
     setGenerating(false);
