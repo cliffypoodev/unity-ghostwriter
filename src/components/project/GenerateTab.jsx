@@ -364,6 +364,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const handleWriteChapter = async (chapter) => {
     setStreamingChapterId(chapter.id);
     setStreamingContent(prev => ({ ...prev, [chapter.id]: "" }));
+    setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
 
     // Update status optimistically
     queryClient.setQueryData(["chapters", projectId], old =>
@@ -373,7 +374,6 @@ export default function GenerateTab({ projectId, onProceed }) {
     try {
       console.log('Starting write for chapter:', chapter.id);
       
-      // Use SDK invoke which handles auth and routing properly
       const response = await base44.functions.invoke('writeChapter', { 
         project_id: projectId, 
         chapter_id: chapter.id 
@@ -386,12 +386,20 @@ export default function GenerateTab({ projectId, onProceed }) {
         return;
       }
       
-      // Parse the streaming response - response.data contains the complete text
       if (response.data?.text) {
         setStreamingContent(prev => ({ ...prev, [chapter.id]: response.data.text }));
+        if (response.data?.partial) {
+          setChapterProgress(prev => ({
+            ...prev,
+            [chapter.id]: `Partial: ${response.data.completedSections}/${response.data.totalSections} sections (retry to complete)`
+          }));
+        } else {
+          setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
+        }
       }
     } catch (err) {
       console.error('writeChapter error:', err.message);
+      setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
     } finally {
       setStreamingChapterId(null);
       await refetchChapters();
