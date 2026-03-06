@@ -149,12 +149,12 @@ Deno.serve(async (req) => {
     const existingChapters = await base44.entities.Chapter.filter({ project_id });
     await Promise.all(existingChapters.map(c => base44.entities.Chapter.delete(c.id)));
 
-    const chapters = parsed.outline.chapters.map(ch => ({
+    const chapters = parsed.outline.chapters.map((ch, idx) => ({
       project_id,
-      chapter_number: ch.number,
-      title: ch.title,
-      summary: ch.summary,
-      prompt: ch.prompt,
+      chapter_number: ch.number || idx + 1,
+      title: ch.title || `Chapter ${ch.number || idx + 1}`,
+      summary: ch.summary || '',
+      prompt: ch.prompt || '',
       status: 'pending',
       word_count: 0,
     }));
