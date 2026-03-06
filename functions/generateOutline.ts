@@ -83,8 +83,9 @@ ${sourceContext}${globalContext}
 
 Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
 
-    // Determine which AI client to use
-    const modelName = appSettings.ai_model || 'gpt-4o';
+    // Determine which AI client to use - default to faster mini model for outlines
+    const modelName = appSettings.ai_model || 'gpt-4o-mini';
+    console.log('Using model:', modelName);
     let response;
 
     if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
