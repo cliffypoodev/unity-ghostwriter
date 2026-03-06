@@ -25,10 +25,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No chapters found' }, { status: 400 });
     }
 
+    // Find the last fully written chapter
+    const lastWrittenIndex = chapters.findIndex(c => c.status === 'generated', 0);
+    const startIndex = lastWrittenIndex === -1 ? 0 : lastWrittenIndex + 1;
+
+    // If all chapters already written, return early
+    if (startIndex >= chapters.length) {
+      return Response.json({
+        success: true,
+        totalChapters: chapters.length,
+        completedChapters: chapters.length,
+        failedChapters: 0,
+        totalTimeSeconds: 0,
+        results: [],
+        message: 'All chapters already written',
+      });
+    }
+
     const results = [];
     const startTime = Date.now();
 
-    for (let i = 0; i < chapters.length; i++) {
+    for (let i = startIndex; i < chapters.length; i++) {
       const chapter = chapters[i];
       const chapterNum = i + 1;
 
