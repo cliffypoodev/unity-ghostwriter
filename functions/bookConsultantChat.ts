@@ -53,7 +53,7 @@ You should:
 
 ${specContext}
 
-Keep responses concise and conversational. Focus on one or two key suggestions or questions at a time.`;
+Keep responses concise and conversational. Focus on one or two key suggestions or questions at a time.${sourceFilesContext}`;
 
     // Build messages for Claude (exclude the message we just saved, only history before)
     const priorMessages = history.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
