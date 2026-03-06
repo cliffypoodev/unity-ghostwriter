@@ -51,11 +51,21 @@ export default function Home() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Your Projects</h1>
-        <Button
-          onClick={() => createMutation.mutate()}
-          disabled={createMutation.isPending}
-          className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
-        >
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(createPageUrl("Settings"))}
+            className="h-9 w-9"
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={() => createMutation.mutate()}
+            disabled={createMutation.isPending}
+            className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+          >
           {createMutation.isPending ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
