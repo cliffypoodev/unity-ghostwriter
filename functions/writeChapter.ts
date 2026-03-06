@@ -104,12 +104,13 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               // Upload content as file to avoid field size limit
               let contentToSave = fullContent;
               try {
-                const blob = new Blob([fullContent], { type: 'text/plain' });
-                const formData = new FormData();
-                formData.append('file', blob, `chapter_${chapter_id}.txt`);
-                const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: blob });
+                const encoder2 = new TextEncoder();
+                const bytes = encoder2.encode(fullContent);
+                const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: bytes });
                 if (uploadRes?.file_url) contentToSave = uploadRes.file_url;
-              } catch {}
+              } catch (uploadErr) {
+                console.error('Upload failed, saving inline:', uploadErr.message);
+              }
               await base44.entities.Chapter.update(chapter_id, {
                 content: contentToSave,
                 status: 'generated',
