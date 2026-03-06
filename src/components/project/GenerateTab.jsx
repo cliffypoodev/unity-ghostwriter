@@ -289,6 +289,11 @@ export default function GenerateTab({ projectId, onProceed }) {
   const writeAllAbortRef = useRef(false);
   const [targetLength, setTargetLength] = useState("medium");
 
+  const { data: specifications = [] } = useQuery({
+    queryKey: ["specification", projectId],
+    queryFn: () => base44.entities.Specification.filter({ project_id: projectId }),
+  });
+
   const { data: outlines = [] } = useQuery({
     queryKey: ["outline", projectId],
     queryFn: () => base44.entities.Outline.filter({ project_id: projectId }),
