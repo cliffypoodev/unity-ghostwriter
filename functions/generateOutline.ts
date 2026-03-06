@@ -30,9 +30,15 @@ Deno.serve(async (req) => {
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
     const targetChapters = Math.floor((chapterRange.min + chapterRange.max) / 2);
 
-    const sourceContext = sourceFiles.length > 0
-      ? `\n\nSource files for context:\n${sourceFiles.map(f => `--- ${f.filename} (${f.file_type}) ---\n${f.content}`).join('\n\n')}`
+    const sourceContext = allSourceFiles.length > 0
+      ? `\n\nSource files for context:\n${allSourceFiles.map(f => `--- ${f.filename} (${f.file_type}) ---\n${f.content}`).join('\n\n')}`
       : '';
+
+    const globalInstructions = [
+      appSettings.global_style_instructions,
+      appSettings.global_content_guidelines,
+    ].filter(Boolean).join('\n\n');
+    const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
 
     const systemPrompt = `You are an expert book editor and story architect. Generate a comprehensive book outline and story bible in JSON format.
 
