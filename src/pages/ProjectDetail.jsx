@@ -203,7 +203,7 @@ export default function ProjectDetail() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         {activePhase === "specify" && (
           <div className="space-y-6">
-            <SpecificationTab projectId={projectId} />
+            <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
           </div>
         )}
         {activePhase === "generate" && (
