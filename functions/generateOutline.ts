@@ -4,18 +4,43 @@ import OpenAI from 'npm:openai';
 const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
-const CHUNK_SIZE = 5; // Generate 5 chapters at a time
-const MAX_RETRIES = 3;
-const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
+const CHUNK_SIZE = 10; // Generate 10 chapters at a time (max batch size)
+const OPENAI_TIMEOUT = 8000; // 8 seconds
 
-async function retryWithBackoff(fn, retries = MAX_RETRIES) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      await new Promise(r => setTimeout(r, RETRY_DELAYS[i]));
+async function callOpenAIWithTimeout(messages) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 2000,
+        temperature: 0.7,
+        messages,
+      }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(`OpenAI API error: ${errData.error?.message || response.statusText}`);
     }
+    
+    return await response.json();
+  } catch (e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') {
+      throw new Error('OpenAI request timed out (8s limit)');
+    }
+    throw e;
   }
 }
 
