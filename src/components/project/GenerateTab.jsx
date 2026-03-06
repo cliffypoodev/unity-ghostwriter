@@ -68,7 +68,7 @@ function OutlineCard({ outlineData }) {
   const outline = safeParse(outlineData);
   if (!outline) return null;
   return (
-    <CollapsibleCard title="Book Outline" icon={BookOpen}>
+    <CollapsibleCard title="Book Outline" icon={BookOpen} defaultOpen={false}>
       {outline.title && <h3 className="font-semibold text-slate-800 mb-2">{outline.title}</h3>}
       {outline.narrative_arc && (
         <p className="text-sm text-slate-600 mb-3 leading-relaxed">{outline.narrative_arc}</p>
