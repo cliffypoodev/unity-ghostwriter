@@ -105,9 +105,12 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
 
     const text = response.content[0].text;
 
+    // Strip markdown code fences if present
+    const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+
     // Return raw AI text for debugging if parse fails
     let parsed = null;
-    const start = text.indexOf('{');
+    const start = cleanText.indexOf('{');
     if (start === -1) return Response.json({ error: 'No JSON found in response', raw: text.slice(0, 500) }, { status: 500 });
 
     let depth = 0;
