@@ -128,6 +128,49 @@ function StrengthTags({ strengths }) {
   );
 }
 
+function StarRating({ count, max = 5 }) {
+  return (
+    <div className="flex gap-0.5">
+      {[...Array(max)].map((_, i) => (
+        <Star
+          key={i}
+          className={`w-3.5 h-3.5 ${i < count ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DollarRating({ count, max = 5 }) {
+  return (
+    <div className="flex gap-0.5">
+      {[...Array(max)].map((_, i) => (
+        <span
+          key={i}
+          className={`text-sm font-semibold ${i < count ? "text-green-600" : "text-slate-300"}`}
+        >
+          $
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ModelRatings({ model }) {
+  return (
+    <div className="flex items-center justify-between gap-4 mt-2 p-2 bg-slate-50 rounded border border-slate-200">
+      <div>
+        <p className="text-xs font-semibold text-slate-600 mb-1">Prose Quality</p>
+        <StarRating count={model.proseQuality} />
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-slate-600 mb-1">Token Cost</p>
+        <DollarRating count={model.tokenCost} />
+      </div>
+    </div>
+  );
+}
+
 export default function ModelSuggestionPanel({ genre, selectedModel, onSelectModel }) {
   const [expanded, setExpanded] = useState(false);
 
