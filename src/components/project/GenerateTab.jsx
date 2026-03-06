@@ -281,8 +281,13 @@ export default function GenerateTab({ projectId, onProceed }) {
     startTime: null,
     done: false,
     elapsed: "",
+    wordsWritten: 0,
+    totalWords: 0,
+    chapterWords: 0,
+    targetChapterWords: 3750,
   });
   const writeAllAbortRef = useRef(false);
+  const [targetLength, setTargetLength] = useState("medium");
 
   const { data: outlines = [] } = useQuery({
     queryKey: ["outline", projectId],
