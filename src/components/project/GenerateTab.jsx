@@ -454,11 +454,16 @@ export default function GenerateTab({ projectId, onProceed }) {
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
 
-      {/* Regenerate outline button */}
-      <div className="flex justify-end">
+      {/* Regenerate outline + One-click write buttons */}
+      <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={handleGenerateOutline} className="text-slate-500">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerate Outline
         </Button>
+        {totalCount > 0 && generatedCount < totalCount && (
+          <Button onClick={handleWriteAllChapters} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Zap className="w-4 h-4 mr-2" /> Write All Chapters
+          </Button>
+        )}
       </div>
 
       {/* Chapters */}
