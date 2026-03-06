@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import EmptyState from "../components/EmptyState";
+import AIModelComparison from "../components/AIModelComparison";
 
 const FILE_TYPES = [
   { value: "text", label: "Text" },
@@ -212,7 +213,7 @@ export default function Settings() {
               <CardContent className="space-y-5">
                 <div>
                   <Label className="text-sm font-medium">AI Model</Label>
-                  <p className="text-xs text-slate-500 mb-2">Opus is most capable; Haiku is fastest.</p>
+                  <p className="text-xs text-slate-500 mb-2">Select a model for book generation.</p>
                   <Select value={settings.ai_model} onValueChange={v => set("ai_model", v)}>
                     <SelectTrigger className="w-full max-w-xs">
                       <SelectValue />
@@ -226,6 +227,7 @@ export default function Settings() {
                       <SelectItem value="deepseek-chat">DeepSeek Chat (Cost-Effective)</SelectItem>
                     </SelectContent>
                   </Select>
+                  <AIModelComparison selectedModel={settings.ai_model} />
                 </div>
 
                 <Separator />
