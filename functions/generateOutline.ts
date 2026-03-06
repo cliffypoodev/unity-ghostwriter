@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
                 { role: 'user', content: chunkPrompt }
               ],
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('chunk timeout')), 6000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('chunk timeout')), 7000))
           ]);
         });
 
