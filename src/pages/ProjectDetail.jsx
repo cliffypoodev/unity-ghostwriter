@@ -9,12 +9,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Trash2, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
 import SpecificationTab from "../components/project/SpecificationTab";
 import GenerateTab from "../components/project/GenerateTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
 import EditExportTab from "../components/project/EditExportTab";
+import DeleteProjectDialog from "../components/project/DeleteProjectDialog";
 import { cn } from "@/lib/utils";
 
 const PHASES = [
