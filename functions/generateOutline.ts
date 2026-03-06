@@ -1,7 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import Anthropic from 'npm:@anthropic-ai/sdk';
+import OpenAI from 'npm:openai';
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
+const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+const deepseek = new OpenAI({ 
+  apiKey: Deno.env.get("DEEPSEEK_API_KEY"),
+  baseURL: 'https://api.deepseek.com'
+});
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
 
@@ -71,12 +77,35 @@ ${sourceContext}${globalContext}
 
 Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt detailed and actionable.`;
 
-    const response = await anthropic.messages.create({
-      model: appSettings.ai_model || 'claude-haiku-4-5',
-      max_tokens: 16000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    // Determine which AI client to use
+    const modelName = appSettings.ai_model || 'claude-haiku-4-5';
+    let response;
+
+    if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
+      // OpenAI models
+      response = await openai.messages.create({
+        model: modelName,
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+    } else if (modelName === 'deepseek-chat') {
+      // DeepSeek model
+      response = await deepseek.messages.create({
+        model: 'deepseek-chat',
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+    } else {
+      // Claude models (default)
+      response = await anthropic.messages.create({
+        model: modelName,
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+    }
 
     const text = response.content[0].text;
 
