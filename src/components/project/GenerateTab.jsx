@@ -323,8 +323,15 @@ export default function GenerateTab({ projectId, onProceed }) {
         body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
       });
 
-      if (!res.ok || !res.body) {
-        console.error('writeChapter response error:', res.status);
+      if (!res.ok) {
+        console.error('writeChapter response error:', res.status, await res.text());
+        setStreamingChapterId(null);
+        await refetchChapters();
+        return;
+      }
+
+      if (!res.body) {
+        console.error('writeChapter: no response body');
         setStreamingChapterId(null);
         await refetchChapters();
         return;
@@ -333,30 +340,39 @@ export default function GenerateTab({ projectId, onProceed }) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let done = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.text) {
-                setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
+      while (!done) {
+        try {
+          const { done: streamDone, value } = await reader.read();
+          done = streamDone;
+          if (!done && value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.text) {
+                    setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
+                  }
+                  if (data.done || data.error) {
+                    done = true;
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse SSE data:', e);
+                }
               }
-              if (data.done || data.error) {
-                setStreamingChapterId(null);
-                await refetchChapters();
-              }
-            } catch {}
+            }
           }
+        } catch (readErr) {
+          console.error('Reader error:', readErr);
+          done = true;
         }
       }
     } catch (err) {
-      console.error('writeChapter stream error:', err);
+      console.error('writeChapter error:', err);
     } finally {
       setStreamingChapterId(null);
       await refetchChapters();
