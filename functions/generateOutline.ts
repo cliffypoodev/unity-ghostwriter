@@ -83,7 +83,7 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
 
     if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
       // OpenAI models
-      response = await openai.messages.create({
+      response = await openai.chat.completions.create({
         model: modelName,
         max_tokens: 16000,
         system: systemPrompt,
