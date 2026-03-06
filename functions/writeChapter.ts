@@ -1,7 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import Anthropic from 'npm:@anthropic-ai/sdk';
+import OpenAI from 'npm:openai';
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
+const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+const deepseek = new OpenAI({ 
+  apiKey: Deno.env.get("DEEPSEEK_API_KEY"),
+  baseURL: 'https://api.deepseek.com'
+});
 
 Deno.serve(async (req) => {
   try {
@@ -88,14 +94,38 @@ Writing Prompt: ${chapter.prompt || ''}
 
 ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''}`;
 
-    // Stream the response
-    const stream = await anthropic.messages.create({
-      model: appSettings.ai_model || 'claude-opus-4-5',
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-      stream: true,
-    });
+    // Determine which AI client to use
+    const modelName = appSettings.ai_model || 'claude-opus-4-5';
+    let stream;
+
+    if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
+      // OpenAI models
+      stream = await openai.messages.create({
+        model: modelName,
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        stream: true,
+      });
+    } else if (modelName === 'deepseek-chat') {
+      // DeepSeek model
+      stream = await deepseek.messages.create({
+        model: 'deepseek-chat',
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        stream: true,
+      });
+    } else {
+      // Claude models (default)
+      stream = await anthropic.messages.create({
+        model: modelName,
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        stream: true,
+      });
+    }
 
     let fullContent = '';
 
