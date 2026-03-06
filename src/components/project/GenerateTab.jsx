@@ -309,9 +309,17 @@ export default function GenerateTab({ projectId, onProceed }) {
   const handleGenerateOutline = async () => {
     setGenerating(true);
     try {
-      await base44.functions.invoke('generateOutline', { project_id: projectId });
+      const response = await base44.functions.invoke('generateOutline', { project_id: projectId });
+      if (response.status !== 200) {
+        console.error('generateOutline error:', response.data);
+        alert(`Error: ${response.data?.error || 'Failed to generate outline'}`);
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+    } catch (err) {
+      console.error('generateOutline exception:', err);
+      alert(`Error: ${err.message || 'Failed to generate outline'}`);
     } finally {
       setGenerating(false);
     }
