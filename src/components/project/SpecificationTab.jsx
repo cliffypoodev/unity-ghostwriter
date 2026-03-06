@@ -168,6 +168,20 @@ export default function SpecificationTab({ projectId, onProceed }) {
             </Select>
           </div>
 
+          {/* Chapter Count */}
+          <div>
+            <Label className="text-sm font-medium">Chapter Count <span className="text-slate-400 font-normal">(optional — overrides target length)</span></Label>
+            <Input
+              className="mt-1.5"
+              type="number"
+              min={1}
+              max={100}
+              placeholder="e.g. 20"
+              value={form.chapter_count || ""}
+              onChange={e => handleChange("chapter_count", e.target.value ? parseInt(e.target.value) : "")}
+            />
+          </div>
+
           {/* Detail Level */}
           <div>
             <Label className="text-sm font-medium">Detail Level</Label>
