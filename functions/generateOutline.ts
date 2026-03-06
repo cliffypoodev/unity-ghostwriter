@@ -76,10 +76,13 @@ Return ONLY valid JSON with this exact structure:
   }
 }`;
 
+    // Truncate topic to avoid exceeding token limits
+    const truncatedTopic = spec.topic?.length > 3000 ? spec.topic.slice(0, 3000) + '...' : spec.topic;
+
     const userPrompt = `Generate a ${targetChapters}-chapter outline for this book:
 - Type: ${spec.book_type}
 - Genre: ${spec.genre}
-- Topic/Premise: ${spec.topic}
+- Topic/Premise: ${truncatedTopic}
 - Target Length: ${spec.target_length} (${chapterRange.min}-${chapterRange.max} chapters)
 - Target Audience: ${spec.target_audience || 'general'}
 - Tone & Style: ${spec.tone_style || 'not specified'}
