@@ -38,15 +38,13 @@ export default function Home() {
   const handleDelete = async (projectId, e) => {
     e.stopPropagation();
     setDeletingId(projectId);
-    await fetch(`/api/functions/deleteProject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ project_id: projectId }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["projects"] });
-    queryClient.invalidateQueries({ queryKey: ["all-chapters"] });
-    setDeletingId(null);
+    try {
+      await base44.functions.invoke('deleteProject', { project_id: projectId });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["all-chapters"] });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const getChapterCount = (projectId) =>
