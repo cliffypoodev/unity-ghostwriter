@@ -40,7 +40,36 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       return data.choices[0]?.message?.content || '';
     }
 
-    const shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
+    let shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
+    
+    // Add author voice style if not basic
+    if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
+      const authorVoices = {
+        hemingway: "Terse, declarative sentences. Iceberg theory.",
+        king: "Conversational, immersive. Rich inner monologue, building dread.",
+        austen: "Witty, ironic social commentary.",
+        tolkien: "Mythic, elevated prose. Rich world-building.",
+        morrison: "Lyrical, poetic. Vivid sensory detail.",
+        rowling: "Accessible, whimsical. Clever wordplay.",
+        mccarthy: "Sparse, biblical. No quotation marks.",
+        atwood: "Sharp, sardonic. Precise word choices.",
+        gaiman: "Mythic yet modern. Fairy-tale cadence.",
+        pratchett: "Satirical. Comedic fantasy, warm humanity.",
+        le_guin: "Sparse elegance, philosophical depth.",
+        vonnegut: "Dark humor, short sentences. Absurdist.",
+        garcia_marquez: "Lush magical realism. Sprawling sentences.",
+        chandler: "Hardboiled noir. First-person cynicism.",
+        christie: "Puzzle-box plotting. Clean readable prose.",
+        gladwell: "Nonfiction storytelling. Counterintuitive hooks.",
+        bryson: "Humorous nonfiction. Self-deprecating wit.",
+        sagan: "Awe-inspiring science writing. Poetic wonder.",
+        didion: "Cool, precise observation.",
+      };
+      const voiceDesc = authorVoices[projectSpec.author_voice];
+      if (voiceDesc) {
+        shortSystemPrompt += ` Write in a style reminiscent of the specified author: ${voiceDesc}`;
+      }
+    }
 
     for (const section of sections) {
       const previousContext = sectionContents.length > 0
