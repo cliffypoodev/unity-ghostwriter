@@ -140,27 +140,16 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
             } else if (event.type === 'message_stop') {
               const wordCount = fullContent.trim().split(/\s+/).length;
-              // Upload content as a file to avoid entity field size limits
-              let contentUrl = null;
-              try {
-                // Create FormData with file content
-                const formData = new FormData();
-                const blob = new Blob([fullContent], { type: 'text/plain' });
-                formData.append('file', blob, `chapter_${chapter_id}.txt`);
+              console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
 
-                const uploadResult = await base44.integrations.Core.UploadFile({ file: fullContent });
-                contentUrl = uploadResult?.file_url || null;
-              } catch (uploadErr) {
-                console.error('Upload error:', uploadErr.message);
-                contentUrl = null;
-              }
-              console.log('Saving chapter, contentUrl:', contentUrl ? 'got url' : 'no url', 'wordCount:', wordCount, 'contentLength:', fullContent.length);
+              // Save the full content directly to entity
               await base44.entities.Chapter.update(chapter_id, {
-                content: contentUrl || fullContent,
+                content: fullContent,
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
               });
+              console.log('Chapter saved successfully, content preserved');
               console.log('Chapter saved successfully');
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, word_count: wordCount })}\n\n`));
               controller.close();
