@@ -51,7 +51,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [isChatting, setIsChatting] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
-  const [authorsData, setAuthorsData] = useState([]);
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const chatBottomRef = useRef(null);
 
