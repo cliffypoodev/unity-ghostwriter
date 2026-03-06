@@ -142,14 +142,29 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               const wordCount = fullContent.trim().split(/\s+/).length;
               console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
 
-              // Save the full content directly to entity
+              // Store content - either as entity content or file URL depending on size
+              let contentValue = fullContent;
+              if (fullContent.length > 50000) {
+                // For very large content, attempt to use file storage
+                try {
+                  // Upload using the public file storage
+                  const uploadResult = await base44.integrations.Core.UploadFile({
+                    file: fullContent
+                  });
+                  if (uploadResult?.file_url) {
+                    contentValue = uploadResult.file_url;
+                  }
+                } catch (uploadErr) {
+                  console.warn('File upload failed, storing content directly:', uploadErr.message);
+                }
+              }
+
               await base44.entities.Chapter.update(chapter_id, {
-                content: fullContent,
+                content: contentValue,
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
               });
-              console.log('Chapter saved successfully, content preserved');
               console.log('Chapter saved successfully');
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, word_count: wordCount })}\n\n`));
               controller.close();
