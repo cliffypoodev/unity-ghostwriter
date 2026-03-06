@@ -1,39 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
-export default function WriteAllChaptersModal({ isOpen, totalChapters, currentChapter, isComplete, results, totalTimeSeconds }) {
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [estimatedRemaining, setEstimatedRemaining] = useState(0);
-
-  useEffect(() => {
-    if (!isOpen || isComplete) return;
-
-    const interval = setInterval(() => {
-      setElapsedTime(prev => {
-        const newElapsed = prev + 1;
-        if (currentChapter > 0 && currentChapter <= totalChapters) {
-          const avgPerChapter = newElapsed / currentChapter;
-          const remaining = Math.max(0, Math.ceil(avgPerChapter * (totalChapters - currentChapter)));
-          setEstimatedRemaining(remaining);
-        }
-        return newElapsed;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isOpen, isComplete, currentChapter, totalChapters]);
-
-  const progressPercent = totalChapters > 0 ? (currentChapter / totalChapters) * 100 : 0;
-  const successCount = results?.filter(r => r.success)?.length || 0;
-  const failCount = results?.filter(r => !r.success)?.length || 0;
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
+export default function WriteAllChaptersModal({ isOpen, onClose, progress, onStop }) {
+  const { current, total, currentTitle, successes, failures, done, elapsed } = progress;
+  const progressPercent = total > 0 ? (current / total) * 100 : 0;
 
   return (
     <Dialog open={isOpen}>
