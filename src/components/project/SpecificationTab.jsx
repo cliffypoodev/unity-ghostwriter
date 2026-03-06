@@ -123,9 +123,49 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const handleChange = (field, value) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === "book_type") updated.genre = "";
+      if (field === "book_type") {
+        updated.genre = "";
+        updated.subgenre = "";
+      }
+      if (field === "genre") {
+        updated.subgenre = "";
+      }
       return updated;
     });
+  };
+
+  const handleAutoExtract = async () => {
+    if (!form.topic.trim()) {
+      toast.error("Please enter a topic/premise first");
+      return;
+    }
+    setExtracting(true);
+    try {
+      const response = await base44.functions.invoke('extractMetadata', {
+        projectId,
+        topic: form.topic,
+        book_type: form.book_type,
+        genre: form.genre,
+      });
+      
+      const extracted = response.data;
+      setForm(prev => ({
+        ...prev,
+        tone_style: prev.tone_style || extracted.tone_style || "",
+        target_audience: prev.target_audience || extracted.target_audience || "",
+        additional_requirements: prev.additional_requirements || extracted.additional_requirements || "",
+        genre: prev.genre || extracted.suggested_genre || prev.genre,
+        subgenre: prev.subgenre || extracted.suggested_subgenre || "",
+        author_voice: prev.author_voice || extracted.suggested_author_voice || "basic",
+        detail_level: prev.detail_level || extracted.suggested_detail_level || prev.detail_level,
+      }));
+      toast.success("Extracted metadata from premise");
+    } catch (err) {
+      console.error('Extract error:', err);
+      toast.error("Failed to extract metadata");
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
