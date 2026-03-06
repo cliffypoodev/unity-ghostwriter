@@ -216,10 +216,11 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
             onSelect={onSelectModel}
           />
           {selectedModel === routing.primary && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
               <ReasonText text={routing.reason} />
               <StyleBeatCallout text={routing.styleBeat} />
               <StrengthTags strengths={primaryModel.strengths} />
+              <ModelRatings model={primaryModel} />
             </div>
           )}
         </div>
