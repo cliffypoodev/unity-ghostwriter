@@ -13,11 +13,15 @@ const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 
 
 Deno.serve(async (req) => {
   try {
+    console.log('Starting generateOutline');
     const base44 = createClientFromRequest(req);
+    console.log('Client created');
     const user = await base44.auth.me();
+    console.log('User authenticated:', user?.email);
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { project_id } = await req.json();
+    console.log('Project ID:', project_id);
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
     console.log('Loading entities for project:', project_id);
