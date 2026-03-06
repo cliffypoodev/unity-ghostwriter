@@ -311,6 +311,20 @@ export default function SpecificationTab({ projectId, onProceed }) {
             />
           </div>
 
+          {/* Author Voice */}
+          <div>
+            <Label className="text-sm font-medium">Author Voice</Label>
+            <Select value={form.author_voice} onValueChange={v => handleChange("author_voice", v)}>
+              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {authorsData.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {selectedAuthor && selectedAuthor.id !== "basic" && (
+              <p className="text-xs text-slate-500 mt-1.5 italic">{selectedAuthor.description}</p>
+            )}
+          </div>
+
           {/* Additional Requirements */}
           <div>
             <Label className="text-sm font-medium">Additional Requirements</Label>
