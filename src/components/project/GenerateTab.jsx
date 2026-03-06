@@ -413,8 +413,11 @@ export default function GenerateTab({ projectId, onProceed }) {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Generating your book outline and story bible…</p>
-          <p className="text-sm text-slate-400 mt-1">This may take a minute</p>
+          <p className="text-slate-600 font-medium">Generating your book outline…</p>
+          {generationProgress && (
+            <p className="text-sm text-indigo-600 mt-2 font-medium">{generationProgress}</p>
+          )}
+          <p className="text-sm text-slate-400 mt-1">Generating in chunks to avoid timeouts</p>
         </div>
       </div>
     );
