@@ -381,8 +381,8 @@ export default function GenerateTab({ projectId, onProceed }) {
       )}
 
       {/* Outline & Story Bible */}
-      <OutlineCard outlineData={outline?.outline_data} />
-      <StoryBibleCard storyBible={outline?.story_bible} />
+      <OutlineCard outlineData={resolvedOutlineData} />
+      <StoryBibleCard storyBible={resolvedStoryBible} />
 
       {/* Regenerate outline button */}
       <div className="flex justify-end">
