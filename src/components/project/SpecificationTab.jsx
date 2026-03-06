@@ -36,6 +36,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     genre: "",
     topic: "",
     target_length: "medium",
+    chapter_count: "",
     detail_level: "moderate",
     target_audience: "",
     tone_style: "",
