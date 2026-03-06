@@ -50,7 +50,7 @@ Keep responses concise and conversational. Focus on one or two key suggestions o
     priorMessages.push({ role: 'user', content: message });
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-opus-4-5',
       max_tokens: 1024,
       system: systemPrompt,
       messages: priorMessages,
