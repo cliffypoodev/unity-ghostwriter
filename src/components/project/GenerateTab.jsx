@@ -309,13 +309,46 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleGenerateOutline = async () => {
     setGenerating(true);
+    setGenerationProgress("");
+    
     try {
+      // Start generation
       const response = await base44.functions.invoke('generateOutline', { project_id: projectId });
+      
       if (response.status !== 200) {
         console.error('generateOutline error:', response.data);
         alert(`Error: ${response.data?.error || 'Failed to generate outline'}`);
         return;
       }
+
+      // Poll for chapter creation to show progress
+      const totalChapters = response.data?.chapter_count || 0;
+      if (totalChapters > 0) {
+        let lastCount = 0;
+        const pollInterval = setInterval(async () => {
+          try {
+            const currentChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+            const count = currentChapters?.length || 0;
+            
+            if (count > lastCount) {
+              const chunkStart = lastCount + 1;
+              const chunkEnd = Math.min(count, totalChapters);
+              setGenerationProgress(`Chapters ${chunkStart}-${chunkEnd} created…`);
+              lastCount = count;
+            }
+
+            if (count >= totalChapters) {
+              clearInterval(pollInterval);
+            }
+          } catch (e) {
+            console.warn('Polling error:', e);
+          }
+        }, 500);
+
+        // Cleanup after completion
+        setTimeout(() => clearInterval(pollInterval), 30000);
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
     } catch (err) {
@@ -323,6 +356,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       alert(`Error: ${err.message || 'Failed to generate outline'}`);
     } finally {
       setGenerating(false);
+      setGenerationProgress("");
     }
   };
 
