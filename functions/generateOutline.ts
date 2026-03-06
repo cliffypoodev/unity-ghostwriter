@@ -146,8 +146,8 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     const storyBibleJson = JSON.stringify(parsed.story_bible);
 
     const uploadJson = async (content, filename) => {
-      const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({
-        file: new Blob([content], { type: 'application/json' })
+      const uploadRes = await base44.integrations.Core.UploadFile({
+        file: content
       });
       return uploadRes.file_url;
     };
