@@ -297,10 +297,12 @@ export default function GenerateTab({ projectId, onProceed }) {
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
 
-    // Use base44 SDK streaming — it handles auth headers automatically
-    const res = await base44.functions.stream("writeChapter", {
-      project_id: projectId,
-      chapter_id: chapter.id,
+    // Use fetch with credentials for SSE streaming (SDK invoke() doesn't support streaming)
+    const res = await fetch(`/api/functions/writeChapter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
     });
 
     const reader = res.body.getReader();
