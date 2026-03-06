@@ -117,12 +117,14 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               } catch (uploadErr) {
                 console.error('Upload error:', uploadErr.message);
               }
+              console.log('Saving chapter, contentUrl:', contentUrl ? 'got url' : 'no url, using slice', 'wordCount:', wordCount, 'contentLength:', fullContent.length);
               await base44.entities.Chapter.update(chapter_id, {
-                content: contentUrl || fullContent.slice(0, 50000),
+                content: contentUrl || fullContent.slice(0, 20000),
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
               });
+              console.log('Chapter saved successfully');
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, word_count: wordCount })}\n\n`));
               controller.close();
             }
