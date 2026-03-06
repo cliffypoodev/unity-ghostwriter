@@ -100,10 +100,25 @@ Deno.serve(async (req) => {
         id: "didion",
         name: "Joan Didion",
         description: "Cool, precise observation."
+      },
+      {
+        id: "wilshire",
+        name: "Logan Wilshire",
+        description: "Contemporary literary voice with sharp character insight."
+      },
+      {
+        id: "carpenter",
+        name: "Sarah J. Carpenter",
+        description: "Engaging narrative style with emotional depth."
+      },
+      {
+        id: "cheskey",
+        name: "Arina Cheskey",
+        description: "Vivid descriptive prose with authentic dialogue."
       }
-    ];
+      ];
 
-    return Response.json(authors);
+      return Response.json(authors);
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
