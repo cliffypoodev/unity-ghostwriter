@@ -14,6 +14,7 @@ import SourceFilesCard from "./SourceFilesCard";
 import PromptSuggestions from "./PromptSuggestions";
 import PromptCatalogBrowser from "./PromptCatalogBrowser";
 import AuthorVoiceSelector from "./AuthorVoiceSelector";
+import ModelSuggestionPanel from "./ModelSuggestionPanel";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
