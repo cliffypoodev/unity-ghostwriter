@@ -58,14 +58,8 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\n\n');
     const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
 
-    const systemPrompt = `You are an expert book editor. Generate a book outline in JSON format.
-
-CRITICAL: Return ONLY raw valid JSON. No markdown, no code fences, no explanation. Start with { and end with }.
-
-Required structure:
-{"outline":{"title":"string","narrative_arc":"string","themes":["t1"],"chapters":[{"number":1,"title":"string","summary":"string","key_events":["e1"],"prompt":"string"}]},"story_bible":{"world":"string","characters":[{"name":"string","role":"protagonist","description":"string","arc":"string"}],"settings":["s1"],"tone_voice":"string","style_guidelines":"string","thematic_elements":["e1"],"rules":"string"}}
-
-Keep each field concise. Summary = 1 sentence. Prompt = 2 sentences. narrative_arc = 1 sentence.`;
+    const systemPrompt = `Return ONLY valid JSON. No markdown or explanation. Required structure:
+{"outline":{"chapters":[{"number":1,"title":"string","summary":"string","prompt":"string"}]}}`;
 
     // Truncate topic to avoid exceeding token limits
     const truncatedTopic = spec.topic?.length > 3000 ? spec.topic.slice(0, 3000) + '...' : spec.topic;
