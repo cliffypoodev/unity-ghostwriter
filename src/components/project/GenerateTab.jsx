@@ -318,14 +318,19 @@ export default function GenerateTab({ projectId, onProceed }) {
     
     try {
       console.log('Starting write for chapter:', chapter.id);
-      // Use fetch with credentials for SSE streaming (SDK invoke() doesn't support streaming)
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min timeout
       
+      // Get auth token from base44 SDK
+      const authToken = base44.auth?.getToken?.();
+      
       const res = await fetch(`/api/functions/writeChapter`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+        },
         body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
         signal: controller.signal,
       });
