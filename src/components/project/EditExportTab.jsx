@@ -497,7 +497,19 @@ export default function EditExportTab({ projectId }) {
   const [copied, setCopied] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
   const [docSettings, setDocSettings] = useState({
-    pageSize: "letter", margins: "normal", lineSpacing: "1.5", pageBg: "#ffffff", showToc: true
+    bookTitle: "",
+    authorName: "",
+    subtitle: "",
+    bodyFont: "georgia",
+    headingFont: "georgia",
+    bodyFontSize: "14px",
+    lineSpacing: "1.5",
+    margins: "1in",
+    pageNumbers: "none",
+    headerText: "",
+    footerText: "",
+    pageBg: "#ffffff",
+    showToc: true,
   });
 
   const { data: project } = useQuery({
