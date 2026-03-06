@@ -12,6 +12,7 @@ async function callOpenAIWithTimeout(messages) {
   const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
   
   try {
+    console.log('Calling OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -20,7 +21,7 @@ async function callOpenAIWithTimeout(messages) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        max_tokens: 2000,
+        max_tokens: 1500,
         temperature: 0.7,
         messages,
       }),
@@ -28,17 +29,21 @@ async function callOpenAIWithTimeout(messages) {
     });
     
     clearTimeout(timeout);
+    console.log('OpenAI response status:', response.status);
     
     if (!response.ok) {
       const errData = await response.json();
-      throw new Error(`OpenAI API error: ${errData.error?.message || response.statusText}`);
+      throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    return data;
   } catch (e) {
     clearTimeout(timeout);
+    console.error('OpenAI call error:', e.name, e.message);
     if (e.name === 'AbortError') {
-      throw new Error('OpenAI request timed out (8s limit)');
+      throw new Error('Request timeout (8s exceeded)');
     }
     throw e;
   }
