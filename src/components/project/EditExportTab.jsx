@@ -686,7 +686,7 @@ export default function EditExportTab({ projectId }) {
         setTimeout(() => setAutoSaved(false), 2000);
       } else if ((e.ctrlKey || e.metaKey) && e.key === "p") {
         e.preventDefault();
-        window.print();
+        if (quillRef.current) exportPrint(quillRef.current, docSettings);
       }
     };
     window.addEventListener("keydown", handler);
