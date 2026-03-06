@@ -221,6 +221,9 @@ export default function Settings() {
                       <SelectItem value="claude-opus-4-5">Claude Opus (Most Powerful)</SelectItem>
                       <SelectItem value="claude-sonnet-4-5">Claude Sonnet (Balanced)</SelectItem>
                       <SelectItem value="claude-haiku-4-5">Claude Haiku (Fastest)</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o (OpenAI - Most Capable)</SelectItem>
+                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo (OpenAI - Fast)</SelectItem>
+                      <SelectItem value="deepseek-chat">DeepSeek Chat (Cost-Effective)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
