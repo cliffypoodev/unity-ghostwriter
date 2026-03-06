@@ -50,6 +50,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [extracting, setExtracting] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
   const [authorsData, setAuthorsData] = useState([]);
+  const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const chatBottomRef = useRef(null);
 
   // Scroll to top on component mount
@@ -152,7 +153,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
         book_type: form.book_type,
         genre: form.genre,
       });
-      
+
       const extracted = response.data;
       setForm(prev => ({
         ...prev,
@@ -171,6 +172,23 @@ export default function SpecificationTab({ projectId, onProceed }) {
     } finally {
       setExtracting(false);
     }
+  };
+
+  const handleSelectPrompt = (prompt) => {
+    // Ask if topic is empty or not
+    if (form.topic.trim()) {
+      const shouldReplace = window.confirm(
+        `Replace current premise with "${prompt.title}"?`
+      );
+      if (!shouldReplace) return;
+    }
+
+    setForm(prev => ({
+      ...prev,
+      topic: prompt.content,
+      genre: prompt.genre || prev.genre,
+      book_type: prompt.book_type || prev.book_type,
+    }));
   };
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
@@ -237,25 +255,34 @@ export default function SpecificationTab({ projectId, onProceed }) {
                value={form.topic}
                onChange={e => handleChange("topic", e.target.value)}
              />
-             <Button
-               onClick={handleAutoExtract}
-               disabled={!form.topic.trim() || extracting}
-               variant="outline"
-               size="sm"
-               className="mt-2 w-full"
-             >
-               {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-               Auto-Extract Details from Premise
-             </Button>
+             <div className="flex gap-2 mt-2">
+               <Button
+                 onClick={handleAutoExtract}
+                 disabled={!form.topic.trim() || extracting}
+                 variant="outline"
+                 size="sm"
+                 className="flex-1"
+               >
+                 {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                 Auto-Extract
+               </Button>
+               <Button
+                 onClick={() => setShowCatalogBrowser(true)}
+                 variant="outline"
+                 size="sm"
+                 className="flex-1"
+               >
+                 <Search className="w-4 h-4 mr-2" /> Browse Catalog
+               </Button>
+             </div>
            </div>
 
            {/* Prompt Catalog Suggestions */}
            <PromptSuggestions
              bookType={form.book_type}
              genre={form.genre}
-             onSelect={(entry) => {
-               handleChange("topic", entry.series_title + (entry.description ? ` — ${entry.description}` : ""));
-             }}
+             onSelect={handleSelectPrompt}
+             onBrowseAll={() => setShowCatalogBrowser(true)}
            />
 
           {/* Target Length */}
@@ -433,6 +460,15 @@ export default function SpecificationTab({ projectId, onProceed }) {
       </Card>
     </div>
     <SourceFilesCard projectId={projectId} />
-  </div>
-  );
-}
+
+    {/* Prompt Catalog Browser Modal */}
+    <PromptCatalogBrowser
+      isOpen={showCatalogBrowser}
+      onClose={() => setShowCatalogBrowser(false)}
+      onSelectPrompt={handleSelectPrompt}
+      preselectedGenre={form.genre}
+      preselectedBookType={form.book_type}
+    />
+    </div>
+    );
+    }
