@@ -97,10 +97,29 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
     });
 
     const text = response.content[0].text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return Response.json({ error: 'Failed to parse outline JSON' }, { status: 500 });
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Find the outermost JSON object using brace counting for robustness
+    let parsed = null;
+    const start = text.indexOf('{');
+    if (start === -1) return Response.json({ error: 'No JSON found in response' }, { status: 500 });
+
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) return Response.json({ error: 'Malformed JSON in response' }, { status: 500 });
+
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch (parseErr) {
+      // Try to fix common issues: trailing commas before ] or }
+      const cleaned = text.slice(start, end + 1)
+        .replace(/,\s*\]/g, ']')
+        .replace(/,\s*\}/g, '}');
+      parsed = JSON.parse(cleaned);
+    }
 
     // Save or update outline
     const existing = await base44.entities.Outline.filter({ project_id });
