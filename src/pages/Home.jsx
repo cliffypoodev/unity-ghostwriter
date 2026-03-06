@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,11 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState(null);
+
+  // Scroll to top on page mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
