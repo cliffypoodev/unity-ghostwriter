@@ -314,66 +314,76 @@ export default function GenerateTab({ projectId, onProceed }) {
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
 
+    let streamFinished = false;
+    
     try {
+      console.log('Starting write for chapter:', chapter.id);
       // Use fetch with credentials for SSE streaming (SDK invoke() doesn't support streaming)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 min timeout
+      
       const res = await fetch(`/api/functions/writeChapter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ project_id: projectId, chapter_id: chapter.id }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.error('writeChapter response error:', res.status, await res.text());
-        setStreamingChapterId(null);
-        await refetchChapters();
+        const errText = await res.text();
+        console.error('writeChapter response error:', res.status, errText);
         return;
       }
 
       if (!res.body) {
         console.error('writeChapter: no response body');
-        setStreamingChapterId(null);
-        await refetchChapters();
         return;
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let done = false;
 
-      while (!done) {
-        try {
-          const { done: streamDone, value } = await reader.read();
-          done = streamDone;
-          if (!done && value) {
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || "";
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.text) {
-                    setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
-                  }
-                  if (data.done || data.error) {
-                    done = true;
-                  }
-                } catch (e) {
-                  console.warn('Failed to parse SSE data:', e);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          streamFinished = true;
+          console.log('Stream finished');
+          break;
+        }
+        
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || "";
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.text) {
+                  setStreamingContent(prev => ({ ...prev, [chapter.id]: (prev[chapter.id] || "") + data.text }));
                 }
+                if (data.done || data.error) {
+                  streamFinished = true;
+                  break;
+                }
+              } catch (e) {
+                console.warn('Failed to parse SSE data:', line, e);
               }
             }
           }
-        } catch (readErr) {
-          console.error('Reader error:', readErr);
-          done = true;
         }
       }
     } catch (err) {
-      console.error('writeChapter error:', err);
+      console.error('writeChapter error:', err.message);
     } finally {
+      if (!streamFinished) {
+        console.log('Stream did not finish properly, refetching');
+      }
       setStreamingChapterId(null);
       await refetchChapters();
     }
