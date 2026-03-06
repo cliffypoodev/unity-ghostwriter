@@ -366,7 +366,6 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleWriteChapter = async (chapter) => {
     setStreamingChapterId(chapter.id);
-    setStreamingContent(prev => ({ ...prev, [chapter.id]: "" }));
     setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
 
     // Update status optimistically
@@ -382,30 +381,48 @@ export default function GenerateTab({ projectId, onProceed }) {
         chapter_id: chapter.id 
       });
       
-      console.log('writeChapter response:', response.status);
-      
       if (response.status !== 200) {
         console.error('writeChapter error:', response.data);
         return;
       }
       
-      if (response.data?.text) {
-        setStreamingContent(prev => ({ ...prev, [chapter.id]: response.data.text }));
-        if (response.data?.partial) {
-          setChapterProgress(prev => ({
-            ...prev,
-            [chapter.id]: `Partial: ${response.data.completedSections}/${response.data.totalSections} sections (retry to complete)`
-          }));
-        } else {
-          setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
-        }
+      // If async, poll for updates every 2 seconds
+      if (response.data?.async) {
+        setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
+        let pollCount = 0;
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          try {
+            const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+            const updatedChapter = updatedChapters.find(c => c.id === chapter.id);
+            
+            if (updatedChapter?.status === 'generated') {
+              clearInterval(pollInterval);
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
+              setStreamingContent(prev => ({ ...prev, [chapter.id]: updatedChapter.content || "" }));
+              await refetchChapters();
+            } else if (updatedChapter?.status === 'error') {
+              clearInterval(pollInterval);
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Error during generation" }));
+            } else {
+              // Show rotating progress message
+              const messages = ["Writing section 1 of 3...", "Writing section 2 of 3...", "Writing section 3 of 3..."];
+              const msgIndex = pollCount % messages.length;
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[msgIndex] }));
+            }
+          } catch (err) {
+            console.warn('Poll error:', err.message);
+          }
+        }, 2000);
+
+        // Stop polling after 5 minutes
+        setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
       }
     } catch (err) {
       console.error('writeChapter error:', err.message);
       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
     } finally {
       setStreamingChapterId(null);
-      await refetchChapters();
     }
   };
 
