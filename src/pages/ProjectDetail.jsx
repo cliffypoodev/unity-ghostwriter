@@ -112,6 +112,14 @@ export default function ProjectDetail() {
     navigate(createPageUrl("Home"));
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    await updateMutation.mutateAsync({ updated_date: new Date().toISOString() });
+    setSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
