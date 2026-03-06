@@ -153,7 +153,7 @@ function useResolvedContent(rawContent) {
   return isUrl ? (fetched || "") : (rawContent || "");
 }
 
-function ChapterItem({ chapter, onWrite, streamingContent, isStreaming }) {
+function ChapterItem({ chapter, onWrite, streamingContent, isStreaming, chapterProgress }) {
   const [expanded, setExpanded] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [promptValue, setPromptValue] = useState(chapter.prompt || "");
