@@ -101,8 +101,17 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
             } else if (event.type === 'message_stop') {
               const wordCount = fullContent.trim().split(/\s+/).length;
+              // Upload content as file to avoid field size limit
+              let contentToSave = fullContent;
+              try {
+                const blob = new Blob([fullContent], { type: 'text/plain' });
+                const formData = new FormData();
+                formData.append('file', blob, `chapter_${chapter_id}.txt`);
+                const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: blob });
+                if (uploadRes?.file_url) contentToSave = uploadRes.file_url;
+              } catch {}
               await base44.entities.Chapter.update(chapter_id, {
-                content: fullContent,
+                content: contentToSave,
                 status: 'generated',
                 word_count: wordCount,
                 generated_at: new Date().toISOString(),
