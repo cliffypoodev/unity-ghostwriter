@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
     // Cap chapters based on topic length to avoid token overflow
     const topicLen = (spec.topic || '').length;
     const rawTarget = Math.floor((chapterRange.min + chapterRange.max) / 2);
-    const targetChapters = topicLen > 2000 ? Math.min(rawTarget, 15) : rawTarget;
+    // Cap chapters to prevent output token overflow (each chapter ~400 tokens)
+    const maxChapters = topicLen > 2000 ? 10 : topicLen > 500 ? 15 : rawTarget;
+    const targetChapters = Math.min(rawTarget, maxChapters);
 
     // Truncate source files context to prevent token overflow
     const sourceContext = allSourceFiles.length > 0
