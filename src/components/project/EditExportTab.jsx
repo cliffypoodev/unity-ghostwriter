@@ -663,17 +663,23 @@ export default function EditExportTab({ projectId }) {
   useEffect(() => {
     if (!quillReady || !quillRef.current || !project) return;
     if (chapters.length === 0) return;
-    const html = buildHtml(project, spec, chapters, docSettings.showToc);
-    quillRef.current.clipboard.dangerouslyPasteHTML(html);
-    setPlainText(quillRef.current.getText());
+    buildHtml(project, spec, chapters, docSettings.showToc).then(html => {
+      if (quillRef.current) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(html);
+        setPlainText(quillRef.current.getText());
+      }
+    });
   }, [quillReady, project, spec, chapters]);
 
   // Re-build when showToc toggles
   useEffect(() => {
     if (!quillReady || !quillRef.current || !project || chapters.length === 0) return;
-    const html = buildHtml(project, spec, chapters, docSettings.showToc);
-    quillRef.current.clipboard.dangerouslyPasteHTML(html);
-    setPlainText(quillRef.current.getText());
+    buildHtml(project, spec, chapters, docSettings.showToc).then(html => {
+      if (quillRef.current) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(html);
+        setPlainText(quillRef.current.getText());
+      }
+    });
   }, [docSettings.showToc]);
 
   const handleCopyAll = () => {
