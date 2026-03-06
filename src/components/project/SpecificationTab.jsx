@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2 } from "lucide-react";
+import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
 import PromptSuggestions from "./PromptSuggestions";
+import PromptCatalogBrowser from "./PromptCatalogBrowser";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
