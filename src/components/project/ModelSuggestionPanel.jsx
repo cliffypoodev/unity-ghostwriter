@@ -7,35 +7,45 @@ const AI_MODEL_PROFILES = {
     name: "Claude Opus",
     provider: "Anthropic",
     description: "Premium literary model. Excels at sophisticated vocabulary, complex reasoning, and nuanced prose with deep thematic layering.",
-    strengths: ["Literary nuance", "Complex narrative structures", "Sophisticated vocabulary", "Deep thematic exploration", "Avoiding AI-isms"]
+    strengths: ["Literary nuance", "Complex narrative structures", "Sophisticated vocabulary", "Deep thematic exploration", "Avoiding AI-isms"],
+    proseQuality: 5,
+    tokenCost: 5
   },
   "claude-sonnet": {
     id: "claude-sonnet",
     name: "Claude Sonnet",
     provider: "Anthropic",
     description: "Balanced creative writing with strong reasoning. Great all-rounder for most book projects.",
-    strengths: ["Versatile prose style", "Strong character development", "Good pacing control", "Balanced creativity and coherence"]
+    strengths: ["Versatile prose style", "Strong character development", "Good pacing control", "Balanced creativity and coherence"],
+    proseQuality: 5,
+    tokenCost: 3
   },
   "gpt-4o": {
     id: "gpt-4o",
     name: "GPT-4o",
     provider: "OpenAI",
     description: "Optimized for clickability, brevity, and algorithm-friendly content. Ideal for marketing copy, titles, and SEO-driven projects.",
-    strengths: ["SEO optimization", "Catchy titles", "Marketing copy", "Punchy writing", "Algorithm-friendly formatting"]
+    strengths: ["SEO optimization", "Catchy titles", "Marketing copy", "Punchy writing", "Algorithm-friendly formatting"],
+    proseQuality: 4,
+    tokenCost: 4
   },
   "gpt-4o-creative": {
     id: "gpt-4o-creative",
     name: "GPT-4o (Creative Mode)",
     provider: "OpenAI",
     description: "Creative writing with a focus on accessible, page-turning prose. Good for genre fiction with broad appeal.",
-    strengths: ["Fast-paced prose", "Accessible language", "Genre conventions", "Dialogue-heavy scenes"]
+    strengths: ["Fast-paced prose", "Accessible language", "Genre conventions", "Dialogue-heavy scenes"],
+    proseQuality: 4,
+    tokenCost: 4
   },
   "gemini-pro": {
     id: "gemini-pro",
     name: "Gemini Pro",
     provider: "Google",
     description: "Strong at research-backed writing and factual accuracy. Excellent for non-fiction that requires verified information.",
-    strengths: ["Factual accuracy", "Research synthesis", "Data-driven narratives", "Source verification"]
+    strengths: ["Factual accuracy", "Research synthesis", "Data-driven narratives", "Source verification"],
+    proseQuality: 4,
+    tokenCost: 3
   }
 };
 
