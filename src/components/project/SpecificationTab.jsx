@@ -63,12 +63,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const [subRes, authRes] = await Promise.all([
-          base44.functions.invoke('configSubgenres', {}),
-          base44.functions.invoke('configAuthors', {}),
-        ]);
+        const subRes = await base44.functions.invoke('configSubgenres', {});
         setSubgenresData(subRes.data || {});
-        setAuthorsData(authRes.data || []);
       } catch (err) {
         console.error('Failed to load configs:', err);
       }
