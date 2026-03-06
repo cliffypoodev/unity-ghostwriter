@@ -431,15 +431,52 @@ function buildHtml(project, spec, chapters, showToc) {
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 
-function exportTxt(quill, title) {
-  const text = quill.getText();
-  const blob = new Blob([text], { type: "text/plain" });
-  download(blob, `${title}.txt`);
+function buildExportStyle(ds) {
+  const bodyFamily = FONT_FAMILIES[ds.bodyFont] || "Georgia, serif";
+  const headingFamily = FONT_FAMILIES[ds.headingFont] || "Georgia, serif";
+  const margin = ds.margins || "1in";
+  const lineH = ds.lineSpacing || "1.5";
+  const fontSize = ds.bodyFontSize || "14px";
+
+  let pageNumberCSS = "";
+  if (ds.pageNumbers === "bottom-center") pageNumberCSS = `@page { @bottom-center { content: counter(page); } }`;
+  else if (ds.pageNumbers === "bottom-right") pageNumberCSS = `@page { @bottom-right { content: counter(page); } }`;
+  else if (ds.pageNumbers === "top-right") pageNumberCSS = `@page { @top-right { content: counter(page); } }`;
+
+  const headerCSS = ds.headerText ? `.page-header { position: running(header); } @page { @top-left { content: element(header); } }` : "";
+  const footerCSS = ds.footerText ? `.page-footer { position: running(footer); } @page { @bottom-left { content: element(footer); } }` : "";
+
+  return `
+    body { font-family: ${bodyFamily}; font-size: ${fontSize}; line-height: ${lineH}; color: #1e293b; margin: ${margin}; }
+    h1, h2, h3, h4 { font-family: ${headingFamily}; }
+    h1 { font-size: 2.2em; font-weight: 700; margin-bottom: 0.4em; }
+    h2 { font-size: 1.5em; font-weight: 600; margin-top: 2em; margin-bottom: 0.4em; }
+    h3 { font-size: 1.2em; font-weight: 600; margin-top: 1.5em; }
+    p { margin-bottom: 0.8em; }
+    .page-header, .page-footer { font-size: 0.8em; color: #64748b; }
+    ${pageNumberCSS}
+    ${headerCSS}
+    ${footerCSS}
+  `;
 }
 
-function exportMd(quill, title) {
+function buildExportHeader(ds) {
+  let html = "";
+  if (ds.headerText) html += `<div class="page-header">${ds.headerText}</div>\n`;
+  if (ds.footerText) html += `<div class="page-footer">${ds.footerText}</div>\n`;
+  if (ds.bookTitle) html += `<h1>${ds.bookTitle}${ds.subtitle ? `<br/><small style="font-size:0.55em;font-weight:400">${ds.subtitle}</small>` : ""}</h1>\n`;
+  if (ds.authorName) html += `<p style="font-style:italic;margin-bottom:2em">${ds.authorName}</p>\n`;
+  return html;
+}
+
+function exportTxt(quill, ds) {
+  const text = quill.getText();
+  const blob = new Blob([text], { type: "text/plain" });
+  download(blob, `${ds.bookTitle || "book"}.txt`);
+}
+
+function exportMd(quill, ds) {
   const html = quill.root.innerHTML;
-  // Basic HTML → Markdown
   let md = html
     .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
     .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
@@ -457,21 +494,25 @@ function exportMd(quill, title) {
     .replace(/&gt;/g, ">")
     .replace(/\n{3,}/g, "\n\n");
   const blob = new Blob([md], { type: "text/markdown" });
-  download(blob, `${title}.md`);
+  download(blob, `${ds.bookTitle || "book"}.md`);
 }
 
-function exportHtml(quill, title) {
+function exportHtml(quill, ds) {
   const body = quill.root.innerHTML;
-  const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 24px;line-height:1.7;color:#1e293b;}h1{font-size:2.2em;}h2{font-size:1.5em;margin-top:2em;}</style></head><body>${body}</body></html>`;
+  const style = buildExportStyle(ds);
+  const header = buildExportHeader(ds);
+  const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${ds.bookTitle || "Book"}</title><style>${style}</style></head><body>${header}${body}</body></html>`;
   const blob = new Blob([full], { type: "text/html" });
-  download(blob, `${title}.html`);
+  download(blob, `${ds.bookTitle || "book"}.html`);
 }
 
-function exportDocx(quill, title) {
+function exportDocx(quill, ds) {
   const body = quill.root.innerHTML;
-  const mhtml = `MIME-Version: 1.0\nContent-Type: multipart/related; boundary="boundary"\n\n--boundary\nContent-Type: text/html; charset="utf-8"\n\n<html><head><title>${title}</title></head><body>${body}</body></html>\n\n--boundary--`;
+  const style = buildExportStyle(ds);
+  const header = buildExportHeader(ds);
+  const mhtml = `MIME-Version: 1.0\nContent-Type: multipart/related; boundary="boundary"\n\n--boundary\nContent-Type: text/html; charset="utf-8"\n\n<html><head><title>${ds.bookTitle || "Book"}</title><style>${style}</style></head><body>${header}${body}</body></html>\n\n--boundary--`;
   const blob = new Blob([mhtml], { type: "application/msword" });
-  download(blob, `${title}.doc`);
+  download(blob, `${ds.bookTitle || "book"}.doc`);
 }
 
 function download(blob, filename) {
