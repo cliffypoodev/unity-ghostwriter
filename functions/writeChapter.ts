@@ -69,7 +69,7 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
 
     // Stream the response
     const stream = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: appSettings.ai_model || 'claude-opus-4-5',
       max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
