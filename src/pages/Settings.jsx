@@ -265,10 +265,10 @@ export default function Settings() {
                     <Select value={settings.default_target_length} onValueChange={v => set("default_target_length", v)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="short">Short (8–12 chapters)</SelectItem>
-                        <SelectItem value="medium">Medium (15–25 chapters)</SelectItem>
-                        <SelectItem value="long">Long (25–40 chapters)</SelectItem>
-                        <SelectItem value="epic">Epic (40–60 chapters)</SelectItem>
+                        <SelectItem value="short">{"Short (8\u201312 chapters)"}</SelectItem>
+                        <SelectItem value="medium">{"Medium (15\u201325 chapters)"}</SelectItem>
+                        <SelectItem value="long">{"Long (25\u201340 chapters)"}</SelectItem>
+                        <SelectItem value="epic">{"Epic (40\u201360 chapters)"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
