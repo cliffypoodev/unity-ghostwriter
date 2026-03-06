@@ -170,6 +170,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
   const genres = form.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
+  const currentSubgenres = form.genre && subgenresData[form.book_type]?.[form.genre] ? subgenresData[form.book_type][form.genre] : [];
+  const selectedAuthor = authorsData.find(a => a.id === form.author_voice);
 
   return (
     <div className="space-y-6">
