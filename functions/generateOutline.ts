@@ -105,10 +105,10 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
 
     const text = response.content[0].text;
 
-    // Find the outermost JSON object using brace counting for robustness
+    // Return raw AI text for debugging if parse fails
     let parsed = null;
     const start = text.indexOf('{');
-    if (start === -1) return Response.json({ error: 'No JSON found in response' }, { status: 500 });
+    if (start === -1) return Response.json({ error: 'No JSON found in response', raw: text.slice(0, 500) }, { status: 500 });
 
     let depth = 0;
     let end = -1;
@@ -116,7 +116,7 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       if (text[i] === '{') depth++;
       else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
     }
-    if (end === -1) return Response.json({ error: 'Malformed JSON in response' }, { status: 500 });
+    if (end === -1) return Response.json({ error: 'Malformed JSON in response', raw: text.slice(0, 500) }, { status: 500 });
 
     try {
       parsed = JSON.parse(text.slice(start, end + 1));
@@ -125,7 +125,11 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       const cleaned = text.slice(start, end + 1)
         .replace(/,\s*\]/g, ']')
         .replace(/,\s*\}/g, '}');
-      parsed = JSON.parse(cleaned);
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (e2) {
+        return Response.json({ error: 'JSON parse failed: ' + e2.message, raw: text.slice(0, 1000) }, { status: 500 });
+      }
     }
 
     // Save or update outline
