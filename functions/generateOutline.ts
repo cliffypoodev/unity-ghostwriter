@@ -107,7 +107,9 @@ Generate exactly ${targetChapters} chapters. Make each chapter's writing prompt 
       });
     }
 
-    const text = response.content[0].text;
+    const text = modelName.startsWith('gpt-') || modelName === 'gpt-4o' 
+      ? response.choices[0].message.content 
+      : response.content[0].text;
 
     // Strip markdown code fences if present
     const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
