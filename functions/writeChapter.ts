@@ -158,149 +158,21 @@ Deno.serve(async (req) => {
     }
     try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
 
-    // Mark as generating
+    // Mark as generating and fire async generation in background
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
 
-    const sourceContext = allSourceFiles.length > 0
-      ? `\n\nSource files:\n${allSourceFiles.map(f => `--- ${f.filename} (${f.file_type}) ---\n${f.content}`).join('\n\n')}`
-      : '';
-
-    const globalInstructions = [
-      appSettings.global_style_instructions,
-      appSettings.global_content_guidelines,
-    ].filter(Boolean).join('\n\n');
-    const globalContext = globalInstructions ? `\n\nGlobal writing guidelines:\n${globalInstructions}` : '';
-
-    const bibleContext = storyBible
-      ? `\n\nStory Bible:\n- World: ${storyBible.world || ''}\n- Tone/Voice: ${storyBible.tone_voice || ''}\n- Style Guidelines: ${storyBible.style_guidelines || ''}\n- Rules: ${storyBible.rules || ''}`
-      : '';
-
-    const LENGTH_WORDS = { short: 2000, medium: 3500, long: 5000, epic: 6500 };
-    const targetWords = LENGTH_WORDS[spec?.target_length] || 3000;
-
-    // Break chapter into 3 sections for faster generation
-    const sections = [
-      { num: 1, title: 'Opening', words: 500 },
-      { num: 2, title: 'Middle', words: 600 },
-      { num: 3, title: 'Closing', words: 500 }
-    ];
-
-    const sectionContents = [];
-    const shortSystemPrompt = `You are a professional author. Write in the style of ${spec?.genre || 'fiction'}, matching the established tone: ${appSettings.global_style_instructions ? appSettings.global_style_instructions.slice(0, 100) : 'immersive and engaging'}.`;
-
-    // Helper: call OpenAI with timeout and retry
-    async function callOpenAI(messages, maxTokens = 1500, retryCount = 0) {
-      try {
-        const timeout = retryCount === 0 ? 12000 : 10000;
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout)
-        );
-
-        const fetchPromise = fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages,
-            max_tokens: maxTokens,
-            temperature: 0.7,
-          }),
-        });
-
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(`OpenAI API error: ${errData.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      } catch (err) {
-        if (retryCount < 1) {
-          console.warn(`Retry ${retryCount + 1}: ${err.message}`);
-          return callOpenAI(messages, 1000, retryCount + 1);
-        }
-        throw err;
-      }
-    }
-
-    // Generate each section
-    for (const section of sections) {
-      const previousContext = sectionContents.length > 0
-        ? `\n\nPrevious sections summary:\n${sectionContents.map((c, i) => `Section ${i + 1}: ${c.slice(0, 200)}...`).join('\n')}`
-        : '';
-
-      const sectionPrompt = `Write Section ${section.num} (${section.title}) of Chapter ${chapter.chapter_number}: "${chapter.title}"
-
-Summary: ${chapter.summary || ''}
-Prompt: ${chapter.prompt || ''}${previousContext}
-
-Write approximately ${section.words} words. Content only, no meta-commentary.`;
-
-      console.log(`Generating section ${section.num}/${sections.length}...`);
-
-      try {
-        const content = await callOpenAI([
-          { role: 'system', content: shortSystemPrompt },
-          { role: 'user', content: sectionPrompt }
-        ]);
-        sectionContents.push(content);
-      } catch (err) {
-        console.error(`Section ${section.num} failed: ${err.message}`);
-        // Return partial results
-        if (sectionContents.length > 0) {
-          const partialContent = sectionContents.join('\n\n');
-          const wordCount = partialContent.trim().split(/\s+/).length;
-          await base44.entities.Chapter.update(chapter_id, {
-            content: partialContent,
-            status: 'generated',
-            word_count: wordCount,
-            generated_at: new Date().toISOString(),
-          });
-          return Response.json({
-            text: partialContent,
-            success: true,
-            partial: true,
-            completedSections: sectionContents.length,
-            totalSections: sections.length,
-          });
-        }
-        throw err;
-      }
-    }
-
-    const fullContent = sectionContents.join('\n\n');
-    const wordCount = fullContent.trim().split(/\s+/).length;
-
-    // Store content
-    let contentValue = fullContent;
-    if (fullContent.length > 50000) {
-      try {
-        const uploadResult = await base44.integrations.Core.UploadFile({
-          file: fullContent
-        });
-        if (uploadResult?.file_url) {
-          contentValue = uploadResult.file_url;
-        }
-      } catch (uploadErr) {
-        console.warn('File upload failed, storing content directly:', uploadErr.message);
-      }
-    }
-
-    await base44.entities.Chapter.update(chapter_id, {
-      content: contentValue,
-      status: 'generated',
-      word_count: wordCount,
-      generated_at: new Date().toISOString(),
+    // Start async generation without waiting
+    generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings).catch(err => {
+      console.error('Background generation failed:', err.message);
     });
 
-    console.log(`Chapter ${chapter.chapter_number} generated (${wordCount} words)`)
-
-    return Response.json({ text: fullContent, success: true });
+    // Return immediately so we don't hit Deno's 10s limit
+    return Response.json({
+      text: '',
+      success: true,
+      async: true,
+      message: 'Chapter generation started in background'
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
