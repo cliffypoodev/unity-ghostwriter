@@ -183,28 +183,29 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 flex-shrink-0">
-              <Trash2 className="w-4 h-4 mr-1.5" /> Delete
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Project</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete "{project.name}" and all its related data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
-                {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Delete Project
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-slate-600 border-slate-200 hover:bg-slate-50"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : saveSuccess ? (
+              <Check className="w-4 h-4 mr-1.5 text-emerald-500" />
+            ) : (
+              <Save className="w-4 h-4 mr-1.5" />
+            )}
+            {saveSuccess ? "Saved!" : "Save"}
+          </Button>
+          <DeleteProjectDialog
+            projectName={project.name}
+            onConfirm={handleDelete}
+            deleting={deleting}
+          />
+        </div>
       </div>
 
       {/* Phase Tabs */}
