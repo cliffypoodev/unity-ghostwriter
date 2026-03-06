@@ -1,87 +1,82 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
+import { base44 } from "@/api/base44Client";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronRight } from "lucide-react";
 
-export default function PromptSuggestions({ bookType, genre, onSelect }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["prompt-suggestions", bookType, genre],
-    queryFn: async () => {
-      const res = await base44.functions.invoke("getPromptSuggestions", { book_type: bookType, genre });
-      return res.data?.suggestions || [];
-    },
-    enabled: !!bookType,
+export default function PromptSuggestions({ bookType, genre, onSelect, onBrowseAll }) {
+  const { data: allPrompts = [] } = useQuery({
+    queryKey: ["promptCatalog"],
+    queryFn: () => base44.entities.PromptCatalog.list(),
   });
 
-  if (!data?.length && !isLoading) return null;
+  // Get 3-5 random suggestions for the current genre/book_type
+  const suggestions = useMemo(() => {
+    let filtered = allPrompts;
 
-  const visible = expanded ? data : data?.slice(0, 4);
+    if (bookType && bookType !== "all") {
+      filtered = filtered.filter(p => p.book_type === bookType);
+    }
+
+    if (genre) {
+      filtered = filtered.filter(p => p.genre === genre);
+    }
+
+    // Shuffle and pick 3-5
+    if (filtered.length === 0) return [];
+
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(5, filtered.length));
+  }, [allPrompts, bookType, genre]);
+
+  if (suggestions.length === 0) return null;
 
   return (
-    <div className="border border-indigo-100 rounded-xl bg-indigo-50/50 p-3">
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <Lightbulb className="w-3.5 h-3.5 text-indigo-500" />
-        <span className="text-xs font-semibold text-indigo-700">
-          Prompt Catalog Suggestions
-          {genre ? ` for ${genre}` : ""}
-        </span>
-        {isLoading && <span className="text-xs text-slate-400 ml-1">Loading...</span>}
+    <Card className="border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-semibold text-slate-700">💡 Quick Suggestions</span>
+        <span className="text-xs text-slate-500">({suggestions.length})</span>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-1.5">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-9 bg-indigo-100 rounded-lg animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <div className="space-y-1.5">
-            {visible?.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => onSelect(entry)}
-                className="w-full text-left px-3 py-2 rounded-lg bg-white border border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-800 group-hover:text-indigo-700 truncate">
-                      {entry.series_title}
-                    </p>
-                    <p className="text-xs text-slate-400 truncate mt-0.5">{entry.subcategory}</p>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
-                    {entry.genre_tags?.slice(0, 2).map(tag => (
-                      <Badge key={tag} variant="outline" className="text-[10px] py-0 px-1.5 border-indigo-200 text-indigo-600">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {data?.length > 4 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full mt-2 text-xs text-indigo-600 hover:text-indigo-700 h-7"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? (
-                <><ChevronUp className="w-3 h-3 mr-1" /> Show less</>
-              ) : (
-                <><ChevronDown className="w-3 h-3 mr-1" /> Show {data.length - 4} more</>
+      <div className="space-y-2">
+        {suggestions.map(prompt => (
+          <div
+            key={prompt.id}
+            className="flex items-start gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all cursor-pointer group"
+            onClick={() => onSelect(prompt)}
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-700">
+                {prompt.title}
+              </p>
+              {prompt.category && (
+                <p className="text-xs text-slate-500">{prompt.category}</p>
               )}
-            </Button>
-          )}
-        </>
-      )}
-    </div>
+              {prompt.tags && prompt.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {prompt.tags.slice(0, 2).map(tag => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0 mt-0.5" />
+          </div>
+        ))}
+      </div>
+
+      <Button
+        onClick={onBrowseAll}
+        variant="ghost"
+        size="sm"
+        className="w-full mt-3 text-xs text-indigo-600 hover:text-indigo-700"
+      >
+        Browse Full Catalog ({allPrompts.length} prompts) →
+      </Button>
+    </Card>
   );
 }
