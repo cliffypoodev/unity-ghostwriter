@@ -38,9 +38,17 @@ function safeParse(str) {
 
 function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
+  
+  // Prevent scroll when expanding
+  const handleToggle = () => {
+    const scrollPos = window.scrollY;
+    setOpen(o => !o);
+    setTimeout(() => window.scrollTo(0, scrollPos), 0);
+  };
+  
   return (
     <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="py-3 px-4 cursor-pointer" onClick={() => setOpen(o => !o)}>
+      <CardHeader className="py-3 px-4 cursor-pointer" onClick={handleToggle}>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <CardIcon className="w-4 h-4 text-indigo-500" />
