@@ -100,20 +100,24 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
 
     if (modelName.startsWith('gpt-') || modelName === 'gpt-4o') {
       // OpenAI models
-      stream = await openai.messages.create({
+      stream = await openai.chat.completions.create({
         model: modelName,
         max_tokens: 8192,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
         stream: true,
       });
     } else if (modelName === 'deepseek-chat') {
       // DeepSeek model
-      stream = await deepseek.messages.create({
+      stream = await deepseek.chat.completions.create({
         model: 'deepseek-chat',
         max_tokens: 8192,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
         stream: true,
       });
     } else {
@@ -131,9 +135,13 @@ ${outlineData ? `Overall narrative arc: ${outlineData.narrative_arc || ''}` : ''
 
     try {
       for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-          const text = event.delta.text;
-          fullContent += text;
+        // Handle OpenAI/DeepSeek stream format
+        if (event.choices?.[0]?.delta?.content) {
+          fullContent += event.choices[0].delta.content;
+        }
+        // Handle Claude stream format
+        else if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          fullContent += event.delta.text;
         } else if (event.type === 'message_stop') {
           const wordCount = fullContent.trim().split(/\s+/).length;
           console.log('Generated content length:', fullContent.length, 'word count:', wordCount);
