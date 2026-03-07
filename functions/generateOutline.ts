@@ -406,22 +406,20 @@ No other fields. No prose outside the JSON array.`;
     let story_bible = '';
     let story_bible_url = '';
 
-    // Upload outline if large, otherwise store inline
-    if (outlineJson.length > 50000) {
-      const outlineFile = new File([outlineJson], 'outline.json', { type: 'application/json' });
-      const uploadRes = await sr.integrations.Core.UploadFile({ file: outlineFile });
-      outline_url = uploadRes.file_url;
-    } else {
-      outline_data = outlineJson;
-    }
+    // Always upload outline as file to avoid field size limits
+    const outlineFile = new File([outlineJson], `outline_${project_id}.json`, { type: 'application/json' });
+    const uploadRes = await sr.integrations.Core.UploadFile({ file: outlineFile });
+    outline_url = uploadRes.file_url;
+    console.log('Outline uploaded:', outline_url);
 
-    // Upload story bible if large, otherwise store inline
-    if (storyBibleJson.length > 50000) {
-      const bibleFile = new File([storyBibleJson], 'story_bible.json', { type: 'application/json' });
+    // Upload story bible as file if present
+    if (storyBibleJson) {
+      const bibleFile = new File([storyBibleJson], `story_bible_${project_id}.json`, { type: 'application/json' });
       const uploadRes2 = await sr.integrations.Core.UploadFile({ file: bibleFile });
       story_bible_url = uploadRes2.file_url;
+      console.log('Story bible uploaded:', story_bible_url);
     } else {
-      story_bible = storyBibleJson;
+      story_bible = '';
     }
 
     await sr.entities.Outline.update(outlineId, {
