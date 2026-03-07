@@ -405,55 +405,38 @@ No other fields. No prose outside the JSON array.`;
         allChapters.push(...batchResult);
       } catch (err) {
         console.error(`Batch starting at ${batchStart} failed:`, err.message);
-        const isTimeout = err.name === 'AbortError' || err.message.includes('timeout');
-        return Response.json({
-          error: isTimeout
-            ? 'Generation timed out. Try a shorter book or fewer chapters, then retry.'
-            : `Generation failed: ${err.message}`
-        }, { status: 502 });
+        await sr.entities.Outline.update(outlineId, { status: 'error', error_message: err.message });
+        return;
       }
     }
 
     const parsedOutline = { chapters: allChapters };
 
     // ── Save outline + metadata ──────────────────────────────────────────────
-    try {
-      if (base44.entities?.Outline) {
-        const existing = await base44.entities.Outline.filter({ project_id });
-        const outlinePayload = {
-          project_id,
-          outline_data: JSON.stringify(parsedOutline),
-          outline_url: '',
-          story_bible: JSON.stringify(parsedStoryBible),
-          story_bible_url: '',
-          book_metadata: JSON.stringify(bookMetadata),
-        };
-
-        if (existing && existing[0]) {
-          await base44.entities.Outline.update(existing[0].id, outlinePayload);
-        } else {
-          await base44.entities.Outline.create(outlinePayload);
-        }
-      }
-    } catch (outlineErr) {
-      console.warn('Outline save failed (non-critical):', outlineErr.message);
-    }
+    await sr.entities.Outline.update(outlineId, {
+      outline_data: JSON.stringify(parsedOutline),
+      outline_url: '',
+      story_bible: JSON.stringify(parsedStoryBible),
+      story_bible_url: '',
+      book_metadata: JSON.stringify(bookMetadata),
+      status: 'complete',
+      error_message: '',
+    });
 
     // ── Auto-update project name from generated title ────────────────────────
     if (bookMetadata?.title) {
       try {
-        await base44.entities.Project.update(project_id, { name: bookMetadata.title });
-        console.log('Project name updated to:', bookMetadata.title);
+        await sr.entities.Project.update(project_id, { name: bookMetadata.title });
       } catch (nameErr) {
-        console.warn('Project name update failed (non-critical):', nameErr.message);
+        console.warn('Project name update failed:', nameErr.message);
       }
     }
 
     // ── Delete + recreate chapters ───────────────────────────────────────────
-    const existingChapters = await base44.entities.Chapter.filter({ project_id });
-    await Promise.all(existingChapters.map(c => base44.entities.Chapter.delete(c.id)));
+    const existingChapters = await sr.entities.Chapter.filter({ project_id });
+    await Promise.all(existingChapters.map(c => sr.entities.Chapter.delete(c.id)));
 
-    const chapters = allChapters.map((ch, idx) => ({
+    const chapterRecords = allChapters.map((ch, idx) => ({
       project_id,
       chapter_number: ch.number || idx + 1,
       title: ch.title || `Chapter ${ch.number || idx + 1}`,
@@ -462,17 +445,33 @@ No other fields. No prose outside the JSON array.`;
       status: 'pending',
       word_count: 0,
     }));
-    await base44.entities.Chapter.bulkCreate(chapters);
+    await sr.entities.Chapter.bulkCreate(chapterRecords);
+    console.log('runGeneration complete:', chapterRecords.length, 'chapters');
 
-    return Response.json({
-      success: true,
-      chapter_count: chapters.length,
-      outline: parsedOutline,
-      story_bible: parsedStoryBible,
-      book_metadata: bookMetadata,
-    });
   } catch (error) {
-    console.error('generateOutline error:', error);
-    return Response.json({ error: error.message, stack: error.stack?.split('\n').slice(0, 5) }, { status: 500 });
+    console.error('runGeneration error:', error);
+    if (outlineId) {
+      try { await sr.entities.Outline.update(outlineId, { status: 'error', error_message: error.message }); } catch {}
+    }
+  }
+}
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { project_id } = await req.json();
+    if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
+
+    // Fire generation in background and return immediately
+    const sr = base44.asServiceRole;
+    (async () => { await runGeneration(sr, project_id); })();
+
+    return Response.json({ async: true, project_id });
+  } catch (error) {
+    console.error('generateOutline handler error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
