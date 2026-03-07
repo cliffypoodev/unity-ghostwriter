@@ -413,46 +413,51 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       // Poll the Outline entity status until complete or error
       let pollCount = 0;
+      const startedAt = Date.now();
       const messages = [
         "Generating story bible & metadata…",
         "Building chapter outlines…",
         "Writing chapter prompts…",
         "Finalizing outline…",
+        "Almost there…",
       ];
 
       const pollInterval = setInterval(async () => {
         pollCount++;
         try {
-          const outlines = await base44.entities.Outline.filter({ project_id: projectId });
-          const outline = outlines[0];
+          const outlineList = await base44.entities.Outline.filter({ project_id: projectId });
+          const latestOutline = outlineList[0];
 
-          if (!outline) return;
+          if (!latestOutline) return;
 
-          if (outline.status === 'complete') {
+          if (latestOutline.status === 'complete') {
             clearInterval(pollInterval);
             generatingRef.current = false;
-            setGenerationProgress("Done!");
             await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
             await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
             await queryClient.invalidateQueries({ queryKey: ["projects"] });
             setGenerating(false);
             setGenerationProgress("");
-          } else if (outline.status === 'error') {
+          } else if (latestOutline.status === 'error') {
             clearInterval(pollInterval);
             generatingRef.current = false;
-            setGenerateError(outline.error_message || 'Generation failed');
+            setGenerateError(latestOutline.error_message || 'Generation failed');
             setGenerating(false);
             setGenerationProgress("");
           } else {
-            // Still generating — show rotating message
-            setGenerationProgress(messages[pollCount % messages.length]);
+            // Still generating — show elapsed time + rotating message
+            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+            const mins = Math.floor(elapsed / 60);
+            const secs = elapsed % 60;
+            const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+            setGenerationProgress(`${messages[pollCount % messages.length]} (${timeStr})`);
           }
         } catch (e) {
           console.warn('Poll error:', e.message);
         }
       }, 3000);
 
-      // Safety timeout after 10 minutes
+      // Safety timeout after 12 minutes
       setTimeout(() => {
         clearInterval(pollInterval);
         if (generatingRef.current) {
@@ -461,7 +466,7 @@ export default function GenerateTab({ projectId, onProceed }) {
           setGenerating(false);
           setGenerationProgress("");
         }
-      }, 10 * 60 * 1000);
+      }, 12 * 60 * 1000);
 
     } catch (err) {
       console.error('generateOutline error:', err);
