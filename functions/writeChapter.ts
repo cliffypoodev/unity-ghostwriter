@@ -175,24 +175,56 @@ function scanChapterQuality(text, chapterNumber) {
       "pulse quickened", "pulse raced", "pulse thrummed", "breath hitched", "breath caught", "breath quickened", "breathing quickened",
       "swallowed hard", "throat dry", "throat tight", "shiver down his spine", "shiver up his spine", "shiver ran through", "shiver coursed",
       "a thrill coursed through", "a jolt of", "a surge of", "cheeks flushed", "heat rose to his cheeks", "flush crept into",
-      "couldn't tear himself away", "couldn't look away", "knees weak", "legs trembled"
+      "couldn't tear himself away", "couldn't look away", "knees weak", "legs trembled",
+      "a rush of adrenaline", "a rush of heat", "a rush of desire", "a rush of excitement", "a rush of emotion", "a rush of warmth",
+      "a flicker of", "a spark of", "a flash of heat", "a flash of desire", "a flash of anger", "a flash of fear",
+      "igniting a fire", "ignited a fire", "igniting a flame", "ignited a flame", "igniting a spark", "ignited a spark", "igniting a hunger", "ignited a hunger",
+      "a fire in him", "a fire within him", "a fire inside him", "a fire in her", "a fire within her", "a fire inside her", "a fire in them", "a fire within them", "a fire inside them",
+      "heat pooling in", "heat pooled in"
     ],
     atmosphereClichés: [
       "intoxicating", "intoxicated", "electric", "electricity", "electrifying", "palpable", "air thickened", "air crackled", "air grew heavy",
       "air felt charged", "air felt thick", "shadows danced", "shadows shifted", "shadows twisted", "shadows swirled", "shadows crept",
       "darkness enveloped", "darkness pressed", "darkness wrapped", "darkness beckoned", "whispers echoed", "whispers slithered", "whispers wrapped",
-      "tendrils of", "the weight of", "siren call", "siren's call", "siren song", "like a moth to a flame"
+      "tendrils of", "the weight of", "siren call", "siren's call", "siren song", "like a moth to a flame",
+      "the air between them thick with", "the air around them thick with", "the air thick with", "the air between them heavy with", "the air around them heavy with", "the air heavy with",
+      "the air between them charged with", "the air around them charged with", "the air charged with", "a moth drawn to a flame",
+      "hung in the air", "lingered in the air", "stretched in the air", "crackled in the air", "laced with", "heavy with implication", "heavy with meaning", "heavy with possibility",
+      "heavy with tension", "heavy with promise", "heavy with unspoken", "loaded with implication", "loaded with meaning", "loaded with innuendo",
+      "fraught with", "thick with tension", "thick with meaning", "thick with unspoken", "thick with possibility", "thick with implication",
+      "charged and electric", "charged with tension", "charged with anticipation", "charged with possibility", "charged with meaning"
     ],
     narrationClichés: [
       "in that moment", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back",
       "teetering on the edge", "on the precipice", "on the brink", "standing at the edge", "double-edged sword", "ready to embrace",
       "ready to confront", "ready to face whatever", "a mix of", "a mixture of", "a blend of", "a cocktail of", "he felt alive",
       "she felt alive", "feeling alive", "more than mere", "more than just", "the world around him faded", "the world outside faded",
-      "reality faded", "a tapestry of", "a kaleidoscope of", "a whirlwind of", "a maelstrom of"
+      "reality faded", "a tapestry of", "a kaleidoscope of", "a whirlwind of", "a maelstrom of",
+      "something deeper", "something more", "something explosive", "something unspoken", "something primal", "something raw", "something dark", "something dangerous",
+      "unspoken tension", "unspoken promise", "unspoken understanding", "unspoken challenge", "unspoken connection", "unspoken agreement", "unspoken bond", "unspoken truth",
+      "an unspoken tension", "an unspoken promise", "a knowing smile", "a knowing smirk", "a knowing grin", "a knowing glint", "a knowing look", "a knowing glance",
+      "a playful smile", "a playful smirk", "a playful grin", "a playful glint", "a playful look", "a playful glance",
+      "a mischievous smile", "a mischievous smirk", "a mischievous grin", "a mischievous glint", "a mischievous look", "a mischievous glance",
+      "a teasing smile", "a teasing smirk", "a teasing grin", "a teasing glint", "a teasing look", "a teasing glance",
+      "the thrill of the chase", "thrill of the chase", "a dangerous game", "a dangerous dance", "a dangerous allure",
+      "playing with fire", "testing boundaries", "tested boundaries", "testing the boundaries", "testing his boundaries", "testing her boundaries", "testing their boundaries",
+      "pushing boundaries", "pushed boundaries", "pushing the boundaries", "pushing his boundaries", "pushing her boundaries", "pushing their boundaries",
+      "testing limits", "pushing limits", "the game had just begun", "the game has just begun", "the game had only just begun", "the game had begun", "the game had started",
+      "the dance had just begun", "the dance had begun", "couldn't shake the feeling", "couldn't ignore the feeling", "couldn't deny the feeling", "couldn't resist the feeling",
+      "couldn't shake the pull", "couldn't ignore the pull", "couldn't resist the pull", "couldn't resist the attraction", "couldn't resist the urge", "couldn't resist the draw",
+      "an invisible thread", "an invisible force", "an invisible pull", "an invisible tether", "an invisible string", "an invisible cord",
+      "invisible thread", "invisible force", "invisible pull", "cutting through the noise like a knife", "cutting through the chatter like a knife", "cutting through the silence like a knife",
+      "cutting through the air like a knife", "cutting through the tension like a knife", "a storm brewing within", "a storm raging within", "a tempest brewing within",
+      "a fire burning within", "a war churning within", "a storm brewing inside", "the facade slipping", "the facade cracking", "the facade crumbling",
+      "the professional facade slipping", "the professional facade cracking", "eroding like sand", "eroding like stone"
     ],
     dialogueClichés: [
       "control is an illusion", "knowledge is power", "embrace it", "embrace your desires", "embrace the darkness", "let go of your fear",
-      "surrender to it", "what if i lose myself", "what if i can't handle", "you're not like the others"
+      "surrender to it", "what if i lose myself", "what if i can't handle", "you're not like the others",
+      "what do you truly want", "what do you truly desire", "what do you really want", "what do you really desire",
+      "how far are you willing to go", "how far you're willing to go", "let's see where this leads", "let's see how far this goes",
+      "shall we see where this leads", "are you willing to take that risk", "are you prepared to face the consequences",
+      "are you ready to take that risk", "are you ready to accept the consequences", "is this what you truly want"
     ],
     showDontTellPatterns: [
       "he felt", "she felt", "a sense of", "flooded through", "he was filled with", "she was filled with"
