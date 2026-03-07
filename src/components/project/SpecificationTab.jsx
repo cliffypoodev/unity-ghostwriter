@@ -43,7 +43,6 @@ function FloatingChat({ projectId, form }) {
   const [pulsing, setPulsing] = useState(true);
   const chatBottomRef = useRef(null);
 
-  // Stop pulse after 4 seconds
   useEffect(() => {
     const t = setTimeout(() => setPulsing(false), 4000);
     return () => clearTimeout(t);
@@ -67,11 +66,7 @@ function FloatingChat({ projectId, form }) {
     setChatInput("");
     setIsChatting(true);
     try {
-      await base44.functions.invoke('bookConsultantChat', {
-        project_id: projectId,
-        message: msg,
-        spec: form,
-      });
+      await base44.functions.invoke('bookConsultantChat', { project_id: projectId, message: msg, spec: form });
       await queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
     } finally {
       setIsChatting(false);
@@ -86,36 +81,15 @@ function FloatingChat({ projectId, form }) {
           50% { box-shadow: 0 4px 12px rgba(124,58,237,0.4), 0 0 0 10px rgba(124,58,237,0); }
         }
         .chat-fab-pulse { animation: chat-pulse 1.5s ease-in-out 3; }
-        .chat-popup-enter {
-          animation: chat-popup-in 0.2s ease-out;
-        }
+        .chat-popup-enter { animation: chat-popup-in 0.2s ease-out; }
         @keyframes chat-popup-in {
           from { opacity: 0; transform: scale(0.95) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
 
-      {/* Popup window */}
       {isOpen && (
-        <div
-          className="chat-popup-enter"
-          style={{
-            position: "fixed",
-            bottom: "84px",
-            right: "20px",
-            width: "380px",
-            maxWidth: "calc(100vw - 32px)",
-            maxHeight: "500px",
-            background: "white",
-            borderRadius: "16px",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-            zIndex: 1000,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header */}
+        <div className="chat-popup-enter" style={{ position: "fixed", bottom: "84px", right: "20px", width: "380px", maxWidth: "calc(100vw - 32px)", maxHeight: "500px", background: "white", borderRadius: "16px", boxShadow: "0 8px 30px rgba(0,0,0,0.15)", zIndex: 1000, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ background: "#7c3aed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-white" />
@@ -126,7 +100,6 @@ function FloatingChat({ projectId, form }) {
             </button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: 0 }}>
             {messages.length === 0 && !isChatting && (
               <div className="flex items-center justify-center h-full py-8">
@@ -139,10 +112,7 @@ function FloatingChat({ projectId, form }) {
             )}
             {messages.map(msg => (
               <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                <div className={cn(
-                  "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm",
-                  msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-800"
-                )}>
+                <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2 text-sm", msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-800")}>
                   <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 </div>
               </div>
@@ -161,7 +131,6 @@ function FloatingChat({ projectId, form }) {
             <div ref={chatBottomRef} />
           </div>
 
-          {/* Input */}
           <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
             <Input
               placeholder="Ask about your book idea..."
@@ -171,48 +140,22 @@ function FloatingChat({ projectId, form }) {
               disabled={isChatting}
               className="flex-1 text-sm"
             />
-            <Button
-              onClick={sendMessage}
-              disabled={!chatInput.trim() || isChatting}
-              size="icon"
-              style={{ background: "#7c3aed", border: "none", flexShrink: 0 }}
-              className="hover:opacity-90"
-            >
+            <Button onClick={sendMessage} disabled={!chatInput.trim() || isChatting} size="icon" style={{ background: "#7c3aed", border: "none", flexShrink: 0 }} className="hover:opacity-90">
               <Send className="w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* FAB button */}
       <button
         onClick={() => setIsOpen(o => !o)}
         className={cn(pulsing && !isOpen ? "chat-fab-pulse" : "")}
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
-          background: "#7c3aed",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          zIndex: 999,
-          transition: "transform 0.15s ease, background 0.15s ease",
-        }}
+        style={{ position: "fixed", bottom: "20px", right: "20px", width: "56px", height: "56px", borderRadius: "50%", background: "#7c3aed", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", zIndex: 999, transition: "transform 0.15s ease" }}
         onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
         onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
         aria-label={isOpen ? "Close chat" : "Open AI Book Consultant"}
       >
-        {isOpen
-          ? <X className="w-5 h-5 text-white" />
-          : <MessageSquare className="w-5 h-5 text-white" />
-        }
+        {isOpen ? <X className="w-5 h-5 text-white" /> : <MessageSquare className="w-5 h-5 text-white" />}
       </button>
     </>
   );
@@ -242,18 +185,16 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [extracting, setExtracting] = useState(false);
   const [highlightedFields, setHighlightedFields] = useState({});
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
+  const [subgenresData, setSubgenresData] = useState({});
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  // Load subgenres config
-  const [subgenresData, setSubgenresData] = useState({});
   useEffect(() => {
     base44.functions.invoke('configSubgenres', {})
       .then(res => setSubgenresData(res.data || {}))
       .catch(err => console.error('Failed to load configs:', err));
   }, []);
 
-  // Load existing spec
   const { data: specs = [] } = useQuery({
     queryKey: ["specification", projectId],
     queryFn: () => base44.entities.Specification.filter({ project_id: projectId }),
@@ -298,7 +239,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const response = await base44.functions.invoke('extractMetadata', {
         projectId, topic: form.topic, book_type: form.book_type, genre: form.genre,
       });
-      const e = response.data;
+      const extracted = response.data;
       const filled = [];
 
       setForm(prev => {
@@ -306,19 +247,18 @@ export default function SpecificationTab({ projectId, onProceed }) {
         const fill = (field, val) => {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
-        fill("genre",                  e.suggested_genre);
-        fill("subgenre",               e.suggested_subgenre);
-        fill("target_audience",        e.target_audience);
-        fill("beat_style",             e.suggested_beat_style);
-        fill("tone_style",             e.tone_style);
-        fill("author_voice",           e.suggested_author_voice);
-        fill("detail_level",           e.suggested_detail_level);
-        fill("ai_model",               e.suggested_ai_model);
-        fill("additional_requirements",e.additional_requirements);
+        fill("genre",                   extracted.suggested_genre);
+        fill("subgenre",                extracted.suggested_subgenre);
+        fill("target_audience",         extracted.target_audience);
+        fill("beat_style",              extracted.suggested_beat_style);
+        fill("tone_style",              extracted.tone_style);
+        fill("author_voice",            extracted.suggested_author_voice);
+        fill("detail_level",            extracted.suggested_detail_level);
+        fill("ai_model",                extracted.suggested_ai_model);
+        fill("additional_requirements", extracted.additional_requirements);
         return next;
       });
 
-      // Highlight filled fields briefly
       if (filled.length > 0) {
         const highlights = {};
         filled.forEach(f => { highlights[f] = true; });
@@ -326,9 +266,9 @@ export default function SpecificationTab({ projectId, onProceed }) {
         setTimeout(() => setHighlightedFields({}), 1800);
       }
 
-      const genre   = form.genre || e.suggested_genre || "";
-      const subgenre = e.suggested_subgenre || "";
-      const voice   = e.suggested_author_voice || "";
+      const genre    = form.genre || extracted.suggested_genre || "";
+      const subgenre = extracted.suggested_subgenre || "";
+      const voice    = extracted.suggested_author_voice || "";
       toast.success(`Auto-detected: ${genre}${subgenre ? " / " + subgenre : ""}${voice ? " — " + voice + " voice" : ""}`);
     } catch (err) {
       console.error('Extract error:', err);
@@ -369,6 +309,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
         }
         .field-highlight { animation: field-glow 1.8s ease-out; }
       `}</style>
+
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -389,12 +330,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               onChange={e => handleChange("topic", e.target.value)}
             />
             <div className="flex gap-2 mt-2">
-              <Button
-                onClick={handleAutoExtract}
-                disabled={!form.topic.trim() || extracting}
-                variant="outline"
-                size="sm"
-              >
+              <Button onClick={handleAutoExtract} disabled={!form.topic.trim() || extracting} variant="outline" size="sm">
                 {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
                 {extracting ? "Analyzing..." : "Auto-Extract Metadata"}
               </Button>
@@ -416,7 +352,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left column */}
             <div className="space-y-4">
-              {/* Book Type */}
               <div className={hl("book_type")}>
                 <Label className="text-sm font-medium">Book Type</Label>
                 <Select value={form.book_type} onValueChange={v => handleChange("book_type", v)}>
@@ -428,7 +363,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </Select>
               </div>
 
-              {/* Genre */}
               <div className={hl("genre")}>
                 <Label className="text-sm font-medium">Genre / Category</Label>
                 <Select value={form.genre} onValueChange={v => handleChange("genre", v)}>
@@ -439,7 +373,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </Select>
               </div>
 
-              {/* Subgenre */}
               {currentSubgenres.length > 0 && (
                 <div className={hl("subgenre")}>
                   <Label className="text-sm font-medium">Subgenre <span className="text-slate-400 font-normal">(optional)</span></Label>
@@ -453,7 +386,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </div>
               )}
 
-              {/* Target Length */}
               <div className={hl("target_length")}>
                 <Label className="text-sm font-medium">Target Length</Label>
                 <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
@@ -464,7 +396,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </Select>
               </div>
 
-              {/* Chapter Count */}
               <div>
                 <Label className="text-sm font-medium">Chapter Count <span className="text-slate-400 font-normal">(optional)</span></Label>
                 <Input
@@ -478,7 +409,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 />
               </div>
 
-              {/* Detail Level */}
               <div className={hl("detail_level")}>
                 <Label className="text-sm font-medium">Detail Level</Label>
                 <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
@@ -492,7 +422,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
             {/* Right column */}
             <div className="space-y-4">
-              {/* Target Audience */}
               <div className={hl("target_audience")}>
                 <Label className="text-sm font-medium">Target Audience</Label>
                 <Input
@@ -503,37 +432,32 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 />
               </div>
 
-              {/* Beat Style */}
               <div className={hl("beat_style")}>
                 <Label className="text-sm font-medium">Beat Style</Label>
                 <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} />
               </div>
 
-              {/* Spice Level */}
               <div>
                 <Label className="text-sm font-medium">Spice Level</Label>
                 <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
               </div>
 
-              {/* Language Intensity */}
               <div>
                 <Label className="text-sm font-medium">Language Intensity</Label>
                 <LanguageIntensitySelect value={form.language_intensity} onChange={v => handleChange("language_intensity", v)} />
               </div>
 
-              {/* Author Voice */}
               <div className={hl("author_voice")}>
                 <Label className="text-sm font-medium">Author Voice</Label>
                 <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
               </div>
 
-              {/* AI Model */}
               <div className={hl("ai_model")}>
-              <ModelSuggestionPanel
-                genre={form.genre}
-                selectedModel={form.ai_model}
-                onSelectModel={(id) => handleChange("ai_model", id)}
-              />
+                <ModelSuggestionPanel
+                  genre={form.genre}
+                  selectedModel={form.ai_model}
+                  onSelectModel={(id) => handleChange("ai_model", id)}
+                />
               </div>
             </div>
           </div>
@@ -552,30 +476,21 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              variant="outline"
-              className="flex-1"
-            >
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline" className="flex-1">
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Save Specifications
             </Button>
-            <Button
-              disabled={!canProceed}
-              onClick={onProceed}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700"
-            >
+            <Button disabled={!canProceed} onClick={onProceed} className="flex-1 bg-indigo-600 hover:bg-indigo-700">
               Proceed to Outline
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
+
         </CardContent>
       </Card>
 
       <SourceFilesCard projectId={projectId} />
 
-      {/* Prompt Catalog Browser Modal */}
       <PromptCatalogBrowser
         isOpen={showCatalogBrowser}
         onClose={() => setShowCatalogBrowser(false)}
@@ -584,7 +499,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
         preselectedBookType={form.book_type}
       />
 
-      {/* Floating Chat Widget */}
       <FloatingChat projectId={projectId} form={form} />
     </div>
   );
