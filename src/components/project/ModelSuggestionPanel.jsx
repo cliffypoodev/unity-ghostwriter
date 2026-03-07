@@ -211,7 +211,7 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
   const allModelIds = Object.keys(AI_MODEL_PROFILES);
   const otherModels = allModelIds
     .filter(id => id !== routing.primary && !routing.alts.includes(id))
-    .map(id => AI_MODEL_PROFILES[id]);
+    .map(id => AI_MODEL_PROFILES[id]).filter(Boolean);
 
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden">
