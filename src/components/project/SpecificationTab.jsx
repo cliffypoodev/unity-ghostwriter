@@ -45,7 +45,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
     chapter_count: "",
     detail_level: "moderate",
     target_audience: "",
+    beat_style: "",
     tone_style: "",
+    spice_level: 0,
+    language_intensity: 0,
     author_voice: "basic",
     additional_requirements: "",
   });
