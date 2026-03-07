@@ -454,7 +454,8 @@ export default function GenerateTab({ projectId, onProceed }) {
       // Safety timeout after 10 minutes
       setTimeout(() => {
         clearInterval(pollInterval);
-        if (generating) {
+        if (generatingRef.current) {
+          generatingRef.current = false;
           setGenerateError('Generation is taking too long. Please check back or retry.');
           setGenerating(false);
           setGenerationProgress("");
