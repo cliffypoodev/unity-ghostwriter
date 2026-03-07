@@ -343,10 +343,27 @@ export default function SpecificationTab({ projectId, onProceed }) {
           {/* Beat Style */}
           <div>
             <Label className="text-sm font-medium">Beat Style</Label>
-            <BeatStyleSelector
-              value={form.tone_style}
-              onChange={v => handleChange("tone_style", v)}
-              bookType={form.book_type}
+            <BeatStyleSelect
+              value={form.beat_style}
+              onChange={v => handleChange("beat_style", v)}
+            />
+          </div>
+
+          {/* Spice Level */}
+          <div>
+            <Label className="text-sm font-medium">Spice Level</Label>
+            <SpiceLevelSelect
+              value={form.spice_level}
+              onChange={v => handleChange("spice_level", v)}
+            />
+          </div>
+
+          {/* Language Intensity */}
+          <div>
+            <Label className="text-sm font-medium">Language Intensity</Label>
+            <LanguageIntensitySelect
+              value={form.language_intensity}
+              onChange={v => handleChange("language_intensity", v)}
             />
           </div>
 
