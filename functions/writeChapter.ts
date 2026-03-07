@@ -30,11 +30,47 @@ const BEAT_STYLES = {
   "urban-gritty-fantasy": { name: "Urban Gritty Fantasy", instructions: "Core Identity: The collision of high-magic elements with the harsh, dirty reality of modern city life.\nSentence Rhythm: Fast, street-level energy. Mix of magical terminology and modern slang. Tough and unsentimental.\nContent Rules: Underground magical economies. Modern problems solved or worsened by magic. Secret societies hidden in plain sight.\nEmotional Handling: Cynical but resilient. Gallows humor. Hard-earned loyalty.\nStructure: Blue-collar magical task > Discovery of threat the normal world cannot see > Chase through city's hidden magical layers > Messy improvised battle using both magic and technology > World remains normal to public but protagonist is scarred.\nEnding Rule: Close with the protagonist taking a drink or lighting a cigarette in the rain." },
 };
 
-function getBeatStyleInstructions(toneStyleKey) {
-  if (!toneStyleKey) return "Not specified";
-  const beat = BEAT_STYLES[toneStyleKey];
+function getBeatStyleInstructions(key) {
+  if (!key) return "Not specified";
+  const beat = BEAT_STYLES[key];
   if (beat) return `${beat.name}\n${beat.instructions}`;
-  return toneStyleKey;
+  return key;
+}
+
+const SPICE_LEVELS = {
+  0: { name: "Fade to Black", instructions: "Romantic/Sexual Content Rules:\n- No sexual content of any kind.\n- Romantic tension permitted but must remain fully clothed and non-physical beyond hand-holding, a brief kiss, or an embrace.\n- If a scene approaches intimacy, cut away or skip ahead entirely (fade to black).\n- Focus on emotional connection, dialogue, and longing.\n- No nudity. No suggestive descriptions of bodies in sexual context.\n- Appropriate for all audiences." },
+  1: { name: "Closed Door", instructions: "Romantic/Sexual Content Rules:\n- Intimacy is implied but never shown on the page.\n- Characters may kiss passionately, touch with intent, or acknowledge desire through internal monologue.\n- Scene ends or cuts away before any clothing is removed or explicit action begins.\n- Sensual tension built through proximity, breath, eye contact, and emotional vulnerability — not physical description.\n- No explicit body part references in sexual context.\n- No graphic language for arousal or physical response.\n- Tone: warm, yearning, charged — but restrained." },
+  2: { name: "Cracked Door", instructions: "Romantic/Sexual Content Rules:\n- Intimate scenes may be partially depicted with tasteful, non-clinical language.\n- Physical sensations may be described (warmth, pressure, breath, heartbeat) but anatomy referenced indirectly or poetically.\n- Scene may include beginning of a sexual encounter and some of the experience, but pulls back before becoming fully explicit.\n- Emotional connection must drive every intimate scene.\n- Language stays lyrical or naturalistic — never crude or pornographic.\n- Nudity may be acknowledged but described with restraint.\n- Think: R-rated movie. Skin, heat, intensity — but the camera doesn't linger on everything." },
+  3: { name: "Open Door", instructions: "Romantic/Sexual Content Rules:\n- Explicit sexual scenes permitted and may be depicted fully on the page.\n- Anatomical language allowed but must feel natural — avoid clinical or gratuitous phrasing.\n- Every explicit scene must be emotionally grounded.\n- Physical description should include sensory detail: touch, sound, breath, movement, reaction.\n- Internal emotional experience during intimacy is required — not just choreography.\n- Consent must be clear. Pacing: build tension before the scene. Afterglow matters.\n- Think: adult romance novel. Fully rendered but purposeful." },
+  4: { name: "Full Intensity", instructions: "Romantic/Sexual Content Rules:\n- No restrictions on explicitness. Graphic sexual content fully permitted.\n- Raw, unflinching depiction of desire, physicality, and vulnerability.\n- Language may be blunt, visceral, or aggressive if it fits the characters and emotional context.\n- Every scene must still be character-driven. The 'why' matters more than the 'what.'\n- Consent remains essential. Non-consensual scenarios may only appear if clearly framed as violation — never romanticized.\n- Emotional complexity is mandatory.\n- Think: literary erotica with narrative purpose. Nothing is off-limits, but nothing is wasted." },
+};
+
+const LANGUAGE_INTENSITY = {
+  0: { name: "Clean", instructions: "Profanity Rules:\n- No profanity of any kind.\n- No substitute words that clearly stand in for profanity.\n- Characters express frustration, anger, or fear through action and tone — never swearing.\n- Suitable for all audiences." },
+  1: { name: "Mild", instructions: "Profanity Rules:\n- Mild expletives only: damn, hell, ass, crap, bastard.\n- Use sparingly — no more than 2-3 instances per chapter.\n- Must feel natural to the character and moment.\n- No strong profanity (no F-word, no slurs, no sexually explicit language as insult)." },
+  2: { name: "Moderate", instructions: "Profanity Rules:\n- Occasional strong language permitted during emotional spikes: shock, pain, fear, rage.\n- The F-word may appear but should be rare — reserved for genuine peaks.\n- Do not cluster profanity. One instance per scene maximum unless extreme.\n- Must arise organically from character stress — never used for flavor or edge." },
+  3: { name: "Strong", instructions: "Profanity Rules:\n- Profanity used in moments of physical danger, anger, betrayal, or shock.\n- Dialogue may contain short explosive phrases. Internal monologue may include raw thoughts.\n- Keep it character-driven, not decorative. Every instance must reflect the character's emotional state.\n- Variety matters — do not repeat the same expletive. Profanity should punctuate, not saturate." },
+  4: { name: "Raw", instructions: "Profanity Rules:\n- Language may be harsh and frequent if consistent with trauma, survival, combat, or high-stakes realism.\n- Avoid repetitive filler swearing — each instance must feel earned.\n- Never use profanity purely for shock value.\n- Profanity must reflect emotional state and environment.\n- In narration: raw internal voice permitted if it matches the POV character's psychology." },
+};
+
+const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
+- All sexual content must involve adults (18+). No exceptions.
+- Consent must always be clear. Non-consensual acts may only appear if framed unambiguously as violation — never romanticized.
+- No sexual content involving minors in any context, at any spice level.
+- No glorification of real-world hate groups, terrorism, or targeted violence against protected classes.
+- Self-harm or suicide may be depicted for narrative purposes but must never be instructional or glorified.
+- These guardrails override all user settings. If a scene would violate these rules, fade to black or skip the scene entirely.`;
+
+function getSpiceLevelInstructions(level) {
+  const l = parseInt(level) || 0;
+  const entry = SPICE_LEVELS[l] || SPICE_LEVELS[0];
+  return `Spice Level: ${l}/4 — ${entry.name}\n${entry.instructions}`;
+}
+
+function getLanguageIntensityInstructions(level) {
+  const l = parseInt(level) || 0;
+  const entry = LANGUAGE_INTENSITY[l] || LANGUAGE_INTENSITY[0];
+  return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
 async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
