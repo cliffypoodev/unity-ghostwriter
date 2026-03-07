@@ -591,10 +591,25 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     // ── Build system prompt ────────────────────────────────────────────────────
 
-    const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
-    let systemPrompt = buildAuthorModeBlock(projectSpec);
-    systemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
-    systemPrompt += `\n\nGenre: ${projectSpec?.genre || 'fiction'}`;
+    const bookType = projectSpec?.book_type || 'fiction';
+    const isNonfiction = bookType === 'nonfiction';
+    
+    let systemPrompt;
+    if (isNonfiction) {
+      systemPrompt = _buildNonfictionSystemPrompt(
+        projectSpec, 
+        { chapter_number: chapter.chapter_number, title: chapter.title }, 
+        totalChapters, 
+        TARGET_WORDS,
+        storyBible || {}, 
+        outlineData || {}, 
+        ""
+      );
+    } else {
+      const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
+      systemPrompt = buildAuthorModeBlock(projectSpec);
+      systemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
+      systemPrompt += `\n\nGenre: ${projectSpec?.genre || 'fiction'}`;
 
     // PART E — subgenre
     if (projectSpec?.subgenre) {
