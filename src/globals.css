@@ -278,3 +278,7 @@ html, body {
 .mobile [class*="overflow"] {
   @apply max-h-[70vh];
 }
+
+/* Hide scrollbar for specific elements */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
