@@ -165,3 +165,6 @@ export function SpiceLevelSelect({ value, onChange }) {
 export function LanguageIntensitySelect({ value, onChange }) {
   return <RatingSelect value={value} onChange={onChange} options={LANGUAGE_OPTIONS} activeColor="bg-amber-500" icon={BookOpen} iconColor="text-amber-500" />;
 }
+
+// Default export for legacy compatibility
+export default BeatStyleSelect;
