@@ -268,14 +268,39 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       systemPrompt += `\n- The next chapter is titled: '${nextChapter.title}' — end in a way that makes the reader want to continue.`;
     }
 
-    // PART C — anti-repetition rules
-    systemPrompt += `\n\nANTI-REPETITION RULES:
-- Do NOT open this chapter the same way the previous chapter opened
-- Do NOT reuse metaphors, similes, or turns of phrase from previous chapters
-- Do NOT have characters repeat emotional reactions they have already had
-- Vary your sentence structure — mix short punchy sentences with longer flowing ones
-- If the previous chapter was dialogue-heavy, make this one more description/action-driven (or vice versa)
-- Avoid cliche transitions: 'Meanwhile', 'Little did they know', 'As the sun set', 'With bated breath'`;
+    // PART C — strict anti-repetition rules with banned phrase list
+    systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION OF THESE RULES IS A FAILURE:
+
+1. BANNED PHRASE LIST — Do NOT use any of these overused phrases:
+   - "heart pounding" / "heart racing" / "pulse quickened" (use MAX once per chapter, find alternatives: chest tightened, blood thrummed, stomach dropped)
+   - "intoxicating" (BANNED entirely — find specific sensory descriptions instead)
+   - "shadows danced" / "shadows shifted" / "shadows twisted" (use MAX once per chapter)
+   - "whispers echoed" / "whispers slithered" / "whispers wrapped around" (use MAX once per chapter)
+   - "the darkness enveloped" / "darkness pressed" / "darkness wrapped" (use MAX once per chapter)
+   - "a thrill coursed through" / "a shiver ran down" (use MAX once per chapter)
+   - "he couldn't tear himself away"
+   - "the weight of" (the unknown, the decision, etc.)
+   - "in that moment"
+   - "the air thickened/crackled/grew heavy"
+   - "just the beginning"
+
+2. CHAPTER OPENING RULE: Each chapter MUST open with a completely different technique:
+   - Chapter 1: Action or sensory detail (NOT atmosphere)
+   - Chapter 2: Dialogue mid-conversation
+   - Chapter 3: Internal thought or memory
+   - Chapter 4: Time/place stamp with concrete physical action
+   - Chapter 5: A single striking image or metaphor
+   NEVER open two chapters the same way. NEVER open with atmosphere/darkness/shadows.
+
+3. DIALOGUE RULE: Characters must NOT repeat the same conversational dynamic. If the previous chapter had Character A saying 'trust me' and Character B hesitating, the NEXT chapter must show a DIFFERENT power dynamic. Characters must evolve between chapters — they cannot have the same argument twice.
+
+4. PLOT PROGRESSION RULE: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. Walking into a room is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.
+
+5. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
+
+6. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
+
+7. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.`;
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
 
@@ -311,6 +336,16 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     if (isLastChapter) {
       currentChapterRequest += `\n\nIMPORTANT — This is the FINAL chapter. Bring all narrative threads to a satisfying conclusion. Resolve the central conflict. Give the reader closure while leaving a lasting impression.`;
     }
+
+    // QUALITY CHECK — Add before every chapter
+    currentChapterRequest += `\n\nQUALITY CHECK — Before finishing this chapter, verify:
+- Does this chapter open DIFFERENTLY from the previous chapter?
+- Does at least ONE concrete plot event occur (not just atmosphere)?
+- Is there dialogue that reveals NEW information or shifts the dynamic?
+- Have you avoided the banned phrase list?
+- Are sensory details SPECIFIC (not vague atmospheric descriptions)?
+- Does the chapter end at a DIFFERENT emotional point than where it started?
+If any answer is NO, revise before submitting.`;
 
     messages.push({ role: 'user', content: currentChapterRequest });
 
