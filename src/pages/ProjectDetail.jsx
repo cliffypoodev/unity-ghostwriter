@@ -187,7 +187,7 @@ export default function ProjectDetail() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="text-xl font-bold h-10 max-w-md"
-                  autoFocus
+                  ref={(el) => el?.focus({ preventScroll: true })}
                   onKeyDown={(e) => { if (e.key === "Enter") updateMutation.mutate({ name: newName }); if (e.key === "Escape") setEditingName(false); }}
                 />
                 <Button size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700" onClick={() => updateMutation.mutate({ name: newName })}>
