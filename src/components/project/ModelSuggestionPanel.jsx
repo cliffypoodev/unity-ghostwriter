@@ -2,23 +2,32 @@ import React, { useState } from "react";
 import { ChevronDown, Settings, Star } from "lucide-react";
 
 const AI_MODEL_PROFILES = {
-  "claude-opus": {
-    id: "claude-opus",
-    name: "Claude Opus",
+  "claude-opus-4-5": {
+    id: "claude-opus-4-5",
+    name: "Claude Opus 4.5",
     provider: "Anthropic",
     description: "Premium literary model. Excels at sophisticated vocabulary, complex reasoning, and nuanced prose with deep thematic layering.",
     strengths: ["Literary nuance", "Complex narrative structures", "Sophisticated vocabulary", "Deep thematic exploration", "Avoiding AI-isms"],
     proseQuality: 5,
     tokenCost: 5
   },
-  "claude-sonnet": {
-    id: "claude-sonnet",
-    name: "Claude Sonnet",
+  "claude-sonnet-4-5": {
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
     provider: "Anthropic",
     description: "Balanced creative writing with strong reasoning. Great all-rounder for most book projects.",
     strengths: ["Versatile prose style", "Strong character development", "Good pacing control", "Balanced creativity and coherence"],
-    proseQuality: 5,
+    proseQuality: 4,
     tokenCost: 3
+  },
+  "claude-haiku-4-5": {
+    id: "claude-haiku-4-5",
+    name: "Claude Haiku 4.5",
+    provider: "Anthropic",
+    description: "Fast and cost-effective. Best for drafts, outlines, and projects where speed matters more than literary polish.",
+    strengths: ["Fast generation", "Low cost", "Good structure", "Quick iterations"],
+    proseQuality: 3,
+    tokenCost: 1
   },
   "gpt-4o": {
     id: "gpt-4o",
@@ -29,23 +38,23 @@ const AI_MODEL_PROFILES = {
     proseQuality: 4,
     tokenCost: 4
   },
-  "gpt-4o-creative": {
-    id: "gpt-4o-creative",
-    name: "GPT-4o (Creative Mode)",
+  "gpt-4-turbo": {
+    id: "gpt-4-turbo",
+    name: "GPT-4 Turbo",
     provider: "OpenAI",
-    description: "Creative writing with a focus on accessible, page-turning prose. Good for genre fiction with broad appeal.",
-    strengths: ["Fast-paced prose", "Accessible language", "Genre conventions", "Dialogue-heavy scenes"],
-    proseQuality: 4,
-    tokenCost: 4
-  },
-  "gemini-pro": {
-    id: "gemini-pro",
-    name: "Gemini Pro",
-    provider: "Google",
-    description: "Strong at research-backed writing and factual accuracy. Excellent for non-fiction that requires verified information.",
-    strengths: ["Factual accuracy", "Research synthesis", "Data-driven narratives", "Source verification"],
+    description: "Powerful and fast GPT-4 variant. Good balance of quality and speed for longer-form content.",
+    strengths: ["Fast inference", "Long context", "Consistent tone", "Broad genre coverage"],
     proseQuality: 4,
     tokenCost: 3
+  },
+  "deepseek-chat": {
+    id: "deepseek-chat",
+    name: "DeepSeek Chat",
+    provider: "DeepSeek",
+    description: "Highly cost-effective model with surprisingly strong writing capabilities. Great for bulk generation on a budget.",
+    strengths: ["Ultra low cost", "Solid structure", "Good dialogue", "High throughput"],
+    proseQuality: 3,
+    tokenCost: 1
   }
 };
 
