@@ -191,17 +191,15 @@ TRANSITION TO NEXT: How this chapter ends to tee up the next — the unresolved 
 TONE CALIBRATION: How the tone should shift from the previous chapter — e.g., "lighter and more hopeful after the darkness of Ch 3" or "increasingly tense."
 THINGS TO AVOID: Specific pitfalls for this chapter — e.g., "Do not repeat the statistics already cited in Chapter 2" or "Avoid making this feel like a list — narrative flow is essential."`;
   }
-  return `Each chapter object MUST include a "prompt" field of AT LEAST 300 words covering ALL of these sections:
-OPENING HOOK: A specific, cinematic opening scene with actual sensory details — what the reader sees, hears, feels in the first paragraph. NOT "the chapter opens with..." — write the actual sensory moment.
-PLOT EVENTS: 3-5 specific plot beats in order with concrete details (character names, locations, actions, key dialogue cues, decisions made).
-CHARACTER DEVELOPMENT: Which characters appear, what internal conflicts surface, what decisions they face, how their arc specifically advances from the previous chapter.
-EMOTIONAL ARC: The emotional trajectory — what feeling the reader starts with at the chapter's opening and what feeling they end with at its close.
-DIALOGUE GUIDANCE: Key conversations that must happen, the subtext beneath them, what information or revelation gets delivered through dialogue.
-PACING NOTES: Whether this chapter is fast-paced action, slow-burn tension, reflective, or mixed — and where the tempo shifts within the chapter.
-SENSORY DETAILS: Specific setting details — weather, lighting, sounds, smells, textures that ground the reader in this chapter's world.
-TRANSITION FROM PREVIOUS: Exactly how this chapter picks up from the last one — time gap, scene change, or continuous action, and what emotional thread carries over.
-TRANSITION TO NEXT: How this chapter ends to set up the next — the cliffhanger, unanswered question, or emotional state that makes the reader turn the page.
-THINGS TO AVOID: Specific pitfalls for this chapter — e.g., "Do not repeat the mentor's backstory — it was covered in Ch 3" or "Avoid resolving the tension too quickly."`;
+  return `Each chapter object MUST include a "prompt" field of 150-250 words covering these sections concisely:
+HOOK: Specific opening image or action (2-3 sentences).
+PLOT: 3-4 key beats with character names and locations.
+ARC: Character internal conflict and how it advances.
+EMOTION: Feeling at chapter start → feeling at end.
+DIALOGUE: One key conversation and its subtext.
+TRANSITION_IN: How this picks up from previous chapter.
+TRANSITION_OUT: Cliffhanger or hook into next chapter.
+AVOID: 1-2 specific pitfalls for this chapter.`;
 }
 
 function buildStoryBiblePrompt(spec, truncatedTopic, targetChapters) {
