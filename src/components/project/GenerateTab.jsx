@@ -137,30 +137,48 @@ function OutlineCard({ outlineData }) {
 
 // ── Story Bible display ───────────────────────────────────────────────────────
 
+function toStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(toStr).join(', ');
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
 function StoryBibleCard({ storyBible }) {
   const bible = safeParse(storyBible);
   if (!bible) return null;
+
+  const fields = [
+    { key: 'world', label: 'World & Setting' },
+    { key: 'setting', label: 'Setting' },
+    { key: 'tone_voice', label: 'Tone & Voice' },
+    { key: 'tone', label: 'Tone' },
+    { key: 'style_guidelines', label: 'Style Guidelines' },
+    { key: 'atmosphere', label: 'Atmosphere' },
+    { key: 'geography', label: 'Geography' },
+    { key: 'magic_system', label: 'Magic System' },
+    { key: 'technology', label: 'Technology' },
+    { key: 'society', label: 'Society' },
+    { key: 'history', label: 'History' },
+  ];
+
   return (
     <CollapsibleCard title="Story Bible" icon={Globe} defaultOpen={false}>
       <div className="space-y-4">
-        {bible.world && (
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">World & Setting</p>
-            <p className="text-sm text-slate-700 leading-relaxed">{bible.world}</p>
-          </div>
-        )}
-        {bible.tone_voice && (
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tone & Voice</p>
-            <p className="text-sm text-slate-700">{bible.tone_voice}</p>
-          </div>
-        )}
-        {bible.style_guidelines && (
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Style Guidelines</p>
-            <p className="text-sm text-slate-700">{bible.style_guidelines}</p>
-          </div>
-        )}
+        {fields.map(({ key, label }) => {
+          const val = bible[key];
+          if (!val) return null;
+          const text = toStr(val);
+          if (!text) return null;
+          return (
+            <div key={key}>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{text}</p>
+            </div>
+          );
+        })}
+
         {bible.characters?.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Characters</p>
@@ -168,22 +186,28 @@ function StoryBibleCard({ storyBible }) {
               {bible.characters.map((char, i) => (
                 <div key={i} className="bg-slate-50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-slate-800">{char.name}</span>
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", ROLE_COLORS[char.role?.toLowerCase()] || ROLE_COLORS.minor)}>
-                      {char.role}
-                    </span>
+                    <span className="font-semibold text-sm text-slate-800">{toStr(char.name)}</span>
+                    {char.role && (
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", ROLE_COLORS[toStr(char.role).toLowerCase()] || ROLE_COLORS.minor)}>
+                        {toStr(char.role)}
+                      </span>
+                    )}
                   </div>
-                  {char.description && <p className="text-xs text-slate-600 mb-1">{char.description}</p>}
-                  {char.arc && <p className="text-xs text-slate-500 italic">{char.arc}</p>}
+                  {char.description && <p className="text-xs text-slate-600 mb-1">{toStr(char.description)}</p>}
+                  {char.arc && <p className="text-xs text-slate-500 italic">{toStr(char.arc)}</p>}
                 </div>
               ))}
             </div>
           </div>
         )}
+
         {bible.rules && (
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Rules</p>
-            <p className="text-sm text-slate-700">{bible.rules}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Consistency Rules</p>
+            {Array.isArray(bible.rules)
+              ? <ul className="list-disc list-inside space-y-1">{bible.rules.map((r, i) => <li key={i} className="text-sm text-slate-700">{toStr(r)}</li>)}</ul>
+              : <p className="text-sm text-slate-700">{toStr(bible.rules)}</p>
+            }
           </div>
         )}
       </div>
