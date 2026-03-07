@@ -319,12 +319,13 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const wordCount = fullContent.trim().split(/\s+/).length;
 
     let contentValue = fullContent;
-    if (fullContent.length > 50000) {
+    if (fullContent.length > 30000) {
       try {
-        const uploadResult = await base44.integrations.Core.UploadFile({ file: fullContent });
+        const contentFile = new File([fullContent], `chapter_${chapterId}.txt`, { type: 'text/plain' });
+        const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile });
         if (uploadResult?.file_url) contentValue = uploadResult.file_url;
       } catch (uploadErr) {
-        console.warn('File upload failed, storing directly');
+        console.warn('File upload failed, storing directly:', uploadErr.message);
       }
     }
 
