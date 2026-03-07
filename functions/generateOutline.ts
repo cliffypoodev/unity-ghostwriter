@@ -125,7 +125,8 @@ function getLanguageIntensityInstructions(level) {
 
 const OPENAI_TIMEOUT = 110000; // 110 seconds per call — batch chapters can take 60-90s
 
-async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
+// CHANGE 4 FIX: Rate limit retry with exponential backoff
+async function callOpenAIWithTimeout(messages, maxTokens = 8192, retries = 3) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
@@ -152,7 +153,20 @@ async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
       
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+        const errorMsg = errData.error?.message || response.statusText;
+        
+        // Check for rate limit (429 or "rate_limit" in message)
+        if (response.status === 429 || errorMsg.toLowerCase().includes('rate limit')) {
+          if (attempt < retries) {
+            const waitMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s, 16s
+            console.log(`Rate limit detected. Waiting ${waitMs}ms before retry ${attempt + 2}/${retries + 1}...`);
+            await new Promise(r => setTimeout(r, waitMs));
+            continue;
+          }
+          throw new Error('Rate limit exceeded after retries. Please wait 60+ seconds and try again.');
+        }
+        
+        throw new Error(`OpenAI error: ${errorMsg}`);
       }
       
       const data = await response.json();
@@ -162,7 +176,15 @@ async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
       clearTimeout(timeout);
       console.error(`Attempt ${attempt + 1} failed:`, e.name, e.message);
       
-      if (attempt < retries) {
+      // Retry on rate limit errors
+      if (attempt < retries && (e.message.includes('rate limit') || e.message.includes('429'))) {
+        const waitMs = Math.pow(2, attempt + 1) * 1000;
+        console.log(`Retrying after ${waitMs}ms...`);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      
+      if (attempt < retries && e.name !== 'AbortError') {
         const waitMs = 1000 * Math.pow(2, attempt);
         console.log(`Waiting ${waitMs}ms before retry...`);
         await new Promise(r => setTimeout(r, waitMs));
@@ -254,10 +276,17 @@ async function runGeneration(sr, project_id) {
       language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
     };
 
+    // CHANGE 3 FIX: Cap chapter count at 20 max; recommend 12-18
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
-    const targetChapters = spec.chapter_count
+    let targetChapters = spec.chapter_count
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
+    
+    // Cap at 20 chapters to reduce token usage and generation time
+    if (targetChapters > 20) {
+      console.log(`User requested ${targetChapters} chapters. Capping at 20 for optimal generation.`);
+      targetChapters = 20;
+    }
 
     const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
     const isNonfiction = spec.book_type === 'nonfiction';
@@ -361,7 +390,8 @@ No other fields. No prose outside the JSON array.`;
           messages.push({ role: 'assistant', content: text });
           messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' });
         }
-        const response = await callOpenAIWithTimeout(messages, 8000);
+        // CHANGE 1 FIX: Reduce max_tokens from 16384 to 8192 (halved)
+        const response = await callOpenAIWithTimeout(messages, 4000);
         if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
         text = response.choices[0].message.content;
         if (!isRefusal(text)) break;
