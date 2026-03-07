@@ -641,6 +641,10 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
 
     const wordCount = fullContent.trim().split(/\s+/).length;
 
+    // RUN QUALITY SCAN
+    const qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
+    console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
+
     let contentValue = fullContent;
     if (fullContent.length > 30000) {
       try {
@@ -657,6 +661,7 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
       status: 'generated',
       word_count: wordCount,
       generated_at: new Date().toISOString(),
+      quality_scan: JSON.stringify(qualityResult),
     });
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
