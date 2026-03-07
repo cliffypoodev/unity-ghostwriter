@@ -479,7 +479,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {/* Detail Level */}
-              <div>
+              <div className={hl("detail_level")}>
                 <Label className="text-sm font-medium">Detail Level</Label>
                 <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
                   <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
