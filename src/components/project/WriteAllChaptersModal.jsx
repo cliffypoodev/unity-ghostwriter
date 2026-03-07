@@ -27,6 +27,7 @@ export default function WriteAllChaptersModal({
 }) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [estRemaining, setEstRemaining] = useState(null);
+  const [showErrors, setShowErrors] = useState(false);
 
   const {
     current,
@@ -38,6 +39,7 @@ export default function WriteAllChaptersModal({
     done,
     wordsWritten = 0,
     chapterWords = 0,
+    error = null,
   } = progress;
 
   const targetChapterWords = TARGET_WORDS_PER_CHAPTER[targetLength] || 3750;
@@ -189,6 +191,20 @@ export default function WriteAllChaptersModal({
             </div>
           )}
 
+          {/* ISSUE 6 FIX: Error display during generation */}
+          {!done && error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-red-900 mb-2">Error during generation:</p>
+              <p className="text-sm text-red-700 mb-2">{error}</p>
+              <button
+                onClick={() => setShowErrors(!showErrors)}
+                className="text-xs text-red-600 hover:text-red-700 underline"
+              >
+                {showErrors ? 'Hide' : 'View'} full error details
+              </button>
+            </div>
+          )}
+
           {/* Done state */}
           {done && (
             <div className="space-y-3">
@@ -216,12 +232,15 @@ export default function WriteAllChaptersModal({
 
               {failures?.length > 0 && (
                 <div className="bg-red-50 border border-red-100 rounded-lg p-3 max-h-40 overflow-y-auto">
-                  <p className="text-xs font-semibold text-red-800 mb-1.5">Failed chapters:</p>
+                  <p className="text-xs font-semibold text-red-800 mb-1.5">Failed chapters ({failures.length}):</p>
                   <ul className="space-y-1">
                     {failures.map((f, idx) => (
-                      <li key={idx} className="text-xs text-red-700">• Ch {f.number}: {f.error}</li>
+                      <li key={idx} className="text-xs text-red-700">
+                        • Ch {f.number}: {f.title} — {f.error}
+                      </li>
                     ))}
                   </ul>
+                  <p className="text-xs text-red-600 mt-2">You can regenerate failed chapters individually after closing this dialog.</p>
                 </div>
               )}
             </div>
