@@ -193,8 +193,15 @@ Deno.serve(async (req) => {
     const appSettings = appSettingsList[0] || {};
     const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
 
-    const spec = specs[0];
-    if (!spec) return Response.json({ error: 'No specification found' }, { status: 400 });
+    const rawSpec = specs[0];
+    if (!rawSpec) return Response.json({ error: 'No specification found' }, { status: 400 });
+    // Normalize spec — apply safe defaults for new fields, handle legacy tone_style
+    const spec = {
+      ...rawSpec,
+      beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
+      spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)),
+      language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
+    };
 
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
     const targetChapters = spec.chapter_count
