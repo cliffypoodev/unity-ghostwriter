@@ -240,6 +240,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     additional_requirements: "",
   });
   const [extracting, setExtracting] = useState(false);
+  const [highlightedFields, setHighlightedFields] = useState({});
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
