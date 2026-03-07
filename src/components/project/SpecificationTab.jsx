@@ -528,6 +528,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {/* AI Model */}
+              <div className={hl("ai_model")}>
               <ModelSuggestionPanel
                 genre={form.genre}
                 selectedModel={form.ai_model}
