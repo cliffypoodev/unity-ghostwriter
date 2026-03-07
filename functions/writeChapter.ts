@@ -372,7 +372,32 @@ GENRE DELIVERY — MATCH THE GENRE TAG:
 - If the book is tagged as HORROR or THRILLER: something genuinely threatening must happen on-page. Atmosphere alone is not horror. Include concrete danger, consequences, or disturbing events.
 - If the book is tagged as MYSTERY: clues must be planted and discoveries must occur. Each chapter should narrow the possibilities or introduce a complication.
 - If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.
-- The genre tag is a PROMISE to the reader. Every chapter must deliver content that fulfills that promise.`;
+- The genre tag is a PROMISE to the reader. Every chapter must deliver content that fulfills that promise.
+
+CHAPTER CONTRACT — ENFORCE BEFORE WRITING:
+Before generating this chapter, output a one-line "Chapter Contract" stating:
+- Which ending type this chapter will use (from the rotation: CLIFFHANGER, REVERSAL, DECISION, DISCOVERY, LOSS, QUIET DEVASTATION)
+- Which physical reaction you will NOT use (banned from previous chapters)
+- One concrete plot event that will advance the story
+If you cannot fill in all three, STOP and replan the chapter before writing prose.
+
+EROTICA GENRE — DELIVERY MANDATE:
+- By chapter 3, at minimum one intimate scene must have occurred on-page with explicit physical detail.
+- "Tension," "proximity," "charged air," and "unspoken desire" are NOT intimate scenes. They are atmosphere.
+- Atmosphere does not fulfill an erotica genre tag.
+- Each chapter after chapter 2 must contain escalating physical intimacy proportional to the book's heat level setting.
+- If the book is tagged EROTICA, STEAMY ROMANCE, or heat level 3-4, chapters lacking intimate content violate the genre contract.
+
+PASSIVE PROTAGONIST — HARD BLOCK:
+- Before submitting this chapter, verify: did the protagonist make at least ONE choice where both options had real costs?
+- If NO, add a difficult choice before finalizing.
+- A character agreeing to everything offered to them is not a protagonist. They are a prop.
+- Even small choices (which location to visit, whether to trust someone, what to reveal) count — IF both options have consequences.
+
+STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
+- If this chapter follows the pattern: [protagonist explores] → [mysterious figure appears] → [cryptic speech about desire/magic/power] → [protagonist agrees] → [chapter ends with "ready for more/ready to delve deeper/ready to explore further"]
+- REJECT this structure immediately and rewrite.
+- This loop is a placeholder, not a plot. It can appear once (chapter 1) for setup. After that, each chapter must have a UNIQUE structure and CONCRETE outcomes.`;
 
     // ── PART A — Build conversation-style messages array ─────────────────────
 
