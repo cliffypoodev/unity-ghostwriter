@@ -178,8 +178,12 @@ Deno.serve(async (req) => {
 
      let chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${spec.genre} ${spec.book_type} about "${truncatedTopic}". `;
      if (spec.subgenre) chunkPrompt += `Subgenre: ${spec.subgenre}. `;
-     if (spec.tone_style) chunkPrompt += `Beat Style: ${getBeatStyleInstructions(spec.tone_style)}. `;
-     chunkPrompt += `Return JSON array with {number, title, summary} fields only.`;
+     const beatKey = spec.beat_style || spec.tone_style;
+     if (beatKey) chunkPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n`;
+     chunkPrompt += `\n${getSpiceLevelInstructions(spec.spice_level ?? 0)}\n`;
+     chunkPrompt += `\n${getLanguageIntensityInstructions(spec.language_intensity ?? 0)}\n`;
+     chunkPrompt += `\n${CONTENT_GUARDRAILS}\n`;
+     chunkPrompt += `\nReturn JSON array with {number, title, summary} fields only.`;
 
      try {
        const response = await callOpenAIWithTimeout([
