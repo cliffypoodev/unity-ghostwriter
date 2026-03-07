@@ -262,6 +262,7 @@ function ChapterItem({ chapter, onWrite, streamingContent, isStreaming, chapterP
 export default function GenerateTab({ projectId, onProceed }) {
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
 
   // Scroll to top on component mount
   useEffect(() => {
