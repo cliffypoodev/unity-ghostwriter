@@ -361,6 +361,22 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const outline = outlines[0];
   const hasOutline = !!(outline?.outline_data || outline?.outline_url);
+
+  // If the outline query picks up completion via auto-refetch, stop the spinner
+  useEffect(() => {
+    if (generating && outline?.status === 'complete') {
+      generatingRef.current = false;
+      setGenerating(false);
+      setGenerationProgress("");
+      queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    } else if (generating && outline?.status === 'error') {
+      generatingRef.current = false;
+      setGenerating(false);
+      setGenerationProgress("");
+      setGenerateError(outline.error_message || 'Generation failed');
+    }
+  }, [outline?.status]);
   const spec = specifications[0] ? {
     ...specifications[0],
     beat_style: specifications[0].beat_style || specifications[0].tone_style || "",
