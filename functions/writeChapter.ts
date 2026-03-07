@@ -162,11 +162,12 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
 
     const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
-    let shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
+    let shortSystemPrompt = buildAuthorModeBlock(projectSpec);
+    shortSystemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
+    shortSystemPrompt += `\n\nGenre: ${projectSpec?.genre || 'fiction'}`;
     if (beatKey) shortSystemPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}`;
     shortSystemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
     shortSystemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
-    shortSystemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
     
     // Add author voice style if not basic
     if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
