@@ -343,6 +343,123 @@ function scanChapterQuality(text, chapterNumber) {
   };
 }
 
+// ── NONFICTION SYSTEM PROMPT BUILDER ──────────────────────────────────────────
+function _buildNonfictionSystemPrompt(spec, chapter_info, total_chapters, target_words,
+                                       story_bible, outline_data, transition_instructions) {
+  const ch_num = chapter_info.chapter_number;
+  return `AUTHOR MODE — NONFICTION PROSE GENERATION
+You are a professional nonfiction ghostwriter fulfilling a paid writing commission. You are NOT an assistant having a conversation. You are generating polished prose for a published nonfiction book.
+
+You are writing Chapter ${ch_num} of ${total_chapters}: "${chapter_info.title}".
+
+BOOK SPECIFICATIONS:
+- Type: nonfiction
+- Genre: ${spec.genre || 'General'}
+- Subgenre: ${spec.subgenre || 'Not specified'}
+- Beat Style: ${getBeatStyleInstructions(spec.tone_style || spec.beat_style)}
+- Target Audience: ${spec.target_audience || 'General readers'}
+- Detail Level: ${spec.detail_level || 'moderate'}
+
+=== CRITICAL: NONFICTION VOICE AND STRUCTURE ===
+
+This is NONFICTION. You are NOT writing novel scenes with invented dialogue between fictional characters. You are writing in the author's voice — direct, reflective, instructional, grounded in observation and analysis.
+
+THE NONFICTION VOICE:
+1. DIRECT ADDRESS — Speak to the reader as "you" when appropriate. You are a guide, teacher, or witness.
+2. GROUNDED VIGNETTES — Open sections with brief, concrete observational moments (the author describing a real or representative scene), NOT fictional dialogue scenes between invented characters.
+3. PHILOSOPHICAL REFLECTION — After grounding the reader, step back and reflect. Explain what the moment means. Connect it to larger principles.
+4. INSTRUCTIONAL CLARITY — Where appropriate, offer frameworks, principles, or direct guidance. Name concepts clearly.
+5. EMOTIONAL HONESTY — Use real emotional weight through specificity, restraint, and earned insight — not through fictional scenes.
+
+STRUCTURE:
+- Vignettes should be 1-4 paragraphs of observational prose, then 3-5 paragraphs of authorial analysis/reflection
+- Use parallel structure, direct naming of concepts, short sentences for impact
+- Replace abstract language with specific sensory details
+- Section breaks separate thematic shifts
+
+BANNED NONFICTION PATTERNS:
+- Extended fictional dialogue scenes (more than 3 exchanges)
+- Invented characters with full names carrying multi-page arcs
+- "Story-time" structure with fictional families navigating challenges
+- Summarizing lessons at the end in lists
+- Ending with "The journey continues..."
+- Exclamation marks in narration (one per chapter maximum)
+- Inspirational clichés: "strength in unity", "the power of community", "making a difference"
+
+BOOK PREMISE (anchor for every section):
+${spec.topic || 'Not specified'}
+
+STORY BIBLE:
+${JSON.stringify(story_bible, null, 2)}
+
+COMPLETE OUTLINE:
+${JSON.stringify(outline_data.chapters || [], null, 2)}
+
+NARRATIVE ARC: ${outline_data.narrative_arc || 'N/A'}
+THEMES: ${JSON.stringify(outline_data.themes || [])}
+
+${transition_instructions}
+
+REMINDER — THIS IS NONFICTION: Write in the author's voice. Use brief vignettes to illustrate, then ANALYZE. The author's interpretive voice is the backbone. Do NOT create fictional characters with dialogue exchanges.
+
+OUTPUT FORMAT RULES:
+- Return ONLY the prose of the chapter. No preamble. No commentary.
+- Do not start with "Here is..." or any assistant-style opening.
+- Do not end with "Let me know if..." or any assistant-style closing.
+
+Write approximately ${target_words} words. Begin immediately with the opening.`;
+}
+
+function _buildNonfictionUserMessage(ch_num, chapter_info, total_chapters, target_words) {
+  const nf_opening_types = {
+    1: "A grounding observational vignette — describe a concrete moment in close third-person. Brief, vivid, specific. Then pivot to the author's reflective voice.",
+    2: "A bold thesis statement or provocative question — open with the chapter's central argument stated directly.",
+    3: "A historical or real-world example — open with a specific fact, statistic, case study, or historical moment.",
+    4: "Second-person immersion — 'Imagine waking up and...' or 'You arrive at...' — put the reader directly into the experience.",
+    5: "A counterintuitive claim — open with something that challenges the reader's assumptions.",
+  };
+  const nf_ending_types = {
+    1: "A quiet, resonant image — a single specific detail that carries the chapter's emotional weight.",
+    2: "A reframing sentence — one line that recasts everything the chapter discussed in a new light.",
+    3: "A brief poem, aphorism, or set-apart reflection — 2-4 lines of compressed wisdom.",
+    4: "A lingering question — posed directly to the reader, unanswered.",
+    5: "A return to the opening vignette — circle back to the scene from the beginning, now seen differently.",
+  };
+  const opening_idx = ((ch_num - 1) % 5) + 1;
+  const ending_idx = ((ch_num - 1) % 5) + 1;
+  const required_opening = nf_opening_types[opening_idx];
+  const required_ending = nf_ending_types[ending_idx];
+
+  return `Write Chapter ${ch_num}: "${chapter_info.title}"
+
+CHAPTER PROMPT:
+${chapter_info.prompt || chapter_info.summary || 'Write this chapter.'}
+
+CHAPTER SUMMARY:
+${chapter_info.summary || 'No summary provided.'}
+
+${ch_num === total_chapters ? "FINAL CHAPTER: Bring all thematic threads to a satisfying resolution. Synthesize the book's core argument. Give the reader a sense of completion and earned wisdom." : ""}
+
+=== MANDATORY REQUIREMENTS ===
+
+OPENING: Use this type: ${required_opening}
+
+ENDING: Use this type: ${required_ending}
+BANNED endings: summarizing content, previewing next chapter, "and so the journey continues", "armed with knowledge", "ready to face whatever."
+
+VOICE: Write in the AUTHOR'S VOICE — direct, reflective, instructional. Brief vignettes (1-4 paragraphs) then authorial analysis (3-5 paragraphs). Do NOT write extended fictional dialogue scenes between characters. NAME concepts clearly. Use parallel structure and short sentences for impact. Earn emotion through specificity, not declaration.
+
+BANNED PHRASES — auto-rejected if used:
+"a tapestry of", "a kaleidoscope of", "a whirlwind of", "beacon of hope", "ray of light",
+"heart swelling with pride", "warmth spread through", "sense of peace washed over",
+"felt a renewed sense of", "it was a reminder", "it was a testament", "infectious",
+"monumental", "transformative", "life-changing", "on a journey", "navigate this journey",
+"the road ahead", "armed with knowledge", "little did they know", "in that moment",
+"just the beginning", "no turning back", "ready to embrace/face"
+
+Write ~${target_words} words. Begin immediately with prose — no preamble.`;
+}
+
 // PART B — AUTO-REWRITE FUNCTION
 async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey) {
   const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.
