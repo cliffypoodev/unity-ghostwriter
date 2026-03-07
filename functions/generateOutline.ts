@@ -341,9 +341,9 @@ Return ONLY the JSON object. No preamble.`;
       console.warn('Story bible parse failed:', e.message);
     }
 
-    // ── STEP 3: Generate chapters in batches of 8 ───────────────────────────
+    // ── STEP 3: Generate chapters in batches of 4 ───────────────────────────
     console.log(`Generating ${targetChapters} detailed chapters...`);
-    const CHUNK_SIZE = 8;
+    const CHUNK_SIZE = 4;
 
     async function generateBatch(chunkStart, previousChapterEnding) {
       const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
