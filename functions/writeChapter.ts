@@ -816,6 +816,7 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
 - If this chapter follows the pattern: [protagonist explores] → [mysterious figure appears] → [cryptic speech about desire/magic/power] → [protagonist agrees] → [chapter ends with "ready for more/ready to delve deeper/ready to explore further"]
 - REJECT this structure immediately and rewrite.
 - This loop is a placeholder, not a plot. It can appear once (chapter 1) for setup. After that, each chapter must have a UNIQUE structure and CONCRETE outcomes.`;
+    }
 
     // ── PART A — Build conversation-style messages array ─────────────────────
 
