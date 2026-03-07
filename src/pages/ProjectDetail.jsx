@@ -233,6 +233,9 @@ export default function ProjectDetail() {
         {activePhase === "export" && (
           <EditExportTab projectId={projectId} />
         )}
+        {activePhase === "review" && (
+          <ReviewPolishTab projectId={projectId} />
+        )}
       </div>
     </div>
   );
