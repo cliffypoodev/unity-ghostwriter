@@ -636,7 +636,6 @@ export default function GenerateTab({ projectId, onProceed }) {
     }));
 
     setWriteAllActive(false);
-    setGenerating(false);
     await refetchChapters();
   };
 
