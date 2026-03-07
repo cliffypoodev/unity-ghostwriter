@@ -142,6 +142,150 @@ async function parseOutlineField(field, fieldUrl) {
   }
 }
 
+// POST-GENERATION QUALITY SCANNER
+function scanChapterQuality(text, chapterNumber) {
+  const bannedPhrases = {
+    physicalReactions: [
+      "heart racing", "heart raced", "heart pounding", "heart pounded", "heart hammered", "heart thudded", "heart thundering",
+      "pulse quickened", "pulse raced", "pulse thrummed", "breath hitched", "breath caught", "breath quickened", "breathing quickened",
+      "swallowed hard", "throat dry", "throat tight", "shiver down his spine", "shiver up his spine", "shiver ran through", "shiver coursed",
+      "a thrill coursed through", "a jolt of", "a surge of", "cheeks flushed", "heat rose to his cheeks", "flush crept into",
+      "couldn't tear himself away", "couldn't look away", "knees weak", "legs trembled"
+    ],
+    atmosphereClichés: [
+      "intoxicating", "intoxicated", "electric", "electricity", "electrifying", "palpable", "air thickened", "air crackled", "air grew heavy",
+      "air felt charged", "air felt thick", "shadows danced", "shadows shifted", "shadows twisted", "shadows swirled", "shadows crept",
+      "darkness enveloped", "darkness pressed", "darkness wrapped", "darkness beckoned", "whispers echoed", "whispers slithered", "whispers wrapped",
+      "tendrils of", "the weight of", "siren call", "siren's call", "siren song", "like a moth to a flame"
+    ],
+    narrationClichés: [
+      "in that moment", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back",
+      "teetering on the edge", "on the precipice", "on the brink", "standing at the edge", "double-edged sword", "ready to embrace",
+      "ready to confront", "ready to face whatever", "a mix of", "a mixture of", "a blend of", "a cocktail of", "he felt alive",
+      "she felt alive", "feeling alive", "more than mere", "more than just", "the world around him faded", "the world outside faded",
+      "reality faded", "a tapestry of", "a kaleidoscope of", "a whirlwind of", "a maelstrom of"
+    ],
+    dialogueClichés: [
+      "control is an illusion", "knowledge is power", "embrace it", "embrace your desires", "embrace the darkness", "let go of your fear",
+      "surrender to it", "what if i lose myself", "what if i can't handle", "you're not like the others"
+    ],
+    showDontTellPatterns: [
+      "he felt", "she felt", "a sense of", "flooded through", "he was filled with", "she was filled with"
+    ],
+    endingPatterns: [
+      "he was ready to", "she was ready to", "he was no longer", "she was no longer", "he was not just", "she was not just",
+      "journey was just beginning", "journey had just begun", "whatever lay ahead", "whatever lies ahead", "knew that"
+    ]
+  };
+
+  const lowerText = text.toLowerCase();
+  const violations = [];
+  let violationCount = 0;
+
+  // Check physical reactions
+  const physicalMatches = [];
+  for (const phrase of bannedPhrases.physicalReactions) {
+    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      physicalMatches.push(...matches.slice(0, 2).map(m => phrase));
+      violationCount += matches.length;
+    }
+  }
+
+  // Check atmosphere clichés
+  const atmosphereMatches = [];
+  for (const phrase of bannedPhrases.atmosphereClichés) {
+    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      atmosphereMatches.push(...matches.slice(0, 2).map(m => phrase));
+      violationCount += matches.length;
+    }
+  }
+
+  // Check narration clichés
+  const narrationMatches = [];
+  for (const phrase of bannedPhrases.narrationClichés) {
+    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      narrationMatches.push(...matches.slice(0, 2).map(m => phrase));
+      violationCount += matches.length;
+    }
+  }
+
+  // Check dialogue clichés
+  const dialogueMatches = [];
+  for (const phrase of bannedPhrases.dialogueClichés) {
+    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      dialogueMatches.push(...matches.slice(0, 2).map(m => phrase));
+      violationCount += matches.length;
+    }
+  }
+
+  // Check show-don't-tell patterns
+  const showDontTellMatches = [];
+  for (const pattern of bannedPhrases.showDontTellPatterns) {
+    const regex = new RegExp(`${pattern}\\s+\\w+`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) {
+      showDontTellMatches.push(...matches.slice(0, 2));
+      violationCount += matches.length;
+    }
+  }
+
+  // Check ending patterns (last 200 chars only)
+  const lastChunk = lowerText.slice(-200);
+  const endingMatches = [];
+  for (const pattern of bannedPhrases.endingPatterns) {
+    const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = lastChunk.match(regex);
+    if (matches) {
+      endingMatches.push(...matches.slice(0, 1).map(m => pattern));
+      violationCount += matches.length;
+    }
+  }
+
+  const allBannedFound = [
+    ...physicalMatches,
+    ...atmosphereMatches,
+    ...narrationMatches,
+    ...dialogueMatches,
+    ...showDontTellMatches,
+    ...endingMatches
+  ];
+
+  if (physicalMatches.length > 0) {
+    violations.push(`PHYSICAL REACTIONS (${physicalMatches.length}): ${physicalMatches.join(', ')}`);
+  }
+  if (atmosphereMatches.length > 0) {
+    violations.push(`ATMOSPHERE CLICHÉS (${atmosphereMatches.length}): ${atmosphereMatches.join(', ')}`);
+  }
+  if (narrationMatches.length > 0) {
+    violations.push(`NARRATION CLICHÉS (${narrationMatches.length}): ${narrationMatches.join(', ')}`);
+  }
+  if (dialogueMatches.length > 0) {
+    violations.push(`DIALOGUE CLICHÉS (${dialogueMatches.length}): ${dialogueMatches.join(', ')}`);
+  }
+  if (showDontTellMatches.length > 0) {
+    violations.push(`SHOW-DON'T-TELL (${showDontTellMatches.length}): ${showDontTellMatches.slice(0, 2).join(', ')}`);
+  }
+  if (endingMatches.length > 0) {
+    violations.push(`ENDING PATTERN (${endingMatches.length}): ${endingMatches.join(', ')}`);
+  }
+
+  return {
+    chapter_number: chapterNumber,
+    violation_count: violationCount,
+    banned_phrase_total: allBannedFound.length,
+    warnings: violations,
+    passed: violations.length === 0
+  };
+}
+
 async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
   try {
     // Load all chapters sorted by number so we can build conversation context
