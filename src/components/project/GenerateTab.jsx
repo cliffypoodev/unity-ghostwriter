@@ -429,6 +429,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
           if (outline.status === 'complete') {
             clearInterval(pollInterval);
+            generatingRef.current = false;
             setGenerationProgress("Done!");
             await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
             await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
@@ -437,6 +438,7 @@ export default function GenerateTab({ projectId, onProceed }) {
             setGenerationProgress("");
           } else if (outline.status === 'error') {
             clearInterval(pollInterval);
+            generatingRef.current = false;
             setGenerateError(outline.error_message || 'Generation failed');
             setGenerating(false);
             setGenerationProgress("");
