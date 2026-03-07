@@ -390,7 +390,10 @@ export default function GenerateTab({ projectId, onProceed }) {
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
     } catch (err) {
       console.error('generateOutline exception:', err);
-      alert(`Error: ${err.message || 'Failed to generate outline'}`);
+      const isTimeout = err.message?.includes('timeout') || err.message?.includes('502') || err.code === 'ECONNABORTED';
+      setGenerateError(isTimeout
+        ? 'Generation timed out. Try reducing chapter count in your spec, then retry.'
+        : (err.message || 'Failed to generate outline'));
     } finally {
       setGenerating(false);
       setGenerationProgress("");
