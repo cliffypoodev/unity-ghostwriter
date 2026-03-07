@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 
 const TARGET_WORDS_PER_CHAPTER = {
   short: 3750,
@@ -9,58 +9,6 @@ const TARGET_WORDS_PER_CHAPTER = {
   long: 4166,
   epic: 4375,
 };
-
-function ShimmerBar({ value }) {
-  return (
-    <div className="w-full">
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .shimmer-fill {
-          animation: shimmer 2s infinite;
-          background: linear-gradient(90deg, var(--primary), #818cf8);
-          position: relative;
-          overflow: hidden;
-        }
-        .shimmer-fill::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          right: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: shimmer 2s infinite;
-        }
-      `}</style>
-      <div className="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden">
-        <div
-          className="shimmer-fill h-full transition-all duration-300 ease-out rounded-full"
-          style={{ width: `${Math.min(value, 100)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function PulsingDot() {
-  return (
-    <div className="relative">
-      <style>{`
-        @keyframes pulse-scale {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.2); }
-        }
-        .pulsing-dot {
-          animation: pulse-scale 1.5s ease-in-out infinite;
-        }
-      `}</style>
-      <div className="w-2 h-2 bg-blue-500 rounded-full pulsing-dot" />
-    </div>
-  );
-}
 
 function formatTime(ms) {
   const totalSecs = Math.floor(ms / 1000);
@@ -72,6 +20,7 @@ function formatTime(ms) {
 export default function WriteAllChaptersModal({
   isOpen,
   onClose,
+  onProceed,
   progress,
   onStop,
   targetLength = "medium",
@@ -88,185 +37,189 @@ export default function WriteAllChaptersModal({
     startTime,
     done,
     wordsWritten = 0,
-    totalWords = 0,
     chapterWords = 0,
-    targetChapterWords = TARGET_WORDS_PER_CHAPTER[targetLength],
   } = progress;
 
-  // Calculate target total words
-  const targetTotalWords = total * targetChapterWords;
+  const targetChapterWords = TARGET_WORDS_PER_CHAPTER[targetLength] || 3750;
 
-  // Calculate overall percentage
   const overallPercent =
     total > 0
-      ? ((current + (chapterWords / targetChapterWords)) / total) * 100
+      ? Math.min(((current + Math.min(chapterWords / targetChapterWords, 1)) / total) * 100, 100)
       : 0;
 
-  // Timer for elapsed time
+  const displayPercent = done ? 100 : Math.round(overallPercent);
+
+  // Live elapsed timer
   useEffect(() => {
     if (!isOpen || done || !startTime) return;
-
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       setElapsedMs(elapsed);
-
-      // Calculate estimated remaining
       if (overallPercent > 2) {
-        const estRemain = (elapsed / overallPercent) * (100 - overallPercent);
-        setEstRemaining(estRemain);
+        setEstRemaining((elapsed / overallPercent) * (100 - overallPercent));
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, [isOpen, done, startTime, overallPercent]);
 
+  // Freeze elapsed at done time
+  useEffect(() => {
+    if (done && startTime) {
+      setElapsedMs(Date.now() - startTime);
+    }
+  }, [done]);
+
   const elapsedTime = formatTime(elapsedMs);
   const remainingTime =
-    estRemaining !== null && estRemaining > 0
+    done ? "—" :
+    estRemaining != null && estRemaining > 0
       ? formatTime(estRemaining)
       : "calculating...";
 
-  const displayPercent = Math.min(Math.round(overallPercent), 100);
+  const totalWordsDisplay = (wordsWritten + (done ? 0 : chapterWords)).toLocaleString();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
+    <Dialog open={isOpen} onOpenChange={done ? onClose : undefined}>
+      <DialogContent className="max-w-[540px] p-8">
+        <style>{`
+          .wac-pct {
+            font-size: 52px;
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+          }
+          .wac-bar-track {
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+          }
+          .wac-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #3b82f6);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+          }
+          .wac-pulse {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+            animation: wac-pulse-anim 1.5s ease-in-out infinite;
+          }
+          @keyframes wac-pulse-anim {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+          }
+          .wac-chapter-bar-track {
+            height: 6px;
+            background: #d1fae5;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 6px 0 4px;
+          }
+          .wac-chapter-bar-fill {
+            height: 100%;
+            background: #22c55e;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+          }
+        `}</style>
+
         <DialogHeader>
-          <DialogTitle>Writing All Chapters</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-slate-800">
+            {done ? "Book Complete! 🎉" : "Writing Your Book..."}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Large percentage display */}
+        <div className="space-y-5 py-2">
+          {/* Large percentage */}
           <div className="text-center">
-            <div className="text-5xl font-bold text-slate-900 mb-1">
-              {displayPercent}%
-            </div>
-            {!done && <p className="text-sm text-slate-500">In progress...</p>}
+            <div className="wac-pct">{displayPercent}%</div>
+            {!done && (
+              <p className="text-sm text-slate-400 mt-1">In progress — do not close this window</p>
+            )}
           </div>
 
           {/* Main progress bar */}
-          {!done && <ShimmerBar value={overallPercent} />}
+          <div className="wac-bar-track">
+            <div className="wac-bar-fill" style={{ width: `${displayPercent}%` }} />
+          </div>
 
           {/* Stats row */}
-          {!done && (
-            <div className="grid grid-cols-4 gap-3">
-              <div className="bg-slate-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                  Chapter
-                </p>
-                <p className="text-lg font-bold text-slate-900">
-                  {current + 1}/{total}
-                </p>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Chapter", value: `${Math.min(current + (done ? 0 : 1), total)} / ${total}` },
+              { label: "Words", value: totalWordsDisplay },
+              { label: "Elapsed", value: elapsedTime },
+              { label: "Est. Left", value: remainingTime },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-center">
+                <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{label}</span>
+                <span className="block text-base font-bold text-slate-800 leading-tight">{value}</span>
               </div>
-              <div className="bg-slate-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                  Words
-                </p>
-                <p className="text-lg font-bold text-slate-900">
-                  {(wordsWritten + chapterWords).toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-slate-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                  Elapsed
-                </p>
-                <p className="text-lg font-bold text-slate-900">{elapsedTime}</p>
-              </div>
-              <div className="bg-slate-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                  Est. Remaining
-                </p>
-                <p className="text-lg font-bold text-slate-900">
-                  {remainingTime}
-                </p>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
-          {/* Current chapter section */}
-          {!done && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <PulsingDot />
-                <p className="text-sm font-semibold text-slate-700">
+          {/* Current chapter — shown while writing */}
+          {!done && currentTitle && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="wac-pulse" />
+                <span className="text-sm font-semibold text-slate-700">
                   Writing Chapter {current + 1}
-                </p>
+                </span>
               </div>
-              <p className="text-sm font-semibold text-slate-900 mb-3 truncate">
-                {currentTitle}
+              <p className="text-sm font-medium text-slate-900 truncate mb-0.5">{currentTitle}</p>
+              <div className="wac-chapter-bar-track">
+                <div
+                  className="wac-chapter-bar-fill"
+                  style={{ width: `${Math.min((chapterWords / targetChapterWords) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                {chapterWords.toLocaleString()} / ~{targetChapterWords.toLocaleString()} words
               </p>
-              <div className="space-y-1.5">
-                <div className="h-1.5 bg-blue-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all duration-300 ease-out rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        (chapterWords / targetChapterWords) * 100,
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-slate-600">
-                  {chapterWords.toLocaleString()} / ~{targetChapterWords.toLocaleString()} words
-                </p>
-              </div>
             </div>
           )}
 
-          {/* Completion summary */}
+          {/* Done state */}
           {done && (
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-green-900">
-                      Writing complete!
-                    </p>
-                    <p className="text-xs text-green-700 mt-1">
-                      {(wordsWritten + chapterWords).toLocaleString()} total words •{" "}
-                      {elapsedTime} elapsed
-                    </p>
-                  </div>
-                </div>
+            <div className="space-y-3">
+              <div className="text-center py-3 px-4 rounded-xl font-semibold text-green-800 text-base"
+                style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)", border: "1px solid #bbf7d0" }}>
+                All done! {(wordsWritten).toLocaleString()} words in {elapsedTime}
               </div>
 
-              {/* Results summary */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-semibold text-green-900">
-                      {successes}
-                    </span>
+                <div className="bg-green-50 border border-green-100 rounded-lg p-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div>
+                    <span className="text-sm font-bold text-green-900">{successes} succeeded</span>
                   </div>
-                  <p className="text-xs text-green-700 mt-1">Success</p>
                 </div>
-                {failures.length > 0 && (
-                  <div className="bg-red-50 rounded-lg p-3 border border-red-100">
-                    <div className="flex items-center gap-2">
-                      <XCircle className="w-4 h-4 text-red-600" />
-                      <span className="text-sm font-semibold text-red-900">
-                        {failures.length}
-                      </span>
+                {failures?.length > 0 && (
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                    <div>
+                      <span className="text-sm font-bold text-red-900">{failures.length} failed</span>
                     </div>
-                    <p className="text-xs text-red-700 mt-1">Failed</p>
                   </div>
                 )}
               </div>
 
-              {/* Failed chapters list */}
-              {failures.length > 0 && (
-                <div className="bg-red-50 rounded-lg p-3 border border-red-100 max-h-48 overflow-y-auto">
-                  <p className="text-xs font-semibold text-red-900 mb-2">
-                    Failed Chapters:
-                  </p>
+              {failures?.length > 0 && (
+                <div className="bg-red-50 border border-red-100 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  <p className="text-xs font-semibold text-red-800 mb-1.5">Failed chapters:</p>
                   <ul className="space-y-1">
                     {failures.map((f, idx) => (
-                      <li key={idx} className="text-xs text-red-700">
-                        • Ch {f.number}: {f.error}
-                      </li>
+                      <li key={idx} className="text-xs text-red-700">• Ch {f.number}: {f.error}</li>
                     ))}
                   </ul>
                 </div>
@@ -275,23 +228,21 @@ export default function WriteAllChaptersModal({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           {!done && (
-            <Button
-              variant="outline"
-              onClick={onStop}
-              className="text-slate-600"
-            >
-              Stop After Current
+            <Button variant="outline" onClick={onStop} className="text-slate-600">
+              Stop After Current Chapter
             </Button>
           )}
           {done && (
-            <Button
-              onClick={onClose}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              Close
-            </Button>
+            <>
+              <Button variant="outline" onClick={onClose}>Close</Button>
+              {onProceed && (
+                <Button onClick={() => { onClose(); onProceed(); }} className="bg-indigo-600 hover:bg-indigo-700">
+                  Proceed to Editor <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
