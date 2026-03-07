@@ -616,14 +616,14 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
         systemPrompt += `\nSubgenre: ${projectSpec.subgenre}`;
       }
 
-    // Inject the full book premise as a creative anchor for every chapter
-    if (projectSpec?.topic) {
-      systemPrompt += `\n\nBOOK PREMISE (your creative anchor — every scene must serve THIS story):\n${projectSpec.topic}`;
-    }
+      // Inject the full book premise as a creative anchor for every chapter
+      if (projectSpec?.topic) {
+        systemPrompt += `\n\nBOOK PREMISE (your creative anchor — every scene must serve THIS story):\n${projectSpec.topic}`;
+      }
 
-    if (beatKey) systemPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}`;
-    systemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
-    systemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
+      if (beatKey) systemPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}`;
+      systemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
+      systemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
 
     // Author voice
     if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
