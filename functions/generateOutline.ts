@@ -179,17 +179,14 @@ async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
 
 function buildFictionChapterPromptInstructions(isNonfiction) {
   if (isNonfiction) {
-    return `Each chapter object MUST include a "prompt" field of AT LEAST 300 words covering ALL of these sections:
-OPENING HOOK: A captivating cinematic opening — dramatic anecdote, startling fact, or vivid scene. Give actual specific details, not placeholders.
-CORE CONTENT: 3-5 specific topics, arguments, or stories with concrete details (real or plausible names, dates, places, facts relevant to the subject matter).
-RESEARCH FOCUS: Real or representative individuals, their motivations and actions, dramatic or unexpected outcomes that illustrate the chapter's thesis.
-CONTEXT LAYER: Social, political, cultural, or geographic context to weave in for depth and authenticity.
-STRUCTURE NOTES: 2-3 subheadings to break up the chapter and emphasize the most pivotal moments.
-NARRATIVE TECHNIQUE: Whether the chapter uses chronological, thematic, compare-contrast, or cause-and-effect structure — and why.
-TRANSITION FROM PREVIOUS: Exactly how this chapter connects to the previous one — what thread carries over, what bridge sentence or idea links them.
-TRANSITION TO NEXT: How this chapter ends to tee up the next — the unresolved question or momentum that propels the reader forward.
-TONE CALIBRATION: How the tone should shift from the previous chapter — e.g., "lighter and more hopeful after the darkness of Ch 3" or "increasingly tense."
-THINGS TO AVOID: Specific pitfalls for this chapter — e.g., "Do not repeat the statistics already cited in Chapter 2" or "Avoid making this feel like a list — narrative flow is essential."`;
+    return `Each chapter object MUST include a "prompt" field of 150-250 words covering these sections concisely:
+HOOK: Opening anecdote or startling fact (2-3 sentences, specific).
+CONTENT: 3-4 key topics/stories with concrete names, dates, or facts.
+STRUCTURE: Chronological/thematic/compare-contrast and 2 subheading ideas.
+TRANSITION_IN: Thread carried from previous chapter.
+TRANSITION_OUT: Unresolved question or momentum into next chapter.
+TONE: How tone shifts from previous chapter.
+AVOID: 1-2 specific pitfalls for this chapter.`;
   }
   return `Each chapter object MUST include a "prompt" field of 150-250 words covering these sections concisely:
 HOOK: Specific opening image or action (2-3 sentences).
