@@ -396,6 +396,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleGenerateOutline = async () => {
     setGenerating(true);
+    generatingRef.current = true;
     setGenerationProgress("Starting generation…");
     setGenerateError("");
 
