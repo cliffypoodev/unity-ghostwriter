@@ -114,7 +114,7 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 const CHUNK_SIZE = 10; // Generate 10 chapters at a time (max batch size)
-const OPENAI_TIMEOUT = 12000; // 12 seconds (Deno Deploy has ~15s limit, leave buffer)
+const OPENAI_TIMEOUT = 25000; // 25 seconds per individual batch call
 
 async function callOpenAIWithTimeout(messages, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
