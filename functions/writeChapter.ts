@@ -350,7 +350,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages,
-            max_tokens: maxTokens,
+            max_tokens: 8192,
             temperature: 0.6,
           }),
           signal: controller.signal,
