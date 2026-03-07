@@ -298,18 +298,38 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const response = await base44.functions.invoke('extractMetadata', {
         projectId, topic: form.topic, book_type: form.book_type, genre: form.genre,
       });
-      const extracted = response.data;
-      setForm(prev => ({
-        ...prev,
-        tone_style: prev.tone_style || extracted.tone_style || "",
-        target_audience: prev.target_audience || extracted.target_audience || "",
-        additional_requirements: prev.additional_requirements || extracted.additional_requirements || "",
-        genre: prev.genre || extracted.suggested_genre || prev.genre,
-        subgenre: prev.subgenre || extracted.suggested_subgenre || "",
-        author_voice: prev.author_voice || extracted.suggested_author_voice || "basic",
-        detail_level: prev.detail_level || extracted.suggested_detail_level || prev.detail_level,
-      }));
-      toast.success("Extracted metadata from premise");
+      const e = response.data;
+      const filled = [];
+
+      setForm(prev => {
+        const next = { ...prev };
+        const fill = (field, val) => {
+          if (val && !prev[field]) { next[field] = val; filled.push(field); }
+        };
+        fill("genre",                  e.suggested_genre);
+        fill("subgenre",               e.suggested_subgenre);
+        fill("target_audience",        e.target_audience);
+        fill("beat_style",             e.suggested_beat_style);
+        fill("tone_style",             e.tone_style);
+        fill("author_voice",           e.suggested_author_voice);
+        fill("detail_level",           e.suggested_detail_level);
+        fill("ai_model",               e.suggested_ai_model);
+        fill("additional_requirements",e.additional_requirements);
+        return next;
+      });
+
+      // Highlight filled fields briefly
+      if (filled.length > 0) {
+        const highlights = {};
+        filled.forEach(f => { highlights[f] = true; });
+        setHighlightedFields(highlights);
+        setTimeout(() => setHighlightedFields({}), 1800);
+      }
+
+      const genre   = form.genre || e.suggested_genre || "";
+      const subgenre = e.suggested_subgenre || "";
+      const voice   = e.suggested_author_voice || "";
+      toast.success(`Auto-detected: ${genre}${subgenre ? " / " + subgenre : ""}${voice ? " — " + voice + " voice" : ""}`);
     } catch (err) {
       console.error('Extract error:', err);
       toast.error("Failed to extract metadata");
