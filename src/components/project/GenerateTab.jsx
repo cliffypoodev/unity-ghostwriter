@@ -439,6 +439,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
     } catch (err) {
       console.error('generateOutline exception:', err);
       const isTimeout = err.message?.includes('timeout') || err.message?.includes('502') || err.code === 'ECONNABORTED';
