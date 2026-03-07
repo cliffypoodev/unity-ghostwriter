@@ -676,6 +676,9 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   return (
     <div className="space-y-6">
+      {/* Settings summary */}
+      <SpecSettingsSummary spec={spec} />
+
       {/* Progress bar */}
       {totalCount > 0 && (
         <div className="space-y-2">
