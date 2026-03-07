@@ -240,7 +240,6 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
               <ReasonText text={routing.reason} />
               <StyleBeatCallout text={routing.styleBeat} />
               <StrengthTags strengths={primaryModel.strengths} />
-              <ModelRatings model={primaryModel} />
             </div>
           )}
         </div>
