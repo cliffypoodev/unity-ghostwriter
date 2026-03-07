@@ -240,17 +240,30 @@ Return a JSON object (not array) with these fields:
 Return ONLY the JSON object. No preamble.`;
 }
 
-async function runGeneration(base44, project_id) {
+async function runGeneration(base44ServiceRole, project_id) {
+  let outlineId = null;
   try {
+    console.log('runGeneration start:', project_id);
 
-    console.log('Loading entities for project:', project_id);
-    const [specs, appSettingsList] = await Promise.all([
-      base44.entities.Specification?.filter({ project_id }) || [],
-      base44.entities.AppSettings?.list() || [],
+    // Mark outline as generating
+    const existingOutlines = await base44ServiceRole.entities.Outline.filter({ project_id });
+    if (existingOutlines[0]) {
+      outlineId = existingOutlines[0].id;
+      await base44ServiceRole.entities.Outline.update(outlineId, { status: 'generating', error_message: '' });
+    } else {
+      const created = await base44ServiceRole.entities.Outline.create({ project_id, status: 'generating' });
+      outlineId = created.id;
+    }
+
+    const [specs] = await Promise.all([
+      base44ServiceRole.entities.Specification?.filter({ project_id }) || [],
     ]);
 
     const rawSpec = specs[0];
-    if (!rawSpec) return Response.json({ error: 'No specification found' }, { status: 400 });
+    if (!rawSpec) {
+      await base44ServiceRole.entities.Outline.update(outlineId, { status: 'error', error_message: 'No specification found' });
+      return;
+    }
 
     const spec = {
       ...rawSpec,
