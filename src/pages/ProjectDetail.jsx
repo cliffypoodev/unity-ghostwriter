@@ -168,59 +168,59 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Button
-             variant="ghost"
-             size="icon"
-             className="h-9 w-9 flex-shrink-0"
-             onClick={() => {
-               window.scrollTo(0, 0);
-               navigate(createPageUrl("Home"));
-             }}
-           >
-             <ArrowLeft className="w-5 h-5" />
-           </Button>
-          <div className="flex-1 min-w-0">
-            {editingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="text-xl font-bold h-10 max-w-md"
-                  ref={(el) => el?.focus({ preventScroll: true })}
-                  onKeyDown={(e) => { if (e.key === "Enter") updateMutation.mutate({ name: newName }); if (e.key === "Escape") setEditingName(false); }}
-                />
-                <Button size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700" onClick={() => updateMutation.mutate({ name: newName })}>
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingName(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 group">
-                <h1 className="text-2xl font-bold text-slate-900 truncate">{project.name}</h1>
-                <Button
-                  variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => { setNewName(project.name); setEditingName(true); }}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+     <div className="overflow-x-hidden">
+       {/* Header */}
+       <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
+         <div className="flex items-center gap-3 flex-1 min-w-0">
+           <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 flex-shrink-0"
+              onClick={() => {
+                window.scrollTo(0, 0);
+                navigate(createPageUrl("Home"));
+              }}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+           <div className="flex-1 min-w-0">
+             {editingName ? (
+               <div className="flex items-center gap-2">
+                 <Input
+                   value={newName}
+                   onChange={(e) => setNewName(e.target.value)}
+                   className="text-lg sm:text-xl font-bold h-10 flex-1 min-w-0"
+                   ref={(el) => el?.focus({ preventScroll: true })}
+                   onKeyDown={(e) => { if (e.key === "Enter") updateMutation.mutate({ name: newName }); if (e.key === "Escape") setEditingName(false); }}
+                 />
+                 <Button size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700 flex-shrink-0" onClick={() => updateMutation.mutate({ name: newName })}>
+                   <Check className="w-4 h-4" />
+                 </Button>
+                 <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={() => setEditingName(false)}>
+                   <X className="w-4 h-4" />
+                 </Button>
+               </div>
+             ) : (
+               <div className="flex items-center gap-2 group min-w-0">
+                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{project.name}</h1>
+                 <Button
+                   variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                   onClick={() => { setNewName(project.name); setEditingName(true); }}
+                 >
+                   <Pencil className="w-3.5 h-3.5" />
+                 </Button>
+               </div>
+             )}
+           </div>
+         </div>
 
 
-      </div>
+       </div>
 
-      {/* Phase Tabs */}
-      <div className="mb-6">
-        <PhaseTabs activePhase={activePhase} onPhaseChange={setActivePhase} projectStatus={project.status} />
-      </div>
+       {/* Phase Tabs */}
+       <div className="mb-4 sm:mb-6">
+         <PhaseTabs activePhase={activePhase} onPhaseChange={setActivePhase} projectStatus={project.status} />
+       </div>
 
       {/* Phase Content */}
       <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "")}>
