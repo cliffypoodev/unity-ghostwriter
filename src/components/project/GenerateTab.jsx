@@ -119,18 +119,41 @@ function OutlineCard({ outlineData }) {
   const outline = safeParse(outlineData);
   if (!outline) return null;
   return (
-    <CollapsibleCard title="Book Outline" icon={BookOpen} defaultOpen={false}>
-      {outline.title && <h3 className="font-semibold text-slate-800 mb-2">{outline.title}</h3>}
-      {outline.narrative_arc && (
-        <p className="text-sm text-slate-600 mb-3 leading-relaxed">{outline.narrative_arc}</p>
-      )}
-      {outline.themes?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {outline.themes.map((t, i) => (
-            <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", THEME_COLORS[i % THEME_COLORS.length])}>{t}</span>
-          ))}
-        </div>
-      )}
+    <CollapsibleCard title={`Book Outline — ${outline.title || "Untitled"}`} icon={BookOpen} defaultOpen={false}>
+      <div className="space-y-4">
+        {outline.narrative_arc && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Narrative Arc</p>
+            <p className="text-sm text-slate-700 leading-relaxed">{outline.narrative_arc}</p>
+          </div>
+        )}
+        {outline.themes && outline.themes.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Themes</p>
+            <div className="flex gap-2 flex-wrap">
+              {outline.themes.map((t, i) => (
+                <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", THEME_COLORS[i % THEME_COLORS.length])}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {outline.chapters && outline.chapters.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Chapter Overview</p>
+            <div className="space-y-2">
+              {outline.chapters.map((ch, i) => (
+                <div key={i} className="text-sm p-2 bg-slate-50 rounded-lg">
+                  <p className="font-semibold text-slate-800">Ch {ch.number}: {ch.title}</p>
+                  {ch.summary && <p className="text-xs text-slate-600 mt-1 opacity-80">{ch.summary}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {!outline.narrative_arc && (!outline.themes || outline.themes.length === 0) && (!outline.chapters || outline.chapters.length === 0) && (
+          <p className="text-sm text-slate-500">Outline data is available but contains no displayable summary fields.</p>
+        )}
+      </div>
     </CollapsibleCard>
   );
 }
