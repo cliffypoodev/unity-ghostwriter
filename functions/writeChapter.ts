@@ -123,12 +123,31 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
+// ISSUE 1 FIX: Helper to safely parse outline data, story bible, and metadata
+async function parseOutlineField(field, fieldUrl) {
+  try {
+    let data = field;
+    if (!data && fieldUrl) {
+      const response = await fetch(fieldUrl);
+      data = await response.json();
+      return data;
+    }
+    if (typeof data === 'string' && data.trim()) {
+      return JSON.parse(data);
+    }
+    return null;
+  } catch (err) {
+    console.error('Parse field error:', err.message);
+    return null;
+  }
+}
+
 async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
   try {
     // Load all chapters sorted by number so we can build conversation context
     const allChapters = await base44.entities.Chapter.filter({ project_id: projectId }, "chapter_number");
     const chapter = allChapters.find(c => c.id === chapterId);
-    if (!chapter) return;
+    if (!chapter) throw new Error('Chapter not found');
 
     const chapterIndex = allChapters.findIndex(c => c.id === chapterId);
     const totalChapters = allChapters.length;
@@ -136,25 +155,9 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const prevChapter = chapterIndex > 0 ? allChapters[chapterIndex - 1] : null;
     const nextChapter = chapterIndex < totalChapters - 1 ? allChapters[chapterIndex + 1] : null;
 
-    // Resolve outline JSON for transition fields
-    let outlineData = null;
-    try {
-      let outlineRaw = outline?.outline_data || '';
-      if (!outlineRaw && outline?.outline_url) {
-        try { outlineRaw = await (await fetch(outline.outline_url)).text(); } catch {}
-      }
-      if (outlineRaw) outlineData = JSON.parse(outlineRaw);
-    } catch {}
-
-    // Resolve story bible for thematic elements and consistency rules
-    let storyBible = null;
-    try {
-      let bibleRaw = outline?.story_bible || '';
-      if (!bibleRaw && outline?.story_bible_url) {
-        try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {}
-      }
-      if (bibleRaw) storyBible = JSON.parse(bibleRaw);
-    } catch {}
+    // ISSUE 1 FIX: Parse outline data with both inline and URL support
+    const outlineData = await parseOutlineField(outline?.outline_data, outline?.outline_url);
+    const storyBible = await parseOutlineField(outline?.story_bible, outline?.story_bible_url);
 
     // Find this chapter's outline entry for transition fields
     const outlineChapters = outlineData?.chapters || [];
@@ -163,28 +166,37 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     const TARGET_WORDS = 1600;
 
+    // ISSUE 3 FIX: Timeout handler for long-running AI calls
     async function callOpenAI(messages, maxTokens = 3000) {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openai_key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          max_tokens: maxTokens,
-          temperature: 0.8,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
+      
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openai_key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages,
+            max_tokens: maxTokens,
+            temperature: 0.8,
+          }),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0]?.message?.content || '';
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const data = await response.json();
-      return data.choices[0]?.message?.content || '';
     }
 
     // ── Build system prompt ────────────────────────────────────────────────────
@@ -336,10 +348,13 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       generated_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('Async generation error:', err.message);
+    // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
+    console.error('Async generation error for chapter', chapterId, ':', err.message);
     try {
       await base44.entities.Chapter.update(chapterId, { status: 'error' });
-    } catch {}
+    } catch (updateErr) {
+      console.error('Failed to mark chapter as error:', updateErr.message);
+    }
   }
 }
 
