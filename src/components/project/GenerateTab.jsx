@@ -732,6 +732,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         onClose={() => setWriteAllModalOpen(false)}
         progress={writeAllProgress}
         onStop={stopWriteAll}
+        targetLength={targetLength}
       />
     </div>
   );
