@@ -434,13 +434,50 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
 
     // QUALITY CHECK — Add before every chapter
     currentChapterRequest += `\n\nQUALITY CHECK — Before finishing this chapter, verify:
-- Does this chapter open DIFFERENTLY from the previous chapter?
-- Does at least ONE concrete plot event occur (not just atmosphere)?
-- Is there dialogue that reveals NEW information or shifts the dynamic?
-- Have you avoided the banned phrase list?
-- Are sensory details SPECIFIC (not vague atmospheric descriptions)?
-- Does the chapter end at a DIFFERENT emotional point than where it started?
-If any answer is NO, revise before submitting.`;
+    - Does this chapter open DIFFERENTLY from the previous chapter?
+    - Does at least ONE concrete plot event occur (not just atmosphere)?
+    - Is there dialogue that reveals NEW information or shifts the dynamic?
+    - Have you avoided the banned phrase list?
+    - Are sensory details SPECIFIC (not vague atmospheric descriptions)?
+    - Does the chapter end at a DIFFERENT emotional point than where it started?
+    If any answer is NO, revise before submitting.
+
+    PRE-SUBMISSION VALIDATION — RUN THESE 5 CHECKS BEFORE FINALIZING:
+
+    CHECK 1 — PHRASE SCAN (HARD BLOCK):
+    Search your completed chapter for these exact strings. If ANY appear, rewrite the sentence:
+    "heart racing" "heart raced" "heart pounding" "heart thudded"
+    "swallowed hard" "breath hitched" "breath caught"
+    "shiver down" "shiver up" "mix of [any] and [any]"
+    "teetering" "precipice" "intoxicating" "palpable"
+    "electric" "just beginning" "just the beginning"
+    "embrace whatever" "ready for what" "ready to embrace"
+    Zero tolerance. If the phrase appears, the chapter fails validation.
+
+    CHECK 2 — ENDING UNIQUENESS:
+    Compare your chapter ending to all previous chapters. If it uses the same construction (e.g., "beginning/just begun/what comes next/embrace the unknown"), REWRITE it. Each ending must use a different structural type:
+    - Mid-action cliffhanger (character interrupted during something concrete)
+    - Revelation that recontextualizes prior events
+    - A concrete decision with visible consequences
+    - A sensory detail that implies what's coming without stating it
+    - Dialogue that lands as a gut-punch
+    Never end two chapters the same way.
+
+    CHECK 3 — DUPLICATE SCENE DETECTION:
+    If your chapter contains a ritual/meditation scene AND a previous chapter already had one, REPLACE with a different scene type. No two chapters may share the same core scene structure. Vary: dialogue-heavy scenes, action scenes, introspection, discovery, confrontation, mundane moments.
+
+    CHECK 4 — EROTICA CONTENT DELIVERY (if applicable):
+    If the book is tagged EROTICA or heat level 3-4:
+    - By chapter 3, at least one scene MUST contain on-page physical intimacy with specific sensory detail (touch, temperature, pressure, texture).
+    - Abstract language about "desire" and "surrender" does NOT count.
+    - "Bodies intertwined" seen in a vision or memory does NOT count.
+    - The protagonist must be physically present and participating.
+    - If at chapter 3+ and no intimate scene has occurred, ADD one before finalizing.
+
+    CHECK 5 — DIALOGUE VARIETY:
+    Scan all dialogue lines. If a character's line follows the pattern "[Abstract noun] is [philosophical claim]" (e.g., "Power is intoxicating" / "Surrender is freedom"), rewrite it as something specific to the immediate situation. Characters must sound like people, not fortune cookies. Dialogue should reveal character through specificity, not wisdom.
+
+    If ANY check fails, revise before submitting the chapter. Do not submit chapters that fail validation.`;
 
     messages.push({ role: 'user', content: currentChapterRequest });
 
