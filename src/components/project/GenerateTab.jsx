@@ -575,18 +575,22 @@ export default function GenerateTab({ projectId, onProceed }) {
 
            if (updatedChapter?.status === 'generated') {
              clearInterval(pollInterval);
-             setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
              setStreamingContent(prev => ({ ...prev, [chapter.id]: updatedChapter.content || "" }));
 
-             // Log quality warnings if present
+             // Handle quality scan results
+             let qualityMsg = "Complete";
              if (updatedChapter.quality_scan) {
                try {
                  const quality = JSON.parse(updatedChapter.quality_scan);
-                 if (!quality.passed) {
+                 if (quality.passed) {
+                   qualityMsg = `Complete — Quality check passed (${updatedChapter.word_count || 0} words)`;
+                 } else {
+                   qualityMsg = `Complete — ⚠️ ${quality.banned_phrase_total} banned phrases detected`;
                    console.warn(`Chapter ${chapter.chapter_number} quality warnings:`, quality.warnings);
                  }
                } catch (e) { /* ignore parse errors */ }
              }
+             setChapterProgress(prev => ({ ...prev, [chapter.id]: qualityMsg }));
 
              await refetchChapters();
            } else if (updatedChapter?.status === 'error') {
