@@ -705,10 +705,17 @@ export default function GenerateTab({ projectId, onProceed }) {
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
 
+      {/* Error banner */}
+      {generateError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {generateError}
+        </div>
+      )}
+
       {/* Regenerate outline + One-click write buttons */}
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={handleGenerateOutline} className="text-slate-500">
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerate Outline
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
         </Button>
         {totalCount > 0 && generatedCount < totalCount && (
           <Button 
