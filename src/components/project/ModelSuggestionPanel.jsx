@@ -288,7 +288,6 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
                       {selectedModel === model.id && (
                         <div className="mt-2 space-y-2">
                           <StrengthTags strengths={model.strengths} />
-                          <ModelRatings model={model} />
                         </div>
                       )}
                     </div>
