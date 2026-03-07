@@ -58,6 +58,14 @@ const BEAT_STYLE_GROUPS = [
       { key: "surrealist-avant-garde", label: "Surrealist Avant-Garde", desc: "Dream-logic, abstract imagery",                intensity: 2, spice: 2 },
     ],
   },
+  {
+    label: "💋 Romance & Erotica",
+    styles: [
+      { key: "steamy-romance",         label: "Steamy Romance",         desc: "Breathless chemistry, emotional vulnerability",  intensity: 3, spice: 4 },
+      { key: "slow-burn-romance",      label: "Slow Burn Romance",      desc: "Agonizing anticipation, almost-touch tension",   intensity: 2, spice: 2 },
+      { key: "dark-erotica",           label: "Dark Erotica",           desc: "Power dynamics, psychological tension",          intensity: 4, spice: 4 },
+    ],
+  },
 ];
 
 // Flat map for lookup

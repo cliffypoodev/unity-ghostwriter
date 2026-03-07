@@ -82,7 +82,8 @@ const MODEL_GENRE_ROUTING = {
   "Health & Wellness": { primary: "claude-sonnet-4-5", reason: "Health writing needs strict factual accuracy, evidence-based claims, and clear actionable guidance.", styleBeat: "Evidence-based, warm, and actionable", alts: ["gpt-4-turbo"] },
   "Travel": { primary: "claude-sonnet-4-5", reason: "Travel writing needs vivid sensory description, cultural awareness, and engaging narrative flow.", styleBeat: "Vivid, sensory-rich with cultural curiosity", alts: ["claude-opus-4-5", "gpt-4o"] },
   "True Crime": { primary: "claude-opus-4-5", reason: "True crime needs investigative rigor, dark atmospheric prose, and careful ethical handling of sensitive subjects.", styleBeat: "Dark & gritty, investigative — strictly factual crime narrative", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
-  "Education": { primary: "claude-sonnet-4-5", reason: "Education books need clear instructional design, research-backed pedagogy, and accessible explanations.", styleBeat: "Clear, structured, pedagogically sound", alts: ["gpt-4-turbo"] }
+  "Education": { primary: "claude-sonnet-4-5", reason: "Education books need clear instructional design, research-backed pedagogy, and accessible explanations.", styleBeat: "Clear, structured, pedagogically sound", alts: ["gpt-4-turbo"] },
+  "Erotica": { primary: "claude-opus-4-5", reason: "Erotica requires nuanced handling of power dynamics, emotional depth beneath physical scenes, and sophisticated prose that avoids cliche.", styleBeat: "Character-driven intimacy with psychological depth", alts: ["claude-sonnet-4-5"] }
 };
 
 const PROVIDER_COLORS = {
