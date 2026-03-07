@@ -534,6 +534,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 selectedModel={form.ai_model}
                 onSelectModel={(id) => handleChange("ai_model", id)}
               />
+              </div>
             </div>
           </div>
 
