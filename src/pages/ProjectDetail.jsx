@@ -12,6 +12,7 @@ import GenerateTab from "../components/project/GenerateTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
 import EditExportTab from "../components/project/EditExportTab";
+import ReviewPolishTab from "../components/project/ReviewPolishTab";
 import DeleteProjectDialog from "../components/project/DeleteProjectDialog";
 import { cn } from "@/lib/utils";
 
@@ -19,10 +20,10 @@ const PHASES = [
   { id: "specify", label: "1. Specify", description: "Define your book" },
   { id: "generate", label: "2. Generate", description: "Build outline & chapters" },
   { id: "export", label: "3. Edit & Export", description: "Polish & export" },
+  { id: "review", label: "4. Review & Polish", description: "AI manuscript review" },
 ];
 
-// Map phases to which status values count as "completed"
-const PHASE_ORDER = ["specify", "generate", "export"];
+const PHASE_ORDER = ["specify", "generate", "export", "review"];
 
 function PhaseTabs({ activePhase, onPhaseChange, projectStatus }) {
   const setActivePhase = (id) => {
