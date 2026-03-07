@@ -504,7 +504,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {/* Beat Style */}
-              <div>
+              <div className={hl("beat_style")}>
                 <Label className="text-sm font-medium">Beat Style</Label>
                 <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} />
               </div>
