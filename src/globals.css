@@ -37,6 +37,15 @@
   }
 }
 
+/* ⚠️ DO NOT REMOVE — Prevents browser scroll anchoring from fighting scroll resets on navigation */
+html, body {
+  overflow-anchor: none;
+  scroll-behavior: auto !important;
+}
+#root, .app {
+  overflow-anchor: none;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
