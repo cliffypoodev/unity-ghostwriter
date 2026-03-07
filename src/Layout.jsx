@@ -92,7 +92,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
+      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-8 overflow-x-hidden">
         {children}
       </main>
     </div>
