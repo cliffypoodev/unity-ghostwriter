@@ -333,36 +333,11 @@ export default function SpecificationTab({ projectId, onProceed }) {
           {/* Beat Style */}
           <div>
             <Label className="text-sm font-medium">Beat Style</Label>
-            <Select value={form.tone_style} onValueChange={v => handleChange("tone_style", v)}>
-              <SelectTrigger className="mt-1.5"><SelectValue placeholder="— Select a beat style —" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fast-paced-thriller">Fast-Paced Thriller — Relentless momentum, immediate stakes</SelectItem>
-                <SelectItem value="gritty-cinematic">Gritty Cinematic — Raw realism, tactile environments</SelectItem>
-                <SelectItem value="hollywood-blockbuster">Hollywood Blockbuster — Big visuals, hero-driven spectacle</SelectItem>
-                <SelectItem value="slow-burn">Slow Burn — Gradual tension, atmosphere before action</SelectItem>
-                <SelectItem value="clean-romance">Clean Romance — Emotional intimacy, no explicit content</SelectItem>
-                <SelectItem value="faith-infused">Faith-Infused Contemporary — Hope grounded in real life</SelectItem>
-                <SelectItem value="investigative-nonfiction">Investigative Nonfiction — Evidence-based narrative</SelectItem>
-                <SelectItem value="reference-educational">Reference / Educational — Clarity and structure</SelectItem>
-                <SelectItem value="intellectual-psychological">Intellectual Psychological — Thought-driven tension</SelectItem>
-                <SelectItem value="dark-suspense">Dark Suspense — Claustrophobic dread, controlled fear</SelectItem>
-                <SelectItem value="satirical">Satirical — Sharp commentary, controlled exaggeration</SelectItem>
-                <SelectItem value="epic-historical">Epic Historical — Grand-scale pivotal moments</SelectItem>
-                <SelectItem value="whimsical-cozy">Whimsical Cozy — Gentle charm, small magic, community</SelectItem>
-                <SelectItem value="hard-boiled-noir">Hard-Boiled Noir — Cynical, gritty urban underworld</SelectItem>
-                <SelectItem value="grandiose-space-opera">Grandiose Space Opera — Interstellar conflict, epic scale</SelectItem>
-                <SelectItem value="visceral-horror">Visceral Horror — Sensory-driven descent into fear</SelectItem>
-                <SelectItem value="poetic-magical-realism">Poetic Magical Realism — Supernatural as mundane truth</SelectItem>
-                <SelectItem value="clinical-procedural">Clinical Procedural — Meticulous, detail-oriented investigation</SelectItem>
-                <SelectItem value="hyper-stylized-action">Hyper-Stylized Action — High-energy choreographed spectacle</SelectItem>
-                <SelectItem value="nostalgic-coming-of-age">Nostalgic Coming-of-Age — Bittersweet transition to adulthood</SelectItem>
-                <SelectItem value="cerebral-sci-fi">Cerebral Sci-Fi — High-concept philosophy and ideas</SelectItem>
-                <SelectItem value="high-stakes-political">High-Stakes Political — Machiavellian power chess</SelectItem>
-                <SelectItem value="surrealist-avant-garde">Surrealist Avant-Garde — Dream-logic, abstract imagery</SelectItem>
-                <SelectItem value="melancholic-literary">Melancholic Literary — Quiet beauty in sadness and regret</SelectItem>
-                <SelectItem value="urban-gritty-fantasy">Urban Gritty Fantasy — High magic meets dirty city life</SelectItem>
-              </SelectContent>
-            </Select>
+            <BeatStyleSelector
+              value={form.tone_style}
+              onChange={v => handleChange("tone_style", v)}
+              bookType={form.book_type}
+            />
           </div>
 
           {/* AI Model Recommendation Panel */}
