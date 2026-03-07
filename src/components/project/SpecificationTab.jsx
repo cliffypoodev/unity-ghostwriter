@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search } from "lucide-react";
+import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
@@ -33,6 +33,193 @@ const DETAIL_LEVELS = [
   { value: "comprehensive", label: "Comprehensive" },
 ];
 
+// ─── Floating Chat Widget ────────────────────────────────────────────────────
+
+function FloatingChat({ projectId, form }) {
+  const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatting, setIsChatting] = useState(false);
+  const [pulsing, setPulsing] = useState(true);
+  const chatBottomRef = useRef(null);
+
+  // Stop pulse after 4 seconds
+  useEffect(() => {
+    const t = setTimeout(() => setPulsing(false), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ["conversations", projectId],
+    queryFn: () => base44.entities.Conversation.filter({ project_id: projectId }, "created_date"),
+    refetchInterval: false,
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    }
+  }, [messages, isOpen, isChatting]);
+
+  const sendMessage = async () => {
+    if (!chatInput.trim() || isChatting) return;
+    const msg = chatInput.trim();
+    setChatInput("");
+    setIsChatting(true);
+    try {
+      await base44.functions.invoke('bookConsultantChat', {
+        project_id: projectId,
+        message: msg,
+        spec: form,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
+    } finally {
+      setIsChatting(false);
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes chat-pulse {
+          0%, 100% { box-shadow: 0 4px 12px rgba(124,58,237,0.4), 0 0 0 0 rgba(124,58,237,0.4); }
+          50% { box-shadow: 0 4px 12px rgba(124,58,237,0.4), 0 0 0 10px rgba(124,58,237,0); }
+        }
+        .chat-fab-pulse { animation: chat-pulse 1.5s ease-in-out 3; }
+        .chat-popup-enter {
+          animation: chat-popup-in 0.2s ease-out;
+        }
+        @keyframes chat-popup-in {
+          from { opacity: 0; transform: scale(0.95) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+
+      {/* Popup window */}
+      {isOpen && (
+        <div
+          className="chat-popup-enter"
+          style={{
+            position: "fixed",
+            bottom: "84px",
+            right: "20px",
+            width: "380px",
+            maxWidth: "calc(100vw - 32px)",
+            maxHeight: "500px",
+            background: "white",
+            borderRadius: "16px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <div style={{ background: "#7c3aed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-white" />
+              <span className="text-white font-semibold text-sm">AI Book Consultant</span>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: 0 }}>
+            {messages.length === 0 && !isChatting && (
+              <div className="flex items-center justify-center h-full py-8">
+                <div className="text-center text-slate-400">
+                  <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Ask me anything about your book concept!</p>
+                  <p className="text-xs mt-1 text-slate-300">Genre suggestions, plot ideas, and more.</p>
+                </div>
+              </div>
+            )}
+            {messages.map(msg => (
+              <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+                <div className={cn(
+                  "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm",
+                  msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-800"
+                )}>
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                </div>
+              </div>
+            ))}
+            {isChatting && (
+              <div className="flex justify-start">
+                <div className="bg-slate-100 rounded-2xl px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
+            <Input
+              placeholder="Ask about your book idea..."
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              disabled={isChatting}
+              className="flex-1 text-sm"
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={!chatInput.trim() || isChatting}
+              size="icon"
+              style={{ background: "#7c3aed", border: "none", flexShrink: 0 }}
+              className="hover:opacity-90"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* FAB button */}
+      <button
+        onClick={() => setIsOpen(o => !o)}
+        className={cn(pulsing && !isOpen ? "chat-fab-pulse" : "")}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          width: "56px",
+          height: "56px",
+          borderRadius: "50%",
+          background: "#7c3aed",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          zIndex: 999,
+          transition: "transform 0.15s ease, background 0.15s ease",
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+        aria-label={isOpen ? "Close chat" : "Open AI Book Consultant"}
+      >
+        {isOpen
+          ? <X className="w-5 h-5 text-white" />
+          : <MessageSquare className="w-5 h-5 text-white" />
+        }
+      </button>
+    </>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
 export default function SpecificationTab({ projectId, onProceed }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
@@ -52,29 +239,17 @@ export default function SpecificationTab({ projectId, onProceed }) {
     author_voice: "basic",
     additional_requirements: "",
   });
-  const [chatInput, setChatInput] = useState("");
-  const [isChatting, setIsChatting] = useState(false);
   const [extracting, setExtracting] = useState(false);
-  const [subgenresData, setSubgenresData] = useState({});
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
-  const chatBottomRef = useRef(null);
 
-  // Scroll to top on component mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  // Load config data on mount
+  // Load subgenres config
+  const [subgenresData, setSubgenresData] = useState({});
   useEffect(() => {
-    const loadConfigs = async () => {
-      try {
-        const subRes = await base44.functions.invoke('configSubgenres', {});
-        setSubgenresData(subRes.data || {});
-      } catch (err) {
-        console.error('Failed to load configs:', err);
-      }
-    };
-    loadConfigs();
+    base44.functions.invoke('configSubgenres', {})
+      .then(res => setSubgenresData(res.data || {}))
+      .catch(err => console.error('Failed to load configs:', err));
   }, []);
 
   // Load existing spec
@@ -89,24 +264,12 @@ export default function SpecificationTab({ projectId, onProceed }) {
       setForm(prev => ({
         ...prev,
         ...spec,
-        // Map legacy tone_style to beat_style if beat_style not yet set
         beat_style: spec.beat_style || spec.tone_style || "",
         spice_level: spec.spice_level ?? 0,
         language_intensity: spec.language_intensity ?? 0,
       }));
     }
   }, [spec]);
-
-  // Load conversation
-  const { data: messages = [] } = useQuery({
-    queryKey: ["conversations", projectId],
-    queryFn: () => base44.entities.Conversation.filter({ project_id: projectId }, "created_date"),
-    refetchInterval: false,
-  });
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -118,51 +281,22 @@ export default function SpecificationTab({ projectId, onProceed }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["specification", projectId] }),
   });
 
-  const sendMessage = async () => {
-    if (!chatInput.trim() || isChatting) return;
-    const msg = chatInput.trim();
-    setChatInput("");
-    setIsChatting(true);
-    try {
-      await base44.functions.invoke('bookConsultantChat', { 
-        project_id: projectId, 
-        message: msg, 
-        spec: form 
-      });
-      await queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
-    } finally {
-      setIsChatting(false);
-    }
-  };
-
   const handleChange = (field, value) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === "book_type") {
-        updated.genre = "";
-        updated.subgenre = "";
-      }
-      if (field === "genre") {
-        updated.subgenre = "";
-      }
+      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; }
+      if (field === "genre") { updated.subgenre = ""; }
       return updated;
     });
   };
 
   const handleAutoExtract = async () => {
-    if (!form.topic.trim()) {
-      toast.error("Please enter a topic/premise first");
-      return;
-    }
+    if (!form.topic.trim()) { toast.error("Please enter a topic/premise first"); return; }
     setExtracting(true);
     try {
       const response = await base44.functions.invoke('extractMetadata', {
-        projectId,
-        topic: form.topic,
-        book_type: form.book_type,
-        genre: form.genre,
+        projectId, topic: form.topic, book_type: form.book_type, genre: form.genre,
       });
-
       const extracted = response.data;
       setForm(prev => ({
         ...prev,
@@ -184,14 +318,9 @@ export default function SpecificationTab({ projectId, onProceed }) {
   };
 
   const handleSelectPrompt = (prompt) => {
-    // Ask if topic is empty or not
     if (form.topic.trim()) {
-      const shouldReplace = window.confirm(
-        `Replace current premise with "${prompt.title}"?`
-      );
-      if (!shouldReplace) return;
+      if (!window.confirm(`Replace current premise with "${prompt.title}"?`)) return;
     }
-
     setForm(prev => ({
       ...prev,
       topic: prompt.content,
@@ -202,12 +331,11 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
   const genres = form.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
-  const currentSubgenres = form.genre && subgenresData[form.book_type]?.[form.genre] ? subgenresData[form.book_type][form.genre] : [];
+  const currentSubgenres = form.genre && subgenresData[form.book_type]?.[form.genre]
+    ? subgenresData[form.book_type][form.genre] : [];
 
   return (
     <div className="space-y-6">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* LEFT: Project Settings */}
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -215,175 +343,167 @@ export default function SpecificationTab({ projectId, onProceed }) {
             Project Settings
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Book Type */}
-          <div>
-            <Label className="text-sm font-medium">Book Type</Label>
-            <Select value={form.book_type} onValueChange={v => handleChange("book_type", v)}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fiction">Fiction</SelectItem>
-                <SelectItem value="nonfiction">Nonfiction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="space-y-5">
 
-          {/* Genre */}
+          {/* Topic / Premise — full width */}
           <div>
-            <Label className="text-sm font-medium">Genre / Category</Label>
-            <Select value={form.genre} onValueChange={v => handleChange("genre", v)}>
-              <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select genre..." /></SelectTrigger>
-              <SelectContent>
-                {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Subgenre */}
-          {currentSubgenres.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium">Subgenre <span className="text-slate-400 font-normal">(optional)</span></Label>
-              <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>None</SelectItem>
-                  {currentSubgenres.map(sg => <SelectItem key={sg} value={sg}>{sg}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <Label className="text-sm font-medium">Topic / Premise</Label>
+            <Textarea
+              className="mt-1.5"
+              rows={3}
+              placeholder="A story about..."
+              value={form.topic}
+              onChange={e => handleChange("topic", e.target.value)}
+            />
+            <div className="flex gap-2 mt-2">
+              <Button
+                onClick={handleAutoExtract}
+                disabled={!form.topic.trim() || extracting}
+                variant="outline"
+                size="sm"
+              >
+                {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                Auto-Extract Metadata
+              </Button>
+              <Button onClick={() => setShowCatalogBrowser(true)} variant="outline" size="sm">
+                <Search className="w-4 h-4 mr-2" /> Browse Catalog
+              </Button>
             </div>
-          )}
-
-          {/* Topic */}
-           <div>
-             <Label className="text-sm font-medium">Topic / Premise</Label>
-             <Textarea
-               className="mt-1.5"
-               rows={3}
-               placeholder="A story about..."
-               value={form.topic}
-               onChange={e => handleChange("topic", e.target.value)}
-             />
-             <div className="flex gap-2 mt-2">
-               <Button
-                 onClick={handleAutoExtract}
-                 disabled={!form.topic.trim() || extracting}
-                 variant="outline"
-                 size="sm"
-                 className="flex-1"
-               >
-                 {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                 Auto-Extract
-               </Button>
-               <Button
-                 onClick={() => setShowCatalogBrowser(true)}
-                 variant="outline"
-                 size="sm"
-                 className="flex-1"
-               >
-                 <Search className="w-4 h-4 mr-2" /> Browse Catalog
-               </Button>
-             </div>
-           </div>
-
-           {/* Prompt Catalog Suggestions */}
-           <PromptSuggestions
-             bookType={form.book_type}
-             genre={form.genre}
-             onSelect={handleSelectPrompt}
-             onBrowseAll={() => setShowCatalogBrowser(true)}
-           />
-
-          {/* Target Length */}
-          <div>
-            <Label className="text-sm font-medium">Target Length</Label>
-            <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TARGET_LENGTHS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
           </div>
 
-          {/* Chapter Count */}
-          <div>
-            <Label className="text-sm font-medium">Chapter Count <span className="text-slate-400 font-normal">(optional — overrides target length)</span></Label>
-            <Input
-              className="mt-1.5"
-              type="number"
-              min={1}
-              max={100}
-              placeholder="e.g. 20"
-              value={form.chapter_count || ""}
-              onChange={e => handleChange("chapter_count", e.target.value ? parseInt(e.target.value) : "")}
-            />
-          </div>
-
-          {/* Detail Level */}
-          <div>
-            <Label className="text-sm font-medium">Detail Level</Label>
-            <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {DETAIL_LEVELS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Target Audience */}
-          <div>
-            <Label className="text-sm font-medium">Target Audience</Label>
-            <Input
-              className="mt-1.5"
-              placeholder="e.g. Young adults aged 16–25..."
-              value={form.target_audience}
-              onChange={e => handleChange("target_audience", e.target.value)}
-            />
-          </div>
-
-          {/* Beat Style */}
-          <div>
-            <Label className="text-sm font-medium">Beat Style</Label>
-            <BeatStyleSelect
-              value={form.beat_style}
-              onChange={v => handleChange("beat_style", v)}
-            />
-          </div>
-
-          {/* Spice Level */}
-          <div>
-            <Label className="text-sm font-medium">Spice Level</Label>
-            <SpiceLevelSelect
-              value={form.spice_level}
-              onChange={v => handleChange("spice_level", v)}
-            />
-          </div>
-
-          {/* Language Intensity */}
-          <div>
-            <Label className="text-sm font-medium">Language Intensity</Label>
-            <LanguageIntensitySelect
-              value={form.language_intensity}
-              onChange={v => handleChange("language_intensity", v)}
-            />
-          </div>
-
-          {/* AI Model Recommendation Panel */}
-          <ModelSuggestionPanel
+          {/* Prompt Catalog Suggestions */}
+          <PromptSuggestions
+            bookType={form.book_type}
             genre={form.genre}
-            selectedModel={form.ai_model}
-            onSelectModel={(id) => handleChange("ai_model", id)}
+            onSelect={handleSelectPrompt}
+            onBrowseAll={() => setShowCatalogBrowser(true)}
           />
 
-          {/* Author Voice */}
-           <div>
-             <Label className="text-sm font-medium">Author Voice</Label>
-             <AuthorVoiceSelector 
-               value={form.author_voice} 
-               onValueChange={v => handleChange("author_voice", v)} 
-             />
-           </div>
+          {/* 2-column grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left column */}
+            <div className="space-y-4">
+              {/* Book Type */}
+              <div>
+                <Label className="text-sm font-medium">Book Type</Label>
+                <Select value={form.book_type} onValueChange={v => handleChange("book_type", v)}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fiction">Fiction</SelectItem>
+                    <SelectItem value="nonfiction">Nonfiction</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Additional Requirements */}
+              {/* Genre */}
+              <div>
+                <Label className="text-sm font-medium">Genre / Category</Label>
+                <Select value={form.genre} onValueChange={v => handleChange("genre", v)}>
+                  <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select genre..." /></SelectTrigger>
+                  <SelectContent>
+                    {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subgenre */}
+              {currentSubgenres.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Subgenre <span className="text-slate-400 font-normal">(optional)</span></Label>
+                  <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
+                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>None</SelectItem>
+                      {currentSubgenres.map(sg => <SelectItem key={sg} value={sg}>{sg}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Target Length */}
+              <div>
+                <Label className="text-sm font-medium">Target Length</Label>
+                <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TARGET_LENGTHS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Chapter Count */}
+              <div>
+                <Label className="text-sm font-medium">Chapter Count <span className="text-slate-400 font-normal">(optional)</span></Label>
+                <Input
+                  className="mt-1.5"
+                  type="number"
+                  min={1}
+                  max={100}
+                  placeholder="e.g. 20"
+                  value={form.chapter_count || ""}
+                  onChange={e => handleChange("chapter_count", e.target.value ? parseInt(e.target.value) : "")}
+                />
+              </div>
+
+              {/* Detail Level */}
+              <div>
+                <Label className="text-sm font-medium">Detail Level</Label>
+                <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DETAIL_LEVELS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="space-y-4">
+              {/* Target Audience */}
+              <div>
+                <Label className="text-sm font-medium">Target Audience</Label>
+                <Input
+                  className="mt-1.5"
+                  placeholder="e.g. Young adults aged 16–25..."
+                  value={form.target_audience}
+                  onChange={e => handleChange("target_audience", e.target.value)}
+                />
+              </div>
+
+              {/* Beat Style */}
+              <div>
+                <Label className="text-sm font-medium">Beat Style</Label>
+                <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} />
+              </div>
+
+              {/* Spice Level */}
+              <div>
+                <Label className="text-sm font-medium">Spice Level</Label>
+                <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
+              </div>
+
+              {/* Language Intensity */}
+              <div>
+                <Label className="text-sm font-medium">Language Intensity</Label>
+                <LanguageIntensitySelect value={form.language_intensity} onChange={v => handleChange("language_intensity", v)} />
+              </div>
+
+              {/* Author Voice */}
+              <div>
+                <Label className="text-sm font-medium">Author Voice</Label>
+                <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
+              </div>
+
+              {/* AI Model */}
+              <ModelSuggestionPanel
+                genre={form.genre}
+                selectedModel={form.ai_model}
+                onSelectModel={(id) => handleChange("ai_model", id)}
+              />
+            </div>
+          </div>
+
+          {/* Additional Requirements — full width */}
           <div>
             <Label className="text-sm font-medium">Additional Requirements</Label>
             <Textarea
@@ -418,83 +538,19 @@ export default function SpecificationTab({ projectId, onProceed }) {
         </CardContent>
       </Card>
 
-      {/* RIGHT: AI Book Consultant */}
-      <Card className="border-slate-200 shadow-sm flex flex-col">
-        <CardHeader className="pb-4 flex-shrink-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="w-4 h-4 text-indigo-500" />
-            AI Book Consultant
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col flex-1 p-4 pt-0">
-          {/* Messages */}
-          <div className="flex-1 h-[400px] overflow-y-auto space-y-3 pr-1 mb-4">
-            {messages.length === 0 && (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-slate-400">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Ask me anything about your book concept!</p>
-                  <p className="text-xs mt-1 text-slate-300">I'll help refine your idea, suggest genres, and more.</p>
-                </div>
-              </div>
-            )}
-            {messages.map(msg => (
-              <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                <div className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
-                  msg.role === "user"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-slate-100 text-slate-800"
-                )}>
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-            {isChatting && (
-              <div className="flex justify-start">
-                <div className="bg-slate-100 rounded-2xl px-4 py-3">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={chatBottomRef} />
-          </div>
+      <SourceFilesCard projectId={projectId} />
 
-          {/* Input */}
-          <div className="flex gap-2 flex-shrink-0">
-            <Input
-              placeholder="Ask about genres, plot ideas, audience..."
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              disabled={isChatting}
-              className="flex-1"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!chatInput.trim() || isChatting}
-              className="bg-indigo-600 hover:bg-indigo-700 px-3"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-    <SourceFilesCard projectId={projectId} />
+      {/* Prompt Catalog Browser Modal */}
+      <PromptCatalogBrowser
+        isOpen={showCatalogBrowser}
+        onClose={() => setShowCatalogBrowser(false)}
+        onSelectPrompt={handleSelectPrompt}
+        preselectedGenre={form.genre}
+        preselectedBookType={form.book_type}
+      />
 
-    {/* Prompt Catalog Browser Modal */}
-    <PromptCatalogBrowser
-      isOpen={showCatalogBrowser}
-      onClose={() => setShowCatalogBrowser(false)}
-      onSelectPrompt={handleSelectPrompt}
-      preselectedGenre={form.genre}
-      preselectedBookType={form.book_type}
-    />
+      {/* Floating Chat Widget */}
+      <FloatingChat projectId={projectId} form={form} />
     </div>
-    );
-    }
+  );
+}
