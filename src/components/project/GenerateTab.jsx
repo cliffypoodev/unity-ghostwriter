@@ -400,9 +400,11 @@ export default function GenerateTab({ projectId, onProceed }) {
 
     try {
       // Kick off async generation — returns immediately
-      const response = await base44.functions.invoke('generateOutline', { project_id: projectId });
+      const response = await base44.functions.invoke('generateOutline', { project_id: projectId }, { timeout: 30000 });
       if (response.status !== 200) {
         setGenerateError(response.data?.error || 'Failed to start generation');
+        setGenerating(false);
+        setGenerationProgress("");
         return;
       }
 
