@@ -417,7 +417,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
             {/* Left column */}
             <div className="space-y-4">
               {/* Book Type */}
-              <div>
+              <div className={hl("book_type")}>
                 <Label className="text-sm font-medium">Book Type</Label>
                 <Select value={form.book_type} onValueChange={v => handleChange("book_type", v)}>
                   <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
