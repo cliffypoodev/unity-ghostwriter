@@ -441,7 +441,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
               {/* Subgenre */}
               {currentSubgenres.length > 0 && (
-                <div>
+                <div className={hl("subgenre")}>
                   <Label className="text-sm font-medium">Subgenre <span className="text-slate-400 font-normal">(optional)</span></Label>
                   <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
