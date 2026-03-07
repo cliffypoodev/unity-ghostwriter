@@ -493,7 +493,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
             {/* Right column */}
             <div className="space-y-4">
               {/* Target Audience */}
-              <div>
+              <div className={hl("target_audience")}>
                 <Label className="text-sm font-medium">Target Audience</Label>
                 <Input
                   className="mt-1.5"
