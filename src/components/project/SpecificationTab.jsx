@@ -396,7 +396,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 size="sm"
               >
                 {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                Auto-Extract Metadata
+                {extracting ? "Analyzing..." : "Auto-Extract Metadata"}
               </Button>
               <Button onClick={() => setShowCatalogBrowser(true)} variant="outline" size="sm">
                 <Search className="w-4 h-4 mr-2" /> Browse Catalog
