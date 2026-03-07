@@ -236,26 +236,30 @@ export default function SpecificationTab({ projectId, onProceed }) {
     if (!form.topic.trim()) { toast.error("Please enter a topic/premise first"); return; }
     setExtracting(true);
     try {
-      const response = await base44.functions.invoke('extractMetadata', {
-        projectId, topic: form.topic, book_type: form.book_type, genre: form.genre,
+      // Call expandPremise to get expanded brief + metadata
+      const response = await base44.functions.invoke('expandPremise', {
+        topic: form.topic,
+        book_type: form.book_type,
+        genre: form.genre,
       });
-      const extracted = response.data;
+      const expanded = response.data;
       const filled = [];
 
       setForm(prev => {
         const next = { ...prev };
+        
+        // Replace topic with expanded brief
+        next.topic = expanded.expanded_brief;
+        
+        // Fill in metadata fields if not already set
         const fill = (field, val) => {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
-        fill("genre",                   extracted.suggested_genre);
-        fill("subgenre",                extracted.suggested_subgenre);
-        fill("target_audience",         extracted.target_audience);
-        fill("beat_style",              extracted.suggested_beat_style);
-        fill("tone_style",              extracted.tone_style);
-        fill("author_voice",            extracted.suggested_author_voice);
-        fill("detail_level",            extracted.suggested_detail_level);
-        fill("ai_model",                extracted.suggested_ai_model);
-        fill("additional_requirements", extracted.additional_requirements);
+        fill("subgenre", expanded.subgenre);
+        fill("target_audience", expanded.target_audience);
+        fill("beat_style", expanded.beat_style);
+        fill("author_voice", expanded.author_voice);
+        fill("detail_level", expanded.detail_level);
         return next;
       });
 
@@ -266,13 +270,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
         setTimeout(() => setHighlightedFields({}), 1800);
       }
 
-      const genre    = form.genre || extracted.suggested_genre || "";
-      const subgenre = extracted.suggested_subgenre || "";
-      const voice    = extracted.suggested_author_voice || "";
-      toast.success(`Auto-detected: ${genre}${subgenre ? " / " + subgenre : ""}${voice ? " — " + voice + " voice" : ""}`);
+      toast.success("Premise expanded and settings detected");
     } catch (err) {
-      console.error('Extract error:', err);
-      toast.error("Failed to extract metadata");
+      console.error('Expand error:', err);
+      toast.error("Failed to expand premise");
     } finally {
       setExtracting(false);
     }
