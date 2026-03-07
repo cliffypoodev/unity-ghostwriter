@@ -489,7 +489,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     writeAllAbortRef.current = false;
     setWriteAllActive(true);
     setWriteAllModalOpen(true);
-    setGenerating(true);
+    // DO NOT set generating=true here — that triggers the outline spinner
     
     const startTime = Date.now();
     setWriteAllProgress({
