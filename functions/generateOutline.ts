@@ -214,7 +214,7 @@ Return a JSON object (not array) with these fields:
   * "Each chapter must have a distinctly different emotional texture from the one before it"
   * "Vary sentence rhythm — alternate between short punchy sentences and longer flowing ones"
   * "Avoid cliche phrases: 'little did they know', 'it was a dark and stormy night', 'with bated breath', etc."
-- characters: Array of key figures with fields: name, role (protagonist/antagonist/supporting), description (detailed physical and personality — mannerisms, speech patterns, distinguishing traits), arc (full development — where they start, key turning points, where they end), first_appearance (chapter number), relationships (key relationships with other figures and how they evolve)
+- characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (2-3 sentences: key physical trait + personality + speech pattern), arc (start → turning point → end in 2 sentences), first_appearance (chapter number)
 
 Return ONLY the JSON object. No preamble.`;
   }
