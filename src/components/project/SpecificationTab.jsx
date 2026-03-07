@@ -522,7 +522,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {/* Author Voice */}
-              <div>
+              <div className={hl("author_voice")}>
                 <Label className="text-sm font-medium">Author Voice</Label>
                 <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
               </div>
