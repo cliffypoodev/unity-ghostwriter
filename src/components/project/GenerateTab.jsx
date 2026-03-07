@@ -585,7 +585,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                  if (quality.passed) {
                    qualityMsg = `Complete — Quality check passed (${updatedChapter.word_count || 0} words)`;
                  } else {
-                   qualityMsg = `Complete — ⚠️ ${quality.banned_phrase_total} banned phrases detected`;
+                   qualityMsg = `Complete — WARNING: ${quality.banned_phrase_total} banned phrases remain`;
                    console.warn(`Chapter ${chapter.chapter_number} quality warnings:`, quality.warnings);
                  }
                } catch (e) { /* ignore parse errors */ }
