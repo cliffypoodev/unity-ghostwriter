@@ -131,7 +131,7 @@ async function callOpenAIWithTimeout(messages, retries = 2) {
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
-          max_tokens: 1500,
+          max_tokens: 800,
           temperature: 0.7,
           messages,
         }),
