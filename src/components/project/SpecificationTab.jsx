@@ -282,12 +282,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
     if (form.topic.trim()) {
       if (!window.confirm(`Replace current premise with "${prompt.title}"?`)) return;
     }
+    const fullContent = prompt.content || prompt.description || "";
     setForm(prev => ({
       ...prev,
-      topic: prompt.content,
+      topic: fullContent,
       genre: prompt.genre || prev.genre,
       book_type: prompt.book_type || prev.book_type,
     }));
+    toast.success(`Loaded: ${prompt.title}`);
   };
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
