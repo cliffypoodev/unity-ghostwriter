@@ -308,6 +308,12 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const outline = outlines[0];
   const hasOutline = !!(outline?.outline_data || outline?.outline_url);
+  const spec = specifications[0] ? {
+    ...specifications[0],
+    beat_style: specifications[0].beat_style || specifications[0].tone_style || "",
+    spice_level: specifications[0].spice_level ?? 0,
+    language_intensity: specifications[0].language_intensity ?? 0,
+  } : null;
 
   // Fetch outline/story_bible from URL if inline data is empty
   const { data: outlineData } = useQuery({
