@@ -412,12 +412,44 @@ No other fields. No prose outside the JSON array.`;
 
     const parsedOutline = { chapters: allChapters };
 
-    // ── Save outline + metadata ──────────────────────────────────────────────
+    // ── Save outline + metadata (upload large fields as files) ───────────────
+    const outlineJson = JSON.stringify(parsedOutline);
+    const storyBibleJson = parsedStoryBible ? JSON.stringify(parsedStoryBible) : '';
+
+    let outline_data = '';
+    let outline_url = '';
+    let story_bible = '';
+    let story_bible_url = '';
+
+    // Upload outline if large
+    if (outlineJson.length > 50000) {
+      const outlineBlob = new Blob([outlineJson], { type: 'application/json' });
+      const outlineForm = new FormData();
+      outlineForm.append('file', outlineBlob, 'outline.json');
+      const uploadRes = await sr.integrations.Core.UploadFile({ file: outlineBlob });
+      outline_url = uploadRes.file_url;
+      outline_data = '';
+    } else {
+      outline_data = outlineJson;
+      outline_url = '';
+    }
+
+    // Upload story bible if large
+    if (storyBibleJson.length > 50000) {
+      const bibleBlob = new Blob([storyBibleJson], { type: 'application/json' });
+      const uploadRes2 = await sr.integrations.Core.UploadFile({ file: bibleBlob });
+      story_bible_url = uploadRes2.file_url;
+      story_bible = '';
+    } else {
+      story_bible = storyBibleJson;
+      story_bible_url = '';
+    }
+
     await sr.entities.Outline.update(outlineId, {
-      outline_data: JSON.stringify(parsedOutline),
-      outline_url: '',
-      story_bible: JSON.stringify(parsedStoryBible),
-      story_bible_url: '',
+      outline_data,
+      outline_url,
+      story_bible,
+      story_bible_url,
       book_metadata: JSON.stringify(bookMetadata),
       status: 'complete',
       error_message: '',
