@@ -160,7 +160,6 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
 
     onSelectPrompt(prompt);
     onClose();
-    toast.success(`Loaded: ${prompt.title}`);
   }, [bookTypeFilter, categoryFilter, tagsFilter, sortBy, onSelectPrompt, onClose]);
 
   const toggleTag = (tag) => {
