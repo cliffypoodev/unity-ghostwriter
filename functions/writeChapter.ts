@@ -611,10 +611,10 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       systemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
       systemPrompt += `\n\nGenre: ${projectSpec?.genre || 'fiction'}`;
 
-    // PART E — subgenre
-    if (projectSpec?.subgenre) {
-      systemPrompt += `\nSubgenre: ${projectSpec.subgenre}`;
-    }
+      // PART E — subgenre
+      if (projectSpec?.subgenre) {
+        systemPrompt += `\nSubgenre: ${projectSpec.subgenre}`;
+      }
 
     // Inject the full book premise as a creative anchor for every chapter
     if (projectSpec?.topic) {
