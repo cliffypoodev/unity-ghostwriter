@@ -199,50 +199,48 @@ async function callOpenAIWithTimeout(messages, maxTokens = 8192, retries = 3) {
   }
 }
 
+// CHANGE 2 FIX: Reduce chapter prompt length requirement from 300+ to 100-150 words
 function buildFictionChapterPromptInstructions(isNonfiction) {
   if (isNonfiction) {
-    return `Each chapter object MUST include a "prompt" field of 150-250 words covering these sections concisely:
-HOOK: Opening anecdote or startling fact (2-3 sentences, specific).
-CONTENT: 3-4 key topics/stories with concrete names, dates, or facts.
-STRUCTURE: Chronological/thematic/compare-contrast and 2 subheading ideas.
-TRANSITION_IN: Thread carried from previous chapter.
-TRANSITION_OUT: Unresolved question or momentum into next chapter.
-TONE: How tone shifts from previous chapter.
-AVOID: 1-2 specific pitfalls for this chapter.`;
+    return `Each chapter object MUST include a "prompt" field of 100-150 words covering these sections concisely:
+HOOK: Opening anecdote or startling fact (1-2 sentences).
+CONTENT: 2-3 key topics/stories with concrete names or facts.
+STRUCTURE: Brief structural note and key angle.
+TRANSITION_IN: Thread from previous chapter.
+TRANSITION_OUT: Momentum into next chapter.`;
   }
-  return `Each chapter object MUST include a "prompt" field of 150-250 words covering these sections concisely:
-HOOK: Specific opening image or action (2-3 sentences).
-PLOT: 3-4 key beats with character names and locations.
-ARC: Character internal conflict and how it advances.
-EMOTION: Feeling at chapter start → feeling at end.
-DIALOGUE: One key conversation and its subtext.
-TRANSITION_IN: How this picks up from previous chapter.
-TRANSITION_OUT: Cliffhanger or hook into next chapter.
-AVOID: 1-2 specific pitfalls for this chapter.`;
+  return `Each chapter object MUST include a "prompt" field of 100-150 words covering these sections concisely:
+HOOK: Opening image or action (1-2 sentences).
+PLOT: 2-3 key beats with character names.
+ARC: Character conflict and advance.
+EMOTION: Start → end emotional shift.
+TRANSITION_IN: Pickup from previous chapter.
+TRANSITION_OUT: Hook into next chapter.`;
 }
 
+// CHANGE 6 FIX: Simplify story bible output
 function buildStoryBiblePrompt(spec, truncatedTopic, targetChapters) {
   const isNonfiction = spec.book_type === 'nonfiction';
   if (isNonfiction) {
     return `Generate a story bible / style guide for a ${spec.genre} nonfiction book about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
 
 Return a JSON object (not array) with these fields:
-- world: The setting, era, and scope of the book
-- tone_voice: The authorial voice and tone
-- style_guidelines: Prose and structural style guidelines
+- world: The setting, era, and scope of the book (1 sentence)
+- tone_voice: The authorial voice and tone (1 sentence)
+- style_guidelines: Prose and structural style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
-- characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (2-3 sentences: key physical trait + personality + speech pattern), arc (start → turning point → end in 2 sentences), first_appearance (chapter number)
+- characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number)
 
 Return ONLY the JSON object. No preamble.`;
   }
   return `Generate a story bible for a ${spec.genre} fiction novel about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
 
 Return a JSON object (not array) with these fields:
-- world: The world-building — setting, rules, atmosphere, geography
-- tone_voice: The narrative voice, POV, and tonal register
-- style_guidelines: Prose style guidelines for the entire manuscript
+- world: World-building (setting, atmosphere, geography in 1 sentence)
+- tone_voice: Narrative voice, POV, and tone (1 sentence)
+- style_guidelines: Prose style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
-- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (2-3 sentences: key physical trait + personality + speech pattern), arc (start → turning point → end in 2 sentences), first_appearance (chapter number)
+- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number)
 
 Return ONLY the JSON object. No preamble.`;
 }
@@ -330,7 +328,7 @@ Return ONLY the JSON object. No preamble.`;
       callOpenAIWithTimeout([
         { role: 'system', content: systemPrompt },
         { role: 'user', content: storyBiblePromptText }
-      ], 4000),
+      ], 2000),
     ]);
 
     // Parse metadata
@@ -368,6 +366,7 @@ Return ONLY the JSON object. No preamble.`;
         ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending context: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a clear transition_from that references this ending.`
         : '';
 
+      // CHANGE 2 & 3 FIX: Reduce prompt length requirement and add chapter count note
       const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
 Book title: "${bookMetadata?.title || 'Untitled'}"
 ${beatInstructions}${spiceInstructions}${langInstructions}
@@ -377,7 +376,7 @@ ${prevContext}
 
 ${promptInstructions}
 
-CRITICAL: The "prompt" field for each chapter must be LONG and DETAILED — minimum 300 words. It must contain ALL required sections listed above with specific, concrete details unique to each chapter.
+CRITICAL: The "prompt" field for each chapter must be 100-150 words. It must contain ALL required sections listed above with specific, concrete details unique to each chapter. Be concise but complete.
 
 Return a JSON array with exactly ${chunkCount} objects, each with these fields: ${chapterPromptSchema}
 
