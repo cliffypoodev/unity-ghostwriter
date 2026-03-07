@@ -355,8 +355,20 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const currentSubgenres = form.genre && subgenresData[form.book_type]?.[form.genre]
     ? subgenresData[form.book_type][form.genre] : [];
 
+  const hl = (field) => highlightedFields[field]
+    ? "ring-2 ring-violet-400 ring-offset-1 rounded-md transition-all duration-500"
+    : "";
+
   return (
     <div className="space-y-6">
+      <style>{`
+        @keyframes field-glow {
+          0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
+          50%  { box-shadow: 0 0 0 6px rgba(124,58,237,0.15); }
+          100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+        }
+        .field-highlight { animation: field-glow 1.8s ease-out; }
+      `}</style>
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
