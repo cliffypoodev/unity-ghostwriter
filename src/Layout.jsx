@@ -21,7 +21,7 @@ export default function Layout({ children }) {
   const [isMobileMode, setIsMobileMode] = useState(false);
 
   return (
-    <div className={`min-h-screen bg-slate-50 ${isMobileMode ? 'mobile' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 overflow-x-hidden ${isMobileMode ? 'mobile' : ''}`}>
       <ScrollToTop />
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-[1200px] mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center gap-2">
