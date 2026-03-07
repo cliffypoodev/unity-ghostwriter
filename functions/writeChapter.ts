@@ -182,7 +182,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
             model: 'gpt-4o-mini',
             messages,
             max_tokens: maxTokens,
-            temperature: 0.8,
+            temperature: 0.6,
           }),
           signal: controller.signal,
         });
