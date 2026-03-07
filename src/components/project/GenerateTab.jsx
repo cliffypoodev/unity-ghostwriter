@@ -653,6 +653,7 @@ export default function GenerateTab({ projectId, onProceed }) {
           <Button onClick={handleGenerateOutline} className="bg-indigo-600 hover:bg-indigo-700 px-6">
             <Sparkles className="w-4 h-4 mr-2" /> Generate Outline & Story Bible
           </Button>
+          {spec && <div className="mt-4 text-left"><SpecSettingsSummary spec={spec} /></div>}
         </div>
       </div>
     );
