@@ -111,6 +111,31 @@ function isRefusal(text) {
   return REFUSAL_INDICATORS.some(phrase => lower.includes(phrase));
 }
 
+// Helper functions for opening/ending type rotation
+function getOpeningType(chapterNumber) {
+  const index = ((chapterNumber - 1) % 5) + 1;
+  const types = {
+    1: { name: "Mid-action", desc: "the character is already DOING something physical (not walking, not standing, not thinking — actively doing a task)" },
+    2: { name: "Dialogue", desc: "open mid-conversation with a spoken line, no attribution tag first" },
+    3: { name: "A single concrete sensory detail", desc: "one sense, one sentence, visceral and specific" },
+    4: { name: "Time/place anchor with immediate physical action", desc: "e.g., 'Tuesday, 3 AM. Lucas's hands were bleeding.'" },
+    5: { name: "Internal thought that contradicts what happens next", desc: "e.g., character thinks 'nothing will change' right before everything changes" }
+  };
+  return types[index];
+}
+
+function getEndingType(chapterNumber) {
+  const index = ((chapterNumber - 1) % 5) + 1;
+  const types = {
+    1: { name: "Type A: Mid-action cliffhanger", desc: "interrupt the character mid-action, cut to black. No summary, no reflection." },
+    2: { name: "Type B: A revelation that recontextualizes", desc: "the revelation that recontextualizes what the reader just read. End with the new information, no reaction narration." },
+    3: { name: "Type C: A concrete, specific sensory image", desc: "an actual thing the character sees/hears/touches. NOT abstract." },
+    4: { name: "Type D: A line of dialogue that lands like a gut-punch", desc: "absolutely NO narration after the dialogue. The quote is the last thing." },
+    5: { name: "Type E: A quiet, mundane action that contrasts with the chapter's intensity", desc: "e.g., character makes coffee after a harrowing event." }
+  };
+  return types[index];
+}
+
 function getSpiceLevelInstructions(level) {
   const l = parseInt(level) || 0;
   const entry = SPICE_LEVELS[l] || SPICE_LEVELS[0];
