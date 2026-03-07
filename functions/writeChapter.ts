@@ -111,11 +111,12 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       return data.choices[0]?.message?.content || '';
     }
 
+    const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
     let shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
-    
-    if (projectSpec?.tone_style) {
-      shortSystemPrompt += ` Beat Style: ${getBeatStyleInstructions(projectSpec.tone_style)}`;
-    }
+    if (beatKey) shortSystemPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}`;
+    shortSystemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
+    shortSystemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
+    shortSystemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
     
     // Add author voice style if not basic
     if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
