@@ -395,58 +395,69 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleGenerateOutline = async () => {
     setGenerating(true);
-    setGenerationProgress("");
+    setGenerationProgress("Starting generation…");
     setGenerateError("");
-    
+
     try {
-      // Start generation — allow up to 120s for large books
-      const response = await base44.functions.invoke('generateOutline', { project_id: projectId }, { timeout: 120000 });
-      
+      // Kick off async generation — returns immediately
+      const response = await base44.functions.invoke('generateOutline', { project_id: projectId });
       if (response.status !== 200) {
-        console.error('generateOutline error:', response.data);
-        const msg = response.data?.error || 'Failed to generate outline';
-        setGenerateError(msg);
+        setGenerateError(response.data?.error || 'Failed to start generation');
         return;
       }
 
-      // Poll for chapter creation to show progress
-      const totalChapters = response.data?.chapter_count || 0;
-      if (totalChapters > 0) {
-        let lastCount = 0;
-        const pollInterval = setInterval(async () => {
-          try {
-            const currentChapters = await base44.entities.Chapter.filter({ project_id: projectId });
-            const count = currentChapters?.length || 0;
-            
-            if (count > lastCount) {
-              const chunkStart = lastCount + 1;
-              const chunkEnd = Math.min(count, totalChapters);
-              setGenerationProgress(`Chapters ${chunkStart}-${chunkEnd} created…`);
-              lastCount = count;
-            }
+      // Poll the Outline entity status until complete or error
+      let pollCount = 0;
+      const messages = [
+        "Generating story bible & metadata…",
+        "Building chapter outlines…",
+        "Writing chapter prompts…",
+        "Finalizing outline…",
+      ];
 
-            if (count >= totalChapters) {
-              clearInterval(pollInterval);
-            }
-          } catch (e) {
-            console.warn('Polling error:', e);
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        try {
+          const outlines = await base44.entities.Outline.filter({ project_id: projectId });
+          const outline = outlines[0];
+
+          if (!outline) return;
+
+          if (outline.status === 'complete') {
+            clearInterval(pollInterval);
+            setGenerationProgress("Done!");
+            await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+            await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+            await queryClient.invalidateQueries({ queryKey: ["projects"] });
+            setGenerating(false);
+            setGenerationProgress("");
+          } else if (outline.status === 'error') {
+            clearInterval(pollInterval);
+            setGenerateError(outline.error_message || 'Generation failed');
+            setGenerating(false);
+            setGenerationProgress("");
+          } else {
+            // Still generating — show rotating message
+            setGenerationProgress(messages[pollCount % messages.length]);
           }
-        }, 500);
+        } catch (e) {
+          console.warn('Poll error:', e.message);
+        }
+      }, 3000);
 
-        // Cleanup after completion
-        setTimeout(() => clearInterval(pollInterval), 30000);
-      }
+      // Safety timeout after 10 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (generating) {
+          setGenerateError('Generation is taking too long. Please check back or retry.');
+          setGenerating(false);
+          setGenerationProgress("");
+        }
+      }, 10 * 60 * 1000);
 
-      await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
-      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
-      await queryClient.invalidateQueries({ queryKey: ["projects"] });
     } catch (err) {
-      console.error('generateOutline exception:', err);
-      const isTimeout = err.message?.includes('timeout') || err.message?.includes('502') || err.code === 'ECONNABORTED';
-      setGenerateError(isTimeout
-        ? 'Generation timed out. Try reducing chapter count in your spec, then retry.'
-        : (err.message || 'Failed to generate outline'));
-    } finally {
+      console.error('generateOutline error:', err);
+      setGenerateError(err.message || 'Failed to generate outline');
       setGenerating(false);
       setGenerationProgress("");
     }
