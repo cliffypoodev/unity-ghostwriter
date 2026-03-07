@@ -783,14 +783,44 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
 
     const wordCount = fullContent.trim().split(/\s+/).length;
 
-    // RUN QUALITY SCAN
-    const qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
+    // PART C — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
 
-    let contentValue = fullContent;
-    if (fullContent.length > 30000) {
+    let finalContent = fullContent;
+    let passCount = 0;
+
+    // Auto-rewrite loop — max 2 passes
+    if (!qualityResult.passed && qualityResult.warnings.length > 0) {
+      for (let pass = 1; pass <= 2; pass++) {
+        console.log(`Chapter ${chapter.chapter_number} auto-rewrite pass ${pass}...`);
+        
+        try {
+          const correctedText = await rewriteWithCorrections(finalContent, qualityResult.warnings, chapter.chapter_number, openai_key);
+          if (correctedText && correctedText.length > 100) {
+            finalContent = correctedText;
+            passCount = pass;
+            
+            // Re-scan after rewrite
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number);
+            console.log(`After pass ${pass} quality scan:`, qualityResult);
+            
+            if (qualityResult.passed) {
+              console.log(`Chapter ${chapter.chapter_number} passed quality check after pass ${pass}`);
+              break;
+            }
+          }
+        } catch (rewriteErr) {
+          console.error(`Rewrite pass ${pass} failed silently, continuing with current text:`, rewriteErr.message);
+          // Continue with current text without crashing
+        }
+      }
+    }
+
+    let contentValue = finalContent;
+    if (finalContent.length > 30000) {
       try {
-        const contentFile = new File([fullContent], `chapter_${chapterId}.txt`, { type: 'text/plain' });
+        const contentFile = new File([finalContent], `chapter_${chapterId}.txt`, { type: 'text/plain' });
         const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile });
         if (uploadResult?.file_url) contentValue = uploadResult.file_url;
       } catch (uploadErr) {
@@ -798,10 +828,12 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
       }
     }
 
+    const finalWordCount = finalContent.trim().split(/\s+/).length;
+
     await base44.entities.Chapter.update(chapterId, {
       content: contentValue,
       status: 'generated',
-      word_count: wordCount,
+      word_count: finalWordCount,
       generated_at: new Date().toISOString(),
       quality_scan: JSON.stringify(qualityResult),
     });
