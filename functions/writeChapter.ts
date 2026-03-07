@@ -77,6 +77,10 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     let shortSystemPrompt = `You are a professional author. Write ${projectSpec?.genre || 'fiction'} with an immersive, engaging style.`;
     
+    if (projectSpec?.tone_style) {
+      shortSystemPrompt += ` Beat Style: ${getBeatStyleInstructions(projectSpec.tone_style)}`;
+    }
+    
     // Add author voice style if not basic
     if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
       const authorVoices = {
