@@ -343,6 +343,78 @@ function scanChapterQuality(text, chapterNumber) {
   };
 }
 
+// PART B — AUTO-REWRITE FUNCTION
+async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey) {
+  const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.
+
+RULES:
+1. Replace ONLY the sentences or clauses that contain the flagged violations.
+2. Do NOT rewrite, restructure, or 'improve' any other part of the text.
+3. Do NOT add new scenes, dialogue, or plot. Do NOT remove scenes or dialogue.
+4. Do NOT change character names, settings, or plot events.
+5. Do NOT add meta-commentary, notes, or explanations.
+6. Each replacement must be ORIGINAL — do not swap one cliché for another.
+7. Replacements must be SPECIFIC to the scene — a character in a library reacts differently than one in a rainstorm.
+8. For 'show don't tell' violations: replace the named emotion with a concrete physical action, sensory detail, or dialogue that IMPLIES the emotion.
+9. Return ONLY the complete corrected chapter text. Nothing else.`;
+
+  const violationList = violations.map(v => `- ${v}`).join('\n');
+  
+  const userMessage = `Fix the following violations in this Chapter ${chapterNumber} text.
+
+VIOLATIONS FOUND:
+${violationList}
+
+IMPORTANT: Replace each violation with prose that is:
+- Specific to THIS scene (not generic)
+- Original (not another cliché)
+- Concrete and sensory (not abstract)
+
+Here is the full chapter text to fix:
+
+---
+${chapterText}
+---
+
+Return the corrected chapter text with violations fixed. Output ONLY the chapter prose, nothing else.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: 8192,
+        temperature: 0.4,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
+    }
+
+    let correctedText = (await response.json()).choices[0]?.message?.content || '';
+    
+    // Strip markdown code fences if present
+    if (correctedText.includes('```')) {
+      correctedText = correctedText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    return correctedText;
+  } catch (err) {
+    console.error('Rewrite error:', err.message);
+    throw err;
+  }
+}
+
 async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
   try {
     // Load all chapters sorted by number so we can build conversation context
