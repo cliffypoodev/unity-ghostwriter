@@ -93,7 +93,7 @@ const PROVIDER_COLORS = {
 };
 
 function ModelCard({ model, isRecommended, isSelected, onSelect }) {
-  const colors = PROVIDER_COLORS[model.provider];
+  const colors = PROVIDER_COLORS[model.provider] || PROVIDER_COLORS.Anthropic;
   const borderClass = isSelected ? "border-indigo-500 bg-indigo-50" : isRecommended ? "border-indigo-200" : "border-slate-200 hover:border-indigo-500 hover:shadow-md";
 
   return (
@@ -109,9 +109,19 @@ function ModelCard({ model, isRecommended, isSelected, onSelect }) {
           </div>
           <h4 className="font-semibold text-slate-900">{model.name}</h4>
         </div>
-        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"}`} />
+        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-1 ${isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"}`} />
       </div>
-      <p className="text-sm text-slate-600 mb-2">{model.description}</p>
+      <p className="text-sm text-slate-600 mb-3">{model.description}</p>
+      <div className="flex items-center gap-4">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 mb-1">Prose Quality</p>
+          <StarRating count={model.proseQuality} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-500 mb-1">Token Cost</p>
+          <DollarRating count={model.tokenCost} />
+        </div>
+      </div>
     </button>
   );
 }
