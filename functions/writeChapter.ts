@@ -905,6 +905,7 @@ ENDING RULE: Use this ending style based on chapter number:
 - Chapters 5,10,15,20: A quiet mundane action contrasting the intensity
 
 Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
+    }
 
     messages.push({ role: 'user', content: currentChapterRequest });
 
