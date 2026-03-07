@@ -337,6 +337,22 @@ export default function GenerateTab({ projectId, onProceed }) {
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const [retryCountdown, setRetryCountdown] = useState(0);
+
+  // CHANGE 5 FIX: Countdown timer for rate limit retry
+  useEffect(() => {
+    if (retryCountdown <= 0) return;
+    const interval = setInterval(() => {
+      setRetryCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [retryCountdown]);
 
   // Scroll to top on component mount
   useEffect(() => {
@@ -812,11 +828,22 @@ export default function GenerateTab({ projectId, onProceed }) {
             Your specifications will be analyzed to create a detailed chapter-by-chapter outline.
           </p>
           {generateError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">
-              {generateError}
+            <div className="mb-4 space-y-3">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">
+                {generateError}
+              </div>
+              {retryCountdown > 0 && (
+                <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 text-center font-medium">
+                  Ready to retry in: {retryCountdown}s...
+                </div>
+              )}
             </div>
           )}
-          <Button onClick={handleGenerateOutline} className="bg-indigo-600 hover:bg-indigo-700 px-6">
+          <Button 
+            onClick={handleGenerateOutline} 
+            disabled={retryCountdown > 0}
+            className="bg-indigo-600 hover:bg-indigo-700 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Sparkles className="w-4 h-4 mr-2" /> {generateError ? 'Retry Generation' : 'Generate Outline & Story Bible'}
           </Button>
           {spec && <div className="mt-4 text-left"><SpecSettingsSummary spec={spec} /></div>}
