@@ -604,43 +604,33 @@ CHAPTER PROMPT:
 ${chapter.prompt || ''}
 
 CHAPTER SUMMARY:
-${chapter.summary || ''}`;
+${chapter.summary || ''}
 
-    // Add final chapter instructions if applicable
-    if (isLastChapter) {
-      currentChapterRequest += `
+=== CRITICAL RULES — VIOLATION MEANS REJECTION ===
 
-IMPORTANT — This is the FINAL chapter. Bring all narrative threads to a satisfying conclusion. Resolve the central conflict. Give the reader closure while leaving a lasting impression. Do NOT end with vague promises of what comes next.`;
-    }
+BANNED PHRASES — Do NOT use any of these anywhere in the chapter:
+"heart racing", "heart pounding", "pulse quickened", "breath hitched", "breath caught", "swallowed hard", "shiver down his spine", "a jolt of", "a surge of", "intoxicating", "electric" (for atmosphere), "shadows danced", "tendrils of", "the weight of", "in that moment", "no turning back", "on the precipice", "on the brink", "teetering", "a mix of X and Y", "a kaleidoscope of", "a whirlwind of", "he felt alive", "the world around him faded", "just the beginning", "air thickened", "palpable", "siren's call", "What if I lose myself", "Embrace it", "Let go of your fear", "control is an illusion", "you're not like the others", "knowledge is power"
 
-    currentChapterRequest += `
+BANNED PATTERNS:
+- Never write "He felt [emotion]" or "She felt [emotion]" — show through actions instead
+- Never end the chapter with "he was ready to...", "the journey was just beginning", "whatever lay ahead", or "no turning back"
+- Never use the structure: character goes somewhere → mysterious person appears → cryptic dialogue → character hesitates → agrees → vague promise
 
-=== MANDATORY REQUIREMENTS FOR THIS SPECIFIC CHAPTER ===
+OPENING RULE: Use this opening style based on chapter number:
+- Chapters 1,6,11,16: Mid-action, character physically doing something
+- Chapters 2,7,12,17: Open with a line of dialogue, no narration first
+- Chapters 3,8,13,18: One concrete sensory detail, one sentence
+- Chapters 4,9,14,19: Time/place stamp then immediate action
+- Chapters 5,10,15,20: Internal thought that contradicts what happens next
 
-OPENING: You MUST use this opening type: ${openingType.name}
-${openingType.desc}
-Do NOT open with atmosphere, shadows, darkness, weather, scent, or the character walking/stepping/descending somewhere.
+ENDING RULE: Use this ending style based on chapter number:
+- Chapters 1,6,11,16: Mid-action cliffhanger, cut to black
+- Chapters 2,7,12,17: A revelation that recontextualizes the chapter
+- Chapters 3,8,13,18: A single concrete sensory image
+- Chapters 4,9,14,19: A line of dialogue with NO narration after it
+- Chapters 5,10,15,20: A quiet mundane action contrasting the intensity
 
-ENDING: You MUST use this ending type: ${endingType.name}
-${endingType.desc}
-BANNED endings: "he was ready to...", "the journey was just beginning", "whatever lay ahead", "no turning back", "knew that [vague realization]", or any summary of what the character learned.
-
-STRUCTURE: This chapter must NOT follow the pattern of [character goes somewhere → mysterious figure appears → cryptic speech → character hesitates → agrees → vague promise]. Use a DIFFERENT dramatic structure: a confrontation with consequences, a plan that goes wrong, a discovery, a betrayal, genuine physical intimacy, an action sequence, a conversation where someone lies, or a flashback.
-
-BANNED PHRASES — if you use ANY of these, the chapter is REJECTED and must be rewritten:
-"heart racing/pounding/hammering", "pulse quickened", "breath hitched/caught", "swallowed hard",
-"shiver down his spine", "a jolt of", "a surge of", "intoxicating", "electric" (for atmosphere/touch),
-"shadows danced/twisted/swirled", "tendrils of", "the weight of", "in that moment",
-"no turning back", "teetering on the edge", "on the precipice", "a mix of [X] and [Y]",
-"a kaleidoscope of", "a whirlwind of", "he felt alive", "the world around him faded",
-"Control is an illusion", "Embrace it/your desires", "Let go of your fear", "What if I lose myself",
-"ready to embrace/confront", "just the beginning", "air thickened", "palpable", "siren's call"
-
-SHOW DON'T TELL: Never write "He felt [emotion]" or "A sense of [emotion] washed over him". Instead show through actions, observations, body language, and dialogue.
-
-SUPPORTING CAST: If any character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explicitly explained.
-
-Write this chapter in full (~${TARGET_WORDS} words). Begin immediately with the prose — no preamble, no meta-commentary, no pre-checks. Just the chapter text.`;
+Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
 
     messages.push({ role: 'user', content: currentChapterRequest });
 
