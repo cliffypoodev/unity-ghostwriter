@@ -24,7 +24,15 @@ const PHASES = [
 // Map phases to which status values count as "completed"
 const PHASE_ORDER = ["specify", "generate", "export"];
 
-function PhaseTabs({ activePhase, setActivePhase, projectStatus }) {
+function PhaseTabs({ activePhase, onPhaseChange, projectStatus }) {
+  const setActivePhase = (id) => {
+    onPhaseChange(id);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 0);
+  };
   const getPhaseState = (phaseId) => {
     const activeIdx = PHASE_ORDER.indexOf(activePhase);
     const phaseIdx = PHASE_ORDER.indexOf(phaseId);
