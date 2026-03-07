@@ -464,6 +464,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
     } catch (err) {
       console.error('generateOutline error:', err);
+      generatingRef.current = false;
       setGenerateError(err.message || 'Failed to generate outline');
       setGenerating(false);
       setGenerationProgress("");
