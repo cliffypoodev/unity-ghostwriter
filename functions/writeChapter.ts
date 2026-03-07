@@ -211,6 +211,11 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       systemPrompt += `\nSubgenre: ${projectSpec.subgenre}`;
     }
 
+    // Inject the full book premise as a creative anchor for every chapter
+    if (projectSpec?.topic) {
+      systemPrompt += `\n\nBOOK PREMISE (your creative anchor — every scene must serve THIS story):\n${projectSpec.topic}`;
+    }
+
     if (beatKey) systemPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}`;
     systemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
     systemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
@@ -271,38 +276,40 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     // PART C — strict anti-repetition rules with banned phrase list
     systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION OF THESE RULES IS A FAILURE:
 
-1. BANNED PHRASE LIST — Do NOT use any of these overused phrases:
-   - "heart pounding" / "heart racing" / "pulse quickened" (use MAX once per chapter, find alternatives: chest tightened, blood thrummed, stomach dropped)
-   - "intoxicating" (BANNED entirely — find specific sensory descriptions instead)
-   - "shadows danced" / "shadows shifted" / "shadows twisted" (use MAX once per chapter)
-   - "whispers echoed" / "whispers slithered" / "whispers wrapped around" (use MAX once per chapter)
-   - "the darkness enveloped" / "darkness pressed" / "darkness wrapped" (use MAX once per chapter)
-   - "a thrill coursed through" / "a shiver ran down" (use MAX once per chapter)
-   - "he couldn't tear himself away"
-   - "the weight of" (the unknown, the decision, etc.)
-   - "in that moment"
-   - "the air thickened/crackled/grew heavy"
-   - "just the beginning"
+    1. BANNED PHRASE LIST — Do NOT use any of these overused phrases:
+    - "heart pounding" / "heart racing" / "pulse quickened" (use MAX once per chapter, find alternatives: chest tightened, blood thrummed, stomach dropped)
+    - "intoxicating" (BANNED entirely — find specific sensory descriptions instead)
+    - "shadows danced" / "shadows shifted" / "shadows twisted" (use MAX once per chapter)
+    - "whispers echoed" / "whispers slithered" / "whispers wrapped around" (use MAX once per chapter)
+    - "the darkness enveloped" / "darkness pressed" / "darkness wrapped" (use MAX once per chapter)
+    - "a thrill coursed through" / "a shiver ran down" (use MAX once per chapter)
+    - "he couldn't tear himself away"
+    - "the weight of" (the unknown, the decision, etc.)
+    - "in that moment"
+    - "the air thickened/crackled/grew heavy"
+    - "just the beginning"
 
-2. CHAPTER OPENING RULE: Each chapter MUST open with a completely different technique:
-   - Chapter 1: Action or sensory detail (NOT atmosphere)
-   - Chapter 2: Dialogue mid-conversation
-   - Chapter 3: Internal thought or memory
-   - Chapter 4: Time/place stamp with concrete physical action
-   - Chapter 5: A single striking image or metaphor
-   NEVER open two chapters the same way. NEVER open with atmosphere/darkness/shadows.
+    2. CHAPTER OPENING RULE: Each chapter MUST open with a completely different technique:
+    - Chapter 1: Action or sensory detail (NOT atmosphere)
+    - Chapter 2: Dialogue mid-conversation
+    - Chapter 3: Internal thought or memory
+    - Chapter 4: Time/place stamp with concrete physical action
+    - Chapter 5: A single striking image or metaphor
+    NEVER open two chapters the same way. NEVER open with atmosphere/darkness/shadows.
 
-3. DIALOGUE RULE: Characters must NOT repeat the same conversational dynamic. If the previous chapter had Character A saying 'trust me' and Character B hesitating, the NEXT chapter must show a DIFFERENT power dynamic. Characters must evolve between chapters — they cannot have the same argument twice.
+    3. DIALOGUE RULE: Characters must NOT repeat the same conversational dynamic. If the previous chapter had Character A saying 'trust me' and Character B hesitating, the NEXT chapter must show a DIFFERENT power dynamic. Characters must evolve between chapters — they cannot have the same argument twice.
 
-4. PLOT PROGRESSION RULE: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. Walking into a room is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.
+    4. PLOT PROGRESSION RULE: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. Walking into a room is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.
 
-5. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
+    5. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
 
-6. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
+    6. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
 
-7. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.`;
+    7. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.`;
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
+
+    systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
     // ── PART A — Build conversation-style messages array ─────────────────────
 
