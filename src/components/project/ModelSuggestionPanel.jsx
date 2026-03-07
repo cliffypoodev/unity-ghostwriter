@@ -88,7 +88,8 @@ const MODEL_GENRE_ROUTING = {
 const PROVIDER_COLORS = {
   Anthropic: { bg: "bg-amber-50", text: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
   OpenAI: { bg: "bg-blue-50", text: "text-blue-700", badge: "bg-blue-100 text-blue-700" },
-  Google: { bg: "bg-purple-50", text: "text-purple-700", badge: "bg-purple-100 text-purple-700" }
+  Google: { bg: "bg-purple-50", text: "text-purple-700", badge: "bg-purple-100 text-purple-700" },
+  DeepSeek: { bg: "bg-teal-50", text: "text-teal-700", badge: "bg-teal-100 text-teal-700" }
 };
 
 function ModelCard({ model, isRecommended, isSelected, onSelect }) {
