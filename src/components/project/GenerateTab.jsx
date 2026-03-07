@@ -386,6 +386,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const resolvedOutlineData = outline?.outline_data || outlineData;
   const resolvedStoryBible = outline?.story_bible || storyBibleData;
+  const resolvedBookMetadata = outline?.book_metadata || null;
 
   const generatedCount = chapters.filter(c => c.status === "generated").length;
   const totalCount = chapters.length;
