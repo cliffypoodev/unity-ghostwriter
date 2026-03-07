@@ -350,6 +350,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const { data: outlines = [] } = useQuery({
     queryKey: ["outline", projectId],
     queryFn: () => base44.entities.Outline.filter({ project_id: projectId }),
+    refetchInterval: generating ? 4000 : false,
   });
 
   const { data: chapters = [], refetch: refetchChapters } = useQuery({
