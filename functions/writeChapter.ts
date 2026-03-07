@@ -574,11 +574,24 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     4. PLOT PROGRESSION RULE: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. Walking into a room is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.
 
-    5. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
+    5. DIALOGUE MUST NOT BE 'TENNIS' (critical anti-pattern):
+      The #1 failure mode is dialogue that becomes a back-and-forth of rhetorical questions and philosophical volleys.
+      BANNED PATTERN: Character A asks provocative question → Character B counters with another question → A raises stakes → B matches → repeat for 20 exchanges.
+      Example of BANNED dialogue tennis: 'Isn't desire dangerous?' / 'Or is it thrilling?' / 'Perhaps both.' / 'Then what do you want?' / 'What do YOU want?' / 'Maybe I want to find out.' / 'Then let's see where this leads.'
+      INSTEAD: Dialogue must have ASYMMETRY. One character leads, the other deflects. Someone changes the subject. Someone lies. Someone says something accidentally revealing. Conversations have interruptions, non-sequiturs, silences, and subtext. People rarely answer the question they were asked.
+      MAX 3 consecutive dialogue exchanges before a PARAGRAPH OF ACTION, DESCRIPTION, OR INTERNAL THOUGHT breaks the rhythm.
 
-    6. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
+    6. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
 
-    7. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.`;
+    7. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
+
+    8. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.
+
+    9. CHARACTER VOICE DIFFERENTIATION: Every named character MUST have a distinct speech pattern. Characters must NEVER sound interchangeable. Vocabulary level (academic vs casual vs street vs formal), sentence length tendency (terse vs verbose), speech habits (interrupts, trails off, asks questions, makes declarations) — all must vary. In dialogue, a reader should be able to identify the speaker WITHOUT dialogue tags.
+
+    10. ANTI-REPETITION: Track every metaphor and simile. Do NOT reuse the same comparison twice in one chapter. Track every physical reaction. Do NOT use the same bodily response (heart, breath, spine, stomach, pulse) more than twice per chapter. Track dialogue patterns — vary between statements, questions, commands, interruptions.
+
+    11. PLOT PROGRESSION: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.`;
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
 
