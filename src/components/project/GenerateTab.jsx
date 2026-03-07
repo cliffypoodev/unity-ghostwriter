@@ -527,7 +527,15 @@ export default function GenerateTab({ projectId, onProceed }) {
     } catch (err) {
       console.error('generateOutline error:', err);
       generatingRef.current = false;
-      setGenerateError(err.message || 'Failed to generate outline');
+      
+      // CHANGE 5 FIX: User-friendly rate limit error with countdown
+      if (err.message?.includes('rate limit') || err.message?.includes('Rate limit')) {
+        setGenerateError('AI rate limit reached. Your outline is large — please wait 60 seconds and click Retry Generation.');
+        setRetryCountdown(60);
+      } else {
+        setGenerateError(err.message || 'Failed to generate outline');
+      }
+      
       setGenerating(false);
       setGenerationProgress("");
     }
