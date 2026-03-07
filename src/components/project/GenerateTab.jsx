@@ -345,14 +345,16 @@ export default function GenerateTab({ projectId, onProceed }) {
   const handleGenerateOutline = async () => {
     setGenerating(true);
     setGenerationProgress("");
+    setGenerateError("");
     
     try {
-      // Start generation
-      const response = await base44.functions.invoke('generateOutline', { project_id: projectId });
+      // Start generation — allow up to 120s for large books
+      const response = await base44.functions.invoke('generateOutline', { project_id: projectId }, { timeout: 120000 });
       
       if (response.status !== 200) {
         console.error('generateOutline error:', response.data);
-        alert(`Error: ${response.data?.error || 'Failed to generate outline'}`);
+        const msg = response.data?.error || 'Failed to generate outline';
+        setGenerateError(msg);
         return;
       }
 
