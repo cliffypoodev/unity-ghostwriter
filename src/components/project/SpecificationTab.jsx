@@ -429,7 +429,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {/* Genre */}
-              <div>
+              <div className={hl("genre")}>
                 <Label className="text-sm font-medium">Genre / Category</Label>
                 <Select value={form.genre} onValueChange={v => handleChange("genre", v)}>
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select genre..." /></SelectTrigger>
