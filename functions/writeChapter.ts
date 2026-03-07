@@ -303,7 +303,14 @@ Deno.serve(async (req) => {
     const chapter = chapters.find(c => c.id === chapter_id);
     if (!chapter) return Response.json({ error: 'Chapter not found' }, { status: 404 });
 
-    const spec = specs[0];
+    const rawSpec = specs[0];
+    // Normalize spec — apply safe defaults for new fields, handle legacy tone_style
+    const spec = rawSpec ? {
+      ...rawSpec,
+      beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
+      spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)),
+      language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
+    } : null;
     const outline = outlines[0];
 
     let outlineData = null;
