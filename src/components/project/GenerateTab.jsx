@@ -654,10 +654,15 @@ export default function GenerateTab({ projectId, onProceed }) {
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">Generate Your Book Outline</h2>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            Claude will analyze your specifications and create a detailed chapter-by-chapter outline, complete with a story bible containing characters, world-building, and narrative guidelines.
+            Your specifications will be analyzed to create a detailed chapter-by-chapter outline.
           </p>
+          {generateError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">
+              {generateError}
+            </div>
+          )}
           <Button onClick={handleGenerateOutline} className="bg-indigo-600 hover:bg-indigo-700 px-6">
-            <Sparkles className="w-4 h-4 mr-2" /> Generate Outline & Story Bible
+            <Sparkles className="w-4 h-4 mr-2" /> {generateError ? 'Retry Generation' : 'Generate Outline & Story Bible'}
           </Button>
           {spec && <div className="mt-4 text-left"><SpecSettingsSummary spec={spec} /></div>}
         </div>
