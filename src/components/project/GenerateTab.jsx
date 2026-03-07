@@ -752,6 +752,9 @@ export default function GenerateTab({ projectId, onProceed }) {
         </div>
       )}
 
+      {/* Book Metadata */}
+      <BookMetadataCard metadataRaw={resolvedBookMetadata} />
+
       {/* Outline & Story Bible */}
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
