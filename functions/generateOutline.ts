@@ -40,6 +40,24 @@ function getBeatStyleInstructions(key) {
   return key;
 }
 
+const AUTHOR_VOICE_DESCRIPTIONS = {
+  hemingway: "Spare, direct prose. Short sentences. Subtext through omission. Muscular verbs, minimal adjectives.",
+  king: "Conversational, grounded. Long setups that build dread. Pop culture references. Everyman characters in extraordinary situations.",
+  morrison: "Lyrical, rhythmic. Rich cultural texture. Non-linear time. Poetic imagery rooted in physical sensation.",
+  mccarthy: "Stark, biblical. No quotation marks. Landscape as character. Violence rendered with cold precision.",
+  gaiman: "Whimsical yet dark. Fairy-tale cadence. Mythology remixed. Wonder and menace in equal measure.",
+  flynn: "Sharp, sardonic. Unreliable narrators. Dark humor masking fury. Twists rooted in character psychology.",
+  sanderson: "Systematic worldbuilding. Clear action choreography. Satisfying payoffs to planted details. Accessible epic tone.",
+  hoover: "Emotional gut-punches. First-person intimacy. Short chapters. Relationship dynamics as plot engine.",
+  patterson: "Ultra-short chapters. Cliffhanger endings. Fast pacing. Multiple POVs. Minimal description.",
+  atwood: "Intellectual, layered. Social commentary woven through narrative. Dry wit. Speculative elements grounded in reality.",
+  basic: "Clean, neutral, competent prose.",
+};
+
+function getAuthorVoiceDescription(key) {
+  return AUTHOR_VOICE_DESCRIPTIONS[key] || AUTHOR_VOICE_DESCRIPTIONS.basic;
+}
+
 const SPICE_LEVELS = {
   0: { name: "Fade to Black", instructions: "Romantic/Sexual Content Rules:\n- No sexual content of any kind.\n- Romantic tension permitted but must remain fully clothed and non-physical beyond hand-holding, a brief kiss, or an embrace.\n- If a scene approaches intimacy, cut away or skip ahead entirely (fade to black).\n- Focus on emotional connection, dialogue, and longing.\n- No nudity. No suggestive descriptions of bodies in sexual context.\n- Appropriate for all audiences." },
   1: { name: "Closed Door", instructions: "Romantic/Sexual Content Rules:\n- Intimacy is implied but never shown on the page.\n- Characters may kiss passionately, touch with intent, or acknowledge desire through internal monologue.\n- Scene ends or cuts away before any clothing is removed or explicit action begins.\n- Sensual tension built through proximity, breath, eye contact, and emotional vulnerability — not physical description.\n- No explicit body part references in sexual context.\n- No graphic language for arousal or physical response.\n- Tone: warm, yearning, charged — but restrained." },
@@ -218,11 +236,17 @@ TRANSITION_IN: Pickup from previous chapter.
 TRANSITION_OUT: Hook into next chapter.`;
 }
 
-// CHANGE 6 FIX: Simplify story bible output
+// CHANGE 6 FIX: Simplify story bible output and integrate subgenre + author voice
 function buildStoryBiblePrompt(spec, truncatedTopic, targetChapters) {
   const isNonfiction = spec.book_type === 'nonfiction';
+  const authorVoiceKey = spec.author_voice || 'basic';
+  const authorVoiceDesc = AUTHOR_VOICE_DESCRIPTIONS[authorVoiceKey] || AUTHOR_VOICE_DESCRIPTIONS.basic;
+  
   if (isNonfiction) {
     return `Generate a story bible / style guide for a ${spec.genre} nonfiction book about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
+
+${spec.subgenre ? `SUBGENRE CONTEXT: This book is ${spec.subgenre}. The subgenre determines pacing, tone, and reader expectations for this book.` : ''}
+${authorVoiceKey !== 'basic' ? `AUTHOR VOICE: Write in a style reminiscent of: ${authorVoiceDesc}` : ''}
 
 Return a JSON object (not array) with these fields:
 - world: The setting, era, and scope of the book (1 sentence)
@@ -234,6 +258,9 @@ Return a JSON object (not array) with these fields:
 Return ONLY the JSON object. No preamble.`;
   }
   return `Generate a story bible for a ${spec.genre} fiction novel about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
+
+${spec.subgenre ? `SUBGENRE CONTEXT: This book is ${spec.subgenre}. The subgenre determines pacing, specific tropes, reader expectations, and tone for this book. Use the subgenre to make chapter prompts SPECIFIC to reader expectations for that subgenre.` : ''}
+${authorVoiceKey !== 'basic' ? `AUTHOR VOICE: Write in a style reminiscent of: ${authorVoiceDesc}` : ''}
 
 Return a JSON object (not array) with these fields:
 - world: World-building (setting, atmosphere, geography in 1 sentence)
@@ -292,6 +319,13 @@ async function runGeneration(sr, project_id) {
     const beatInstructions = beatKey ? `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n` : '';
     const spiceInstructions = `\n${getSpiceLevelInstructions(spec.spice_level ?? 0)}\n`;
     const langInstructions = `\n${getLanguageIntensityInstructions(spec.language_intensity ?? 0)}\n`;
+    
+    // CHANGE 4 & 5 & 6 FIX: Add subgenre and author voice to context
+    const authorVoiceKey = spec.author_voice || 'basic';
+    const authorVoiceDesc = getAuthorVoiceDescription(authorVoiceKey);
+    const subgenreInfo = spec.subgenre ? `\nSubgenre: ${spec.subgenre}` : '';
+    const authorVoiceInfo = authorVoiceKey !== 'basic' ? `\nAuthor Voice: ${authorVoiceDesc}` : '';
+    
     const baseContext = `${spec.genre} ${spec.book_type} about "${truncatedTopic}"${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}`;
     const promptInstructions = buildFictionChapterPromptInstructions(isNonfiction);
     const chapterPromptSchema = isNonfiction
@@ -366,13 +400,19 @@ Return ONLY the JSON object. No preamble.`;
         ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending context: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a clear transition_from that references this ending.`
         : '';
 
-      // CHANGE 2 & 3 FIX: Reduce prompt length requirement and add chapter count note
+      // CHANGE 2 & 3 & 5 & 6 FIX: Reduce prompt length requirement and integrate subgenre + author voice
       const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
 Book title: "${bookMetadata?.title || 'Untitled'}"
 ${beatInstructions}${spiceInstructions}${langInstructions}
+${subgenreInfo}
+${authorVoiceInfo}
 ${CONTENT_GUARDRAILS}
 ${ANTI_REPETITION_RULES}
 ${prevContext}
+
+SUBGENRE PACING & TONE: The SUBGENRE determines chapter pacing, tropes, and reader expectations. Use it to make chapter prompts SPECIFIC to what readers expect from this subgenre.
+
+AUTHOR VOICE PROSE STYLE: The AUTHOR VOICE determines the prose style for every chapter. Embed voice-specific instructions into each chapter prompt.
 
 ${promptInstructions}
 
