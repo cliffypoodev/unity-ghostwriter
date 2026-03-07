@@ -31,11 +31,13 @@ export default function Layout({ children }) {
             to={createPageUrl("Home")} 
             className="flex items-center gap-2 min-w-0 shrink hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69aadec3c961db7ad00f82dc/9e2525f51_image.png"
+              alt="Unity Ghostwriter"
+              className="w-8 h-8 shrink-0 rounded-lg"
+            />
             <span className="text-sm sm:text-base font-semibold text-slate-800 truncate">
-              Book Generation Platform
+              Unity Ghostwriter
             </span>
           </Link>
 
