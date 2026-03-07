@@ -339,6 +339,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     targetChapterWords: 3750,
   });
   const writeAllAbortRef = useRef(false);
+  const generatingRef = useRef(false);
   const [targetLength, setTargetLength] = useState("medium");
 
   const { data: specifications = [] } = useQuery({
