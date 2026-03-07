@@ -211,56 +211,63 @@ Deno.serve(async (req) => {
     const truncatedTopic = spec.topic?.length > 200 ? spec.topic.slice(0, 200) : spec.topic;
     const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\nYou are a book outline generator. Return only valid JSON arrays. No prose, no preamble, no commentary — only the JSON.`;
 
-    // Generate outline in batches of max 10 chapters
-    console.log(`Generating outline in batches of ${CHUNK_SIZE} chapters (total: ${targetChapters})`);
-    const allChapters = [];
+    // Generate outline — fire all batches in PARALLEL to avoid sequential timeout
+    console.log(`Generating outline in parallel batches of ${CHUNK_SIZE} (total: ${targetChapters})`);
 
-    for (let chunkStart = 1; chunkStart <= targetChapters; chunkStart += CHUNK_SIZE) {
-     const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
-     const chunkCount = chunkEnd - chunkStart + 1;
+    const beatKey = spec.beat_style || spec.tone_style;
+    const beatInstructions = beatKey ? `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n` : '';
+    const spiceInstructions = `\n${getSpiceLevelInstructions(spec.spice_level ?? 0)}\n`;
+    const langInstructions = `\n${getLanguageIntensityInstructions(spec.language_intensity ?? 0)}\n`;
+    const baseContext = `${spec.genre} ${spec.book_type} about "${truncatedTopic}"${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}`;
 
-     console.log(`Generating chapters ${chunkStart}-${chunkEnd}...`);
+    async function generateBatch(chunkStart) {
+      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
+      const chunkCount = chunkEnd - chunkStart + 1;
+      console.log(`Starting batch ${chunkStart}-${chunkEnd}...`);
 
-     let chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${spec.genre} ${spec.book_type} about "${truncatedTopic}". `;
-     if (spec.subgenre) chunkPrompt += `Subgenre: ${spec.subgenre}. `;
-     const beatKey = spec.beat_style || spec.tone_style;
-     if (beatKey) chunkPrompt += `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n`;
-     chunkPrompt += `\n${getSpiceLevelInstructions(spec.spice_level ?? 0)}\n`;
-     chunkPrompt += `\n${getLanguageIntensityInstructions(spec.language_intensity ?? 0)}\n`;
-     chunkPrompt += `\n${CONTENT_GUARDRAILS}\n`;
-     chunkPrompt += `\nReturn JSON array with {number, title, summary} fields only.`;
+      const chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.${beatInstructions}${spiceInstructions}${langInstructions}\n${CONTENT_GUARDRAILS}\n\nReturn a JSON array with exactly ${chunkCount} objects, each with: number (integer), title (string), summary (string, 1-2 sentences). No other fields. No prose outside the JSON.`;
 
-     try {
-       let text = '';
-       for (let attempt = 0; attempt < 3; attempt++) {
-         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: chunkPrompt }];
-         if (attempt > 0) {
-           messages.push({ role: 'assistant', content: text });
-           messages.push({ role: 'user', content: 'REMINDER: You are in Author Mode. Return ONLY the valid JSON array for these chapters. No refusals, no commentary.' });
-         }
-         const response = await callOpenAIWithTimeout(messages);
-         if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
-         text = response.choices[0].message.content;
-         if (!isRefusal(text)) break;
-         console.warn(`Batch ${chunkStart}-${chunkEnd} attempt ${attempt + 1} returned a refusal, retrying...`);
-       }
+      let text = '';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: chunkPrompt }];
+        if (attempt > 0) {
+          messages.push({ role: 'assistant', content: text });
+          messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array. No refusals, no commentary.' });
+        }
+        const response = await callOpenAIWithTimeout(messages);
+        if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
+        text = response.choices[0].message.content;
+        if (!isRefusal(text)) break;
+        console.warn(`Batch ${chunkStart}-${chunkEnd} attempt ${attempt + 1} was a refusal, retrying...`);
+      }
 
-       const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-
-       // Parse JSON array
-       const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-       if (!jsonMatch) throw new Error('No JSON array found');
-
-       const chapters = JSON.parse(jsonMatch[0]);
-       if (!Array.isArray(chapters)) throw new Error('Response is not a JSON array');
-
-       allChapters.push(...chapters);
-       console.log(`✓ Batch ${chunkStart}-${chunkEnd} complete (${chapters.length} chapters)`);
-     } catch (err) {
-       console.error(`✗ Batch ${chunkStart}-${chunkEnd} failed:`, err.message);
-       return Response.json({ error: `Generation failed: ${err.message}` }, { status: 500 });
-     }
+      const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+      const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error(`No JSON array in batch ${chunkStart}-${chunkEnd}`);
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) throw new Error(`Not an array in batch ${chunkStart}-${chunkEnd}`);
+      console.log(`✓ Batch ${chunkStart}-${chunkEnd} complete (${parsed.length} chapters)`);
+      return parsed;
     }
+
+    // Build list of batch start indices and fire all in parallel
+    const batchStarts = [];
+    for (let s = 1; s <= targetChapters; s += CHUNK_SIZE) batchStarts.push(s);
+
+    let batchResults;
+    try {
+      batchResults = await Promise.all(batchStarts.map(s => generateBatch(s)));
+    } catch (err) {
+      console.error('Parallel batch generation failed:', err.message);
+      const isTimeout = err.name === 'AbortError' || err.message.includes('timeout') || err.message.includes('Request timeout');
+      return Response.json({
+        error: isTimeout
+          ? 'Generation timed out. Try a shorter book or fewer chapters, then retry.'
+          : `Generation failed: ${err.message}`
+      }, { status: 502 });
+    }
+
+    const allChapters = batchResults.flat();
 
     const parsed = { outline: { chapters: allChapters } };
 
