@@ -739,8 +739,8 @@ export default function GenerateTab({ projectId, onProceed }) {
                   const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
                   chapterWordsCount = finalWords;
                   totalWordsWritten += finalWords;
-                  
-                  // Log quality warnings if present
+
+                  // Handle quality scan results
                   if (updatedChapter.quality_scan) {
                     try {
                       const quality = JSON.parse(updatedChapter.quality_scan);
@@ -749,7 +749,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                       }
                     } catch (e) { /* ignore parse errors */ }
                   }
-                  
+
                   successes++;
                   chapterSuccess = true;
                   isComplete = true;
