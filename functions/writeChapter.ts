@@ -593,60 +593,54 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
       });
     }
 
-    // Final user message — current chapter request
-    let currentChapterRequest = `Now write Chapter ${chapter.chapter_number}: '${chapter.title}'\n\nCHAPTER PROMPT:\n${chapter.prompt || ''}\n\nCHAPTER SUMMARY:\n${chapter.summary || ''}\n\nWrite this chapter in full (~${TARGET_WORDS} words). Begin immediately with the chapter's opening — no preamble.`;
+    // Get opening and ending types for this chapter
+    const openingType = getOpeningType(chapter.chapter_number);
+    const endingType = getEndingType(chapter.chapter_number);
 
-    // PART D — final chapter special handling
+    // Build the structured user message with embedded rules
+    let currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
+
+CHAPTER PROMPT:
+${chapter.prompt || ''}
+
+CHAPTER SUMMARY:
+${chapter.summary || ''}`;
+
+    // Add final chapter instructions if applicable
     if (isLastChapter) {
-      currentChapterRequest += `\n\nIMPORTANT — This is the FINAL chapter. Bring all narrative threads to a satisfying conclusion. Resolve the central conflict. Give the reader closure while leaving a lasting impression.`;
+      currentChapterRequest += `
+
+IMPORTANT — This is the FINAL chapter. Bring all narrative threads to a satisfying conclusion. Resolve the central conflict. Give the reader closure while leaving a lasting impression. Do NOT end with vague promises of what comes next.`;
     }
 
-    // QUALITY CHECK — Add before every chapter
-    currentChapterRequest += `\n\nQUALITY CHECK — Before finishing this chapter, verify:
-    - Does this chapter open DIFFERENTLY from the previous chapter?
-    - Does at least ONE concrete plot event occur (not just atmosphere)?
-    - Is there dialogue that reveals NEW information or shifts the dynamic?
-    - Have you avoided the banned phrase list?
-    - Are sensory details SPECIFIC (not vague atmospheric descriptions)?
-    - Does the chapter end at a DIFFERENT emotional point than where it started?
-    If any answer is NO, revise before submitting.
+    currentChapterRequest += `
 
-    PRE-SUBMISSION VALIDATION — RUN THESE 5 CHECKS BEFORE FINALIZING:
+=== MANDATORY REQUIREMENTS FOR THIS SPECIFIC CHAPTER ===
 
-    CHECK 1 — PHRASE SCAN (HARD BLOCK):
-    Search your completed chapter for these exact strings. If ANY appear, rewrite the sentence:
-    "heart racing" "heart raced" "heart pounding" "heart thudded"
-    "swallowed hard" "breath hitched" "breath caught"
-    "shiver down" "shiver up" "mix of [any] and [any]"
-    "teetering" "precipice" "intoxicating" "palpable"
-    "electric" "just beginning" "just the beginning"
-    "embrace whatever" "ready for what" "ready to embrace"
-    Zero tolerance. If the phrase appears, the chapter fails validation.
+OPENING: You MUST use this opening type: ${openingType.name}
+${openingType.desc}
+Do NOT open with atmosphere, shadows, darkness, weather, scent, or the character walking/stepping/descending somewhere.
 
-    CHECK 2 — ENDING UNIQUENESS:
-    Compare your chapter ending to all previous chapters. If it uses the same construction (e.g., "beginning/just begun/what comes next/embrace the unknown"), REWRITE it. Each ending must use a different structural type:
-    - Mid-action cliffhanger (character interrupted during something concrete)
-    - Revelation that recontextualizes prior events
-    - A concrete decision with visible consequences
-    - A sensory detail that implies what's coming without stating it
-    - Dialogue that lands as a gut-punch
-    Never end two chapters the same way.
+ENDING: You MUST use this ending type: ${endingType.name}
+${endingType.desc}
+BANNED endings: "he was ready to...", "the journey was just beginning", "whatever lay ahead", "no turning back", "knew that [vague realization]", or any summary of what the character learned.
 
-    CHECK 3 — DUPLICATE SCENE DETECTION:
-    If your chapter contains a ritual/meditation scene AND a previous chapter already had one, REPLACE with a different scene type. No two chapters may share the same core scene structure. Vary: dialogue-heavy scenes, action scenes, introspection, discovery, confrontation, mundane moments.
+STRUCTURE: This chapter must NOT follow the pattern of [character goes somewhere → mysterious figure appears → cryptic speech → character hesitates → agrees → vague promise]. Use a DIFFERENT dramatic structure: a confrontation with consequences, a plan that goes wrong, a discovery, a betrayal, genuine physical intimacy, an action sequence, a conversation where someone lies, or a flashback.
 
-    CHECK 4 — EROTICA CONTENT DELIVERY (if applicable):
-    If the book is tagged EROTICA or heat level 3-4:
-    - By chapter 3, at least one scene MUST contain on-page physical intimacy with specific sensory detail (touch, temperature, pressure, texture).
-    - Abstract language about "desire" and "surrender" does NOT count.
-    - "Bodies intertwined" seen in a vision or memory does NOT count.
-    - The protagonist must be physically present and participating.
-    - If at chapter 3+ and no intimate scene has occurred, ADD one before finalizing.
+BANNED PHRASES — if you use ANY of these, the chapter is REJECTED and must be rewritten:
+"heart racing/pounding/hammering", "pulse quickened", "breath hitched/caught", "swallowed hard",
+"shiver down his spine", "a jolt of", "a surge of", "intoxicating", "electric" (for atmosphere/touch),
+"shadows danced/twisted/swirled", "tendrils of", "the weight of", "in that moment",
+"no turning back", "teetering on the edge", "on the precipice", "a mix of [X] and [Y]",
+"a kaleidoscope of", "a whirlwind of", "he felt alive", "the world around him faded",
+"Control is an illusion", "Embrace it/your desires", "Let go of your fear", "What if I lose myself",
+"ready to embrace/confront", "just the beginning", "air thickened", "palpable", "siren's call"
 
-    CHECK 5 — DIALOGUE VARIETY:
-    Scan all dialogue lines. If a character's line follows the pattern "[Abstract noun] is [philosophical claim]" (e.g., "Power is intoxicating" / "Surrender is freedom"), rewrite it as something specific to the immediate situation. Characters must sound like people, not fortune cookies. Dialogue should reveal character through specificity, not wisdom.
+SHOW DON'T TELL: Never write "He felt [emotion]" or "A sense of [emotion] washed over him". Instead show through actions, observations, body language, and dialogue.
 
-    If ANY check fails, revise before submitting the chapter. Do not submit chapters that fail validation.`;
+SUPPORTING CAST: If any character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explicitly explained.
+
+Write this chapter in full (~${TARGET_WORDS} words). Begin immediately with the prose — no preamble, no meta-commentary, no pre-checks. Just the chapter text.`;
 
     messages.push({ role: 'user', content: currentChapterRequest });
 
