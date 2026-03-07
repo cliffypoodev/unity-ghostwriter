@@ -736,6 +736,16 @@ export default function GenerateTab({ projectId, onProceed }) {
                   chapterWordsCount = finalWords;
                   totalWordsWritten += finalWords;
                   
+                  // Log quality warnings if present
+                  if (updatedChapter.quality_scan) {
+                    try {
+                      const quality = JSON.parse(updatedChapter.quality_scan);
+                      if (!quality.passed) {
+                        console.warn(`Chapter ${chapter.chapter_number} quality warnings:`, quality.warnings);
+                      }
+                    } catch (e) { /* ignore parse errors */ }
+                  }
+                  
                   successes++;
                   chapterSuccess = true;
                   isComplete = true;
