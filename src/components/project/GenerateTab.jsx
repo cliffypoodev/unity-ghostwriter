@@ -218,8 +218,8 @@ function ChapterItem({ chapter, onWrite, streamingContent, isStreaming, chapterP
 
       {expanded && (
         <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-3">
-          {chapterProgress[chapter.id] && (
-            <div className="text-xs text-indigo-600 font-medium">{chapterProgress[chapter.id]}</div>
+          {chapterProgress && (
+            <div className="text-xs text-indigo-600 font-medium">{chapterProgress}</div>
           )}
           {chapter.summary && (
             <div>
