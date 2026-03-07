@@ -454,7 +454,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               )}
 
               {/* Target Length */}
-              <div>
+              <div className={hl("target_length")}>
                 <Label className="text-sm font-medium">Target Length</Label>
                 <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
                   <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
