@@ -216,7 +216,7 @@ export default function ProjectDetail() {
 
       {/* Phase Tabs */}
       <div className="mb-6">
-        <PhaseTabs activePhase={activePhase} setActivePhase={setActivePhase} projectStatus={project.status} />
+        <PhaseTabs activePhase={activePhase} onPhaseChange={setActivePhase} projectStatus={project.status} />
       </div>
 
       {/* Phase Content */}
