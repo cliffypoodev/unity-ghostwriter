@@ -376,7 +376,7 @@ No other fields. No prose outside the JSON array.`;
           messages.push({ role: 'assistant', content: text });
           messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' });
         }
-        const response = await callOpenAIWithTimeout(messages, 16384);
+        const response = await callOpenAIWithTimeout(messages, 8000);
         if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
         text = response.choices[0].message.content;
         if (!isRefusal(text)) break;
