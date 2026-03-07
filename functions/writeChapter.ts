@@ -311,6 +311,69 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
+    systemPrompt += `\n\nBANNED PHRASES — Never use any of these. Find fresh, specific alternatives every time:
+- "heart racing" / "heart pounding" / "heart hammering" / "heart thudding"
+- "pulse quickened" / "pulse raced"
+- "shiver down his/her spine"
+- "swallowed hard"
+- "breath hitched" / "breath caught"
+- "mix of [emotion] and [emotion]"
+- "the weight of [abstract noun]"
+- "thrill of anticipation"
+- "couldn't shake the feeling"
+- "electricity/electric tension/charged with"
+- "intoxicating"
+- "sent a thrill through him/her"
+- "hung heavy in the air"
+- "a fire in his/her belly/chest"
+- "teetering on the edge/brink/precipice"
+- "ready to delve deeper"
+- "embrace the darkness/shadows"
+- "stepped into/across a threshold"
+- "the air thickened"
+- "tendrils of [anything]"
+- "a tapestry of [anything]"
+- "palpable energy/tension"
+- "the world outside faded"
+- "determination solidifying"
+- "both alluring and [negative adjective]"
+- "a double-edged sword"
+
+Instead of these clichés, use SPECIFIC sensory details tied to the scene's setting, the character's body, and the genre. A thriller character notices different things than a romance character. A fantasy setting produces different metaphors than a contemporary one. Ground every reaction in the SPECIFIC world of THIS story.
+
+SHOW DON'T TELL — MANDATORY:
+- NEVER write "[Character] felt [emotion]" or "[Character] felt a [emotion]"
+- NEVER write "a mix of [emotion] and [emotion]"
+- NEVER name emotions directly (fear, excitement, desire, anticipation, dread, longing)
+- INSTEAD: Show the emotion through ONE specific physical detail, action, or thought
+  - Bad: "He felt fear and excitement"
+  - Good: "His hand hovered over the lid, fingers curling back twice before he forced them forward"
+- Each emotional beat must use a DIFFERENT physical indicator. Do not repeat the same tells (racing heart, dry mouth, trembling hands) more than once per chapter.
+
+CHARACTER VOICE DIFFERENTIATION RULES:
+- Every named character MUST have a distinct speech pattern
+- Characters must NEVER sound interchangeable. Enforce these distinctions:
+  - Vocabulary level (academic vs casual vs street vs formal)
+  - Sentence length tendency (terse vs verbose)
+  - Speech habits (interrupts, trails off, asks questions, makes declarations)
+  - What they notice/reference (their expertise, background, worldview)
+- In dialogue, a reader should be able to identify the speaker WITHOUT dialogue tags
+- NEVER have multiple characters deliver philosophical monologues. Maximum ONE character per book serves as the "philosopher" voice. All others must contrast.
+
+ANTI-REPETITION — ENFORCE PER CHAPTER:
+- Track every metaphor and simile you use. Do NOT reuse the same comparison twice in one chapter.
+- Track every physical reaction you describe. Do NOT use the same bodily response (heart, breath, spine, stomach, pulse) more than twice per chapter, and never in consecutive paragraphs.
+- Track dialogue patterns. If a character just asked a question, the next character should NOT also ask a question. Vary: statement, question, command, interruption.
+- If a chapter's previous context is provided, scan it for repeated phrases and actively AVOID those phrases in the current chapter.
+- No chapter should end with the same structural pattern as the previous chapter.
+
+GENRE DELIVERY — MATCH THE GENRE TAG:
+- If the book is tagged as EROTICA or ROMANCE: intimate scenes must include specific physical detail proportional to the heat level setting. Vague "tension" and "proximity" without physical payoff is a genre violation. Escalate across chapters.
+- If the book is tagged as HORROR or THRILLER: something genuinely threatening must happen on-page. Atmosphere alone is not horror. Include concrete danger, consequences, or disturbing events.
+- If the book is tagged as MYSTERY: clues must be planted and discoveries must occur. Each chapter should narrow the possibilities or introduce a complication.
+- If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.
+- The genre tag is a PROMISE to the reader. Every chapter must deliver content that fulfills that promise.`;
+
     // ── PART A — Build conversation-style messages array ─────────────────────
 
     const messages = [{ role: 'system', content: systemPrompt }];

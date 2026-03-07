@@ -332,7 +332,45 @@ async function runGeneration(sr, project_id) {
       ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`
       : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`;
 
-    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional book outline generator. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.`;
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional book outline generator. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
+
+CHARACTER VOICE DIFFERENTIATION RULES:
+- Every named character MUST have a distinct speech pattern defined in their outline entry
+- Characters must NEVER sound interchangeable. Enforce these distinctions:
+  - Vocabulary level (academic vs casual vs street vs formal)
+  - Sentence length tendency (terse vs verbose)
+  - Speech habits (interrupts, trails off, asks questions, makes declarations)
+  - What they notice/reference (their expertise, background, worldview)
+- In dialogue, a reader should be able to identify the speaker WITHOUT dialogue tags
+- NEVER have multiple characters deliver philosophical monologues. Maximum ONE character per book serves as the "philosopher" voice. All others must contrast.
+
+CHAPTER ENDING VARIATION RULES:
+- Each chapter MUST end with a structurally different type of ending. Assign one per chapter from this list and do NOT repeat:
+  - CLIFFHANGER: Cut mid-action or mid-revelation
+  - REVERSAL: A twist that reframes everything the chapter established
+  - DECISION: Character makes a concrete choice with consequences
+  - DISCOVERY: A specific new piece of information is revealed
+  - LOSS: Something or someone is taken away
+  - QUIET DEVASTATION: An emotionally heavy realization, no action
+- NEVER end a chapter with a character thinking "I'm ready to go deeper/explore more/face what's ahead." That is not an ending, it is a placeholder.
+- The final line of each chapter must be CONCRETE (an image, a sound, a single action) — not abstract philosophical musing.
+
+PLOT PROGRESSION — MANDATORY:
+- Every chapter must contain at least ONE of these concrete plot advances:
+  - A new piece of information the reader did not have before
+  - A relationship that materially changes (not just "tension increases")
+  - A consequence from a previous chapter's events
+  - A character making an irreversible choice
+- Characters introduced with significant weight in early chapters MUST reappear or be explicitly resolved. No dangling threads.
+- If a character is introduced with chemistry/tension toward the protagonist, they must either: (a) remain present in the story, (b) have their absence explained, or (c) return with changed dynamics. They cannot simply vanish.
+- New major characters in the final third of the book MUST be foreshadowed earlier (name mentioned, presence hinted, connected to an existing thread).
+- The central mystery/question of the book must receive CONCRETE partial answers by the midpoint and substantial resolution by the final chapter. Mystery without payoff is not suspense — it is a broken promise.
+
+PROTAGONIST AGENCY — MANDATORY:
+- The protagonist must make at least ONE difficult choice per chapter where both options have real costs.
+- "Deciding to keep exploring" is NOT a difficult choice if there are no consequences for doing so.
+- The protagonist must CAUSE at least some of the plot events, not merely react to what others do or offer.
+- At least once in the book, the protagonist must refuse something, lose something, or sacrifice something. A character who always says yes to every invitation is not a protagonist — they are a passenger.`;
 
     // ── STEP 1: Generate book metadata ──────────────────────────────────────
     console.log('Generating book metadata...');
