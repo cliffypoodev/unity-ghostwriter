@@ -843,12 +843,20 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
       });
     }
 
-    // Get opening and ending types for this chapter
-    const openingType = getOpeningType(chapter.chapter_number);
-    const endingType = getEndingType(chapter.chapter_number);
+    // Get opening and ending types and build user message based on book type
+    let currentChapterRequest;
+    if (isNonfiction) {
+      currentChapterRequest = _buildNonfictionUserMessage(
+        chapter.chapter_number, 
+        { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary }, 
+        totalChapters, 
+        TARGET_WORDS
+      );
+    } else {
+      const openingType = getOpeningType(chapter.chapter_number);
+      const endingType = getEndingType(chapter.chapter_number);
 
-    // Build the structured user message with embedded rules
-    let currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
+      currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
 
 CHAPTER PROMPT:
 ${chapter.prompt || ''}
