@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
 
     const truncatedTopic = spec.topic?.length > 200 ? spec.topic.slice(0, 200) : spec.topic;
-    const systemPrompt = `You are a book outline generator. Return only valid JSON.`;
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\nYou are a book outline generator. Return only valid JSON arrays. No prose, no preamble, no commentary — only the JSON.`;
 
     // Generate outline in batches of max 10 chapters
     console.log(`Generating outline in batches of ${CHUNK_SIZE} chapters (total: ${targetChapters})`);
