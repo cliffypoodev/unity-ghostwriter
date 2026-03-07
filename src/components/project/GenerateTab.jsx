@@ -741,7 +741,7 @@ export default function GenerateTab({ projectId, onProceed }) {
           {generationProgress && (
             <p className="text-sm text-indigo-600 mt-2 font-medium">{generationProgress}</p>
           )}
-          <p className="text-sm text-slate-400 mt-1">Generating in chunks to avoid timeouts</p>
+          <p className="text-sm text-slate-400 mt-1">This may take a few minutes for longer books</p>
         </div>
       </div>
     );
