@@ -1,15 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import OpenAI from 'npm:openai';
-
-const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
 
 const BEAT_STYLES = {
   "fast-paced-thriller": { name: "Fast-Paced Thriller", instructions: "Core Identity: Relentless momentum. Immediate stakes. Forward propulsion at all times.\nSentence Rhythm: Short to medium sentences. Strong, active verbs. Tight paragraphs (1-4 lines). Occasional single-line impact beats.\nPacing: Introduce danger or stakes within first paragraph. Escalate every 2-4 paragraphs. No long exposition blocks. Embed backstory inside action.\nEmotional Handling: Minimal introspection. Decisions made under pressure. Fear shown through action, not reflection.\nDialogue: Direct. Tactical. Urgent. Often incomplete sentences.\nScene Structure: Immediate problem > Tactical reaction > Escalation > Complication > Cliffhanger or propulsion.\nEnding Rule: Scene must close with forward momentum, not emotional resolution." },
   "gritty-cinematic": { name: "Gritty Cinematic", instructions: "Core Identity: Raw realism. Texture-heavy environments. Physical consequence.\nSentence Rhythm: Medium-length sentences. Concrete nouns and verbs. Sparse but sharp metaphors. Weight in description.\nEnvironmental Focus: Sound design (metal, wind, boots, breathing). Temperature, sweat, blood, dust. Physical discomfort emphasized.\nPacing: Tension builds steadily. Physical consequences matter. Injuries affect performance.\nEmotional Handling: Internal conflict expressed through physical sensation. Characters rarely over-explain feelings.\nDialogue: Hard. Minimal. Subtext heavy. Power shifts mid-conversation.\nScene Structure: Immersive environmental anchor > Rising tension > Physical obstacle > Consequence > Stark closing beat.\nEnding Rule: End on something tangible and unsettling." },
-  "hollywood-blockbuster": { name: "Hollywood Blockbuster", instructions: "Core Identity: Big visuals. Clear stakes. Hero-driven momentum.\nSentence Rhythm: Dynamic pacing shifts. Short punch lines. Clear visual staging. Clean cinematic transitions.\nScale Rules: Stakes are large and obvious. Visual moments emphasized. Reversals included.\nEmotional Handling: Characters articulate key emotional beats. Heroism emphasized. Sacrifice possible but meaningful.\nDialogue: Memorable lines. Clean exchanges. Impactful one-liners.\nScene Structure: High-impact opening > Rising threat > Big obstacle > Dramatic reversal > Strong heroic decision.\nEnding Rule: End with a visually strong image or bold declaration." },
+  "hollywood-blockbuster": { name: "Hollywood Blockbuster", instructions: "Core Identity: Big visuals. Clear stakes. Hero-driven momentum.\nSentence Rhythm: Dynamic pacing shifts. Short punch lines. Clear visual staging. Clean cinematic transitions.\nScale Rules: Stakes are large and obvious. Visual moments emphasized. Reversals included.\nEmotional Handling: Characters articulate key emotional beats. Heroism emphasized.\nDialogue: Memorable lines. Clean exchanges. Impactful one-liners.\nScene Structure: High-impact opening > Rising threat > Big obstacle > Dramatic reversal > Strong heroic decision.\nEnding Rule: End with a visually strong image or bold declaration." },
   "slow-burn": { name: "Slow Burn", instructions: "Core Identity: Gradual tension layering. Atmosphere before action.\nSentence Rhythm: Longer paragraphs. Measured pacing. Interior thought woven in. Quiet transitions.\nPacing: Conflict emerges slowly. Small anomalies accumulate. Foreshadowing embedded.\nEmotional Handling: Deep internal reflection. Subtle shifts in perception. Unspoken tension.\nDialogue: Minimal but meaningful. Pauses matter. Subtext dominant.\nScene Structure: Calm surface > Subtle disturbance > Emotional layering > Growing discomfort > Quiet but unsettling close.\nEnding Rule: End on an emotional or atmospheric question." },
+  "steamy-romance": { name: "Steamy Romance", instructions: "Core Identity: Intense emotional and physical chemistry driving the narrative forward.\nSentence Rhythm: Flowing, breathless prose during intimate scenes. Grounded, character-driven prose between them.\nRomantic Rules: Explicit content allowed but always character-motivated. Physical intimacy reflects emotional vulnerability. Chemistry builds through tension, not just attraction.\nEmotional Handling: Deep POV. Internal monologue heavy during key moments. Insecurity and desire intertwined.\nDialogue: Charged. Double meanings. Banter that masks vulnerability. Confessions during intimate moments.\nScene Structure: Emotional friction > Physical awareness > Resistance or denial > Surrender to connection > Aftermath with emotional shift.\nEnding Rule: Close with either unresolved tension that aches, or a quiet vulnerable moment after intensity." },
+  "slow-burn-romance": { name: "Slow Burn Romance", instructions: "Core Identity: Agonizing anticipation. The almost-touch is more powerful than the touch itself.\nSentence Rhythm: Long, lingering descriptions of proximity. Awareness of the other person's body without contact. Internal monologue dominant.\nRomantic Rules: Physical contact is rare and electric when it happens. Emotional intimacy builds through shared experiences, not declarations. The first kiss does not happen until it is unbearable not to.\nEmotional Handling: Denial. Rationalization. Growing awareness that cannot be ignored. Fear of ruining what exists.\nDialogue: What is NOT said matters more. Conversations that almost confess but pull back. Loaded pauses.\nScene Structure: Forced proximity > Accidental moment of closeness > Internal spiral > Almost-moment interrupted > Retreat into denial.\nEnding Rule: Close with the character alone, replaying the moment, unable to stop thinking about the other person." },
+  "dark-erotica": { name: "Dark Erotica", instructions: "Core Identity: Power dynamics, moral ambiguity, and intense psychological tension driving intimate encounters.\nSentence Rhythm: Controlled, deliberate pacing. Sharp, commanding sentences during power exchanges. Fluid, almost hypnotic prose during surrender.\nContent Rules: Consent is complex but present. Power imbalance is the engine. Psychological tension outweighs physical description. The forbidden element is central.\nEmotional Handling: Obsession, control, vulnerability beneath dominance. Characters are drawn to what they should not want.\nDialogue: Commanding. Minimal during intense scenes. Loaded silence matters more than words.\nScene Structure: Establish power dynamic > Test boundaries > Psychological breaking point > Intense encounter > Aftermath where power shifts or deepens.\nEnding Rule: Close with a line that makes the reader question who truly holds the power." },
   "clean-romance": { name: "Clean Romance", instructions: "Core Identity: Emotional intimacy over physical explicitness.\nSentence Rhythm: Warm, flowing prose. Internal monologue present. Balanced dialogue and narration.\nRomantic Rules: No explicit content. Focus on eye contact, proximity, touch. Emotional vulnerability prioritized.\nEmotional Handling: Character insecurity explored gently. Growth through relational friction. Misunderstanding resolved through honesty.\nDialogue: Banter-driven. Playful tension. Soft confessions.\nScene Structure: Relatable moment > Romantic friction > Emotional crack > Vulnerable exchange > Hopeful close.\nEnding Rule: Close with warmth or unresolved romantic tension." },
   "faith-infused": { name: "Faith-Infused Contemporary", instructions: "Core Identity: Hope grounded in real life. Spiritual undertone without preaching.\nSentence Rhythm: Steady, compassionate tone. Reflective but not heavy. Gentle pacing.\nFaith Handling: Scripture brief and organic (if used). Prayer shown, not explained. Faith influences choices subtly.\nEmotional Handling: Themes of grace and forgiveness. Redemption arcs. Relational healing.\nDialogue: Encouraging. Honest. Never sermon-like.\nScene Structure: Real-life challenge > Emotional vulnerability > Faith-reflective moment > Action step > Quiet hope.\nEnding Rule: Close with grounded hope, not dramatic miracle." },
   "investigative-nonfiction": { name: "Investigative Nonfiction", instructions: "Core Identity: Evidence-based narrative progression.\nSentence Rhythm: Structured and logical. Fluid but precise. No exaggeration.\nContent Rules: Cite records and timelines. Distinguish myth vs documented fact. Provide social and political context.\nEmotional Handling: Neutral but immersive. Avoid sensationalism. Let facts create impact.\nStructure: Context > Event reconstruction > Evidence analysis > Broader implication > Transition to next inquiry.\nEnding Rule: Close with unresolved investigative question or documented conclusion." },
@@ -24,11 +24,11 @@ const BEAT_STYLES = {
   "visceral-horror": { name: "Visceral Horror", instructions: "Core Identity: An intense, sensory-driven descent into fear, focusing on vulnerability of body and mind.\nSentence Rhythm: Erratic and jarring. Use of onomatopoeia and sharp jagged verbs. Claustrophobic descriptions.\nContent Rules: Body horror, psychological warping, or unstoppable entities. Isolation. Breakdown of laws of nature.\nEmotional Handling: Primal terror and helplessness. Morbid fascination. Total loss of control.\nStructure: Intrusion of something wrong into normal setting > Slow erosion of safety or sanity > Point of no return > Frantic failing struggle for survival > Final realization that horror cannot be fully escaped.\nEnding Rule: Close with a lingering, unsettling image or a hint that the threat remains." },
   "poetic-magical-realism": { name: "Poetic Magical Realism", instructions: "Core Identity: A world where the supernatural is accepted as mundane, used to highlight deep emotional truths.\nSentence Rhythm: Flowing, dreamlike prose. Dense with symbolism. Calm, matter-of-fact tone regarding the impossible.\nContent Rules: Magical elements tied to family history or emotional states. Heavy focus on atmosphere. Circular or non-linear time.\nEmotional Handling: Nostalgia and longing. Melancholy beauty. A sense of quiet destiny.\nStructure: Grounded realistic depiction > Casual introduction of magical phenomenon > Characters navigating life alongside magic > Turning point where magic reflects major life change > Transformation into something new.\nEnding Rule: Close with a surreal image that feels emotionally true despite being impossible." },
   "clinical-procedural": { name: "Clinical Procedural", instructions: "Core Identity: Meticulous, detail-oriented focus on technical aspects of investigation or profession.\nSentence Rhythm: Precise and efficient. Objective, third-person perspective. Rapid-fire exchange of expert information.\nContent Rules: Heavy emphasis on tools, forensics, and standard operating procedures. The puzzle is the primary driver. Jargon used for authenticity.\nEmotional Handling: Controlled and professional. Satisfaction in the click of a solved problem. Emotional distance from subject matter.\nStructure: The incident or case is presented > Systematic gathering of evidence > Analysis phase > Breakthrough where final piece fits > Formal conclusion.\nEnding Rule: Close with a cold, hard fact or a final piece of closing documentation." },
-  "hyper-stylized-action": { name: "Hyper-Stylized Action", instructions: "Core Identity: High-energy, visually explosive narrative that prioritizes movement, flair, and coolness.\nSentence Rhythm: Extremely fast, percussive pacing. Verbs of motion dominate. Use of bullet time (slowing down for a single vivid detail).\nContent Rules: Improbable feats of skill and physics-defying stunts. Strong color palettes and aesthetic violence. Characters defined by signature style.\nEmotional Handling: Adrenaline and bravado. High confidence. Style over substance (intentional).\nStructure: Confrontation begins > Escalation through increasingly difficult obstacles > Showdown with unique environmental gimmick > Peak of action (money shot) > Sleek, cool exit from chaos.\nEnding Rule: Close with a one-liner or a stylish visual flourish." },
-  "nostalgic-coming-of-age": { name: "Nostalgic Coming-of-Age", instructions: "Core Identity: A look back at the bittersweet transition from childhood to adulthood, usually set in a specific past era.\nSentence Rhythm: Reflective and soft. Long, rambling sentences mimicking memory. Sensory triggers (songs on the radio, summer heat).\nContent Rules: Small-town settings or insular neighborhoods. Focus on friendship, first love, and loss of innocence. Period-specific pop culture references.\nEmotional Handling: Deep yearning. Bittersweet realization of time passing. Tenderness.\nStructure: Sensory memory triggers a look back > Establishment of childhood status quo > Incident that forces protagonist to see world differently > Climax of personal crisis > Final departure from childhood into adult world.\nEnding Rule: Close with a reflection on how the place or person looks different now." },
+  "hyper-stylized-action": { name: "Hyper-Stylized Action", instructions: "Core Identity: High-energy, visually explosive narrative that prioritizes movement, flair, and coolness.\nSentence Rhythm: Extremely fast, percussive pacing. Verbs of motion dominate. Use of bullet time.\nContent Rules: Improbable feats of skill and physics-defying stunts. Strong color palettes and aesthetic violence. Characters defined by signature style.\nEmotional Handling: Adrenaline and bravado. High confidence. Style over substance (intentional).\nStructure: Confrontation begins > Escalation through increasingly difficult obstacles > Showdown with unique environmental gimmick > Peak of action (money shot) > Sleek, cool exit from chaos.\nEnding Rule: Close with a one-liner or a stylish visual flourish." },
+  "nostalgic-coming-of-age": { name: "Nostalgic Coming-of-Age", instructions: "Core Identity: A look back at the bittersweet transition from childhood to adulthood.\nSentence Rhythm: Reflective and soft. Long, rambling sentences mimicking memory. Sensory triggers.\nContent Rules: Small-town settings or insular neighborhoods. Focus on friendship, first love, and loss of innocence. Period-specific pop culture references.\nEmotional Handling: Deep yearning. Bittersweet realization of time passing. Tenderness.\nStructure: Sensory memory triggers a look back > Establishment of childhood status quo > Incident that forces protagonist to see world differently > Climax of personal crisis > Final departure from childhood into adult world.\nEnding Rule: Close with a reflection on how the place or person looks different now." },
   "cerebral-sci-fi": { name: "Cerebral Sci-Fi", instructions: "Core Identity: High-concept exploration of ideas, philosophy, and the future of consciousness or society.\nSentence Rhythm: Dense and intellectual. Philosophical internal monologues. Methodical, layered world-building.\nContent Rules: Focus on hard science or deep sociological speculation. Conflict is often an ethical dilemma or paradox. Minimalist settings.\nEmotional Handling: Existential dread or curiosity. Intellectual stimulation. Cool, detached fascination.\nStructure: Introduction of revolutionary technology or societal shift > Exploration of unintended philosophical consequences > Character's personal struggle with new reality > Climax in the mind or through change in perspective > Lingering question about future of species.\nEnding Rule: Close with a question or statement that leaves reader re-evaluating their own reality." },
-  "high-stakes-political": { name: "High-Stakes Political", instructions: "Core Identity: A tense, Machiavellian chess match focused on power, influence, and the fate of nations.\nSentence Rhythm: Sharp, double-edged dialogue. Fast-paced plotting. Formal but predatory tone.\nContent Rules: Backroom deals, public scandals, and ideological warfare. No pure heroes; everyone has an agenda. Focus on the room where it happens.\nEmotional Handling: Paranoia and calculation. Thrill of the win. Heavy burden of leadership.\nStructure: Shift in power dynamic > Maneuvering of factions to fill vacuum > Betrayal or sacrifice of a pawn > Final play where winner decided behind closed doors > Public-facing spin versus private reality.\nEnding Rule: Close with character looking at their own reflection or the throne." },
-  "surrealist-avant-garde": { name: "Surrealist Avant-Garde", instructions: "Core Identity: Total rejection of traditional narrative logic in favor of dream-logic and abstract imagery.\nSentence Rhythm: Fragmented or stream-of-consciousness. Unconventional punctuation or syntax. Non-sequiturs and jarring perspective shifts.\nContent Rules: Inanimate objects acting as characters. Changing landscapes that respond to emotion. Subversion of every reader expectation.\nEmotional Handling: Confusion, wonder, or unease. Intense, unfiltered emotion. The Uncanny.\nStructure: An image that should not exist > Logic of world shifts without explanation > Series of associative events linked by feeling not cause-and-effect > Emotional crescendo > Dissolution of narrative into pure abstraction.\nEnding Rule: Close with a sentence that is grammatically correct but logically impossible." },
+  "high-stakes-political": { name: "High-Stakes Political", instructions: "Core Identity: A tense, Machiavellian chess match focused on power, influence, and the fate of nations.\nSentence Rhythm: Sharp, double-edged dialogue. Fast-paced plotting. Formal but predatory tone.\nContent Rules: Backroom deals, public scandals, and ideological warfare. No pure heroes; everyone has an agenda.\nEmotional Handling: Paranoia and calculation. Thrill of the win. Heavy burden of leadership.\nStructure: Shift in power dynamic > Maneuvering of factions to fill vacuum > Betrayal or sacrifice of a pawn > Final play where winner decided behind closed doors > Public-facing spin versus private reality.\nEnding Rule: Close with character looking at their own reflection or the throne." },
+  "surrealist-avant-garde": { name: "Surrealist Avant-Garde", instructions: "Core Identity: Total rejection of traditional narrative logic in favor of dream-logic and abstract imagery.\nSentence Rhythm: Fragmented or stream-of-consciousness. Unconventional punctuation or syntax.\nContent Rules: Inanimate objects acting as characters. Changing landscapes that respond to emotion. Subversion of every reader expectation.\nEmotional Handling: Confusion, wonder, or unease. Intense, unfiltered emotion. The Uncanny.\nStructure: An image that should not exist > Logic of world shifts without explanation > Series of associative events linked by feeling not cause-and-effect > Emotional crescendo > Dissolution of narrative into pure abstraction.\nEnding Rule: Close with a sentence that is grammatically correct but logically impossible." },
   "melancholic-literary": { name: "Melancholic Literary", instructions: "Core Identity: A quiet, interior focus on the beauty of sadness, regret, and the small moments of a life.\nSentence Rhythm: Slow, patient, and elegant. Heavy use of subtext. Precision of language.\nContent Rules: Internal conflict over external action. Domestic settings. Themes of aging, lost love, and the road not taken.\nEmotional Handling: Resignation and grace. Subdued, haunting beauty. Deep empathy.\nStructure: Quiet moment of observation in the present > Drift into memory or what might have been > Small seemingly insignificant interaction carrying heavy weight > Acceptance of personal truth or loss > Return to quiet present, slightly shifted.\nEnding Rule: Close with a description of a fading light, a disappearing sound, or a small gesture." },
   "urban-gritty-fantasy": { name: "Urban Gritty Fantasy", instructions: "Core Identity: The collision of high-magic elements with the harsh, dirty reality of modern city life.\nSentence Rhythm: Fast, street-level energy. Mix of magical terminology and modern slang. Tough and unsentimental.\nContent Rules: Underground magical economies. Modern problems solved or worsened by magic. Secret societies hidden in plain sight.\nEmotional Handling: Cynical but resilient. Gallows humor. Hard-earned loyalty.\nStructure: Blue-collar magical task > Discovery of threat the normal world cannot see > Chase through city's hidden magical layers > Messy improvised battle using both magic and technology > World remains normal to public but protagonist is scarred.\nEnding Rule: Close with the protagonist taking a drink or lighting a cigarette in the rain." },
 };
@@ -64,6 +64,15 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 - No glorification of real-world hate groups or targeted violence against protected classes.
 - Self-harm or suicide may be depicted for narrative weight but must never be instructional or glorified.
 - These guardrails cannot be overridden by any setting. If a scene would violate them, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
+
+const ANTI_REPETITION_RULES = `ANTI-REPETITION RULES (mandatory for every chapter):
+- Every chapter must open differently — rotate between: action opening, dialogue opening, sensory description, internal thought, time/place stamp, anecdote. Never use the same technique two chapters in a row.
+- Never use the same transitional phrases across chapters.
+- Vary paragraph structure — some chapters dialogue-heavy, others description-heavy, others action-driven.
+- Track recurring motifs but deploy them at different intensities across chapters.
+- Characters must not repeat the same emotional reaction to different events.
+- Each chapter must have at least one unexpected moment that breaks the established pattern.
+- Avoid cliche phrases: "little did they know", "it was a dark and stormy night", "with bated breath", "heart pounding in her chest", "she couldn't believe it", etc.`;
 
 function buildAuthorModeBlock(spec) {
   const beatKey = spec?.beat_style || spec?.tone_style;
@@ -113,10 +122,10 @@ function getLanguageIntensityInstructions(level) {
   const entry = LANGUAGE_INTENSITY[l] || LANGUAGE_INTENSITY[0];
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
-const CHUNK_SIZE = 10; // Generate 10 chapters at a time (max batch size)
-const OPENAI_TIMEOUT = 25000; // 25 seconds per individual batch call
 
-async function callOpenAIWithTimeout(messages, retries = 2) {
+const OPENAI_TIMEOUT = 55000; // 55 seconds per call
+
+async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
@@ -130,9 +139,9 @@ async function callOpenAIWithTimeout(messages, retries = 2) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 800,
-          temperature: 0.7,
+          model: 'gpt-4o',
+          max_tokens: maxTokens,
+          temperature: 0.8,
           messages,
         }),
         signal: controller.signal,
@@ -168,34 +177,88 @@ async function callOpenAIWithTimeout(messages, retries = 2) {
   }
 }
 
+function buildFictionChapterPromptInstructions(isNonfiction) {
+  if (isNonfiction) {
+    return `Each chapter object MUST include a "prompt" field of AT LEAST 300 words covering ALL of these sections:
+OPENING HOOK: A captivating cinematic opening — dramatic anecdote, startling fact, or vivid scene. Give actual specific details, not placeholders.
+CORE CONTENT: 3-5 specific topics, arguments, or stories with concrete details (real or plausible names, dates, places, facts relevant to the subject matter).
+RESEARCH FOCUS: Real or representative individuals, their motivations and actions, dramatic or unexpected outcomes that illustrate the chapter's thesis.
+CONTEXT LAYER: Social, political, cultural, or geographic context to weave in for depth and authenticity.
+STRUCTURE NOTES: 2-3 subheadings to break up the chapter and emphasize the most pivotal moments.
+NARRATIVE TECHNIQUE: Whether the chapter uses chronological, thematic, compare-contrast, or cause-and-effect structure — and why.
+TRANSITION FROM PREVIOUS: Exactly how this chapter connects to the previous one — what thread carries over, what bridge sentence or idea links them.
+TRANSITION TO NEXT: How this chapter ends to tee up the next — the unresolved question or momentum that propels the reader forward.
+TONE CALIBRATION: How the tone should shift from the previous chapter — e.g., "lighter and more hopeful after the darkness of Ch 3" or "increasingly tense."
+THINGS TO AVOID: Specific pitfalls for this chapter — e.g., "Do not repeat the statistics already cited in Chapter 2" or "Avoid making this feel like a list — narrative flow is essential."`;
+  }
+  return `Each chapter object MUST include a "prompt" field of AT LEAST 300 words covering ALL of these sections:
+OPENING HOOK: A specific, cinematic opening scene with actual sensory details — what the reader sees, hears, feels in the first paragraph. NOT "the chapter opens with..." — write the actual sensory moment.
+PLOT EVENTS: 3-5 specific plot beats in order with concrete details (character names, locations, actions, key dialogue cues, decisions made).
+CHARACTER DEVELOPMENT: Which characters appear, what internal conflicts surface, what decisions they face, how their arc specifically advances from the previous chapter.
+EMOTIONAL ARC: The emotional trajectory — what feeling the reader starts with at the chapter's opening and what feeling they end with at its close.
+DIALOGUE GUIDANCE: Key conversations that must happen, the subtext beneath them, what information or revelation gets delivered through dialogue.
+PACING NOTES: Whether this chapter is fast-paced action, slow-burn tension, reflective, or mixed — and where the tempo shifts within the chapter.
+SENSORY DETAILS: Specific setting details — weather, lighting, sounds, smells, textures that ground the reader in this chapter's world.
+TRANSITION FROM PREVIOUS: Exactly how this chapter picks up from the last one — time gap, scene change, or continuous action, and what emotional thread carries over.
+TRANSITION TO NEXT: How this chapter ends to set up the next — the cliffhanger, unanswered question, or emotional state that makes the reader turn the page.
+THINGS TO AVOID: Specific pitfalls for this chapter — e.g., "Do not repeat the mentor's backstory — it was covered in Ch 3" or "Avoid resolving the tension too quickly."`;
+}
+
+function buildStoryBiblePrompt(spec, truncatedTopic, targetChapters) {
+  const isNonfiction = spec.book_type === 'nonfiction';
+  if (isNonfiction) {
+    return `Generate a story bible / style guide for a ${spec.genre} nonfiction book about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
+
+Return a JSON object (not array) with these fields:
+- world: The setting, era, and scope of the book
+- tone_voice: The authorial voice and tone
+- style_guidelines: Prose and structural style guidelines
+- rules: An array of strings — the consistency rules for the entire manuscript. MUST include these built-in rules PLUS any genre-specific ones:
+  * "NEVER repeat the same metaphor or analogy in consecutive chapters"
+  * "NEVER open two chapters in a row with the same technique (e.g., dialogue, description, action, statistics)"
+  * "Each chapter must have a distinctly different emotional texture from the one before it"
+  * "Vary sentence rhythm — alternate between short punchy sentences and longer flowing ones"
+  * "Avoid cliche phrases: 'little did they know', 'it was a dark and stormy night', 'with bated breath', etc."
+- characters: Array of key figures with fields: name, role (protagonist/antagonist/supporting), description (detailed physical and personality — mannerisms, speech patterns, distinguishing traits), arc (full development — where they start, key turning points, where they end), first_appearance (chapter number), relationships (key relationships with other figures and how they evolve)
+
+Return ONLY the JSON object. No preamble.`;
+  }
+  return `Generate a story bible for a ${spec.genre} fiction novel about "${truncatedTopic}" with ${targetChapters} chapters${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}.
+
+Return a JSON object (not array) with these fields:
+- world: The world-building — setting, rules, atmosphere, geography
+- tone_voice: The narrative voice, POV, and tonal register
+- style_guidelines: Prose style guidelines for the entire manuscript
+- rules: An array of strings — the consistency rules for the entire manuscript. MUST include these built-in rules PLUS any genre-specific ones:
+  * "NEVER repeat the same metaphor or analogy in consecutive chapters"
+  * "NEVER open two chapters in a row with the same technique (e.g., dialogue, description, action)"
+  * "Each chapter must have a distinctly different emotional texture from the one before it"
+  * "Vary sentence rhythm — alternate between short punchy sentences and longer flowing ones"
+  * "Avoid cliche phrases: 'little did they know', 'it was a dark and stormy night', 'with bated breath', etc."
+- characters: Array of main characters with fields: name, role (protagonist/antagonist/supporting), description (detailed physical and personality — mannerisms, speech patterns, distinguishing traits), arc (full development arc — where they start, key turning points, where they end), first_appearance (chapter number), relationships (key relationships with other characters and how they evolve)
+
+Return ONLY the JSON object. No preamble.`;
+}
+
 Deno.serve(async (req) => {
   try {
-    console.log('Starting generateOutline');
+    console.log('Starting generateOutline v2');
     const base44 = createClientFromRequest(req);
-    console.log('Client created');
     const user = await base44.auth.me();
-    console.log('User authenticated:', user?.email);
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { project_id } = await req.json();
-    console.log('Project ID:', project_id);
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
     console.log('Loading entities for project:', project_id);
-    const [specs, sourceFiles, globalSourceFiles, appSettingsList] = await Promise.all([
+    const [specs, appSettingsList] = await Promise.all([
       base44.entities.Specification?.filter({ project_id }) || [],
-      base44.entities.SourceFile?.filter({ project_id }) || [],
-      base44.entities.SourceFile?.filter({ project_id: "global" }) || [],
       base44.entities.AppSettings?.list() || [],
     ]);
-    console.log('Entities loaded successfully');
-
-    const appSettings = appSettingsList[0] || {};
-    const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
 
     const rawSpec = specs[0];
     if (!rawSpec) return Response.json({ error: 'No specification found' }, { status: 400 });
-    // Normalize spec — apply safe defaults for new fields, handle legacy tone_style
+
     const spec = {
       ...rawSpec,
       beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
@@ -208,33 +271,109 @@ Deno.serve(async (req) => {
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
 
-    const truncatedTopic = spec.topic?.length > 200 ? spec.topic.slice(0, 200) : spec.topic;
-    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\nYou are a book outline generator. Return only valid JSON arrays. No prose, no preamble, no commentary — only the JSON.`;
-
-    // Generate outline — fire all batches in PARALLEL to avoid sequential timeout
-    console.log(`Generating outline in parallel batches of ${CHUNK_SIZE} (total: ${targetChapters})`);
-
+    const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
+    const isNonfiction = spec.book_type === 'nonfiction';
     const beatKey = spec.beat_style || spec.tone_style;
     const beatInstructions = beatKey ? `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n` : '';
     const spiceInstructions = `\n${getSpiceLevelInstructions(spec.spice_level ?? 0)}\n`;
     const langInstructions = `\n${getLanguageIntensityInstructions(spec.language_intensity ?? 0)}\n`;
     const baseContext = `${spec.genre} ${spec.book_type} about "${truncatedTopic}"${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}`;
+    const promptInstructions = buildFictionChapterPromptInstructions(isNonfiction);
+    const chapterPromptSchema = isNonfiction
+      ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`
+      : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`;
 
-    async function generateBatch(chunkStart) {
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional book outline generator. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.`;
+
+    // ── STEP 1: Generate book metadata ──────────────────────────────────────
+    console.log('Generating book metadata...');
+    const metadataPrompt = `Generate publishing metadata for a ${baseContext}.
+Target audience: ${spec.target_audience || 'general readers'}.
+
+Return a JSON object with exactly these fields:
+{
+  "title": "A bold, compelling book title that grabs attention instantly",
+  "subtitle": "A subtitle that clearly indicates the book's premise and appeal",
+  "description": "2-3 concise paragraphs tailored for Amazon KDP readers. Hook them in the first sentence. Highlight what makes this book unique. End with a call to action.",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7"]
+}
+
+Return ONLY the JSON object. No preamble.`;
+
+    // ── STEP 2: Generate story bible ─────────────────────────────────────────
+    console.log('Generating story bible...');
+    const storyBiblePromptText = buildStoryBiblePrompt(spec, truncatedTopic, targetChapters);
+
+    // Run metadata + story bible in parallel
+    const [metadataResponse, storyBibleResponse] = await Promise.all([
+      callOpenAIWithTimeout([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: metadataPrompt }
+      ], 2000),
+      callOpenAIWithTimeout([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: storyBiblePromptText }
+      ], 4000),
+    ]);
+
+    // Parse metadata
+    let bookMetadata = null;
+    try {
+      const metaText = metadataResponse?.choices?.[0]?.message?.content || '';
+      const cleanMeta = metaText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+      const metaMatch = cleanMeta.match(/\{[\s\S]*\}/);
+      if (metaMatch) bookMetadata = JSON.parse(metaMatch[0]);
+    } catch (e) {
+      console.warn('Book metadata parse failed:', e.message);
+    }
+
+    // Parse story bible
+    let parsedStoryBible = null;
+    try {
+      const bibleText = storyBibleResponse?.choices?.[0]?.message?.content || '';
+      const cleanBible = bibleText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
+      const bibleMatch = cleanBible.match(/\{[\s\S]*\}/);
+      if (bibleMatch) parsedStoryBible = JSON.parse(bibleMatch[0]);
+    } catch (e) {
+      console.warn('Story bible parse failed:', e.message);
+    }
+
+    // ── STEP 3: Generate chapters in batches of 8 ───────────────────────────
+    console.log(`Generating ${targetChapters} detailed chapters...`);
+    const CHUNK_SIZE = 8;
+
+    async function generateBatch(chunkStart, previousChapterEnding) {
       const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
       const chunkCount = chunkEnd - chunkStart + 1;
       console.log(`Starting batch ${chunkStart}-${chunkEnd}...`);
 
-      const chunkPrompt = `Generate ${chunkCount} chapters (${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.${beatInstructions}${spiceInstructions}${langInstructions}\n${CONTENT_GUARDRAILS}\n\nReturn a JSON array with exactly ${chunkCount} objects, each with: number (integer), title (string), summary (string, 1-2 sentences). No other fields. No prose outside the JSON.`;
+      const prevContext = previousChapterEnding
+        ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending context: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a clear transition_from that references this ending.`
+        : '';
+
+      const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
+Book title: "${bookMetadata?.title || 'Untitled'}"
+${beatInstructions}${spiceInstructions}${langInstructions}
+${CONTENT_GUARDRAILS}
+${ANTI_REPETITION_RULES}
+${prevContext}
+
+${promptInstructions}
+
+CRITICAL: The "prompt" field for each chapter must be LONG and DETAILED — minimum 300 words. It must contain ALL required sections listed above with specific, concrete details unique to each chapter.
+
+Return a JSON array with exactly ${chunkCount} objects, each with these fields: ${chapterPromptSchema}
+
+No other fields. No prose outside the JSON array.`;
 
       let text = '';
       for (let attempt = 0; attempt < 3; attempt++) {
         const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: chunkPrompt }];
         if (attempt > 0) {
           messages.push({ role: 'assistant', content: text });
-          messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array. No refusals, no commentary.' });
+          messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' });
         }
-        const response = await callOpenAIWithTimeout(messages);
+        const response = await callOpenAIWithTimeout(messages, 16384);
         if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
         text = response.choices[0].message.content;
         if (!isRefusal(text)) break;
@@ -250,43 +389,46 @@ Deno.serve(async (req) => {
       return parsed;
     }
 
-    // Build list of batch start indices and fire all in parallel
+    // Generate batches SEQUENTIALLY so each batch can reference the previous ending
+    const allChapters = [];
     const batchStarts = [];
     for (let s = 1; s <= targetChapters; s += CHUNK_SIZE) batchStarts.push(s);
 
-    let batchResults;
-    try {
-      batchResults = await Promise.all(batchStarts.map(s => generateBatch(s)));
-    } catch (err) {
-      console.error('Parallel batch generation failed:', err.message);
-      const isTimeout = err.name === 'AbortError' || err.message.includes('timeout') || err.message.includes('Request timeout');
-      return Response.json({
-        error: isTimeout
-          ? 'Generation timed out. Try a shorter book or fewer chapters, then retry.'
-          : `Generation failed: ${err.message}`
-      }, { status: 502 });
+    for (const batchStart of batchStarts) {
+      try {
+        const lastChapter = allChapters[allChapters.length - 1];
+        const prevEnding = lastChapter?.transition_to || null;
+        const batchResult = await generateBatch(batchStart, prevEnding);
+        allChapters.push(...batchResult);
+      } catch (err) {
+        console.error(`Batch starting at ${batchStart} failed:`, err.message);
+        const isTimeout = err.name === 'AbortError' || err.message.includes('timeout');
+        return Response.json({
+          error: isTimeout
+            ? 'Generation timed out. Try a shorter book or fewer chapters, then retry.'
+            : `Generation failed: ${err.message}`
+        }, { status: 502 });
+      }
     }
 
-    const allChapters = batchResults.flat();
+    const parsedOutline = { chapters: allChapters };
 
-    const parsed = { outline: { chapters: allChapters } };
-
-    // Save or update outline — store data inline
-    console.log('Available entities:', Object.keys(base44.entities || {}));
+    // ── Save outline + metadata ──────────────────────────────────────────────
     try {
       if (base44.entities?.Outline) {
         const existing = await base44.entities.Outline.filter({ project_id });
         const outlinePayload = {
           project_id,
-          outline_data: JSON.stringify(parsed.outline),
+          outline_data: JSON.stringify(parsedOutline),
           outline_url: '',
-          story_bible: JSON.stringify(parsed.story_bible),
+          story_bible: JSON.stringify(parsedStoryBible),
           story_bible_url: '',
+          book_metadata: JSON.stringify(bookMetadata),
         };
-        
+
         if (existing && existing[0]) {
           await base44.entities.Outline.update(existing[0].id, outlinePayload);
-        } else if (base44.entities.Outline.create) {
+        } else {
           await base44.entities.Outline.create(outlinePayload);
         }
       }
@@ -294,11 +436,21 @@ Deno.serve(async (req) => {
       console.warn('Outline save failed (non-critical):', outlineErr.message);
     }
 
-    // Delete existing chapters and create new ones
+    // ── Auto-update project name from generated title ────────────────────────
+    if (bookMetadata?.title) {
+      try {
+        await base44.entities.Project.update(project_id, { name: bookMetadata.title });
+        console.log('Project name updated to:', bookMetadata.title);
+      } catch (nameErr) {
+        console.warn('Project name update failed (non-critical):', nameErr.message);
+      }
+    }
+
+    // ── Delete + recreate chapters ───────────────────────────────────────────
     const existingChapters = await base44.entities.Chapter.filter({ project_id });
     await Promise.all(existingChapters.map(c => base44.entities.Chapter.delete(c.id)));
 
-    const chapters = parsed.outline.chapters.map((ch, idx) => ({
+    const chapters = allChapters.map((ch, idx) => ({
       project_id,
       chapter_number: ch.number || idx + 1,
       title: ch.title || `Chapter ${ch.number || idx + 1}`,
@@ -309,10 +461,15 @@ Deno.serve(async (req) => {
     }));
     await base44.entities.Chapter.bulkCreate(chapters);
 
-    return Response.json({ success: true, chapter_count: chapters.length, outline: parsed });
+    return Response.json({
+      success: true,
+      chapter_count: chapters.length,
+      outline: parsedOutline,
+      story_bible: parsedStoryBible,
+      book_metadata: bookMetadata,
+    });
   } catch (error) {
     console.error('generateOutline error:', error);
-    console.error('Stack:', error.stack);
     return Response.json({ error: error.message, stack: error.stack?.split('\n').slice(0, 5) }, { status: 500 });
   }
 });

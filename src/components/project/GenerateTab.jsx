@@ -63,6 +63,56 @@ function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }
   );
 }
 
+// ── Book Metadata card ────────────────────────────────────────────────────────
+
+const KEYWORD_COLORS = [
+  "bg-violet-100 text-violet-700", "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
+  "bg-pink-100 text-pink-700", "bg-indigo-100 text-indigo-700",
+  "bg-rose-100 text-rose-700",
+];
+
+function BookMetadataCard({ metadataRaw }) {
+  const meta = safeParse(metadataRaw);
+  if (!meta) return null;
+  return (
+    <CollapsibleCard title="Book Metadata — Publishing Details" icon={BookOpen} defaultOpen={false}>
+      <div className="space-y-4">
+        {meta.title && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Title</p>
+            <p className="font-bold text-slate-900 leading-tight" style={{ fontSize: "18px" }}>{meta.title}</p>
+          </div>
+        )}
+        {meta.subtitle && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Subtitle</p>
+            <p className="text-sm text-slate-700 italic">{meta.subtitle}</p>
+          </div>
+        )}
+        {meta.description && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Book Description</p>
+            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{meta.description}</p>
+          </div>
+        )}
+        {meta.keywords?.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Keywords</p>
+            <div className="flex flex-wrap gap-1.5">
+              {meta.keywords.map((kw, i) => (
+                <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", KEYWORD_COLORS[i % KEYWORD_COLORS.length])}>
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </CollapsibleCard>
+  );
+}
+
 // ── Outline display ───────────────────────────────────────────────────────────
 
 function OutlineCard({ outlineData }) {
