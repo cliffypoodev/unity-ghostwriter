@@ -758,6 +758,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       <WriteAllChaptersModal
         isOpen={writeAllModalOpen}
         onClose={() => setWriteAllModalOpen(false)}
+        onProceed={onProceed}
         progress={writeAllProgress}
         onStop={stopWriteAll}
         targetLength={targetLength}
