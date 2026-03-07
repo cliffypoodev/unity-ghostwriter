@@ -539,7 +539,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
 
           {/* Additional Requirements — full width */}
-          <div>
+          <div className={hl("additional_requirements")}>
             <Label className="text-sm font-medium">Additional Requirements</Label>
             <Textarea
               className="mt-1.5"
