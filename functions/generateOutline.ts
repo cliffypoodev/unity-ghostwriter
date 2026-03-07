@@ -219,12 +219,7 @@ Return a JSON object (not array) with these fields:
 - world: The world-building — setting, rules, atmosphere, geography
 - tone_voice: The narrative voice, POV, and tonal register
 - style_guidelines: Prose style guidelines for the entire manuscript
-- rules: An array of strings — the consistency rules for the entire manuscript. MUST include these built-in rules PLUS any genre-specific ones:
-  * "NEVER repeat the same metaphor or analogy in consecutive chapters"
-  * "NEVER open two chapters in a row with the same technique (e.g., dialogue, description, action)"
-  * "Each chapter must have a distinctly different emotional texture from the one before it"
-  * "Vary sentence rhythm — alternate between short punchy sentences and longer flowing ones"
-  * "Avoid cliche phrases: 'little did they know', 'it was a dark and stormy night', 'with bated breath', etc."
+- rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
 - characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (2-3 sentences: key physical trait + personality + speech pattern), arc (start → turning point → end in 2 sentences), first_appearance (chapter number)
 
 Return ONLY the JSON object. No preamble.`;
