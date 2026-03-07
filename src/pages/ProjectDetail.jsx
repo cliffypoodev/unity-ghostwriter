@@ -221,7 +221,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Phase Content */}
-      <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "p-6")}>
+      <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "")}>
         {activePhase === "specify" && (
           <div className="space-y-6">
             <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
