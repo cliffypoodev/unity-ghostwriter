@@ -123,7 +123,7 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
-const OPENAI_TIMEOUT = 55000; // 55 seconds per call
+const OPENAI_TIMEOUT = 110000; // 110 seconds per call — batch chapters can take 60-90s
 
 async function callOpenAIWithTimeout(messages, maxTokens = 16384, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
