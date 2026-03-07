@@ -86,7 +86,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
   useEffect(() => {
     if (spec) {
-      setForm(prev => ({ ...prev, ...spec }));
+      setForm(prev => ({
+        ...prev,
+        ...spec,
+        // Map legacy tone_style to beat_style if beat_style not yet set
+        beat_style: spec.beat_style || spec.tone_style || "",
+        spice_level: spec.spice_level ?? 0,
+        language_intensity: spec.language_intensity ?? 0,
+      }));
     }
   }, [spec]);
 
