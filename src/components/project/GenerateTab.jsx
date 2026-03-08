@@ -252,12 +252,21 @@ function useResolvedContent(rawContent) {
   return isUrl ? (fetched || "") : (rawContent || "");
 }
 
-function ChapterItem({ chapter, onWrite, streamingContent, isStreaming, chapterProgress }) {
+function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, chapterProgress, onScenesUpdated }) {
   const [expanded, setExpanded] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [promptValue, setPromptValue] = useState(chapter.prompt || "");
   const [copied, setCopied] = useState(false);
+  const [writeConfirm, setWriteConfirm] = useState(false);
+  const [generatingScenesThenWrite, setGeneratingScenesThenWrite] = useState(false);
   const queryClient = useQueryClient();
+
+  const isFiction = spec?.book_type !== 'nonfiction';
+  function safeParseCh(str) {
+    try { if (!str || str.trim() === 'null' || str.trim() === '[]') return null; return JSON.parse(str); } catch { return null; }
+  }
+  const parsedScenes = safeParseCh(chapter.scenes);
+  const hasScenes = isFiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
 
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
