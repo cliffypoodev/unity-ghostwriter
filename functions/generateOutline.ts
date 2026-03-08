@@ -209,80 +209,14 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
-const OPENAI_TIMEOUT = 110000; // 110 seconds per call — batch chapters can take 60-90s
-
-// CHANGE 4 FIX: Rate limit retry with exponential backoff
-async function callOpenAIWithTimeout(messages, maxTokens = 8192, retries = 3) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
-    
-    try {
-      console.log(`OpenAI call attempt ${attempt + 1}/${retries + 1}...`);
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          max_tokens: maxTokens,
-          temperature: 0.8,
-          messages,
-        }),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeout);
-      console.log('OpenAI response status:', response.status);
-      
-      if (!response.ok) {
-        const errData = await response.json();
-        const errorMsg = errData.error?.message || response.statusText;
-        
-        // Check for rate limit (429 or "rate_limit" in message)
-        if (response.status === 429 || errorMsg.toLowerCase().includes('rate limit')) {
-          if (attempt < retries) {
-            const waitMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s, 16s
-            console.log(`Rate limit detected. Waiting ${waitMs}ms before retry ${attempt + 2}/${retries + 1}...`);
-            await new Promise(r => setTimeout(r, waitMs));
-            continue;
-          }
-          throw new Error('Rate limit exceeded after retries. Please wait 60+ seconds and try again.');
-        }
-        
-        throw new Error(`OpenAI error: ${errorMsg}`);
-      }
-      
-      const data = await response.json();
-      console.log('OpenAI response received successfully');
-      return data;
-    } catch (e) {
-      clearTimeout(timeout);
-      console.error(`Attempt ${attempt + 1} failed:`, e.name, e.message);
-      
-      // Retry on rate limit errors
-      if (attempt < retries && (e.message.includes('rate limit') || e.message.includes('429'))) {
-        const waitMs = Math.pow(2, attempt + 1) * 1000;
-        console.log(`Retrying after ${waitMs}ms...`);
-        await new Promise(r => setTimeout(r, waitMs));
-        continue;
-      }
-      
-      if (attempt < retries && e.name !== 'AbortError') {
-        const waitMs = 1000 * Math.pow(2, attempt);
-        console.log(`Waiting ${waitMs}ms before retry...`);
-        await new Promise(r => setTimeout(r, waitMs));
-        continue;
-      }
-      
-      if (e.name === 'AbortError') {
-        throw new Error('Request timeout');
-      }
-      throw e;
-    }
-  }
+// callAI-based wrapper to match the old messages[] API used in generateBatch
+async function callAIWithMessages(modelKey, messages, maxTokens = 8192) {
+  // Extract system and user from the messages array
+  const systemMsg = messages.find(m => m.role === 'system')?.content || '';
+  // Combine all non-system messages into a single user turn for providers that need it
+  const userParts = messages.filter(m => m.role !== 'system');
+  const userMsg = userParts.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n');
+  return callAI(modelKey, systemMsg, userMsg, { maxTokens, temperature: 0.8 });
 }
 
 // CHANGE 2 FIX: Reduce chapter prompt length requirement from 300+ to 100-150 words
