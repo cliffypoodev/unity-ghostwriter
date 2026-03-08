@@ -181,6 +181,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     language_intensity: 0,
     author_voice: "basic",
     additional_requirements: "",
+    enforce_genre_content: true,
   });
   const [extracting, setExtracting] = useState(false);
   const [highlightedFields, setHighlightedFields] = useState({});
@@ -466,6 +467,25 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
             </div>
           </div>
+
+          {/* Genre Content Enforcement (DeepSeek only) */}
+          {form.ai_model?.includes("deepseek") && (
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="enforce_genre"
+                  checked={form.enforce_genre_content}
+                  onChange={e => handleChange("enforce_genre_content", e.target.checked)}
+                  className="mt-1"
+                />
+                <div>
+                  <label htmlFor="enforce_genre" className="font-medium text-sm text-slate-800 cursor-pointer">Enforce Genre Content Requirements</label>
+                  <p className="text-xs text-slate-600 mt-1">When enabled, DeepSeek will be required to include genre-appropriate content (intimate scenes in erotica/romance). Disable for cleaner content regardless of genre tag.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Additional Requirements — full width */}
           <div className={hl("additional_requirements")}>
