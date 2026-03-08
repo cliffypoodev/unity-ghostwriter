@@ -708,9 +708,8 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       const chapter = toWrite[i];
       let chapterWordsCount = 0;
-      let retryCount = 0;
-      const maxRetries = 1;
-      
+      let chapterSuccess = false;
+
       setWriteAllProgress(prev => ({
         ...prev,
         current: i,
