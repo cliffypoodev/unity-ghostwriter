@@ -870,7 +870,67 @@ Write this chapter in full.`
 
     // Get opening and ending types and build user message based on book type
     let currentChapterRequest;
-    if (isNonfiction) {
+    if (useScenePath) {
+      // ── SCENE-BASED USER MESSAGE ──────────────────────────────────────────
+      const openingType = getOpeningType(chapter.chapter_number);
+      const endingType = getEndingType(chapter.chapter_number);
+
+      const sceneSections = parsedScenes.map((scene, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === parsedScenes.length - 1;
+        return `SCENE ${scene.scene_number}: ${scene.title}
+
+Location: ${scene.location}
+Time: ${scene.time}
+POV: ${scene.pov}
+Characters present: ${Array.isArray(scene.characters_present) ? scene.characters_present.join(', ') : scene.characters_present}
+Purpose: ${scene.purpose}
+Emotional arc: ${scene.emotional_arc}
+KEY ACTION (MUST happen): ${scene.key_action}
+Dialogue focus: ${scene.dialogue_focus || 'None — this is an action-focused scene'}
+Sensory anchor (must appear in first 3 sentences of this scene): ${scene.sensory_anchor}
+Word target: ~${scene.word_target} words
+${scene.extra_instructions ? `Notes: ${scene.extra_instructions}` : ''}
+${isFirst ? `OPENING STYLE (applies to this scene only): ${openingType.name} — ${openingType.desc}` : ''}
+${isLast ? `ENDING STYLE (applies to this scene only): ${endingType.name} — ${endingType.desc}` : ''}`;
+      }).join('\n\n---\n\n');
+
+      // Get anti-repetition context from last written chapter
+      let prevChapterTail = '';
+      if (prevChapter?.content) {
+        let prevContent = prevChapter.content || '';
+        if (prevContent.startsWith('http')) {
+          try { prevContent = await (await fetch(prevContent)).text(); } catch { prevContent = ''; }
+        }
+        if (prevContent) prevChapterTail = prevContent.trim().slice(-200);
+      }
+
+      currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
+
+WRITE THIS CHAPTER SCENE-BY-SCENE IN THIS EXACT ORDER:
+
+${sceneSections}
+
+=== SCENE RULES (NON-NEGOTIABLE) ===
+
+- Write each scene fully before moving to the next
+- Insert a line with only "* * *" between scenes as a scene break marker
+- Each scene MUST deliver its KEY ACTION — do not skip it or merely allude to it
+- Hit each scene's word target (plus or minus 20%)
+- The SENSORY ANCHOR must appear in each scene's first 3 sentences
+- OPENING STYLE (above) applies to Scene 1 only — the first words of the chapter
+- ENDING STYLE (above) applies to the final scene's last lines only
+- MAX 3 consecutive dialogue exchanges before a paragraph of action/description/thought breaks the rhythm
+
+BANNED PHRASES (auto-rewritten if found):
+'heart racing/pounding', 'pulse quickened', 'breath hitched', 'intoxicating', 'electric' (atmosphere), 'shadows danced', 'tendrils of', 'the weight of', 'in that moment', 'no turning back', 'a rush of', 'a flicker of', 'a spark of', 'something deeper/unspoken', 'unspoken tension', 'invisible thread/force', 'just the beginning', 'air thickened/crackled', 'palpable', 'igniting a fire'
+
+${chapter.prompt ? `EXTRA CHAPTER INSTRUCTIONS: ${chapter.prompt}` : ''}
+
+${prevChapterTail ? `=== PREVIOUS CHAPTER ENDING — DO NOT REPEAT THIS TONE OR STRUCTURE ===\n"...${prevChapterTail}"\n=== END ===` : ''}
+
+Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.`;
+    } else if (isNonfiction) {
       currentChapterRequest = _buildNonfictionUserMessage(
         chapter.chapter_number, 
         { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary }, 
