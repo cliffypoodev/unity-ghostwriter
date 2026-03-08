@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { ChevronDown, Settings, Star } from "lucide-react";
 
 const AI_MODEL_PROFILES = {
+  "claude-sonnet": {
+    id: "claude-sonnet",
+    name: "Claude Sonnet (Latest)",
+    provider: "Anthropic",
+    description: "Balanced creative writing with strong reasoning. Great all-rounder for most book projects.",
+    strengths: ["Versatile prose", "Strong character development", "Good pacing", "Balanced creativity"],
+    proseQuality: 4,
+    tokenCost: 3
+  },
+  "claude-opus": {
+    id: "claude-opus",
+    name: "Claude Opus (Latest)",
+    provider: "Anthropic",
+    description: "Premium literary model. Sophisticated vocabulary, nuanced prose, and deep thematic layering.",
+    strengths: ["Literary nuance", "Complex narratives", "Avoiding AI-isms", "Sophisticated vocabulary"],
+    proseQuality: 5,
+    tokenCost: 5
+  },
   "claude-opus-4-5": {
     id: "claude-opus-4-5",
     name: "Claude Opus 4.5",
