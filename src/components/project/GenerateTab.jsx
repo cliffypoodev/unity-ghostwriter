@@ -724,125 +724,63 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       let chapterSuccess = false;
 
-      // ISSUE 2 FIX: Retry logic with error handling
-      while (retryCount <= maxRetries && !chapterSuccess && isWriting) {
-        try {
-          // Update status to generating
-          await base44.entities.Chapter.update(chapter.id, { status: 'generating' });
+      try {
+        // Invoke writeChapter — returns immediately with async:true
+        const response = await base44.functions.invoke('writeChapter', {
+          project_id: projectId,
+          chapter_id: chapter.id,
+        }, { timeout: 60000 });
 
-          // Call writeChapter with 3-minute timeout
-          const response = await base44.functions.invoke('writeChapter', {
-            project_id: projectId,
-            chapter_id: chapter.id,
-          }, { timeout: 180000 });
-
-          if (response.status === 200) {
-            // Poll for chapter completion with streaming word tracking
-            let pollCount = 0;
-            let isComplete = false;
-            let lastWordCount = 0;
-            
-            while (!isComplete && pollCount < 150 && isWriting) { // 5 min timeout (2s * 150)
-              if (writeAllAbortRef.current) {
-                isWriting = false;
-                break;
-              }
-              
-              try {
-                const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-                const updatedChapter = updated.find(c => c.id === chapter.id);
-                
-                if (updatedChapter?.status === 'generated') {
-                  // Final word count
-                  let finalContent = updatedChapter.content || '';
-                  // ISSUE 1 FIX: Handle content URLs
-                  if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
-                    try { finalContent = await (await fetch(finalContent)).text(); } catch {}
-                  }
-                  const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
-                  chapterWordsCount = finalWords;
-                  totalWordsWritten += finalWords;
-
-                  // Handle quality scan results
-                  if (updatedChapter.quality_scan) {
-                    try {
-                      const quality = JSON.parse(updatedChapter.quality_scan);
-                      if (!quality.passed) {
-                        console.warn(`Chapter ${chapter.chapter_number} quality warnings:`, quality.warnings);
-                      }
-                    } catch (e) { /* ignore parse errors */ }
-                  }
-
-                  successes++;
-                  chapterSuccess = true;
-                  isComplete = true;
-                  
-                  if (isWriting) {
-                    setWriteAllProgress(prev => ({
-                      ...prev,
-                      chapterWords: chapterWordsCount,
-                      wordsWritten: totalWordsWritten,
-                      successes,
-                    }));
-                  }
-                } else if (updatedChapter?.status === 'error') {
-                  throw new Error('Chapter generation failed on server');
-                } else if (updatedChapter?.content) {
-                  // Streaming: update word count
-                  let content = updatedChapter.content;
-                  if (content.startsWith('http://') || content.startsWith('https://')) {
-                    try { content = await (await fetch(content)).text(); } catch {}
-                  }
-                  const currentWords = content ? content.split(/\s+/).filter(Boolean).length : 0;
-                  if (currentWords > lastWordCount) {
-                    chapterWordsCount = currentWords;
-                    lastWordCount = currentWords;
-                    
-                    if (isWriting) {
-                      setWriteAllProgress(prev => ({
-                        ...prev,
-                        chapterWords: chapterWordsCount,
-                      }));
-                    }
-                  }
-                }
-              } catch (e) {
-                console.warn('Poll error:', e.message);
-              }
-              
-              if (!isComplete && isWriting) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                pollCount++;
-              }
-            }
-
-            if (!isComplete && isWriting) {
-              throw new Error('Generation timeout after 5 minutes');
-            }
-          } else {
-            throw new Error(`Request failed with status ${response.status}`);
-          }
-        } catch (err) {
-          retryCount++;
-          if (retryCount > maxRetries || !isWriting) {
-            const errorMsg = err.message || 'Unknown error';
-            console.error(`Chapter ${chapter.chapter_number} error:`, errorMsg);
-            failures.push({
-              number: chapter.chapter_number,
-              title: chapter.title,
-              error: errorMsg,
-            });
-            currentError = errorMsg;
-            chapterSuccess = false;
-          } else {
-            // Retry after 2 seconds
-            currentError = `Error: ${err.message}. Retrying...`;
-            if (isWriting) {
-              setWriteAllProgress(prev => ({ ...prev, error: currentError }));
-            }
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
+        if (response.status !== 200) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
+
+        // CRITICAL: Block here until this chapter is fully saved before moving on.
+        // The backend writes asynchronously, so we poll until status === 'generated'.
+        let pollCount = 0;
+        const maxPolls = 150; // 5 minutes at 2s intervals
+        let done = false;
+
+        while (!done && pollCount < maxPolls) {
+          if (writeAllAbortRef.current) { isWriting = false; break; }
+
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          pollCount++;
+
+          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+          const updatedChapter = updated.find(c => c.id === chapter.id);
+
+          if (updatedChapter?.status === 'generated') {
+            let finalContent = updatedChapter.content || '';
+            if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
+              try { finalContent = await (await fetch(finalContent)).text(); } catch {}
+            }
+            const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
+            chapterWordsCount = finalWords;
+            totalWordsWritten += finalWords;
+            successes++;
+            chapterSuccess = true;
+            done = true;
+            setWriteAllProgress(prev => ({
+              ...prev,
+              chapterWords: chapterWordsCount,
+              wordsWritten: totalWordsWritten,
+              successes,
+            }));
+          } else if (updatedChapter?.status === 'error') {
+            throw new Error('Chapter generation failed on server');
+          }
+          // else still generating — keep polling
+        }
+
+        if (!done && isWriting) {
+          throw new Error('Generation timeout after 5 minutes');
+        }
+      } catch (err) {
+        const errorMsg = err.message || 'Unknown error';
+        console.error(`Chapter ${chapter.chapter_number} error:`, errorMsg);
+        failures.push({ number: chapter.chapter_number, title: chapter.title, error: errorMsg });
+        setWriteAllProgress(prev => ({ ...prev, error: errorMsg }));
       }
     }
 
