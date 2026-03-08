@@ -209,6 +209,49 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
+// ── Shared JSON repair helpers ────────────────────────────────────────────────
+
+function cleanJSON(text) {
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+  cleaned = cleaned.trim();
+  // Fix trailing commas before } or ]
+  cleaned = cleaned.replace(/,\s*}/g, '}');
+  cleaned = cleaned.replace(/,\s*]/g, ']');
+  // Try to close truncated JSON
+  if (!cleaned.endsWith('}') && !cleaned.endsWith(']')) {
+    const openBraces = (cleaned.match(/{/g) || []).length;
+    const closeBraces = (cleaned.match(/}/g) || []).length;
+    const openBrackets = (cleaned.match(/\[/g) || []).length;
+    const closeBrackets = (cleaned.match(/]/g) || []).length;
+    for (let i = 0; i < openBrackets - closeBrackets; i++) cleaned += ']';
+    for (let i = 0; i < openBraces - closeBraces; i++) cleaned += '}';
+  }
+  return cleaned;
+}
+
+async function safeParseJSON(text, modelKey) {
+  const cleaned = cleanJSON(text);
+  try {
+    return JSON.parse(cleaned);
+  } catch (e1) {
+    console.warn('safeParseJSON first attempt failed:', e1.message, '— attempting AI repair...');
+  }
+  try {
+    const repaired = await callAI(
+      modelKey,
+      'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
+      `Fix this malformed JSON and return only the corrected JSON:\n\n${cleaned}`,
+      { maxTokens: 8192, temperature: 0.0 }
+    );
+    return JSON.parse(cleanJSON(repaired));
+  } catch {
+    throw new Error('The AI returned an invalid response. Please click Retry.');
+  }
+}
+
 // callAI-based wrapper to match the old messages[] API used in generateBatch
 async function callAIWithMessages(modelKey, messages, maxTokens = 8192) {
   // Extract system and user from the messages array
