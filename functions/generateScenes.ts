@@ -97,7 +97,7 @@ async function safeParseJSON(text, modelKey) {
       modelKey,
       'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
       `Fix this malformed JSON and return only the corrected JSON:\n\n${cleaned}`,
-      { maxTokens: 8192, temperature: 0.0 }
+      { maxTokens: 4000, temperature: 0.0 }
     );
     return JSON.parse(cleanJSON(repaired));
   } catch {
@@ -184,18 +184,7 @@ Deno.serve(async (req) => {
     const world = storyBible?.world || storyBible?.settings;
     const rules = storyBible?.rules;
 
-    const systemPrompt = `You are an expert fiction architect. Generate structured scenes for a single chapter of a novel.
-
-Each scene is a DISCRETE narrative unit — one location, one timeframe, one POV focus.
-
-SCENE DIVERSITY RULES (MANDATORY):
-- No two consecutive scenes may share the same location
-- At least one scene must introduce a NEW element (new character, new location, a revelation, or a consequence)
-- Each scene must have a DIFFERENT emotional register from the previous scene
-- At least one scene per chapter must be ACTION-FOCUSED (dialogue_focus = null)
-- The final scene must set up the transition to the next chapter
-
-Respond with valid JSON only — a JSON array of scene objects. No markdown fences, no explanation, just the raw JSON array.`;
+    const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.`;
 
     const userMessage = `Genre: ${spec?.genre || 'Fiction'}
 Subgenre: ${spec?.subgenre || 'Not specified'}
@@ -240,7 +229,8 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
   "word_target": ${wordTarget}
 }`;
 
-    const raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 8192, temperature: 0.6 });
+    const maxTokens = (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') ? 4000 : 8192;
+    const raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
     const scenes = await safeParseJSON(raw, modelKey);
     if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
 
