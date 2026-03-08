@@ -139,6 +139,9 @@ export default function WriteAllChaptersModal({
           <DialogTitle className="text-xl font-bold text-slate-800">
             {done ? "Book Complete! 🎉" : "Writing Your Book..."}
           </DialogTitle>
+          {phaseLabel && !done && (
+            <p className="text-sm font-semibold text-indigo-600 mt-1">{phaseLabel}</p>
+          )}
         </DialogHeader>
 
         <div className="space-y-5 py-2">
