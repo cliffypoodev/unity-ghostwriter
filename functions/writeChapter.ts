@@ -160,6 +160,59 @@ const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
 - If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.`;
 
+const PERMANENT_QUALITY_RULES = `=== PERMANENT QUALITY RULES (applied to ALL manuscripts) ===
+
+RULE 1: PRONOUN CONSISTENCY ENFORCEMENT
+- All character pronouns must match established gender throughout the text
+- If a character is introduced as male, use he/him/his in ALL contexts: dialogue, action, interior monologue, narrator perspective
+- If female, use she/her/hers consistently
+- If nonbinary, use they/them/theirs consistently
+- This applies even in stream-of-consciousness passages, when switching POV, and in narrator voice
+- Never allow a pronoun to contradict established character gender
+- If you reference a character by pronoun, verify their gender in the character bible first
+
+RULE 2: NO OVER-NARRATED INTERIORITY
+- Never explain an emotion, realization, or shift that the scene has already dramatized
+- If tension is visible through dialogue, action, or sensory detail, do NOT follow with "and he knew it" or "she was aware of it"
+- Never follow a decisive action with "He'd made a choice" or "This was a turning point" — the action IS the choice
+- Never summarize a subtext the reader can already read — trust the scene
+- Never end a charged moment with an abstract thesis statement
+- If the prose shows it, do not also tell it. Delete the telling.
+
+RULE 3: NEVER SUMMARIZE GENRE-REQUIRED SCENES
+- When a genre promises a specific scene (romance: love scene, thriller: confrontation, horror: scare, erotica: intimacy), WRITE IT FULLY
+- Do NOT skip it with a summary paragraph or fade-to-black
+- Requirements for any scene the genre demands:
+  * Stay in the established POV character's close perspective throughout
+  * Build in stages with clear escalation
+  * Ground in physical sensory detail: texture, temperature, pressure, breath, sound, taste
+  * Maintain established power dynamics and character tensions
+  * Keep thematic echoes without stating them
+  * Use minimal dialogue — only lines that reveal character
+  * Match emotional register to the scene (intensity, tenderness, menace, wonder)
+  * Never use genre clichés or stock phrases ("waves of pleasure," "electric touch," "molten core," "undone," "claimed")
+  * Write with literary precision matching every other scene
+  * Transition naturally when the scene concludes
+  * Target 600-800 words for major genre-required scenes
+
+RULE 4: EARNED FINAL IMAGES ONLY
+- The final image of any chapter must arise organically from the scene's physical reality
+- Never end with an on-the-nose metaphor restating the chapter's theme
+- Do NOT use: striking a match for danger, door closing for finality, rain for sadness
+- Instead, end with a concrete, ordinary detail that carries weight from what preceded it
+- Domesticity and ordinariness are more powerful than poetic imagery when the chapter is already charged
+- Leave the reader sitting in the scene, not reading a metaphor about the scene
+- If the final image could appear on a book cover, it's too on-the-nose — pull back to something smaller and more real
+
+RULE 5: VOCABULARY REPETITION CONTROL
+- Track adjective and adverb usage throughout the manuscript
+- No distinctive modifier should appear more than 4 times in a full manuscript
+- If any adjective or adverb appears more than 4 times, replace excess instances with precise alternatives or restructure to eliminate the modifier
+- Do not use the same replacement word twice
+- Exempt: common function words (the, very, just, still, almost)
+- Watch especially for authorial tics: "specific," "particular," "precise," "deliberate," "careful," "quiet" — enforce variety
+- Run this check before finalizing any chapter output`;
+
 function buildAuthorModeBlock(spec) {
   const beatKey = spec?.beat_style || spec?.tone_style;
   const beatName = beatKey ? (getBeatStyleInstructions(beatKey).split('\n')[0]) : 'Not specified';
@@ -487,8 +540,89 @@ C. Build tension through CONTRAST. Characters try NOT to acknowledge what's happ
 D. Max 2 consecutive philosophically provocative lines per character. Break intense dialogue with mundane reality.
 E. After physical intimacy, no character may smirk, deliver a witty one-liner, or say "You taste like [noun] and [noun]".`;
 
+// QUALITY VALIDATOR FOR PERMANENT RULES — checks Rule 1, 2, 4, 5
+function validatePermanentRules(text, characters = []) {
+  const violations = [];
+
+  // RULE 1: Pronoun consistency — basic check for obvious pronoun/gender mismatches
+  const pronounPattern = /\b(he|his|him|she|her|hers|they|their|theirs)\b/gi;
+  let match;
+  const genderMap = {}; // charName -> pronouns used
+  for (const char of characters) {
+    const charName = char.name;
+    if (!charName) continue;
+    const charPronouns = char.pronouns ? char.pronouns.toLowerCase() : (char.role === 'female' || /\bshe\b|\bgirl\b|\bwoman\b/i.test(char.description) ? 'she' : 'he');
+    if (!genderMap[charName]) genderMap[charName] = new Set();
+    if (charPronouns.includes('she')) genderMap[charName].add('she');
+    if (charPronouns.includes('he')) genderMap[charName].add('he');
+    if (charPronouns.includes('they')) genderMap[charName].add('they');
+  }
+  // Spot-check: look for obvious mismatches in narrative mentions
+  for (const [charName, expectedPronouns] of Object.entries(genderMap)) {
+    if (expectedPronouns.size > 1) continue; // Skip ambiguous cases
+    const expectedPronoun = [...expectedPronouns][0];
+    // This is a heuristic check — a full validation would require parsing context
+    // Flag only if we see contradictory pronoun usage in close proximity
+    const contextRegex = new RegExp(`\\b${charName}\\b[^.!?]*?(he|she|they)\\b`, 'gi');
+    const mentions = [...text.matchAll(contextRegex)];
+    if (mentions.length > 2) {
+      const pronounsUsed = new Set(mentions.map(m => m[1].toLowerCase()));
+      if (pronounsUsed.size > 1 && expectedPronouns.size === 1) {
+        violations.push(`PRONOUN CONSISTENCY: Character "${charName}" uses ${[...pronounsUsed].join('/')} but should be ${expectedPronoun}`);
+      }
+    }
+  }
+
+  // RULE 2: Over-Narrated Interiority — detect explanation after dramatized emotion
+  const overNarratedPatterns = [
+    /[.!?]\s+[A-Z][^.!?]*\b(he|she) (knew|realized|understood|was aware that|understood that|became aware|sensed)\b/gi,
+    /[.!?]\s+[A-Z][^.!?]*\b(it was|this was|that was)\s+(a (moment|turning point|choice|decision|realization|confession)|deciding|choosing)/gi,
+    /[.!?]\s+[A-Z][^.!?]*(and\s+)?(he|she)\s+(had made|had chosen|knew|understood|saw)\s+[a-z]+ (choice|decision|truth|realization)/gi,
+  ];
+  for (const pattern of overNarratedPatterns) {
+    if (pattern.test(text)) {
+      violations.push(`OVER-NARRATED INTERIORITY: Detected explanation of emotion after dramatized scene`);
+      break;
+    }
+  }
+
+  // RULE 4: On-the-nose final images — check last paragraph for obvious metaphors
+  const lastParagraphs = text.trim().split(/\n\n+/).slice(-2).join('\n\n').toLowerCase();
+  const onTheNosePatterns = [
+    /\b(striking|struck|strike|light\w*)\s+(a\s+)?match\b/i, // match = danger
+    /\b(door|window|gate)\s+(clos\w+|slammed?|shut)\b/i, // closing = finality
+    /\brain\b.*\b(fell|dropped|descended|wept|cried|tears)\b/i, // rain = sadness
+    /\b(light|sun|moon|star)\s+(fad\w+|dimm\w+|disappear\w+|set)\b/i, // fading light = ending
+    /\b(empty|vacant|hollow|blank)\s+(look|gaze|stare|face|heart|chest)\b/i, // emptiness = loss
+    /\b(rose|ascend\w+|lift\w+)\s+.*\b(hope|spirit|determination)\b/i, // rising = hope
+  ];
+  for (const pattern of onTheNosePatterns) {
+    if (pattern.test(lastParagraphs)) {
+      violations.push(`ON-THE-NOSE FINAL IMAGE: Last paragraph contains obvious metaphor — needs to be more concrete and ordinary`);
+      break;
+    }
+  }
+
+  // RULE 5: Vocabulary repetition — count distinctive adjectives/adverbs
+  const words = text.match(/\b[a-z]{4,}\b/gi) || [];
+  const adjAdverbCandidates = ['specific', 'particular', 'precise', 'deliberate', 'careful', 'quiet', 'soft', 'harsh', 'bright', 'dark', 'cold', 'warm', 'electric', 'fierce', 'gentle', 'sharp', 'blunt', 'subtle', 'obvious', 'clear', 'vague', 'intense', 'fragile', 'strong', 'weak', 'heavy', 'light'];
+  const wordCounts = {};
+  for (const word of words) {
+    const lower = word.toLowerCase();
+    if (adjAdverbCandidates.includes(lower)) {
+      wordCounts[lower] = (wordCounts[lower] || 0) + 1;
+    }
+  }
+  const overused = Object.entries(wordCounts).filter(([, count]) => count > 4);
+  if (overused.length > 0) {
+    violations.push(`VOCABULARY REPETITION: Overused words (>4 times each): ${overused.map(([w, c]) => `"${w}" (${c}x)`).join(', ')}`);
+  }
+
+  return violations;
+}
+
 // PART 6 — EXTENDED POST-GENERATION QUALITY SCANNER
-function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null, bookType = "fiction") {
+function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null, bookType = "fiction", characters = []) {
   const bannedPhrases = {
     physicalReactions: [
       "heart racing", "heart raced", "heart pounding", "heart pounded", "heart hammered", "heart thudded", "heart thundering",
@@ -725,6 +859,11 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
     violations.push(...nfWarnings);
     violationCount += nfWarnings.length;
   }
+
+  // PERMANENT RULES VALIDATION — applies to all manuscripts
+  const permanentRuleViolations = validatePermanentRules(text, characters);
+  violations.push(...permanentRuleViolations);
+  violationCount += permanentRuleViolations.length;
 
   return {
     chapter_number: chapterNumber,
@@ -1226,6 +1365,7 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 - If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.`;
 
     // PART C — Plot and dialogue subtext rules (legacy fiction path)
+    systemPrompt += `\n\n${PERMANENT_QUALITY_RULES}`;
     systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
     systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES}`;
     systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
@@ -1622,8 +1762,8 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
 
     fullContent = fullContentWorking;
 
-    // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters and storyBible)
-    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction");
+    // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters, storyBible, and permanent quality rules)
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
@@ -1655,8 +1795,8 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
             finalContent = correctedText;
             passCount = pass;
             
-            // Re-scan after rewrite (with previousChapters and storyBible)
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction");
+            // Re-scan after rewrite (with previousChapters, storyBible, and characters)
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
             console.log(`After pass ${pass} quality scan:`, qualityResult);
             
             if (qualityResult.passed) {
