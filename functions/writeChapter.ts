@@ -307,6 +307,66 @@ function extractDistinctivePhrases(text) {
   return [...phrases].slice(0, 30).sort();
 }
 
+// PART A — Extract physical tics (body part + verb combos) per character
+function extractPhysicalTics(text) {
+  const tics = [];
+  const bodyPartRegex = /\b(hands?|fingers?|jaw|fists?|breath|pulse|stomach|chest|throat|skin|spine|knees?|legs?|mouth|lips?|eyes?|shoulders?|muscles?|neck|temples?|gut)\s+(trembl\w+|shook|shak\w+|tighten\w+|clenched?|clench\w+|curl\w+|hitch\w+|quicken\w+|drop\w+|prickl\w+|went dry|went cold|went rigid|knotted|convuls\w+|flutter\w+|ach\w+|burn\w+|twitch\w+)/gi;
+  const involuntaryRegex = /\b(mouth went dry|stomach dropped?|skin prickl\w+|blood ran cold|vision blurred?|legs? (gave way|buckled?)|swallowed? hard|air left (his|her|their) lungs?)\b/gi;
+  let match;
+  while ((match = bodyPartRegex.exec(text)) !== null) tics.push(match[0].toLowerCase().trim());
+  while ((match = involuntaryRegex.exec(text)) !== null) tics.push(match[0].toLowerCase().trim());
+  // Try to associate tics with nearby character names (within 100 chars)
+  const result = [];
+  for (const tic of [...new Set(tics)].slice(0, 20)) {
+    const idx = text.toLowerCase().indexOf(tic);
+    if (idx === -1) continue;
+    const ctx = text.slice(Math.max(0, idx - 100), idx + tic.length + 100);
+    const nameMatch = ctx.match(/\b[A-Z][a-z]{2,}\b/);
+    const charName = nameMatch ? nameMatch[0] : 'Unknown';
+    result.push({ char: charName, tic });
+  }
+  return result;
+}
+
+// PART B — Extract overused sensory formula patterns
+function extractSensoryFormulas(text) {
+  const formulas = [];
+  const patterns = [
+    /the smell of \w+ and \w+/gi,
+    /the scent of \w+ and \w+/gi,
+    /the sound of \w+ and \w+/gi,
+    /the taste of \w+ and \w+/gi,
+    /smelled? (like|of) \w+ and \w+/gi,
+    /something like \w+,?\s+something like \w+/gi,
+  ];
+  for (const rx of patterns) {
+    let m;
+    while ((m = rx.exec(text)) !== null) formulas.push(m[0].toLowerCase().trim());
+  }
+  return formulas;
+}
+
+// PART D — Genre detection helper for intimate scene rules
+function isIntimateGenre(spec) {
+  const g = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
+  return /erotica|romance|adult|erotic/.test(g);
+}
+
+const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES (EROTICA/ROMANCE GENRE):
+- Physical/intimate scenes must have a MINIMUM of 3 full paragraphs of escalation before any interruption, pullback, or scene break.
+- Escalation means: each paragraph increases intensity through layered sensory detail — texture, temperature, pressure, sound, breath, the way fabric moves, the way skin responds to contact, the shift in breathing patterns, the small involuntary sounds.
+- Stay in the literary register. Use precise physical detail and character interiority to build heat. Do NOT use crude or clinical terminology. Think literary fiction with erotic charge — Anaïs Nin, Garth Greenwell, Ocean Vuong.
+- Interiority during intimate scenes is critical. Show how the physical contact affects the character mentally — what it means, what it triggers, what it reveals about power, trust, or vulnerability.
+- If an interruption is narratively necessary, the reader must feel the LOSS of the moment. The interruption should feel like something was taken away, not like the scene was conveniently avoided.
+- Do NOT use intimate scenes as pure plot mechanics without first honoring the scene on its own terms. The physical reality must exist fully before the narrative consequences arrive.`;
+
+const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
+- When a chapter contains a twist, reversal, or reveal, the dialogue and interiority leading up to it must support MULTIPLE interpretations until the reveal moment.
+- Characters who are concealing motives must speak in ways that could be read as sincere, deflecting, OR calculating. Never write dialogue that only makes sense if the reader already knows the twist.
+- The reader should arrive at the twist AT THE SAME MOMENT as the POV character, not before. If the POV character is being manipulated, the reader should feel manipulated too.
+- Avoid single-line dialogue responses that function as winking confessions (e.g., "Did I?" or "You'll see" or "Maybe that was the point"). These telegraph intent. Replace with responses that carry genuine emotional ambiguity.
+- Subtext is always more powerful than text. A character's true motives should be visible only in retrospect, when the reader replays the scene knowing the truth.`;
+
 // POST-GENERATION QUALITY SCANNER
 function scanChapterQuality(text, chapterNumber) {
   const bannedPhrases = {
@@ -754,7 +814,12 @@ CRITICAL OUTPUT RULES:
 - You are generating PROSE ONLY. Never output meta-commentary, self-assessment, checklists, or instructions.
 - Never say "I appreciate", "I've completed", "I need to clarify", "Here is", "As requested", or any self-referential language.
 - Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
-- If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.`;
+- If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.
+
+${PLOT_SUBTEXT_RULES}`;
+      if (isIntimateGenre(projectSpec)) {
+        systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
+      }
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
         projectSpec, 
@@ -900,6 +965,14 @@ CRITICAL OUTPUT RULES:
 - If the book is tagged as HORROR or THRILLER: something genuinely threatening must happen on-page. Atmosphere alone is not horror. Include concrete danger, consequences, or disturbing events.
 - If the book is tagged as MYSTERY: clues must be planted and discoveries must occur. Each chapter should narrow the possibilities or introduce a complication.
 - If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.`;
+
+    // PART C — Plot subtext rules (legacy fiction path)
+    systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
+
+    // PART D — Conditional intimate scene rules (legacy fiction path)
+    if (isIntimateGenre(projectSpec)) {
+      systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
+    }
     }
 
     // ── PART A — Build conversation-style messages array ─────────────────────
@@ -960,6 +1033,35 @@ Write this chapter in full.`
       }
     }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30).sort();
+
+    // PART A — Collect physical tics from previous chapters, find ones used 2+ times
+    const ticMap = {}; // charName -> { tic -> count }
+    for (const prevCh of allChapters.slice(0, chapterIndex)) {
+      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
+      if (!txt) continue;
+      for (const { char, tic } of extractPhysicalTics(txt)) {
+        if (!ticMap[char]) ticMap[char] = {};
+        ticMap[char][tic] = (ticMap[char][tic] || 0) + 1;
+      }
+    }
+    const overusedTics = {}; // charName -> [tic, ...]
+    for (const [char, tics] of Object.entries(ticMap)) {
+      const repeated = Object.entries(tics).filter(([, c]) => c >= 2).map(([t]) => t);
+      if (repeated.length > 0) overusedTics[char] = repeated;
+    }
+
+    // PART B — Collect sensory formula usage counts from previous chapters
+    const formulaCount = {};
+    for (const prevCh of allChapters.slice(0, chapterIndex)) {
+      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
+      if (!txt) continue;
+      for (const formula of extractSensoryFormulas(txt)) {
+        // Normalize to pattern type
+        const key = formula.replace(/\b\w+\b(?=\s+and)/g, '[noun]').replace(/\b\w+\b$/, '[noun]').trim();
+        formulaCount[key] = (formulaCount[key] || 0) + 1;
+      }
+    }
+    const overusedFormulas = Object.entries(formulaCount).filter(([, c]) => c >= 3);
 
     let currentChapterRequest;
     if (useScenePath) {
@@ -1100,6 +1202,20 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
     // Cross-chapter phrase ban
     if (uniqueCrossChapterPhrases.length > 0) {
       currentChapterRequest += `\n\n=== PHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE) ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END PREVIOUS PHRASES ===`;
+    }
+
+    // PART A — Inject overused physical tics ban
+    if (Object.keys(overusedTics).length > 0) {
+      const ticLines = Object.entries(overusedTics).map(([char, tics]) =>
+        `${char}:\n${tics.slice(0, 5).map(t => `  - ${t}`).join('\n')}`
+      ).join('\n');
+      currentChapterRequest += `\n\n=== PHYSICAL ACTIONS ALREADY OVERUSED (DO NOT REPEAT FOR THESE CHARACTERS) ===\n${ticLines}\nInstead, use FRESH and VARIED physical manifestations of emotion. Rotate through: posture shifts, grip pressure, stillness, swallowing, temperature changes, muscle tension in different body parts, breathing pattern changes, vocal quality changes, eye movement, involuntary gestures.\n=== END OVERUSED PHYSICAL ACTIONS ===`;
+    }
+
+    // PART B — Inject overused sensory formula ban
+    if (overusedFormulas.length > 0) {
+      const formulaLines = overusedFormulas.map(([f, c]) => `- "${f}" (used ${c} times)`).join('\n');
+      currentChapterRequest += `\n\n=== SENSORY DESCRIPTION PATTERNS OVERUSED (VARY YOUR SYNTAX) ===\nThe following sensory constructions have been used too many times in previous chapters. Do NOT use these exact sentence structures again:\n${formulaLines}\nInstead, integrate sensory details using VARIED syntax: weave scent into action ("leather and dust hung in the air"), embed it in character perception ("he tasted copper at the back of his throat"), or attach it to movement ("each step released the smell of old wood from the floorboards").\n=== END SENSORY PATTERNS ===`;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
