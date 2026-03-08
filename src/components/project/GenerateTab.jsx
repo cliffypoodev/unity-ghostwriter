@@ -770,11 +770,39 @@ export default function GenerateTab({ projectId, onProceed }) {
 
     // Validate that chapters exist before starting
     if (toWrite.length === 0) {
-      currentError = "No chapters found to write. Please regenerate your outline first.";
-      setWriteAllProgress(prev => ({ ...prev, done: true, error: currentError }));
+      setWriteAllProgress(prev => ({ ...prev, done: true, error: "No chapters found to write. Please regenerate your outline first." }));
       setWriteAllActive(false);
       return;
     }
+
+    // ── PHASE 1: Generate scenes for fiction chapters that don't have them ──
+    if (spec?.book_type !== 'nonfiction') {
+      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '');
+      if (needScenes.length > 0) {
+        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: "Phase 1: Generating Scenes", currentTitle: needScenes[0].title }));
+        for (let i = 0; i < needScenes.length; i++) {
+          if (writeAllAbortRef.current) break;
+          const ch = needScenes[i];
+          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: ${ch.title} (${i + 1}/${needScenes.length})` }));
+          try {
+            await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
+            let polls = 0;
+            while (polls < 45) {
+              await new Promise(r => setTimeout(r, 2000));
+              polls++;
+              const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+              const updCh = updated.find(c => c.id === ch.id);
+              if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') break;
+            }
+          } catch (err) {
+            console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
+          }
+        }
+        await refetchChapters();
+      }
+    }
+
+    setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: "Phase 2: Writing Chapters" }));
 
     // SEQUENTIAL: Each chapter must finish before next one starts
     for (let i = 0; i < toWrite.length; i++) {
