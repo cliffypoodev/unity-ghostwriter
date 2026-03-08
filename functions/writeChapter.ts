@@ -932,12 +932,13 @@ ${prevChapterTail ? `=== PREVIOUS CHAPTER ENDING — DO NOT REPEAT THIS TONE OR 
 Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.`;
     } else if (isNonfiction) {
       currentChapterRequest = _buildNonfictionUserMessage(
-        chapter.chapter_number, 
-        { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary }, 
-        totalChapters, 
+        chapter.chapter_number,
+        { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary },
+        totalChapters,
         TARGET_WORDS
       );
     } else {
+      // ── LEGACY FICTION PATH (no scenes) ──────────────────────────────────
       const openingType = getOpeningType(chapter.chapter_number);
       const endingType = getEndingType(chapter.chapter_number);
 
