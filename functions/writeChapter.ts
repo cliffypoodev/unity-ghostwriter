@@ -620,7 +620,21 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     const bookType = projectSpec?.book_type || 'fiction';
     const isNonfiction = bookType === 'nonfiction';
-    
+
+    // Parse scenes if present (fiction only) — determines whether to use scene-based path
+    let parsedScenes = null;
+    try {
+      if (chapter.scenes && typeof chapter.scenes === 'string' && chapter.scenes.length > 2) {
+        const trimmed = chapter.scenes.trim();
+        if (trimmed !== 'null' && trimmed !== '[]') {
+          parsedScenes = JSON.parse(chapter.scenes);
+        }
+      }
+    } catch (e) {
+      console.warn('Scene parse failed, falling back to legacy path:', e.message);
+    }
+    const useScenePath = !isNonfiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
+
     let systemPrompt;
     if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
