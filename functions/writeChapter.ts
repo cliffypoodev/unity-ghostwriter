@@ -842,9 +842,24 @@ STRUCTURAL LOOP DETECTION — BANNED AFTER CHAPTER 1:
       }
       if (!prevContent) continue;
 
+      const prevChNum = prevCh.chapter_number;
+      const prevEndingIdx = ((prevChNum + 1) % 5) + 1;
+      const endingTypesDict = isNonfiction ? NONFICTION_ENDING_TYPES : FICTION_ENDING_TYPES;
+      const prevEndingType = endingTypesDict[prevEndingIdx] || "";
+
       messages.push({
         role: 'user',
-        content: `Write Chapter ${prevCh.chapter_number}: '${prevCh.title}'\n\nCHAPTER PROMPT:\n${prevCh.prompt || ''}\n\nCHAPTER SUMMARY:\n${prevCh.summary || ''}\n\nWrite this chapter in full.`
+        content: `Write Chapter ${prevChNum}: "${prevCh.title}"
+
+CHAPTER PROMPT:
+${prevCh.prompt || ''}
+
+CHAPTER SUMMARY:
+${prevCh.summary || ''}
+
+ENDING TYPE USED: ${prevEndingType}
+
+Write this chapter in full.`
       });
       messages.push({
         role: 'assistant',
