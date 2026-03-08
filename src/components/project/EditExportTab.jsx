@@ -653,6 +653,30 @@ export default function EditExportTab({ projectId }) {
       });
 
       quillRef.current = quill;
+
+      // Mobile style overrides
+      if (window.innerWidth < 768) {
+        const editorEl = editorRef.current?.querySelector('.ql-editor');
+        if (editorEl) {
+          editorEl.style.padding = '20px 16px';
+          editorEl.style.fontSize = '0.92rem';
+          editorEl.style.overflowWrap = 'break-word';
+          editorEl.style.wordBreak = 'break-word';
+        }
+        if (!document.getElementById('quill-mobile-styles')) {
+          const mobileStyle = document.createElement('style');
+          mobileStyle.id = 'quill-mobile-styles';
+          mobileStyle.textContent = `
+            .quill-page-wrapper .ql-editor h1 { font-size: 1.4rem !important; line-height: 1.25 !important; margin: 0.3em 0 !important; }
+            .quill-page-wrapper .ql-editor h2 { font-size: 1.15rem !important; line-height: 1.3 !important; margin: 0.6em 0 0.3em !important; }
+            .quill-page-wrapper .ql-editor h3 { font-size: 1rem !important; }
+            .quill-page-wrapper .ql-editor h4 { font-size: 0.9rem !important; }
+            .quill-page-wrapper .ql-editor { max-width: 100% !important; box-shadow: none !important; }
+          `;
+          document.head.appendChild(mobileStyle);
+        }
+      }
+
       setQuillReady(true);
     });
   }, []);
