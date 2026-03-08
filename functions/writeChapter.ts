@@ -307,50 +307,41 @@ function extractDistinctivePhrases(text) {
   return [...phrases].slice(0, 30).sort();
 }
 
-// PART A — Extract physical tics with broad regex coverage, normalized to canonical forms
+// PART 1 — Extract and normalize physical tics per character (16 families)
 function extractPhysicalTics(text) {
-  // Normalize tic patterns to a canonical key to group variations
   const TIC_PATTERNS = [
-    { key: 'chest tightened', rx: /\b(chest|ribcage|sternum)\s+(tighten\w*|constrict\w*|compress\w*|squeez\w*)\b|(tightn?\w*|constrict\w*)\s+in\s+(his|her|their)\s+chest\b/gi },
-    { key: 'breath caught/hitched', rx: /\b(breath\w*|breathing)\s+(caught|catch\w*|hitch\w*|stutter\w*|stopp?\w*|quicken\w*|shorten\w*)\b|\bbreath\s+left\b/gi },
-    { key: 'pulse quickened/raced', rx: /\b(pulse|heart)\s+(quicken\w*|race\w*|thunder\w*|hammer\w*|pound\w*|thud\w*|stutter\w*|lurch\w*|skip\w*)\b/gi },
-    { key: 'shiver down spine', rx: /\bshiver\w*\s+(down|up|along)\s+(his|her|their|the)\s+spine\b|\bspine\s+(shiver\w*|tingle\w*)\b/gi },
-    { key: 'jolt through body', rx: /\bjolt\w*\s+(through|down|up|across)\s+(him|her|them|his|her|their)\b|\b(jolt|shock|bolt)\s+(ran|shot|travel\w*|pass\w*)\s+through\b/gi },
-    { key: 'skin prickled', rx: /\bskin\s+(prickl\w*|crawl\w*|tingle\w*|burn\w*)\b/gi },
-    { key: 'stomach dropped/twisted', rx: /\b(stomach|gut|belly)\s+(drop\w*|twist\w*|flip\w*|clench\w*|knot\w*|lurch\w*|heave\w*|turn\w*)\b/gi },
-    { key: 'flush crept up', rx: /\bflush\w*\s+(crept?|creeping|spread\w*|rose|rising|mov\w*)\b|\bheat\s+(rose|crawl\w*|crept?|spread\w*)\s+(to|up|across|into)\s+(his|her|their)\s+(face|cheeks?|neck)\b/gi },
-    { key: 'mouth went dry', rx: /\bmouth\s+(went|go\w*|turn\w*|becom\w*)\s+dry\b|\bdry\s+mouth\b/gi },
-    { key: 'knees went weak', rx: /\b(knees?|legs?)\s+(went|go\w*|turn\w*|becom\w*)\s+(weak|soft|unstead\w*|numb\w*)\b|\b(legs?|knees?)\s+(buckl\w*|gave way|trembl\w*)\b/gi },
-    { key: 'blood ran cold', rx: /\bblood\s+(ran|run\w*|went|go\w*|turn\w*)\s+cold\b|\bcold\s+ran\s+through\s+(his|her|their)\s+blood\b/gi },
-    { key: 'throat tightened', rx: /\b(throat|airway)\s+(tighten\w*|constrict\w*|clos\w*|clog\w*|burn\w*)\b|\btightn?\w*\s+in\s+(his|her|their)\s+throat\b/gi },
-    { key: 'jaw clenched', rx: /\bjaw\s+(clench\w*|tighten\w*|set\b|lock\w*|work\w*)\b/gi },
-    { key: 'hands trembled', rx: /\b(hands?|fingers?|fists?)\s+(trembl\w*|shook|shak\w*|quiver\w*|twitch\w*)\b/gi },
-    { key: 'swallowed hard', rx: /\bswallow\w*\s+(hard|thickly|painfully|slowly|audibly)?\b/gi },
+    { canonical: 'chest tightened', rx: /\b(chest|ribcage)\s+(tighten\w*|constrict\w*|compress\w*|squeez\w*)\b|tightn?\w*\s+in\s+(his|her|their|the)\s+chest\b/gi },
+    { canonical: 'jaw tightened', rx: /\bjaw\s+(tightened|clenched?|clenching|set|locked?)\b/gi },
+    { canonical: 'throat tightened', rx: /\b(throat|airway)\s+(tightened?|clenched?|constricted?)\b/gi },
+    { canonical: 'stomach twisted', rx: /\b(stomach|gut|belly)\s+(twisted?|dropped?|flipped?|knotted?|clenched?)\b/gi },
+    { canonical: 'fists clenched', rx: /\b(fist|fists|hand|hands)\s+(clenched?|curled? into fists?|balled? into fists?)\b/gi },
+    { canonical: 'fingers tightened', rx: /\b(fingers?|grip|hold|grasp)\s+(tightened?|clenched?|curled?|digging? into|gripped?|whitened?)\b/gi },
+    { canonical: 'breath caught', rx: /\b(breath|breathing)\s+(caught|catching|hitched?|stuttered?|stopped?)\b|stopped? breathing|forgot to breathe/gi },
+    { canonical: 'pulse quickened', rx: /\b(pulse|heartbeat)\s+(quickened?|raced?|throbbed?|hammered?|spiked?)\b/gi },
+    { canonical: 'heart raced', rx: /\b(heart|heartbeat)\s+(raced?|pounded?|hammered?|thudded?|thundered?|slammed?|stuttered?)\b/gi },
+    { canonical: 'shiver down spine', rx: /\b(shiver|chill)\w*\s+(down|up|ran|coursed|through)\s+(his|her|their|the)\s+(spine|back)\b/gi },
+    { canonical: 'jolt through body', rx: /\bjolt\w*\s+(through|of|ran|shot)\b|(shock|bolt)\s+(through|ran|shot)\s+(him|her|them|his|her|their|the)\b/gi },
+    { canonical: 'skin prickled', rx: /\bskin\s+(prickled?|tingled?|crawled?)\b|goosebumps?|gooseflesh/gi },
+    { canonical: 'flush crept', rx: /\bflush\w*\s+(crept?|spread|rose)\b|heat\s+(crept?|spread|rose|bloomed?)\s+(up|across|into|to)\b|color\s+(crept?|rose|flooded?)\s+(up|across)\b/gi },
+    { canonical: 'mouth went dry', rx: /\bmouth\s+(went|was|grew)\s+dry\b|dry\s+mouth|swallowed? against dryness/gi },
+    { canonical: 'knees went weak', rx: /\b(knees?|legs?)\s+(went|was|grew)\s+(weak|soft|unsteady|shaky)\b|(knees?|legs?)\s+(buckled?|wobbled?|trembled?|gave way)\b/gi },
+    { canonical: 'blood ran cold', rx: /\b(blood|color)\s+(ran|went|turned)\s+(cold|ice|white|pale)\b|blood\s+(drained|left|drained away)\b/gi },
   ];
 
-  // For each tic, find character associations
-  const ticsByChar = {}; // charName -> Set of canonical tic keys
-
-  for (const { key, rx } of TIC_PATTERNS) {
+  const ticsByChar = {};
+  for (const { canonical, rx } of TIC_PATTERNS) {
     let match;
     rx.lastIndex = 0;
     while ((match = rx.exec(text)) !== null) {
       const idx = match.index;
       const ctx = text.slice(Math.max(0, idx - 150), idx + match[0].length + 150);
-      // Look for a proper noun (character name) in context
       const nameMatch = ctx.match(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+)?\b/);
       const charName = nameMatch ? nameMatch[0] : 'Unknown';
-      if (!ticsByChar[charName]) ticsByChar[charName] = new Set();
-      ticsByChar[charName].add(key);
+      if (!ticsByChar[charName]) ticsByChar[charName] = {};
+      ticsByChar[charName][canonical] = (ticsByChar[charName][canonical] || 0) + 1;
     }
   }
-
-  // Flatten to array of { char, tic }
-  const result = [];
-  for (const [char, tics] of Object.entries(ticsByChar)) {
-    for (const tic of tics) result.push({ char, tic });
-  }
-  return result;
+  return ticsByChar; // { charName -> { ticName -> count } }
 }
 
 // PART B — Extract overused sensory formula patterns
@@ -371,29 +362,73 @@ function extractSensoryFormulas(text) {
   return formulas;
 }
 
-// PART B — Extract metaphor cluster usage counts
-const METAPHOR_CLUSTERS = {
-  'FIRE':      /\b(burn\w*|flame\w*|ignit\w*|blaz\w*|scorch\w*|ember\w*|ash\w*|smok\w*|kindl\w*|spark\w*|inferno\w*|fire\w*|fierc\w*|sear\w*)\b/gi,
-  'WATER':     /\b(drown\w*|flood\w*|wav\w*|current\w*|tide\w*|submerg\w*|surfac\w*|depth\w*|pour\w*|overflow\w*|torrent\w*|wash\w*)\b/gi,
-  'DARKNESS':  /\b(shadow\w*|dark\w*|dim\w*|eclips\w*|void\w*|abyss\w*|blackness\w*|murk\w*|gloom\w*)\b/gi,
-  'CHAOS':     /\b(chaos\w*|storm\w*|whirlwind\w*|tempest\w*|spiral\w*|unravel\w*|shatter\w*|crack\w*|fractur\w*|crumbl\w*)\b/gi,
-  'EDGE':      /\b(edge\w*|cliff\w*|precipic\w*|brink\w*|freefall\w*|plung\w*|div\w*|vertigo\w*)\b/gi,
+// PART 2 — Extract metaphor cluster usage (6 families)
+const METAPHOR_CLUSTER_WORDS = {
+  'FIRE': ['burn', 'burns', 'burned', 'burning', 'flame', 'flames', 'flaming', 'ignite', 'ignited', 'igniting', 'blaze', 'blazed', 'blazing', 'scorch', 'scorched', 'scorching', 'ember', 'embers', 'ash', 'ashes', 'smoke', 'smoked', 'smoking', 'kindle', 'kindled', 'kindling', 'spark', 'sparks', 'sparked', 'sparking', 'inferno', 'fire', 'fires', 'smolder', 'smoldered', 'smoldering', 'sear', 'seared', 'searing'],
+  'WATER': ['drown', 'drowns', 'drowned', 'drowning', 'flood', 'flooded', 'flooding', 'wave', 'waves', 'current', 'currents', 'tide', 'tides', 'submerge', 'submerged', 'submerging', 'surface', 'surfaced', 'surfacing', 'depth', 'depths', 'pour', 'poured', 'pouring', 'overflow', 'overflowed', 'overflowing', 'undertow', 'undercurrent'],
+  'DARKNESS': ['shadow', 'shadows', 'shadowed', 'shadowy', 'dark', 'darker', 'darkened', 'darkening', 'darkness', 'dim', 'dimmed', 'dimming', 'eclipse', 'eclipsed', 'void', 'abyss', 'night', 'blackness', 'gloom', 'gloomy', 'murk', 'murky'],
+  'CHAOS': ['chaos', 'chaotic', 'storm', 'storms', 'storming', 'stormy', 'whirlwind', 'tempest', 'spiral', 'spiraled', 'spiraling', 'unravel', 'unraveled', 'unraveling', 'shatter', 'shattered', 'shattering', 'crack', 'cracked', 'cracking', 'fracture', 'fractured', 'fracturing', 'rupture', 'ruptured', 'rupturing'],
+  'EDGE': ['edge', 'edges', 'cliff', 'cliffs', 'precipice', 'brink', 'freefall', 'plunge', 'plunged', 'plunging', 'dive', 'dived', 'diving', 'vertigo', 'abyss', 'chasm'],
+  'ENCLOSURE': ['cage', 'caged', 'cages', 'trap', 'trapped', 'trapping', 'lock', 'locked', 'locking', 'seal', 'sealed', 'sealing', 'confine', 'confined', 'confining', 'corner', 'cornered', 'cornering', 'pin', 'pinned', 'pinning', 'press', 'pressed', 'pressing', 'close', 'closed', 'closing', 'enclose', 'enclosed'],
 };
 
 function extractMetaphorClusters(text) {
-  const counts = {};
-  for (const [cluster, rx] of Object.entries(METAPHOR_CLUSTERS)) {
-    rx.lastIndex = 0;
-    const matches = text.match(rx);
-    counts[cluster] = matches ? matches.length : 0;
+  const result = {};
+  const lowerText = text.toLowerCase();
+  for (const [cluster, words] of Object.entries(METAPHOR_CLUSTER_WORDS)) {
+    let count = 0;
+    const matched = [];
+    for (const word of words) {
+      const rx = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = lowerText.match(rx);
+      if (matches) {
+        count += matches.length;
+        matched.push(...matches);
+      }
+    }
+    result[cluster] = { count, matched: [...new Set(matched)] };
   }
-  return counts;
+  return result; // { clusterName -> { count, matched } }
 }
 
 // PART D — Genre detection helper for intimate scene rules
 function isIntimateGenre(spec) {
   const g = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
   return /erotica|romance|adult|erotic/.test(g);
+}
+
+// PART 3 — Scan dialogue for banned subtext patterns
+function scanDialoguePatterns(text) {
+  const dialogueRegex = /[""]([^""]+?)[""]|'([^']+?)'/g;
+  let match;
+  const allDialogue = [];
+  while ((match = dialogueRegex.exec(text)) !== null) {
+    const dialogue = match[1] || match[2];
+    allDialogue.push(dialogue.toLowerCase());
+  }
+  const dialogueText = allDialogue.join(' ');
+
+  const patterns = {
+    afraid_of_metaphor: /are you afraid of|are you afraid to/gi,
+    what_if_i_want: /what if i want to|what if i wanted to/gi,
+    let_go: /let go|stop hiding|step outside your comfort zone|stop running/gi,
+    dare_to_risk: /willing to risk|willing to take that risk|willing to take the risk/gi,
+    rhetorical_invitation: /do you want to find out|are you sure you can handle|then why are you|then why don't you|do you understand what you/gi,
+    narrating_dynamic: /you're intrigued|you can't just|you can't stand|you're just as|you're not like/gi,
+    labeling_tension: /this is dangerous|we're playing with|this could ruin|this could destroy|what we have is/gi,
+    tell_me_you_want: /tell me you want|tell me you need|tell me you feel/gi,
+    philosophical_dare: /what are you afraid of|what do you want|what do you really want|what do you truly want|what do you desire|what do you really desire|what do you truly desire/gi,
+  };
+
+  const results = [];
+  for (const [patternName, rx] of Object.entries(patterns)) {
+    rx.lastIndex = 0;
+    const matches = dialogueText.match(rx);
+    if (matches && matches.length > 0) {
+      results.push({ pattern: patternName, count: matches.length, examples: matches.slice(0, 2) });
+    }
+  }
+  return results; // [{ pattern, count, examples }]
 }
 
 const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE GENRE:
