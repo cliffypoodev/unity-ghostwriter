@@ -690,7 +690,6 @@ export default function GenerateTab({ projectId, onProceed }) {
     let successes = 0;
     let totalWordsWritten = 0;
     const failures = [];
-    let currentError = null;
     let isWriting = true;
 
     // ISSUE 5 FIX: Validate that chapters exist before starting
