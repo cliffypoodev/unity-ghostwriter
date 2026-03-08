@@ -488,7 +488,7 @@ D. Max 2 consecutive philosophically provocative lines per character. Break inte
 E. After physical intimacy, no character may smirk, deliver a witty one-liner, or say "You taste like [noun] and [noun]".`;
 
 // PART 6 — EXTENDED POST-GENERATION QUALITY SCANNER
-function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null) {
+function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null, bookType = "fiction") {
   const bannedPhrases = {
     physicalReactions: [
       "heart racing", "heart raced", "heart pounding", "heart pounded", "heart hammered", "heart thudded", "heart thundering",
@@ -719,6 +719,13 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
     violationCount += dialoguePatterns.length;
   }
 
+  // NONFICTION-SPECIFIC CHECKS: Detect fiction-trap patterns
+  if (bookType === "nonfiction") {
+    const nfWarnings = scanNonfictionQuality(text);
+    violations.push(...nfWarnings);
+    violationCount += nfWarnings.length;
+  }
+
   return {
     chapter_number: chapterNumber,
     violation_count: violationCount,
@@ -726,6 +733,69 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
     warnings: violations,
     passed: violations.length === 0
   };
+}
+
+// NONFICTION QUALITY SCANNER — detects fiction-trap patterns
+function scanNonfictionQuality(text) {
+  const warnings = [];
+
+  // Check for excessive dialogue (fiction trap)
+  const dialogueChunks = text.match(/[""]([^""]{5,})[""]|'([^']{5,})'/g) || [];
+  const totalDialogueWords = dialogueChunks.reduce((sum, chunk) => sum + chunk.split(/\s+/).length, 0);
+  const totalWords = text.split(/\s+/).length;
+  if (totalWords > 0) {
+    const dialogueRatio = totalDialogueWords / totalWords;
+    if (dialogueRatio > 0.20) {
+      warnings.push(
+        `FICTION TRAP: ${(dialogueRatio * 100).toFixed(0)}% of chapter is dialogue ` +
+        `(${totalDialogueWords} words). Nonfiction should be max 20% dialogue. ` +
+        `Replace extended dialogue scenes with authorial voice and analysis.`
+      );
+    }
+  }
+
+  // Check for long dialogue runs (5+ consecutive dialogue lines)
+  const lines = text.split('\n');
+  let dialogueRun = 0;
+  let maxRun = 0;
+  for (const line of lines) {
+    const stripped = line.trim();
+    if (stripped && (stripped.startsWith('"') || stripped.startsWith('"') || stripped.startsWith("'"))) {
+      dialogueRun++;
+      maxRun = Math.max(maxRun, dialogueRun);
+    } else if (stripped) {
+      dialogueRun = 0;
+    }
+  }
+  if (maxRun >= 5) {
+    warnings.push(
+      `FICTION TRAP: Found ${maxRun} consecutive dialogue lines. ` +
+      `Nonfiction should not have extended fictional dialogue exchanges.`
+    );
+  }
+
+  // Check for nonfiction-specific banned phrases
+  const nfBanned = [
+    { rx: /(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi, label: "emotional melodrama" },
+    { rx: /(?:warmth|sense of peace|wave of calm)\s+(?:spread|washed|flooded)\s+(?:through|over)/gi, label: "inspirational fiction" },
+    { rx: /felt a renewed sense of/gi, label: "inspirational cliche" },
+    { rx: /it was (?:a )?(?:powerful |beautiful |profound )?(?:reminder|testament)/gi, label: "declaration instead of showing" },
+    { rx: /(?:infectious|contagious)\s+(?:laughter|enthusiasm|energy|smile|joy)/gi, label: "cliche 'infectious'" },
+    { rx: /(?:monumental|transformative|life-changing|game-changer|game.changing)/gi, label: "hyperbolic adjective" },
+    { rx: /(?:beacon of hope|ray of light|silver lining)/gi, label: "inspirational cliche" },
+    { rx: /(?:on a journey|navigate this journey|the road ahead|armed with knowledge)/gi, label: "journey metaphor" },
+    { rx: /together,?\s+they\s+(?:would|could|will)\s+(?:build|create|forge)/gi, label: "inspirational fiction" },
+    { rx: /(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi, label: "fictional celebration scene" },
+  ];
+
+  for (const { rx, label } of nfBanned) {
+    const matches = text.match(rx);
+    if (matches) {
+      warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`);
+    }
+  }
+
+  return warnings;
 }
 
 // ── NONFICTION SYSTEM PROMPT BUILDER ──────────────────────────────────────────
@@ -1553,7 +1623,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
     fullContent = fullContentWorking;
 
     // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters and storyBible)
-    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible);
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction");
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
@@ -1586,7 +1656,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
             passCount = pass;
             
             // Re-scan after rewrite (with previousChapters and storyBible)
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible);
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction");
             console.log(`After pass ${pass} quality scan:`, qualityResult);
             
             if (qualityResult.passed) {
