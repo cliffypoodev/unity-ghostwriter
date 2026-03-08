@@ -352,11 +352,15 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
           )}
           <Button
             size="sm"
-            className={cn("h-7 text-xs px-2.5", isStreaming ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
-            disabled={isStreaming}
-            onClick={() => onWrite(chapter)}
+            className={cn("h-7 text-xs px-2.5", (isStreaming || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
+            disabled={isStreaming || generatingScenesThenWrite}
+            onClick={handleWriteClick}
           >
-            {isStreaming ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Writing…</> : <><RefreshCw className="w-3 h-3 mr-1" />{chapter.status === "generated" ? "Regenerate" : "Write"}</>}
+            {generatingScenesThenWrite
+              ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Scenes…</>
+              : isStreaming
+                ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Writing…</>
+                : <><RefreshCw className="w-3 h-3 mr-1" />{chapter.status === "generated" ? "Regenerate" : "Write"}</>}
           </Button>
         </div>
       </div>
