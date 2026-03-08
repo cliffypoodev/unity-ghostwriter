@@ -434,17 +434,10 @@ function _buildNonfictionUserMessage(ch_num, chapter_info, total_chapters, targe
     4: "Second-person immersion — 'Imagine waking up and...' or 'You arrive at...' — put the reader directly into the experience.",
     5: "A counterintuitive claim — open with something that challenges the reader's assumptions.",
   };
-  const nf_ending_types = {
-    1: "A quiet, resonant image — a single specific detail that carries the chapter's emotional weight.",
-    2: "A reframing sentence — one line that recasts everything the chapter discussed in a new light.",
-    3: "A brief poem, aphorism, or set-apart reflection — 2-4 lines of compressed wisdom.",
-    4: "A lingering question — posed directly to the reader, unanswered.",
-    5: "A return to the opening vignette — circle back to the scene from the beginning, now seen differently.",
-  };
   const opening_idx = ((ch_num - 1) % 5) + 1;
-  const ending_idx = ((ch_num - 1) % 5) + 1;
+  const ending_idx = ((ch_num + 1) % 5) + 1;
   const required_opening = nf_opening_types[opening_idx];
-  const required_ending = nf_ending_types[ending_idx];
+  const required_ending = NONFICTION_ENDING_TYPES[ending_idx];
 
   return `Write Chapter ${ch_num}: "${chapter_info.title}"
 
