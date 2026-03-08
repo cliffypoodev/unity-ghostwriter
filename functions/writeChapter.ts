@@ -1381,53 +1381,41 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
       currentChapterRequest += `\n\n=== PHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE) ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END PREVIOUS PHRASES ===`;
     }
 
-    // PART A — Inject overused physical tics ban (threshold: used >= 1 previous chapter)
-    if (Object.keys(overusedTics).length > 0) {
-      const ticLines = Object.entries(overusedTics).map(([char, used]) =>
-        `${char}:\n${used.slice(0, 8).map(({ tic, chapters }) => `  - ${tic} (used in chapter${chapters.length > 1 ? 's' : ''} ${chapters.join(', ')})`).join('\n')}`
-      ).join('\n');
-      currentChapterRequest = `=== BANNED PHYSICAL REACTIONS — DO NOT USE ===
-These exact body reactions have already been used for these characters. Using any of them again will result in repetitive, amateurish prose. You MUST find a DIFFERENT physical manifestation.
+    // PART 4A — Inject physical tics ban into user message
+    if (Object.keys(bannedTicsByChar).length > 0) {
+      const ticLines = Object.entries(bannedTicsByChar).map(([char, banned]) =>
+        `${char}:\n${banned.map(({ tic, chapters }) => `- ${tic} (used in ch ${chapters.join(', ')})`).join('\n')}`
+      ).join('\n\n');
+      const ticInjection = `=== BANNED PHYSICAL REACTIONS — DO NOT USE ===
+These exact body reactions have already been used for these characters. Using any of them again will result in repetitive prose. Find a DIFFERENT physical manifestation.
 
 ${ticLines}
 
-INSTEAD USE (rotate through these, never repeating within the same chapter):
-- Stillness or freezing in place
-- Grip pressure on an object (glass, armrest, steering wheel, fabric)
-- Posture collapse or stiffening
-- Swallowing or difficulty swallowing
-- Temperature sensation (cold hands, heat behind the eyes, warmth spreading across the back of the neck)
-- Muscle tension in a SPECIFIC location (not generic "tension" — e.g., the tendon in his forearm, the muscles along his jaw, the space between his shoulder blades)
-- Change in vocal quality (voice dropping, voice cracking, words coming out too fast)
-- Involuntary movement (tapping, fidgeting, touching own face/hair)
-- Breathing pattern change described through action, not label (e.g., "he exhaled through his nose" not "his breath quickened")
-- Eye movement (gaze dropping, looking away, blinking rapidly, staring without seeing)
+INSTEAD USE: stillness/freezing, grip pressure on object, posture collapse/stiffening, swallowing difficulty, temperature sensation (cold hands, heat behind eyes), specific muscle tension (tendon in forearm, muscles along jaw, between shoulder blades), vocal quality change (voice dropping, cracking, words too fast), involuntary movement (tapping, fidgeting, touching face/hair), breathing through action ("exhaled through his nose" not "breath quickened"), eye movement (gaze dropping, looking away, blinking rapidly, staring without seeing)
 === END BANNED REACTIONS ===
 
-` + currentChapterRequest;
+`;
+      currentChapterRequest = ticInjection + currentChapterRequest;
     }
 
-    // PART B — Inject overused sensory formula ban
-    if (overusedFormulas.length > 0) {
-      const formulaLines = overusedFormulas.map(([f, c]) => `- "${f}" (used ${c} times)`).join('\n');
-      currentChapterRequest += `\n\n=== SENSORY DESCRIPTION PATTERNS OVERUSED (VARY YOUR SYNTAX) ===\nThe following sensory constructions have been used too many times in previous chapters. Do NOT use these exact sentence structures again:\n${formulaLines}\nInstead, integrate sensory details using VARIED syntax: weave scent into action ("leather and dust hung in the air"), embed it in character perception ("he tasted copper at the back of his throat"), or attach it to movement ("each step released the smell of old wood from the floorboards").\n=== END SENSORY PATTERNS ===`;
-    }
-
-    // PART B — Inject metaphor cluster ban
+    // PART 4B — Inject metaphor cluster ban into user message
     if (flaggedClusters.length > 0) {
-      const clusterLines = flaggedClusters.map(([cluster, count]) => {
-        const exampleWords = Object.keys(METAPHOR_CLUSTERS).includes(cluster)
-          ? METAPHOR_CLUSTERS[cluster].source.match(/\\b\(([^)]+)\)/)?.[1]?.replace(/\\w\*/g, '...').replace(/\|/g, ', ') || cluster.toLowerCase()
-          : cluster.toLowerCase();
-        return `- ${cluster} metaphors (used ${count} times): ${exampleWords}`;
+      const clusterLines = flaggedClusters.map(cluster => {
+        const words = METAPHOR_CLUSTER_WORDS[cluster] || [];
+        const sampleWords = words.slice(0, 5).join(', ');
+        const totalCount = clusterTotals[cluster] || 0;
+        return `- ${cluster} metaphors (used ${totalCount} times): ${sampleWords}`;
       }).join('\n');
-      currentChapterRequest += `\n\n=== OVERUSED METAPHOR FAMILIES — MUST VARY ===
+      const clusterInjection = `=== OVERUSED METAPHOR FAMILIES — MUST VARY ===
 The following metaphor clusters have been used too heavily in previous chapters. Do NOT use more than 1 word from any flagged cluster in this chapter. Find FRESH figurative language.
 
 ${clusterLines}
 
-A compelling novel uses varied figurative language. If previous chapters used fire or darkness as dominant metaphors, this chapter must find a completely different register: mechanical imagery, animal imagery, architectural imagery, textile imagery, botanical imagery, musical imagery, food/taste imagery, or geometric/spatial imagery.
-=== END OVERUSED METAPHORS ===`;
+Try instead: mechanical imagery, animal imagery, architectural imagery, textile imagery, weather that isn't storms, botanical imagery, musical imagery, food/taste imagery, or geometric/spatial imagery.
+=== END OVERUSED METAPHORS ===
+
+`;
+      currentChapterRequest = currentChapterRequest + '\n\n' + clusterInjection;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
@@ -1514,8 +1502,7 @@ A compelling novel uses varied figurative language. If previous chapters used fi
       return checks;
     }
 
-    const bannedTicsByChar = overusedTics;
-    const bannedClusterNames = flaggedClusters.map(([c]) => c);
+    const bannedClusterNames = flaggedClusters;
     const isErotic = isIntimateGenre(projectSpec);
 
     let fullContentWorking = fullContent;
