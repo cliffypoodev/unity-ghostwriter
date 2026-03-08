@@ -307,23 +307,48 @@ function extractDistinctivePhrases(text) {
   return [...phrases].slice(0, 30).sort();
 }
 
-// PART A — Extract physical tics (body part + verb combos) per character
+// PART A — Extract physical tics with broad regex coverage, normalized to canonical forms
 function extractPhysicalTics(text) {
-  const tics = [];
-  const bodyPartRegex = /\b(hands?|fingers?|jaw|fists?|breath|pulse|stomach|chest|throat|skin|spine|knees?|legs?|mouth|lips?|eyes?|shoulders?|muscles?|neck|temples?|gut)\s+(trembl\w+|shook|shak\w+|tighten\w+|clenched?|clench\w+|curl\w+|hitch\w+|quicken\w+|drop\w+|prickl\w+|went dry|went cold|went rigid|knotted|convuls\w+|flutter\w+|ach\w+|burn\w+|twitch\w+)/gi;
-  const involuntaryRegex = /\b(mouth went dry|stomach dropped?|skin prickl\w+|blood ran cold|vision blurred?|legs? (gave way|buckled?)|swallowed? hard|air left (his|her|their) lungs?)\b/gi;
-  let match;
-  while ((match = bodyPartRegex.exec(text)) !== null) tics.push(match[0].toLowerCase().trim());
-  while ((match = involuntaryRegex.exec(text)) !== null) tics.push(match[0].toLowerCase().trim());
-  // Try to associate tics with nearby character names (within 100 chars)
+  // Normalize tic patterns to a canonical key to group variations
+  const TIC_PATTERNS = [
+    { key: 'chest tightened', rx: /\b(chest|ribcage|sternum)\s+(tighten\w*|constrict\w*|compress\w*|squeez\w*)\b|(tightn?\w*|constrict\w*)\s+in\s+(his|her|their)\s+chest\b/gi },
+    { key: 'breath caught/hitched', rx: /\b(breath\w*|breathing)\s+(caught|catch\w*|hitch\w*|stutter\w*|stopp?\w*|quicken\w*|shorten\w*)\b|\bbreath\s+left\b/gi },
+    { key: 'pulse quickened/raced', rx: /\b(pulse|heart)\s+(quicken\w*|race\w*|thunder\w*|hammer\w*|pound\w*|thud\w*|stutter\w*|lurch\w*|skip\w*)\b/gi },
+    { key: 'shiver down spine', rx: /\bshiver\w*\s+(down|up|along)\s+(his|her|their|the)\s+spine\b|\bspine\s+(shiver\w*|tingle\w*)\b/gi },
+    { key: 'jolt through body', rx: /\bjolt\w*\s+(through|down|up|across)\s+(him|her|them|his|her|their)\b|\b(jolt|shock|bolt)\s+(ran|shot|travel\w*|pass\w*)\s+through\b/gi },
+    { key: 'skin prickled', rx: /\bskin\s+(prickl\w*|crawl\w*|tingle\w*|burn\w*)\b/gi },
+    { key: 'stomach dropped/twisted', rx: /\b(stomach|gut|belly)\s+(drop\w*|twist\w*|flip\w*|clench\w*|knot\w*|lurch\w*|heave\w*|turn\w*)\b/gi },
+    { key: 'flush crept up', rx: /\bflush\w*\s+(crept?|creeping|spread\w*|rose|rising|mov\w*)\b|\bheat\s+(rose|crawl\w*|crept?|spread\w*)\s+(to|up|across|into)\s+(his|her|their)\s+(face|cheeks?|neck)\b/gi },
+    { key: 'mouth went dry', rx: /\bmouth\s+(went|go\w*|turn\w*|becom\w*)\s+dry\b|\bdry\s+mouth\b/gi },
+    { key: 'knees went weak', rx: /\b(knees?|legs?)\s+(went|go\w*|turn\w*|becom\w*)\s+(weak|soft|unstead\w*|numb\w*)\b|\b(legs?|knees?)\s+(buckl\w*|gave way|trembl\w*)\b/gi },
+    { key: 'blood ran cold', rx: /\bblood\s+(ran|run\w*|went|go\w*|turn\w*)\s+cold\b|\bcold\s+ran\s+through\s+(his|her|their)\s+blood\b/gi },
+    { key: 'throat tightened', rx: /\b(throat|airway)\s+(tighten\w*|constrict\w*|clos\w*|clog\w*|burn\w*)\b|\btightn?\w*\s+in\s+(his|her|their)\s+throat\b/gi },
+    { key: 'jaw clenched', rx: /\bjaw\s+(clench\w*|tighten\w*|set\b|lock\w*|work\w*)\b/gi },
+    { key: 'hands trembled', rx: /\b(hands?|fingers?|fists?)\s+(trembl\w*|shook|shak\w*|quiver\w*|twitch\w*)\b/gi },
+    { key: 'swallowed hard', rx: /\bswallow\w*\s+(hard|thickly|painfully|slowly|audibly)?\b/gi },
+  ];
+
+  // For each tic, find character associations
+  const ticsByChar = {}; // charName -> Set of canonical tic keys
+
+  for (const { key, rx } of TIC_PATTERNS) {
+    let match;
+    rx.lastIndex = 0;
+    while ((match = rx.exec(text)) !== null) {
+      const idx = match.index;
+      const ctx = text.slice(Math.max(0, idx - 150), idx + match[0].length + 150);
+      // Look for a proper noun (character name) in context
+      const nameMatch = ctx.match(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+)?\b/);
+      const charName = nameMatch ? nameMatch[0] : 'Unknown';
+      if (!ticsByChar[charName]) ticsByChar[charName] = new Set();
+      ticsByChar[charName].add(key);
+    }
+  }
+
+  // Flatten to array of { char, tic }
   const result = [];
-  for (const tic of [...new Set(tics)].slice(0, 20)) {
-    const idx = text.toLowerCase().indexOf(tic);
-    if (idx === -1) continue;
-    const ctx = text.slice(Math.max(0, idx - 100), idx + tic.length + 100);
-    const nameMatch = ctx.match(/\b[A-Z][a-z]{2,}\b/);
-    const charName = nameMatch ? nameMatch[0] : 'Unknown';
-    result.push({ char: charName, tic });
+  for (const [char, tics] of Object.entries(ticsByChar)) {
+    for (const tic of tics) result.push({ char, tic });
   }
   return result;
 }
@@ -346,19 +371,48 @@ function extractSensoryFormulas(text) {
   return formulas;
 }
 
+// PART B — Extract metaphor cluster usage counts
+const METAPHOR_CLUSTERS = {
+  'FIRE':      /\b(burn\w*|flame\w*|ignit\w*|blaz\w*|scorch\w*|ember\w*|ash\w*|smok\w*|kindl\w*|spark\w*|inferno\w*|fire\w*|fierc\w*|sear\w*)\b/gi,
+  'WATER':     /\b(drown\w*|flood\w*|wav\w*|current\w*|tide\w*|submerg\w*|surfac\w*|depth\w*|pour\w*|overflow\w*|torrent\w*|wash\w*)\b/gi,
+  'DARKNESS':  /\b(shadow\w*|dark\w*|dim\w*|eclips\w*|void\w*|abyss\w*|blackness\w*|murk\w*|gloom\w*)\b/gi,
+  'CHAOS':     /\b(chaos\w*|storm\w*|whirlwind\w*|tempest\w*|spiral\w*|unravel\w*|shatter\w*|crack\w*|fractur\w*|crumbl\w*)\b/gi,
+  'EDGE':      /\b(edge\w*|cliff\w*|precipic\w*|brink\w*|freefall\w*|plung\w*|div\w*|vertigo\w*)\b/gi,
+};
+
+function extractMetaphorClusters(text) {
+  const counts = {};
+  for (const [cluster, rx] of Object.entries(METAPHOR_CLUSTERS)) {
+    rx.lastIndex = 0;
+    const matches = text.match(rx);
+    counts[cluster] = matches ? matches.length : 0;
+  }
+  return counts;
+}
+
 // PART D — Genre detection helper for intimate scene rules
 function isIntimateGenre(spec) {
   const g = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
   return /erotica|romance|adult|erotic/.test(g);
 }
 
-const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES (EROTICA/ROMANCE GENRE):
-- Physical/intimate scenes must have a MINIMUM of 3 full paragraphs of escalation before any interruption, pullback, or scene break.
-- Escalation means: each paragraph increases intensity through layered sensory detail — texture, temperature, pressure, sound, breath, the way fabric moves, the way skin responds to contact, the shift in breathing patterns, the small involuntary sounds.
-- Stay in the literary register. Use precise physical detail and character interiority to build heat. Do NOT use crude or clinical terminology. Think literary fiction with erotic charge — Anaïs Nin, Garth Greenwell, Ocean Vuong.
-- Interiority during intimate scenes is critical. Show how the physical contact affects the character mentally — what it means, what it triggers, what it reveals about power, trust, or vulnerability.
-- If an interruption is narratively necessary, the reader must feel the LOSS of the moment. The interruption should feel like something was taken away, not like the scene was conveniently avoided.
-- Do NOT use intimate scenes as pure plot mechanics without first honoring the scene on its own terms. The physical reality must exist fully before the narrative consequences arrive.`;
+const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE GENRE:
+
+1. MINIMUM PHYSICAL ESCALATION: When a physical/intimate moment begins (kiss, touch, embrace), it MUST continue for a MINIMUM of 4 full paragraphs before any interruption, pullback, or scene break. This is non-negotiable.
+
+2. WHAT THOSE 4 PARAGRAPHS MUST CONTAIN:
+   - Paragraph 1: The initial physical contact — described through specific, concrete sensory detail. Not "the kiss was raw and urgent" but the actual physical reality: how the other person's mouth felt, the texture of skin, the pressure of hands, whether it was tentative or confident, what their body was doing.
+   - Paragraph 2: Escalation through a second sense — if P1 was about touch, P2 brings in taste, or sound, or the way the other person smells up close. Layer the senses. Show the character's awareness narrowing to the physical.
+   - Paragraph 3: Interiority during the physical act — what this contact is doing to the character emotionally. Not "he felt desire" but the specific texture of what they're feeling: is it relief? Grief? The terrifying sense of something they can't take back? The surprise of another person's body?
+   - Paragraph 4: The moment shifts — either deepening further (hands move, bodies adjust, breathing changes, the dynamic shifts from tentative to certain) OR the natural conclusion that doesn't feel like a cop-out.
+
+3. INTERRUPTIONS EARN THEIR PLACE: If a physical moment IS interrupted, it must arrive AFTER the 4-paragraph minimum. The interruption must be felt as a LOSS. Characters must show physical aftermath (disorientation, difficulty speaking, hands still warm from contact).
+
+4. BAN ON SMIRKING AFTER INTIMACY: After a kiss or physical moment, no character may "smirk" or deliver a witty one-liner. Characters after genuine intimate contact are affected — breathless, disoriented, serious, frightened, or elated — but never smug.
+
+5. BY CHAPTER 3 of an erotica novel, physical intimacy must have progressed BEYOND a single kiss. The pacing must match genre expectations. This doesn't mean rushing — it means honoring the genre the reader chose.
+
+6. NO CONVENIENT INTERRUPTIONS: Do NOT use plot devices (phone rings, someone knocks, character suddenly remembers an obligation) to cut away from an intimate scene before the 4-paragraph minimum is met. This is a genre violation.`;
 
 const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
 - When a chapter contains a twist, reversal, or reveal, the dialogue and interiority leading up to it must support MULTIPLE interpretations until the reveal moment.
@@ -366,6 +420,23 @@ const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
 - The reader should arrive at the twist AT THE SAME MOMENT as the POV character, not before. If the POV character is being manipulated, the reader should feel manipulated too.
 - Avoid single-line dialogue responses that function as winking confessions (e.g., "Did I?" or "You'll see" or "Maybe that was the point"). These telegraph intent. Replace with responses that carry genuine emotional ambiguity.
 - Subtext is always more powerful than text. A character's true motives should be visible only in retrospect, when the reader replays the scene knowing the truth.`;
+
+const DIALOGUE_SUBTEXT_RULES = `DIALOGUE AND SUBTEXT RULES — MANDATORY:
+
+1. NO CHARACTER may speak in a way that ONLY makes sense as flirtation or seduction. Every line of dialogue must have a plausible surface meaning that is NOT about attraction. The subtext can be about desire, but the TEXT must be about something else — the art, the assignment, the argument, the event, the work.
+
+2. BANNED DIALOGUE PATTERNS — never generate these:
+   - "Are you afraid of [X]?" / "What if I want to [X]?" exchanges
+   - One character daring the other to "let go" or "stop hiding" or "step outside your comfort zone" more than once per chapter
+   - Rhetorical questions functioning as sexual invitations: "Do you want to find out?" / "Are you sure you can handle it?" / "Then why are you still here?"
+   - Characters narrating their own dynamic: "You're intrigued, aren't you?" / "You can't just stand on the sidelines"
+   - Any line where a character explicitly labels the tension: "This is dangerous" / "We're playing with fire" / "This could ruin everything"
+
+3. TENSION MUST BE BUILT THROUGH CONTRAST, NOT ESCALATION. The most effective scenes work because the characters are trying NOT to acknowledge what's happening. They talk about work, art, other people — and desire leaks through in pauses, in things left unsaid, in moments where the conversation almost touches the real subject and then veers away.
+
+4. SHOW, DON'T TELL THE DYNAMIC. Instead of Character A saying "You're afraid to let go," SHOW Character B watching A's hands while A talks about something unrelated. Instead of Character B saying "This is dangerous," show them leaving the room mid-conversation and not being able to explain why.
+
+5. NO character should deliver more than 2 consecutive lines of dialogue that are philosophically provocative. Real people pause, deflect, make jokes, say boring things, talk about logistics. Break up intense dialogue with mundane reality.`;
 
 // POST-GENERATION QUALITY SCANNER
 function scanChapterQuality(text, chapterNumber) {
@@ -816,7 +887,9 @@ CRITICAL OUTPUT RULES:
 - Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
 - If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.
 
-${PLOT_SUBTEXT_RULES}`;
+${PLOT_SUBTEXT_RULES}
+
+${DIALOGUE_SUBTEXT_RULES}`;
       if (isIntimateGenre(projectSpec)) {
         systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
       }
@@ -966,8 +1039,9 @@ ${PLOT_SUBTEXT_RULES}`;
 - If the book is tagged as MYSTERY: clues must be planted and discoveries must occur. Each chapter should narrow the possibilities or introduce a complication.
 - If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.`;
 
-    // PART C — Plot subtext rules (legacy fiction path)
+    // PART C — Plot and dialogue subtext rules (legacy fiction path)
     systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
+    systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
     if (isIntimateGenre(projectSpec)) {
@@ -1034,20 +1108,21 @@ Write this chapter in full.`
     }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30).sort();
 
-    // PART A — Collect physical tics from previous chapters, find ones used 2+ times
-    const ticMap = {}; // charName -> { tic -> count }
+    // PART A — Collect physical tics from previous chapters, ban any tic used >= 1 time for same character
+    const ticMap = {}; // charName -> { tic -> chapterNumbers[] }
     for (const prevCh of allChapters.slice(0, chapterIndex)) {
       const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
       if (!txt) continue;
       for (const { char, tic } of extractPhysicalTics(txt)) {
         if (!ticMap[char]) ticMap[char] = {};
-        ticMap[char][tic] = (ticMap[char][tic] || 0) + 1;
+        if (!ticMap[char][tic]) ticMap[char][tic] = [];
+        ticMap[char][tic].push(prevCh.chapter_number);
       }
     }
-    const overusedTics = {}; // charName -> [tic, ...]
+    const overusedTics = {}; // charName -> [{ tic, chapters }]
     for (const [char, tics] of Object.entries(ticMap)) {
-      const repeated = Object.entries(tics).filter(([, c]) => c >= 2).map(([t]) => t);
-      if (repeated.length > 0) overusedTics[char] = repeated;
+      const used = Object.entries(tics).filter(([, chs]) => chs.length >= 1).map(([t, chs]) => ({ tic: t, chapters: chs }));
+      if (used.length > 0) overusedTics[char] = used;
     }
 
     // PART B — Collect sensory formula usage counts from previous chapters
@@ -1056,12 +1131,23 @@ Write this chapter in full.`
       const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
       if (!txt) continue;
       for (const formula of extractSensoryFormulas(txt)) {
-        // Normalize to pattern type
         const key = formula.replace(/\b\w+\b(?=\s+and)/g, '[noun]').replace(/\b\w+\b$/, '[noun]').trim();
         formulaCount[key] = (formulaCount[key] || 0) + 1;
       }
     }
     const overusedFormulas = Object.entries(formulaCount).filter(([, c]) => c >= 3);
+
+    // PART B — Collect metaphor cluster usage from previous chapters
+    const clusterTotals = {};
+    for (const prevCh of allChapters.slice(0, chapterIndex)) {
+      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
+      if (!txt) continue;
+      const counts = extractMetaphorClusters(txt);
+      for (const [cluster, count] of Object.entries(counts)) {
+        clusterTotals[cluster] = (clusterTotals[cluster] || 0) + count;
+      }
+    }
+    const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5);
 
     let currentChapterRequest;
     if (useScenePath) {
@@ -1204,18 +1290,53 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
       currentChapterRequest += `\n\n=== PHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE) ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END PREVIOUS PHRASES ===`;
     }
 
-    // PART A — Inject overused physical tics ban
+    // PART A — Inject overused physical tics ban (threshold: used >= 1 previous chapter)
     if (Object.keys(overusedTics).length > 0) {
-      const ticLines = Object.entries(overusedTics).map(([char, tics]) =>
-        `${char}:\n${tics.slice(0, 5).map(t => `  - ${t}`).join('\n')}`
+      const ticLines = Object.entries(overusedTics).map(([char, used]) =>
+        `${char}:\n${used.slice(0, 8).map(({ tic, chapters }) => `  - ${tic} (used in chapter${chapters.length > 1 ? 's' : ''} ${chapters.join(', ')})`).join('\n')}`
       ).join('\n');
-      currentChapterRequest += `\n\n=== PHYSICAL ACTIONS ALREADY OVERUSED (DO NOT REPEAT FOR THESE CHARACTERS) ===\n${ticLines}\nInstead, use FRESH and VARIED physical manifestations of emotion. Rotate through: posture shifts, grip pressure, stillness, swallowing, temperature changes, muscle tension in different body parts, breathing pattern changes, vocal quality changes, eye movement, involuntary gestures.\n=== END OVERUSED PHYSICAL ACTIONS ===`;
+      currentChapterRequest = `=== BANNED PHYSICAL REACTIONS — DO NOT USE ===
+These exact body reactions have already been used for these characters. Using any of them again will result in repetitive, amateurish prose. You MUST find a DIFFERENT physical manifestation.
+
+${ticLines}
+
+INSTEAD USE (rotate through these, never repeating within the same chapter):
+- Stillness or freezing in place
+- Grip pressure on an object (glass, armrest, steering wheel, fabric)
+- Posture collapse or stiffening
+- Swallowing or difficulty swallowing
+- Temperature sensation (cold hands, heat behind the eyes, warmth spreading across the back of the neck)
+- Muscle tension in a SPECIFIC location (not generic "tension" — e.g., the tendon in his forearm, the muscles along his jaw, the space between his shoulder blades)
+- Change in vocal quality (voice dropping, voice cracking, words coming out too fast)
+- Involuntary movement (tapping, fidgeting, touching own face/hair)
+- Breathing pattern change described through action, not label (e.g., "he exhaled through his nose" not "his breath quickened")
+- Eye movement (gaze dropping, looking away, blinking rapidly, staring without seeing)
+=== END BANNED REACTIONS ===
+
+` + currentChapterRequest;
     }
 
     // PART B — Inject overused sensory formula ban
     if (overusedFormulas.length > 0) {
       const formulaLines = overusedFormulas.map(([f, c]) => `- "${f}" (used ${c} times)`).join('\n');
       currentChapterRequest += `\n\n=== SENSORY DESCRIPTION PATTERNS OVERUSED (VARY YOUR SYNTAX) ===\nThe following sensory constructions have been used too many times in previous chapters. Do NOT use these exact sentence structures again:\n${formulaLines}\nInstead, integrate sensory details using VARIED syntax: weave scent into action ("leather and dust hung in the air"), embed it in character perception ("he tasted copper at the back of his throat"), or attach it to movement ("each step released the smell of old wood from the floorboards").\n=== END SENSORY PATTERNS ===`;
+    }
+
+    // PART B — Inject metaphor cluster ban
+    if (flaggedClusters.length > 0) {
+      const clusterLines = flaggedClusters.map(([cluster, count]) => {
+        const exampleWords = Object.keys(METAPHOR_CLUSTERS).includes(cluster)
+          ? METAPHOR_CLUSTERS[cluster].source.match(/\\b\(([^)]+)\)/)?.[1]?.replace(/\\w\*/g, '...').replace(/\|/g, ', ') || cluster.toLowerCase()
+          : cluster.toLowerCase();
+        return `- ${cluster} metaphors (used ${count} times): ${exampleWords}`;
+      }).join('\n');
+      currentChapterRequest += `\n\n=== OVERUSED METAPHOR FAMILIES — MUST VARY ===
+The following metaphor clusters have been used too heavily in previous chapters. Do NOT use more than 1 word from any flagged cluster in this chapter. Find FRESH figurative language.
+
+${clusterLines}
+
+A compelling novel uses varied figurative language. If previous chapters used fire or darkness as dominant metaphors, this chapter must find a completely different register: mechanical imagery, animal imagery, architectural imagery, textile imagery, botanical imagery, musical imagery, food/taste imagery, or geometric/spatial imagery.
+=== END OVERUSED METAPHORS ===`;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
@@ -1245,10 +1366,107 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
 
     const wordCount = fullContent.trim().split(/\s+/).length;
 
+    // ── PART E — Post-generation validation with up to 2 regeneration attempts ──
+
+    async function runValidationChecks(content, bannedTicsByChar, bannedClusterNames, isErotic) {
+      const checks = [];
+
+      // CHECK 1 — TIC REPETITION in new chapter
+      if (Object.keys(bannedTicsByChar).length > 0) {
+        const newTics = extractPhysicalTics(content);
+        const ticFailures = [];
+        for (const { char, tic } of newTics) {
+          if (bannedTicsByChar[char]) {
+            const banned = bannedTicsByChar[char].map(x => x.tic);
+            if (banned.includes(tic)) ticFailures.push(`"${tic}" for ${char}`);
+          }
+        }
+        if (ticFailures.length > 0) checks.push(`TIC REPETITION: ${ticFailures.join('; ')}`);
+      }
+
+      // CHECK 2 — METAPHOR CLUSTER overuse in new chapter
+      if (bannedClusterNames.length > 0) {
+        const newClusters = extractMetaphorClusters(content);
+        const clusterFails = [];
+        for (const cluster of bannedClusterNames) {
+          if ((newClusters[cluster] || 0) > 1) clusterFails.push(`${cluster} (${newClusters[cluster]} uses)`);
+        }
+        if (clusterFails.length > 0) checks.push(`METAPHOR CLUSTER OVERUSE: ${clusterFails.join('; ')}`);
+      }
+
+      // CHECK 3 — BANNED DIALOGUE PATTERNS
+      const dialogueBanned = [
+        /\bare you afraid\b/gi, /\bwhat if i want\b/gi, /\blet go\b/gi,
+        /\bstop hiding\b/gi, /\bdo you want to find out\b/gi,
+        /\bare you sure you can handle\b/gi, /\bthen why are you still here\b/gi,
+      ];
+      let dialogueHits = 0;
+      for (const rx of dialogueBanned) {
+        const m = content.match(rx);
+        if (m) dialogueHits += m.length;
+      }
+      if (dialogueHits > 1) checks.push(`BANNED DIALOGUE PATTERNS: ${dialogueHits} instances of telegraphed/explicit attraction dialogue`);
+
+      // CHECK 4 — INTIMATE SCENE LENGTH (erotica only)
+      if (isErotic) {
+        const intimateStart = /\b(kiss\w*|kiss\w*\s+\w+|their (lips|mouths?)|lips (met|touched|press\w*))\b/i.exec(content);
+        if (intimateStart) {
+          const afterContact = content.slice(intimateStart.index);
+          const paragraphs = afterContact.split(/\n\n+/);
+          const firstInterrupt = paragraphs.findIndex((p, i) => i > 0 && /\b(pulled? (away|back)|stepped? back|interrupted?|phone|knock\w*|door (open\w*|burst\w*))\b/i.test(p));
+          if (firstInterrupt !== -1 && firstInterrupt < 4) {
+            checks.push(`INTIMATE SCENE TOO SHORT: only ${firstInterrupt} paragraph(s) before pullback (minimum 4 required)`);
+          }
+        }
+      }
+
+      return checks;
+    }
+
+    const bannedTicsByChar = overusedTics;
+    const bannedClusterNames = flaggedClusters.map(([c]) => c);
+    const isErotic = isIntimateGenre(projectSpec);
+
+    let fullContentWorking = fullContent;
+
+    // PART E — Run up to 2 validation+regeneration cycles
+    for (let regenAttempt = 0; regenAttempt <= 2; regenAttempt++) {
+      const validationFailures = await runValidationChecks(fullContentWorking, bannedTicsByChar, bannedClusterNames, isErotic);
+      if (validationFailures.length === 0) break; // passed
+      if (regenAttempt === 2) {
+        console.warn(`Chapter ${chapter.chapter_number}: Still failing after 2 regen attempts. Delivering anyway.`);
+        break;
+      }
+      console.warn(`Chapter ${chapter.chapter_number} validation attempt ${regenAttempt + 1} failed:`, validationFailures);
+      const regenNotice = `=== REGENERATION — PREVIOUS ATTEMPT FAILED QUALITY CHECKS ===
+Your previous chapter attempt was rejected for the following reasons:
+${validationFailures.map(f => `- ${f}`).join('\n')}
+
+Rewrite the chapter, fixing these specific issues while keeping the plot, character arcs, and story progression the same. Do not simply delete the flagged content — replace it with BETTER alternatives.
+=== END REGENERATION NOTICE ===
+
+`;
+      const regenMessages = [...messages.slice(0, -1), { role: 'user', content: regenNotice + currentChapterRequest }];
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const newText = await callAIConversation(regenMessages, 8192);
+        if (!isRefusal(newText)) { fullContentWorking = newText; break; }
+      }
+      // Strip artifacts again after regen
+      let rc = fullContentWorking;
+      rc = rc.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+      rc = rc.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
+      rc = rc.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+      rc = rc.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
+      rc = rc.replace(/\n{3,}/g, '\n\n');
+      fullContentWorking = rc.trim();
+    }
+
+    fullContent = fullContentWorking;
+
     // PART C — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
 
-    // PART C — Meta-response detection: flag if AI output self-commentary instead of prose
+    // Meta-response detection
     const first500 = fullContent.slice(0, 500);
     const META_PATTERNS = [
       /^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i,
@@ -1289,7 +1507,6 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
           }
         } catch (rewriteErr) {
           console.error(`Rewrite pass ${pass} failed silently, continuing with current text:`, rewriteErr.message);
-          // Continue with current text without crashing
         }
       }
     }
