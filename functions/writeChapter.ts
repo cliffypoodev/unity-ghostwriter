@@ -154,7 +154,11 @@ const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Do not end with "Let me know if..." or "I hope this..." or any assistant-style closing.
 - Do not include content warnings, trigger warnings, or age disclaimers in the output.
 - If you are uncertain whether a scene fits within the configured level, write it at the configured level. The author chose that level intentionally.
-- If for any reason you cannot generate a portion of a scene, write the scene up to that point and continue past it narratively. NEVER return an error message, apology, or refusal in place of prose. A partial chapter is always better than a refusal.`;
+- If for any reason you cannot generate a portion of a scene, write the scene up to that point and continue past it narratively. NEVER return an error message, apology, or refusal in place of prose. A partial chapter is always better than a refusal.
+- You are generating PROSE ONLY. Never output meta-commentary, self-assessment, checklists, or instructions.
+- Never say "I appreciate", "I've completed", "I need to clarify", "As requested", or any self-referential language.
+- Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
+- If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.`;
 
 function buildAuthorModeBlock(spec) {
   const beatKey = spec?.beat_style || spec?.tone_style;
@@ -251,6 +255,56 @@ async function parseOutlineField(field, fieldUrl) {
     console.error('Parse field error:', err.message);
     return null;
   }
+}
+
+// PART A — Build character consistency enforcement block from story bible
+function buildCharacterConsistencyBlock(storyBible) {
+  const characters = storyBible?.characters;
+  if (!characters || !Array.isArray(characters) || characters.length === 0) return '';
+  const lines = characters.map(c => {
+    let line = `- ${c.name}`;
+    if (c.description) line += `: ${c.description}`;
+    if (c.role) line += ` (Role: ${c.role})`;
+    return line;
+  }).join('\n');
+  return `=== CHARACTER CONSISTENCY (CRITICAL — NEVER VIOLATE) ===
+These characters have FIXED attributes. Do NOT change their gender, name, appearance, or pronouns across chapters:
+${lines}
+
+If a character uses he/him pronouns in the story bible or previous chapters, use he/him in EVERY chapter.
+If a character uses she/her pronouns, use she/her in EVERY chapter. No exceptions.
+=== END CHARACTER CONSISTENCY ===`;
+}
+
+// PART B — Extract distinctive phrases from chapter text for cross-chapter repetition prevention
+function extractDistinctivePhrases(text) {
+  const phrases = new Set();
+  // Metaphors and similes
+  const simileRegex = /[\w\s,]+(like a|as if|as though)[\w\s,]+/gi;
+  let match;
+  while ((match = simileRegex.exec(text)) !== null) {
+    const phrase = match[0].trim().slice(0, 60);
+    if (phrase.split(' ').length >= 3) phrases.add(phrase.toLowerCase());
+  }
+  // Unusual literary adjective+noun pairs
+  const adjNounRegex = /\b(surgical|predatory|velvet|cathedral|obsidian|glacial|molten|razor|iron|silk|phantom|hollow|ancient|fractured|luminous|shadowed|careful|deliberate|controlled|precise|calculated|architectural)\s+\w+/gi;
+  while ((match = adjNounRegex.exec(text)) !== null) {
+    phrases.add(match[0].trim().toLowerCase());
+  }
+  // 3-word phrases appearing more than once
+  const words = text.toLowerCase().split(/\s+/);
+  const phraseCount = {};
+  const SKIP = new Set(['she said that', 'he said that', 'and she was', 'and he was', 'that she had', 'that he had', 'she looked at', 'he looked at', 'she had been', 'he had been']);
+  for (let i = 0; i < words.length - 2; i++) {
+    const p3 = words.slice(i, i + 3).join(' ').replace(/[^a-z\s]/g, '').trim();
+    if (p3.split(' ').length === 3 && p3.split(' ').every(w => w.length > 2) && !SKIP.has(p3)) {
+      phraseCount[p3] = (phraseCount[p3] || 0) + 1;
+    }
+  }
+  for (const [phrase, count] of Object.entries(phraseCount)) {
+    if (count >= 2) phrases.add(phrase);
+  }
+  return [...phrases].slice(0, 30).sort();
 }
 
 // POST-GENERATION QUALITY SCANNER
@@ -676,6 +730,8 @@ ${projectSpec?.topic ? `BOOK PREMISE:\n${projectSpec.topic}` : ''}
 CHARACTERS:
 ${characters.length > 0 ? characters.map(c => `- ${c.name} (${c.role || 'character'}): ${c.description || ''}${c.relationships ? ' | ' + c.relationships : ''}`).join('\n') : 'See story bible'}
 
+${buildCharacterConsistencyBlock(storyBible)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -694,7 +750,11 @@ CRITICAL OUTPUT RULES:
 - The ONLY structural marker allowed between scenes is a single line containing just: * * *
 - Do NOT include a chapter title header or chapter number — start writing prose immediately
 - Your output must read like a published novel chapter — no outline artifacts, no structural labels, no metadata of any kind
-- Return ONLY the prose. No preamble, no commentary.`;
+- Return ONLY the prose. No preamble, no commentary.
+- You are generating PROSE ONLY. Never output meta-commentary, self-assessment, checklists, or instructions.
+- Never say "I appreciate", "I've completed", "I need to clarify", "Here is", "As requested", or any self-referential language.
+- Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
+- If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.`;
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
         projectSpec, 
@@ -758,6 +818,12 @@ CRITICAL OUTPUT RULES:
     }
     if (storyBible?.rules) {
       systemPrompt += `\n\nCONSISTENCY RULES:\n${storyBible.rules}`;
+    }
+
+    // PART A — Character gender/attribute consistency block
+    const charConsistencyBlock = buildCharacterConsistencyBlock(storyBible);
+    if (charConsistencyBlock) {
+      systemPrompt += `\n\n${charConsistencyBlock}`;
     }
 
     // PART B — transition instructions
@@ -880,14 +946,20 @@ Write this chapter in full.`
     // BUG 3 — Collect distinctive phrases from previous chapters to prevent cross-chapter repetition
     const crossChapterPhrases = [];
     for (const prevCh of allChapters.slice(0, chapterIndex)) {
+      // From AI-extracted distinctive phrases stored after generation
       if (prevCh.distinctive_phrases) {
         try {
           const p = JSON.parse(prevCh.distinctive_phrases);
           if (Array.isArray(p)) crossChapterPhrases.push(...p);
         } catch {}
       }
+      // From local regex extraction on inline chapter content
+      if (prevCh.content && !prevCh.content.startsWith('http')) {
+        const localPhrases = extractDistinctivePhrases(prevCh.content);
+        crossChapterPhrases.push(...localPhrases);
+      }
     }
-    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30);
+    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30).sort();
 
     let currentChapterRequest;
     if (useScenePath) {
@@ -1025,9 +1097,9 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
     // BUG 2 — Prevent AI from inventing its own chapter heading or number
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
 
-    // BUG 3 — Cross-chapter phrase ban
+    // Cross-chapter phrase ban
     if (uniqueCrossChapterPhrases.length > 0) {
-      currentChapterRequest += `\n\nPHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE):\n${uniqueCrossChapterPhrases.map(p => `- "${p}"`).join('\n')}`;
+      currentChapterRequest += `\n\n=== PHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE) ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END PREVIOUS PHRASES ===`;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
@@ -1059,6 +1131,21 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
 
     // PART C — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
+
+    // PART C — Meta-response detection: flag if AI output self-commentary instead of prose
+    const first500 = fullContent.slice(0, 500);
+    const META_PATTERNS = [
+      /^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i,
+      /^Here is/i, /^Here are/i, /^As requested/i,
+      /^I'll write/i, /^I'll generate/i, /^I'll create/i,
+      /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i,
+    ];
+    if (META_PATTERNS.some(p => p.test(first500))) {
+      qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose. Chapter needs regeneration.');
+      qualityResult.passed = false;
+      console.warn(`Chapter ${chapter.chapter_number}: Meta-response detected in output!`);
+    }
+
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
 
     let finalContent = fullContent;
