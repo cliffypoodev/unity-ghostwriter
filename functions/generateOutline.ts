@@ -501,15 +501,13 @@ No other fields. No prose outside the JSON array.`;
         text = await callAIWithMessages(modelKey, [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: chunkPrompt + retryNote },
-        ], 4000);
+        ], 12000);
         if (!isRefusal(text)) break;
         console.warn(`Batch ${chunkStart}-${chunkEnd} attempt ${attempt + 1} was a refusal, retrying...`);
       }
 
-      const cleanText = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-      const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error(`No JSON array in batch ${chunkStart}-${chunkEnd}`);
-      const parsed = JSON.parse(jsonMatch[0]);
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const parsed = await safeParseJSON(jsonMatch ? jsonMatch[0] : text, modelKey);
       if (!Array.isArray(parsed)) throw new Error(`Not an array in batch ${chunkStart}-${chunkEnd}`);
       console.log(`✓ Batch ${chunkStart}-${chunkEnd} complete (${parsed.length} chapters)`);
       return parsed;
