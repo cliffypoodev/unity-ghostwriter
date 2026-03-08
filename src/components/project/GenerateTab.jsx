@@ -756,7 +756,6 @@ export default function GenerateTab({ projectId, onProceed }) {
             chapterWordsCount = finalWords;
             totalWordsWritten += finalWords;
             successes++;
-            chapterSuccess = true;
             done = true;
             setWriteAllProgress(prev => ({
               ...prev,
