@@ -707,7 +707,6 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       const chapter = toWrite[i];
       let chapterWordsCount = 0;
-      let chapterSuccess = false;
 
       setWriteAllProgress(prev => ({
         ...prev,
