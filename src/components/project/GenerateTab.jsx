@@ -336,6 +336,9 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-slate-800 truncate">{chapter.title}</span>
             <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", sc.className)}>{sc.label}</span>
+            {hasScenes && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
+            )}
             {chapter.word_count > 0 && (
               <span className="text-xs text-slate-400">{chapter.word_count.toLocaleString()} words</span>
             )}
