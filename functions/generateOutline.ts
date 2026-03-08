@@ -445,9 +445,8 @@ Return ONLY the JSON object. No preamble.`;
     // Parse metadata
     let bookMetadata = null;
     try {
-      const cleanMeta = metaText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-      const metaMatch = cleanMeta.match(/\{[\s\S]*\}/);
-      if (metaMatch) bookMetadata = JSON.parse(metaMatch[0]);
+      const metaMatch = metaText.match(/\{[\s\S]*\}/);
+      bookMetadata = await safeParseJSON(metaMatch ? metaMatch[0] : metaText, modelKey);
     } catch (e) {
       console.warn('Book metadata parse failed:', e.message);
     }
@@ -455,9 +454,8 @@ Return ONLY the JSON object. No preamble.`;
     // Parse story bible
     let parsedStoryBible = null;
     try {
-      const cleanBible = bibleText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
-      const bibleMatch = cleanBible.match(/\{[\s\S]*\}/);
-      if (bibleMatch) parsedStoryBible = JSON.parse(bibleMatch[0]);
+      const bibleMatch = bibleText.match(/\{[\s\S]*\}/);
+      parsedStoryBible = await safeParseJSON(bibleMatch ? bibleMatch[0] : bibleText, modelKey);
     } catch (e) {
       console.warn('Story bible parse failed:', e.message);
     }
