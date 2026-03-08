@@ -907,7 +907,7 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
         console.log(`Chapter ${chapter.chapter_number} auto-rewrite pass ${pass}...`);
         
         try {
-          const correctedText = await rewriteWithCorrections(finalContent, qualityResult.warnings, chapter.chapter_number, openai_key);
+          const correctedText = await rewriteWithCorrections(finalContent, qualityResult.warnings, chapter.chapter_number, openai_key, modelKey);
           if (correctedText && correctedText.length > 100) {
             finalContent = correctedText;
             passCount = pass;
