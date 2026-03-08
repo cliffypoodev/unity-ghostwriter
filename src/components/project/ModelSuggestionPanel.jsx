@@ -87,10 +87,19 @@ const AI_MODEL_PROFILES = {
     id: "deepseek-chat",
     name: "DeepSeek Chat",
     provider: "DeepSeek",
-    description: "Highly cost-effective model with surprisingly strong writing capabilities. Great for bulk generation on a budget.",
-    strengths: ["Ultra low cost", "Solid structure", "Good dialogue", "High throughput"],
+    description: "Cost-effective creative writing with strong instruction following when properly prompted.",
+    strengths: ["Low cost per token", "Long context window", "Good at structured output"],
     proseQuality: 3,
     tokenCost: 1
+  },
+  "deepseek-reasoner": {
+    id: "deepseek-reasoner",
+    name: "DeepSeek Reasoner",
+    provider: "DeepSeek",
+    description: "Chain-of-thought reasoning model. Better at following complex multi-step instructions.",
+    strengths: ["Instruction compliance", "Complex rule following", "Analytical content"],
+    proseQuality: 3,
+    tokenCost: 2
   }
 };
 
@@ -99,26 +108,26 @@ const MODEL_GENRE_ROUTING = {
   "Science Fiction": { primary: "claude-opus-4-5", reason: "Hard sci-fi needs complex world-building and scientific reasoning. Opus handles technical accuracy alongside literary quality.", styleBeat: "Cerebral, world-building heavy with scientific grounding", alts: ["claude-sonnet-4-5", "gpt-4o"] },
   "Fantasy": { primary: "claude-opus-4-5", reason: "Epic fantasy requires mythic prose, deep world-building, and maintaining consistency across complex lore systems.", styleBeat: "Mythic & elevated prose with rich world-building descriptions", alts: ["claude-sonnet-4-5", "gpt-4o"] },
   "Mystery/Thriller": { primary: "claude-opus-4-5", reason: "Psychological depth, misdirection, and carefully plotted reveals require Opus-level reasoning and narrative control.", styleBeat: "Suspenseful, tightly plotted with strategic misdirection", alts: ["claude-sonnet-4-5"] },
-  "Romance": { primary: "gpt-4o-creative", reason: "Romance benefits from accessible, emotionally engaging prose with strong dialogue and genre convention awareness.", styleBeat: "Romantic & passionate with character-driven emotional arcs", alts: ["gpt-4o", "claude-sonnet-4-5"] },
+  "Romance": { primary: "gpt-4o-creative", reason: "Romance benefits from accessible, emotionally engaging prose with strong dialogue and genre convention awareness.", styleBeat: "Romantic & passionate with character-driven emotional arcs", alts: ["gpt-4o", "claude-sonnet-4-5", "deepseek-chat"] },
   "Horror": { primary: "claude-opus-4-5", reason: "Horror requires cosmic dread, existential tension, and somber scholarly tones — especially Lovecraftian elements. Opus handles dark literary nuance masterfully.", styleBeat: "Cosmic dread, existential horror, scholarly and somber", alts: ["claude-sonnet-4-5"] },
   "Historical Fiction": { primary: "claude-opus-4-5", reason: "Historical fiction demands fluid, immersive, cinematic prose while maintaining strict factual accuracy. Opus separates myths from verified facts.", styleBeat: "Fluid, immersive, cinematic — dramatic consequences of real motivations", alts: ["gpt-4-turbo", "claude-sonnet-4-5"] },
-  "Adventure": { primary: "gpt-4o-creative", reason: "Adventure writing thrives on fast pacing, punchy prose, and page-turning momentum.", styleBeat: "Fast-paced, action-oriented with cinematic set pieces", alts: ["gpt-4o", "claude-sonnet-4-5"] },
+  "Adventure": { primary: "gpt-4o-creative", reason: "Adventure writing thrives on fast pacing, punchy prose, and page-turning momentum.", styleBeat: "Fast-paced, action-oriented with cinematic set pieces", alts: ["gpt-4o", "claude-sonnet-4-5", "deepseek-chat"] },
   "Dystopian": { primary: "claude-opus-4-5", reason: "Dystopian fiction needs complex social commentary, world-building, and philosophical depth.", styleBeat: "Bleak & thought-provoking with layered social commentary", alts: ["claude-sonnet-4-5"] },
   "Magical Realism": { primary: "claude-opus-4-5", reason: "Magical realism requires seamless blending of the mundane and mythic with literary sophistication.", styleBeat: "Lush, mythic-mundane blend with literary elegance", alts: ["claude-sonnet-4-5"] },
-  "Young Adult": { primary: "gpt-4o-creative", reason: "YA needs accessible language, relatable voice, and strong genre convention awareness for teen audiences.", styleBeat: "Accessible, emotionally resonant with coming-of-age themes", alts: ["gpt-4o", "claude-sonnet-4-5"] },
-  "Children's": { primary: "gpt-4o-creative", reason: "Children's writing needs simple, engaging language with whimsical tone and age-appropriate vocabulary.", styleBeat: "Whimsical & playful with age-appropriate vocabulary", alts: ["gpt-4o", "claude-sonnet-4-5"] },
-  "Self-Help": { primary: "claude-sonnet-4-5", reason: "Self-help needs clear, motivational prose with actionable insights and an engaging but authoritative tone.", styleBeat: "TED Talk engaging with actionable, motivational tone", alts: ["gpt-4o"] },
-  "Business": { primary: "claude-sonnet-4-5", reason: "Business books need a balance of authority, case studies, and accessible explanations of complex concepts.", styleBeat: "Authoritative yet accessible with data-driven narratives", alts: ["gpt-4o", "gpt-4-turbo"] },
+  "Young Adult": { primary: "gpt-4o-creative", reason: "YA needs accessible language, relatable voice, and strong genre convention awareness for teen audiences.", styleBeat: "Accessible, emotionally resonant with coming-of-age themes", alts: ["gpt-4o", "claude-sonnet-4-5", "deepseek-chat"] },
+  "Children's": { primary: "gpt-4o-creative", reason: "Children's writing needs simple, engaging language with whimsical tone and age-appropriate vocabulary.", styleBeat: "Whimsical & playful with age-appropriate vocabulary", alts: ["gpt-4o", "claude-sonnet-4-5", "deepseek-chat"] },
+  "Self-Help": { primary: "claude-sonnet-4-5", reason: "Self-help needs clear, motivational prose with actionable insights and an engaging but authoritative tone.", styleBeat: "TED Talk engaging with actionable, motivational tone", alts: ["gpt-4o", "deepseek-chat"] },
+  "Business": { primary: "claude-sonnet-4-5", reason: "Business books need a balance of authority, case studies, and accessible explanations of complex concepts.", styleBeat: "Authoritative yet accessible with data-driven narratives", alts: ["gpt-4o", "gpt-4-turbo", "deepseek-chat"] },
   "Biography/Memoir": { primary: "claude-opus-4-5", reason: "Biography demands literary narrative craft, emotional depth, and meticulous factual accuracy.", styleBeat: "Immersive narrative with deep character portraiture", alts: ["claude-sonnet-4-5"] },
   "History": { primary: "claude-opus-4-5", reason: "History writing needs fluid, cinematic prose at 1500+ words per chapter while maintaining strict factual accuracy.", styleBeat: "Fluid, immersive, cinematic — strictly factual, no invented events", alts: ["gpt-4-turbo", "claude-sonnet-4-5"] },
   "Science": { primary: "gemini-pro", reason: "Science writing requires factual precision, research synthesis, and the ability to make complex topics accessible.", styleBeat: "Academic but accessible with awe-inspiring explanations", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
   "Technology": { primary: "gemini-pro", reason: "Technology books need up-to-date accuracy, clear technical explanations, and practical examples.", styleBeat: "Clear, technically precise with forward-looking perspective", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
   "Philosophy": { primary: "claude-opus-4-5", reason: "Philosophy demands sophisticated reasoning, complex argumentation, and ability to handle abstract concepts with precision.", styleBeat: "Cerebral & intellectual with rigorous logical structure", alts: ["claude-sonnet-4-5"] },
   "Psychology": { primary: "claude-opus-4-5", reason: "Psychology books need nuanced exploration of human behavior with both scientific rigor and narrative accessibility.", styleBeat: "Introspective & insightful with research-backed narratives", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
-  "Health & Wellness": { primary: "gemini-pro", reason: "Health writing needs strict factual accuracy, evidence-based claims, and clear actionable guidance.", styleBeat: "Evidence-based, warm, and actionable", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
+  "Health & Wellness": { primary: "gemini-pro", reason: "Health writing needs strict factual accuracy, evidence-based claims, and clear actionable guidance.", styleBeat: "Evidence-based, warm, and actionable", alts: ["claude-sonnet-4-5", "gpt-4-turbo", "deepseek-chat"] },
   "Travel": { primary: "claude-sonnet-4-5", reason: "Travel writing needs vivid sensory description, cultural awareness, and engaging narrative flow.", styleBeat: "Vivid, sensory-rich with cultural curiosity", alts: ["claude-opus-4-5", "gpt-4o"] },
   "True Crime": { primary: "claude-opus-4-5", reason: "True crime needs investigative rigor, dark atmospheric prose, and careful ethical handling of sensitive subjects.", styleBeat: "Dark & gritty, investigative — strictly factual crime narrative", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
-  "Education": { primary: "gemini-pro", reason: "Education books need clear instructional design, research-backed pedagogy, and accessible explanations.", styleBeat: "Clear, structured, pedagogically sound", alts: ["claude-sonnet-4-5", "gpt-4-turbo"] },
+  "Education": { primary: "gemini-pro", reason: "Education books need clear instructional design, research-backed pedagogy, and accessible explanations.", styleBeat: "Clear, structured, pedagogically sound", alts: ["claude-sonnet-4-5", "gpt-4-turbo", "deepseek-chat"] },
   "Erotica": { primary: "claude-opus-4-5", reason: "Erotica requires nuanced handling of power dynamics, emotional depth beneath physical scenes, and sophisticated prose that avoids cliche.", styleBeat: "Character-driven intimacy with psychological depth", alts: ["claude-sonnet-4-5"] }
 };
 
