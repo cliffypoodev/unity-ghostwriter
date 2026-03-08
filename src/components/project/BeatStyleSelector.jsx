@@ -1,78 +1,79 @@
 import React from "react";
 import { Zap, Flame, BookOpen } from "lucide-react";
 
+// All beat styles with category field for filtering
+const ALL_BEAT_STYLES = {
+  // UNIVERSAL
+  "basic": { label: "Basic (No specific style)", category: "universal", desc: "Clean, competent prose without imposing a particular stylistic framework", intensity: 0, spice: 0 },
+  
+  // FICTION STYLES
+  "fast-paced-thriller": { label: "Fast-Paced Thriller", category: "fiction", desc: "Relentless momentum, immediate stakes", intensity: 4, spice: 2 },
+  "hyper-stylized-action": { label: "Hyper-Stylized Action", category: "fiction", desc: "Choreographed spectacle, peak energy", intensity: 4, spice: 2 },
+  "hollywood-blockbuster": { label: "Hollywood Blockbuster", category: "fiction", desc: "Big visuals, hero-driven momentum", intensity: 4, spice: 1 },
+  "visceral-horror": { label: "Visceral Horror", category: "fiction", desc: "Sensory-driven descent into fear", intensity: 4, spice: 4 },
+  "grandiose-space-opera": { label: "Grandiose Space Opera", category: "fiction", desc: "Interstellar conflict, epic scale", intensity: 4, spice: 1 },
+  "gritty-cinematic": { label: "Gritty Cinematic", category: "fiction", desc: "Raw realism, tactile environments", intensity: 3, spice: 3 },
+  "dark-suspense": { label: "Dark Suspense", category: "fiction", desc: "Claustrophobic dread, controlled fear", intensity: 3, spice: 3 },
+  "hard-boiled-noir": { label: "Hard-Boiled Noir", category: "fiction", desc: "Cynical grit, urban underworld", intensity: 3, spice: 3 },
+  "urban-gritty-fantasy": { label: "Urban Gritty Fantasy", category: "fiction", desc: "High magic meets dirty city life", intensity: 3, spice: 3 },
+  "high-stakes-political": { label: "High-Stakes Political", category: "fiction", desc: "Machiavellian power chess", intensity: 3, spice: 2 },
+  "epic-historical": { label: "Epic Historical", category: "fiction", desc: "Grand-scale pivotal moments", intensity: 3, spice: 2 },
+  "intellectual-psychological": { label: "Intellectual Psychological", category: "fiction", desc: "Thought-driven tension", intensity: 2, spice: 2 },
+  "cerebral-sci-fi": { label: "Cerebral Sci-Fi", category: "fiction", desc: "High-concept philosophy and ideas", intensity: 2, spice: 1 },
+  "clinical-procedural": { label: "Clinical Procedural", category: "fiction", desc: "Meticulous investigation", intensity: 2, spice: 1 },
+  "satirical": { label: "Satirical", category: "fiction", desc: "Sharp commentary, controlled exaggeration", intensity: 2, spice: 1 },
+  "surrealist-avant-garde": { label: "Surrealist Avant-Garde", category: "fiction", desc: "Dream-logic, abstract imagery", intensity: 2, spice: 2 },
+  "clean-romance": { label: "Clean Romance", category: "fiction", desc: "Emotional intimacy, no explicit content", intensity: 2, spice: 0 },
+  "slow-burn": { label: "Slow Burn", category: "fiction", desc: "Gradual tension, atmosphere before action", intensity: 1, spice: 2 },
+  "nostalgic-coming-of-age": { label: "Nostalgic Coming-of-Age", category: "fiction", desc: "Bittersweet transition", intensity: 1, spice: 1 },
+  "melancholic-literary": { label: "Melancholic Literary", category: "fiction", desc: "Quiet beauty in sadness", intensity: 1, spice: 1 },
+  "poetic-magical-realism": { label: "Poetic Magical Realism", category: "fiction", desc: "Supernatural as mundane truth", intensity: 1, spice: 1 },
+  "faith-infused": { label: "Faith-Infused Contemporary", category: "fiction", desc: "Hope grounded in real life", intensity: 1, spice: 0 },
+  "whimsical-cozy": { label: "Whimsical Cozy", category: "fiction", desc: "Gentle charm, small magic, community", intensity: 0, spice: 0 },
+  "steamy-romance": { label: "Steamy Romance", category: "fiction", desc: "Breathless chemistry, emotional vulnerability", intensity: 3, spice: 4 },
+  "slow-burn-romance": { label: "Slow Burn Romance", category: "fiction", desc: "Agonizing anticipation, almost-touch tension", intensity: 2, spice: 2 },
+  "dark-erotica": { label: "Dark Erotica", category: "fiction", desc: "Power dynamics, psychological tension", intensity: 4, spice: 4 },
+  
+  // NONFICTION STYLES
+  "journal-personal": { label: "Journal / Personal Essay", category: "nonfiction", desc: "Intimate, reflective first-person voice", intensity: 1, spice: 0 },
+  "longform-article": { label: "Longform Article / Feature", category: "nonfiction", desc: "Magazine-quality narrative journalism", intensity: 2, spice: 0 },
+  "formal-report": { label: "Formal Report / White Paper", category: "nonfiction", desc: "Authority and precision", intensity: 1, spice: 0 },
+  "deep-investigative": { label: "Deep Investigative", category: "nonfiction", desc: "Relentless pursuit of truth", intensity: 3, spice: 0 },
+  "historical-account": { label: "Historical Account", category: "nonfiction", desc: "Bringing the past to life with cinematic immediacy", intensity: 2, spice: 0 },
+  "true-crime-account": { label: "True Crime Account", category: "nonfiction", desc: "Meticulous reconstruction of criminal events", intensity: 3, spice: 1 },
+  "memoir-narrative": { label: "Memoir / Narrative Nonfiction", category: "nonfiction", desc: "True stories told with the craft of fiction", intensity: 2, spice: 1 },
+  "academic-accessible": { label: "Academic but Accessible", category: "nonfiction", desc: "Scholarly rigor translated into engaging prose", intensity: 1, spice: 0 },
+  "investigative-nonfiction": { label: "Investigative Nonfiction", category: "nonfiction", desc: "Evidence-based narrative", intensity: 3, spice: 0 },
+  "reference-educational": { label: "Reference / Educational", category: "nonfiction", desc: "Clarity and structure", intensity: 0, spice: 0 },
+};
+
+// Legacy structure for backward compatibility (now built dynamically from ALL_BEAT_STYLES)
 const BEAT_STYLE_GROUPS = [
   {
     label: "⚡ High Intensity / Fast Pacing",
-    styles: [
-      { key: "fast-paced-thriller",    label: "Fast-Paced Thriller",    desc: "Relentless momentum, immediate stakes",          intensity: 4, spice: 2 },
-      { key: "hyper-stylized-action",  label: "Hyper-Stylized Action",  desc: "Choreographed spectacle, peak energy",           intensity: 4, spice: 2 },
-      { key: "hollywood-blockbuster",  label: "Hollywood Blockbuster",  desc: "Big visuals, hero-driven momentum",              intensity: 4, spice: 1 },
-      { key: "visceral-horror",        label: "Visceral Horror",        desc: "Sensory-driven descent into fear",               intensity: 4, spice: 4 },
-      { key: "grandiose-space-opera",  label: "Grandiose Space Opera",  desc: "Interstellar conflict, epic scale",              intensity: 4, spice: 1 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.intensity === 4).map(([k, s]) => ({ key: k, ...s })),
   },
   {
     label: "🔥 Medium-High Intensity / Driven Pacing",
-    styles: [
-      { key: "gritty-cinematic",       label: "Gritty Cinematic",       desc: "Raw realism, tactile environments",              intensity: 3, spice: 3 },
-      { key: "dark-suspense",          label: "Dark Suspense",          desc: "Claustrophobic dread, controlled fear",          intensity: 3, spice: 3 },
-      { key: "hard-boiled-noir",       label: "Hard-Boiled Noir",       desc: "Cynical grit, urban underworld",                 intensity: 3, spice: 3 },
-      { key: "urban-gritty-fantasy",   label: "Urban Gritty Fantasy",   desc: "High magic meets dirty city life",              intensity: 3, spice: 3 },
-      { key: "high-stakes-political",  label: "High-Stakes Political",  desc: "Machiavellian power chess",                     intensity: 3, spice: 2 },
-      { key: "epic-historical",        label: "Epic Historical",        desc: "Grand-scale pivotal moments",                   intensity: 3, spice: 2 },
-      { key: "investigative-nonfiction",label:"Investigative Nonfiction",desc:"Evidence-based narrative",                      intensity: 3, spice: 2 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.intensity === 3).map(([k, s]) => ({ key: k, ...s })),
   },
   {
     label: "🧠 Medium Intensity / Measured Pacing",
-    styles: [
-      { key: "intellectual-psychological", label: "Intellectual Psychological", desc: "Thought-driven tension",                 intensity: 2, spice: 2 },
-      { key: "cerebral-sci-fi",        label: "Cerebral Sci-Fi",        desc: "High-concept philosophy and ideas",             intensity: 2, spice: 1 },
-      { key: "clinical-procedural",    label: "Clinical Procedural",    desc: "Meticulous investigation",                     intensity: 2, spice: 1 },
-      { key: "satirical",              label: "Satirical",              desc: "Sharp commentary, controlled exaggeration",     intensity: 2, spice: 1 },
-      { key: "surrealist-avant-garde", label: "Surrealist Avant-Garde", desc: "Dream-logic, abstract imagery",                intensity: 2, spice: 2 },
-      { key: "clean-romance",          label: "Clean Romance",          desc: "Emotional intimacy, no explicit content",       intensity: 2, spice: 0 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.intensity === 2).map(([k, s]) => ({ key: k, ...s })),
   },
   {
     label: "🌊 Low-Medium Intensity / Slow Pacing",
-    styles: [
-      { key: "slow-burn",              label: "Slow Burn",              desc: "Gradual tension, atmosphere before action",     intensity: 1, spice: 2 },
-      { key: "nostalgic-coming-of-age",label: "Nostalgic Coming-of-Age",desc: "Bittersweet transition",                       intensity: 1, spice: 1 },
-      { key: "melancholic-literary",   label: "Melancholic Literary",   desc: "Quiet beauty in sadness",                      intensity: 1, spice: 1 },
-      { key: "poetic-magical-realism", label: "Poetic Magical Realism", desc: "Supernatural as mundane truth",                intensity: 1, spice: 1 },
-      { key: "faith-infused",          label: "Faith-Infused Contemporary", desc: "Hope grounded in real life",               intensity: 1, spice: 0 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.intensity === 1).map(([k, s]) => ({ key: k, ...s })),
   },
   {
     label: "✨ Low Intensity / Gentle Pacing",
-    styles: [
-      { key: "whimsical-cozy",         label: "Whimsical Cozy",         desc: "Gentle charm, small magic, community",         intensity: 0, spice: 0 },
-      { key: "reference-educational",  label: "Reference / Educational", desc: "Clarity and structure",                       intensity: 0, spice: 0 },
-    ],
-  },
-  {
-    label: "🎭 Experimental / Variable Pacing",
-    styles: [
-      { key: "surrealist-avant-garde", label: "Surrealist Avant-Garde", desc: "Dream-logic, abstract imagery",                intensity: 2, spice: 2 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.intensity === 0).map(([k, s]) => ({ key: k, ...s })),
   },
   {
     label: "💋 Romance & Erotica",
-    styles: [
-      { key: "steamy-romance",         label: "Steamy Romance",         desc: "Breathless chemistry, emotional vulnerability",  intensity: 3, spice: 4 },
-      { key: "slow-burn-romance",      label: "Slow Burn Romance",      desc: "Agonizing anticipation, almost-touch tension",   intensity: 2, spice: 2 },
-      { key: "dark-erotica",           label: "Dark Erotica",           desc: "Power dynamics, psychological tension",          intensity: 4, spice: 4 },
-    ],
+    styles: Object.entries(ALL_BEAT_STYLES).filter(([k, s]) => s.category === "fiction" && s.label.includes("Romance") || s.label.includes("Erotica")).map(([k, s]) => ({ key: k, ...s })),
   },
 ];
-
-// Flat map for lookup
-const ALL_STYLES = BEAT_STYLE_GROUPS.flatMap(g => g.styles).reduce((acc, s) => {
-  acc[s.key] = s;
-  return acc;
-}, {});
 
 function MeterDots({ count, max = 4, activeColor }) {
   return (
@@ -84,8 +85,13 @@ function MeterDots({ count, max = 4, activeColor }) {
   );
 }
 
-export function BeatStyleSelect({ value, onChange }) {
-  const selected = value ? ALL_STYLES[value] : null;
+export function BeatStyleSelect({ value, onChange, bookType = "fiction" }) {
+  const selected = value ? ALL_BEAT_STYLES[value] : null;
+  
+  // Filter styles: universal + matching category
+  const filteredStyles = Object.entries(ALL_BEAT_STYLES)
+    .filter(([k, s]) => s.category === "universal" || s.category === bookType)
+    .map(([k, s]) => ({ key: k, ...s }));
 
   return (
     <div className="space-y-1.5">
@@ -95,12 +101,8 @@ export function BeatStyleSelect({ value, onChange }) {
         className="w-full mt-1.5 px-3 py-2 text-sm border border-slate-300 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
         <option value="">— Select a beat style —</option>
-        {BEAT_STYLE_GROUPS.map(group => (
-          <optgroup key={group.label} label={group.label}>
-            {group.styles.map(s => (
-              <option key={s.key} value={s.key}>{s.label} — {s.desc}</option>
-            ))}
-          </optgroup>
+        {filteredStyles.map(s => (
+          <option key={s.key} value={s.key}>{s.label} — {s.desc}</option>
         ))}
       </select>
 
@@ -121,6 +123,12 @@ export function BeatStyleSelect({ value, onChange }) {
           <p className="text-xs text-slate-500 italic ml-auto">{selected.desc}</p>
         </div>
       )}
+      
+      <div className="text-xs text-slate-500 italic mt-2 px-2">
+        {bookType === "nonfiction"
+          ? "Nonfiction styles control voice, structure, and rhetorical approach"
+          : "Fiction styles control pacing, atmosphere, and scene structure"}
+      </div>
     </div>
   );
 }
