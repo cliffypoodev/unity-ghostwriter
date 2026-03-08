@@ -573,35 +573,10 @@ ${chapterText}
 Return the corrected chapter text with violations fixed. Output ONLY the chapter prose, nothing else.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        max_tokens: 8192,
-        temperature: 0.4,
-      }),
-    });
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
-    }
-
-    let correctedText = (await response.json()).choices[0]?.message?.content || '';
-    
-    // Strip markdown code fences if present
+    let correctedText = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 8192, temperature: 0.4 });
     if (correctedText.includes('```')) {
       correctedText = correctedText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
     }
-    
     return correctedText;
   } catch (err) {
     console.error('Rewrite error:', err.message);
