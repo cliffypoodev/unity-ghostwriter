@@ -365,6 +365,21 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
         </div>
       </div>
 
+      {/* Write-without-scenes confirmation */}
+      {writeConfirm && (
+        <div className="border-t border-slate-100 bg-amber-50 px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-xs text-amber-800 font-medium flex-1">This chapter has no scenes. Generate scenes first for better results?</span>
+          <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700" onClick={handleGenerateScenesThenWrite}>
+            <LayoutGrid className="w-3 h-3 mr-1" />Generate Scenes First
+          </Button>
+          <button
+            className="text-xs text-slate-400 hover:text-slate-600 underline"
+            onClick={() => { setWriteConfirm(false); onWrite(chapter); }}
+          >Write Without Scenes</button>
+          <button className="text-xs text-slate-400 hover:text-slate-600" onClick={() => setWriteConfirm(false)}>Cancel</button>
+        </div>
+      )}
+
       {expanded && (
         <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-3">
           {chapterProgress && (
@@ -376,9 +391,17 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
               <p className="text-sm text-slate-700 leading-relaxed">{chapter.summary}</p>
             </div>
           )}
+
+          {/* Scene section */}
+          {isFiction && (
+            <SceneSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Writing Prompt</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                {hasScenes ? "Extra Instructions" : "Writing Prompt"}
+              </p>
               <Button size="sm" variant="ghost" className="h-6 text-xs text-slate-500 px-2" onClick={() => setEditingPrompt(e => !e)}>
                 <Pencil className="w-3 h-3 mr-1" />{editingPrompt ? "Cancel" : "Edit"}
               </Button>
@@ -386,7 +409,7 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
             {editingPrompt ? (
               <div className="space-y-2">
                 <Textarea className="text-xs font-mono" rows={4} value={promptValue} onChange={e => setPromptValue(e.target.value)} />
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" onClick={savePrompt}>Save Prompt</Button>
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" onClick={savePrompt}>Save</Button>
               </div>
             ) : (
               <p className="text-sm text-slate-600 leading-relaxed">{chapter.prompt}</p>
