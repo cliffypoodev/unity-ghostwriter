@@ -609,7 +609,7 @@ Return the corrected chapter text with violations fixed. Output ONLY the chapter
   }
 }
 
-async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings) {
+async function generateChapterAsync(base44, projectId, chapterId, projectSpec, outline, sourceFiles, appSettings, modelKey = 'claude-sonnet') {
   try {
     // Load all chapters sorted by number so we can build conversation context
     const allChapters = await base44.entities.Chapter.filter({ project_id: projectId }, "chapter_number");
