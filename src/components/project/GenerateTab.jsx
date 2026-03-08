@@ -1038,10 +1038,12 @@ export default function GenerateTab({ projectId, onProceed }) {
             <ChapterItem
               key={chapter.id}
               chapter={chapter}
+              spec={spec}
               onWrite={handleWriteChapter}
               streamingContent={streamingContent[chapter.id] || ""}
               isStreaming={streamingChapterId === chapter.id}
               chapterProgress={chapterProgress[chapter.id] || null}
+              onScenesUpdated={refetchChapters}
             />
           ))}
         </div>
