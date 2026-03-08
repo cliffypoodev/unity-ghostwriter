@@ -989,7 +989,9 @@ CRITICAL OUTPUT RULES:
 
 ${PLOT_SUBTEXT_RULES}
 
-${DIALOGUE_SUBTEXT_RULES}`;
+${DIALOGUE_SUBTEXT_RULES}
+
+${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       if (isIntimateGenre(projectSpec)) {
         systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
       }
@@ -1142,6 +1144,7 @@ ${DIALOGUE_SUBTEXT_RULES}`;
     // PART C — Plot and dialogue subtext rules (legacy fiction path)
     systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
     systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES}`;
+    systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
     if (isIntimateGenre(projectSpec)) {
@@ -1382,40 +1385,32 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
     }
 
     // PART 4A — Inject physical tics ban into user message
-    if (Object.keys(bannedTicsByChar).length > 0) {
+    if (chapterIndex > 0 && Object.keys(bannedTicsByChar).length > 0) {
       const ticLines = Object.entries(bannedTicsByChar).map(([char, banned]) =>
-        `${char}:\n${banned.map(({ tic, chapters }) => `- ${tic} (used in ch ${chapters.join(', ')})`).join('\n')}`
-      ).join('\n\n');
-      const ticInjection = `=== BANNED PHYSICAL REACTIONS — DO NOT USE ===
-These exact body reactions have already been used for these characters. Using any of them again will result in repetitive prose. Find a DIFFERENT physical manifestation.
-
+        `${char}: ${banned.map(b => b.tic).join(', ')}`
+      ).join('\n');
+      const ticInjection = `=== BANNED PHYSICAL REACTIONS ===
 ${ticLines}
-
-INSTEAD USE: stillness/freezing, grip pressure on object, posture collapse/stiffening, swallowing difficulty, temperature sensation (cold hands, heat behind eyes), specific muscle tension (tendon in forearm, muscles along jaw, between shoulder blades), vocal quality change (voice dropping, cracking, words too fast), involuntary movement (tapping, fidgeting, touching face/hair), breathing through action ("exhaled through his nose" not "breath quickened"), eye movement (gaze dropping, looking away, blinking rapidly, staring without seeing)
-=== END BANNED REACTIONS ===
+INSTEAD USE: stillness, grip pressure on objects, posture changes, swallowing difficulty, temperature sensations, specific muscle tension, vocal quality changes, involuntary fidgeting, breathing through action, eye movement.
+=== END ===
 
 `;
       currentChapterRequest = ticInjection + currentChapterRequest;
     }
 
     // PART 4B — Inject metaphor cluster ban into user message
-    if (flaggedClusters.length > 0) {
+    if (chapterIndex > 0 && flaggedClusters.length > 0) {
       const clusterLines = flaggedClusters.map(cluster => {
-        const words = METAPHOR_CLUSTER_WORDS[cluster] || [];
-        const sampleWords = words.slice(0, 5).join(', ');
         const totalCount = clusterTotals[cluster] || 0;
-        return `- ${cluster} metaphors (used ${totalCount} times): ${sampleWords}`;
+        return `${cluster} (${totalCount} uses) — limit to 1 word from this family in this chapter.`;
       }).join('\n');
-      const clusterInjection = `=== OVERUSED METAPHOR FAMILIES — MUST VARY ===
-The following metaphor clusters have been used too heavily in previous chapters. Do NOT use more than 1 word from any flagged cluster in this chapter. Find FRESH figurative language.
-
+      const clusterInjection = `=== OVERUSED METAPHOR FAMILIES ===
 ${clusterLines}
-
-Try instead: mechanical imagery, animal imagery, architectural imagery, textile imagery, weather that isn't storms, botanical imagery, musical imagery, food/taste imagery, or geometric/spatial imagery.
-=== END OVERUSED METAPHORS ===
+Try instead: mechanical, animal, architectural, textile, botanical, musical, food/taste, or geometric imagery.
+=== END ===
 
 `;
-      currentChapterRequest = currentChapterRequest + '\n\n' + clusterInjection;
+      currentChapterRequest = ticInjection + clusterInjection + currentChapterRequest;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
