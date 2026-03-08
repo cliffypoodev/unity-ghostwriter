@@ -899,6 +899,12 @@ WRITE LIKE THIS INSTEAD:
 
 SUPPORTING CAST: If any named character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explained.
 
+ANTI-REPETITION: You have access to all previously written chapters. You MUST:
+1. End this chapter COMPLETELY DIFFERENTLY from how the previous chapter ended — different final scene, different emotional beat, different last line structure
+2. Do NOT reuse any dialogue exchanges from previous chapters (e.g., if a previous chapter had "What do you want?" / "I want to know you", do NOT use similar back-and-forth)
+3. This chapter must contain at least ONE event that physically changes the characters' situation (a location change, a new character entering, a revelation, a consequence)
+4. The final 500 words of this chapter must be ENTIRELY UNIQUE — no recycled confrontations, no repeated "walking away" beats, no reused emotional resolutions
+
 OPENING RULE: Use this opening style based on chapter number:
 - Chapters 1,6,11,16: Mid-action, character physically doing something
 - Chapters 2,7,12,17: Open with a line of dialogue, no narration first
