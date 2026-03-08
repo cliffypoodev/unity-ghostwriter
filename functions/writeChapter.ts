@@ -937,6 +937,16 @@ ENDING RULE: Use this ending style based on chapter number:
 Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
     }
 
+    if (previousChapters && previousChapters.length > 0) {
+      const lastCh = previousChapters[previousChapters.length - 1];
+      const lastLines = lastCh.content.trim().split("\n").slice(-3);
+      const antiRepeatContext =
+        "\n=== PREVIOUS CHAPTER ENDING (DO NOT REPEAT OR CLOSELY MIRROR THIS) ===\n" +
+        lastLines.join("\n") +
+        "\n=== END PREVIOUS CHAPTER ENDING ===\n\n";
+      currentChapterRequest = antiRepeatContext + currentChapterRequest;
+    }
+
     messages.push({ role: 'user', content: currentChapterRequest });
 
     // ── Generate with retry on refusal ────────────────────────────────────────
