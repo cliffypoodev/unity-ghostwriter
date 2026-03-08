@@ -1463,10 +1463,12 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
       if (Object.keys(bannedTicsByChar).length > 0) {
         const newTics = extractPhysicalTics(content);
         const ticFailures = [];
-        for (const { char, tic } of newTics) {
+        for (const [char, ticCounts] of Object.entries(newTics)) {
           if (bannedTicsByChar[char]) {
             const banned = bannedTicsByChar[char].map(x => x.tic);
-            if (banned.includes(tic)) ticFailures.push(`"${tic}" for ${char}`);
+            for (const tic of Object.keys(ticCounts)) {
+              if (banned.includes(tic)) ticFailures.push(`"${tic}" for ${char}`);
+            }
           }
         }
         if (ticFailures.length > 0) checks.push(`TIC REPETITION: ${ticFailures.join('; ')}`);
@@ -1477,7 +1479,7 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
         const newClusters = extractMetaphorClusters(content);
         const clusterFails = [];
         for (const cluster of bannedClusterNames) {
-          if ((newClusters[cluster] || 0) > 1) clusterFails.push(`${cluster} (${newClusters[cluster]} uses)`);
+          if ((newClusters[cluster]?.count || 0) > 1) clusterFails.push(`${cluster} (${newClusters[cluster].count} uses)`);
         }
         if (clusterFails.length > 0) checks.push(`METAPHOR CLUSTER OVERUSE: ${clusterFails.join('; ')}`);
       }
