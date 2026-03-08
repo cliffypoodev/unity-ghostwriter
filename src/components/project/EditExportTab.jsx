@@ -561,7 +561,7 @@ export default function EditExportTab({ projectId }) {
     window.scrollTo(0, 0);
   }, []);
   const [plainText, setPlainText] = useState("");
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState(window.innerWidth < 768 ? 80 : 100);
   const [fullscreen, setFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFind, setShowFind] = useState(false);
