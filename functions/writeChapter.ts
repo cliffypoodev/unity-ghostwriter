@@ -137,7 +137,42 @@ const LANGUAGE_INTENSITY = {
   4: { name: "Raw", instructions: "Profanity Rules:\n- Language may be harsh and frequent if consistent with trauma, survival, combat, or high-stakes realism.\n- Avoid repetitive filler swearing — each instance must feel earned.\n- Never use profanity purely for shock value.\n- Profanity must reflect emotional state and environment.\n- In narration: raw internal voice permitted if it matches the POV character's psychology." },
 };
 
+// MODEL-SPECIFIC PROMPT OVERRIDE SYSTEM ────────────────────────────────────────
+function getModelPromptOverrides(modelKey) {
+  if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
+    return {
+      wrapSystemPrompt: true,
+      duplicateRulesInUser: true,
+      useNumberedSteps: true,
+      addSelfCheckBlock: true,
+      maxSystemPromptLength: 3000,
+      prefixUserMessage: true,
+      temperatureOverride: 0.7
+    };
+  }
+  return {
+    wrapSystemPrompt: false,
+    duplicateRulesInUser: false,
+    useNumberedSteps: false,
+    addSelfCheckBlock: false,
+    maxSystemPromptLength: null,
+    prefixUserMessage: false,
+    temperatureOverride: null
+  };
+}
+
 const NONFICTION_SECTION_TYPES = { COLD_OPEN: 'Cold Open', THESIS_ANCHOR: 'Thesis Anchor', EVIDENCE_DEEP_DIVE: 'Evidence Deep Dive', CASE_STUDY: 'Case Study', CONTEXT_LAYER: 'Context Layer', COUNTER_NARRATIVE: 'Counter-Narrative', ANALYTICAL_BREAK: 'Analytical Break', MICRO_VIGNETTE: 'Micro-Vignette', TENSION_POINT: 'Tension Point', CHAPTER_SYNTHESIS: 'Chapter Synthesis' };
+
+// DEEPSEEK-SPECIFIC BANNED PHRASES ────────────────────────────────────────────
+const DEEPSEEK_BANNED_PHRASES = `Physical: "heart racing/pounding/hammering", "pulse quickened/raced", "breath hitched/caught", "swallowed hard", "shiver down spine", "a jolt/surge/rush of", "knees weak", "legs trembled", "a flicker/spark of", "igniting a fire", "fire within", "heat pooling"
+
+Atmosphere: "intoxicating", "electric/electricity" (for mood), "palpable", "air thickened/crackled/charged/grew heavy", "shadows danced/twisted/swirled/crept", "darkness enveloped/pressed/wrapped", "tendrils of", "the weight of", "siren's call", "like a moth to a flame", "hung/lingered in the air", "thick with tension", "heavy with implication", "charged with possibility", "fraught with", "neon lights flickered", "neon glow", "neon-lit", "cast a spectrum of colors", "rain-slicked pavement", "the scent of sweat and smoke", "the metallic tang"
+
+Narration: "in that moment", "just the beginning", "no turning back", "on the precipice/brink", "teetering on the edge", "double-edged sword", "ready to embrace/confront", "a mix/blend/cocktail of", "a kaleidoscope/whirlwind/tapestry of", "felt alive", "the world faded", "something deeper/unspoken/primal", "unspoken tension/promise", "invisible thread/force/pull", "couldn't shake/ignore the feeling", "the facade slipping/cracking", "storm brewing within", "dangerous game/dance", "thrill of the chase", "testing/pushing boundaries", "playing with fire"
+
+Dialogue: "what do you truly want/desire", "how far are you willing to go", "let's see where this leads", "embrace your desires", "let go of your fear", "you're not like the others", "control is an illusion"
+
+Smiles: "a knowing/playful/mischievous/teasing smile/smirk/grin/glint"`;
 
 const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
 - All sexual content must involve adults (18+). No exceptions. No implied exceptions.
