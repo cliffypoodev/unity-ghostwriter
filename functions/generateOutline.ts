@@ -317,6 +317,189 @@ Return a JSON object (not array) with these fields:
 Return ONLY the JSON object. No preamble.`;
 }
 
+// NONFICTION GEMINI OUTLINE GENERATOR — Uses Gemini for better research structuring
+async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId) {
+  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
+
+  // Call Gemini via Google API
+  async function callGemini(systemPrompt, userMessage, maxTokens = 12000) {
+    const response = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userMessage }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { temperature: 0.8, maxOutputTokens: maxTokens },
+        }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error('Gemini API error: ' + (data.error?.message || response.status));
+    return data.candidates[0].content.parts[0].text;
+  }
+
+  try {
+    const targetChapters = spec.chapter_count
+      ? Math.min(parseInt(spec.chapter_count), 20)
+      : 12; // Default for nonfiction
+    const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
+    const beatKey = spec.beat_style || spec.tone_style;
+    const beatInstructions = beatKey ? `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n` : '';
+    const authorVoiceKey = spec.author_voice || 'basic';
+    const authorVoiceDesc = getAuthorVoiceDescription(authorVoiceKey);
+    const authorVoiceInfo = authorVoiceKey !== 'basic' ? `\nAuthor Voice: ${authorVoiceDesc}` : '';
+
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional nonfiction book architect specializing in research compilation and evidence-based narrative structure. You generate structured outlines for nonfiction books. Return only valid JSON. No prose outside the JSON.
+
+NONFICTION STRUCTURE RULES:
+- This is NONFICTION. Chapters are organized around ARGUMENTS, THEMES, or CHRONOLOGICAL PERIODS — not fictional plot arcs.
+- Every chapter must be grounded in RESEARCH, documented facts, real people, and the author's analytical voice.
+- Avoid extended fictional dialogue scenes. Focus on authorial analysis and evidence presentation.
+- Characters are REAL PEOPLE — include their names, roles, and factual context.
+- Each chapter must advance the book's central argument or thesis.`;
+
+    // ── STEP 1: Metadata ──────────────────────────────────────────────────────
+    console.log('Gemini: Generating book metadata...');
+    const metadataPrompt = `Generate publishing metadata for a ${spec.genre} nonfiction book about "${truncatedTopic}".
+Target audience: ${spec.target_audience || 'general readers'}.
+
+Return a JSON object with exactly these fields:
+{
+  "title": "A bold, compelling book title",
+  "subtitle": "A subtitle indicating the book's premise",
+  "description": "2-3 concise paragraphs. Hook in the first sentence.",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7"]
+}
+
+Return ONLY the JSON object.`;
+
+    const metaText = await callGemini(systemPrompt, metadataPrompt, 2000);
+    let bookMetadata = null;
+    try {
+      const metaMatch = metaText.match(/\{[\s\S]*\}/);
+      bookMetadata = JSON.parse(cleanJSON(metaMatch ? metaMatch[0] : metaText));
+    } catch (e) {
+      console.warn('Gemini metadata parse failed:', e.message);
+    }
+
+    // ── STEP 2: Story Bible ──────────────────────────────────────────────────
+    console.log('Gemini: Generating research bible...');
+    const storyBiblePrompt = buildStoryBiblePrompt(spec, truncatedTopic, targetChapters);
+    const bibleText = await callGemini(systemPrompt, storyBiblePrompt, 2000);
+    let parsedStoryBible = null;
+    try {
+      const bibleMatch = bibleText.match(/\{[\s\S]*\}/);
+      parsedStoryBible = JSON.parse(cleanJSON(bibleMatch ? bibleMatch[0] : bibleText));
+    } catch (e) {
+      console.warn('Gemini story bible parse failed:', e.message);
+    }
+
+    // ── STEP 3: Generate chapters in batches ──────────────────────────────────
+    console.log(`Gemini: Generating ${targetChapters} chapters...`);
+    const CHUNK_SIZE = 4;
+    const allChapters = [];
+
+    async function generateBatch(chunkStart, previousChapterEnding) {
+      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
+      const chunkCount = chunkEnd - chunkStart + 1;
+      console.log(`Gemini batch ${chunkStart}-${chunkEnd}...`);
+
+      const prevContext = previousChapterEnding
+        ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a transition_from that references this.`
+        : '';
+
+      const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"${beatInstructions}${authorVoiceInfo}${prevContext}
+
+Each chapter MUST have these fields:
+- number, title, summary (1-2 sentences on the chapter's argument/focus)
+- prompt: 300+ words covering HOOK (opening fact/anecdote), CONTENT (research focus with names/dates/places), STRUCTURE (subheadings), TRANSITIONS, TONE, RESEARCH SOURCES
+- transition_from: How to pick up from previous chapter (null for ch 1)
+- transition_to: How this chapter sets up the next
+
+Return a JSON array with exactly ${chunkCount} objects. No prose outside the array.`;
+
+      let text = '';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        text = await callGemini(systemPrompt, chunkPrompt, 12000);
+        if (text && !isRefusal(text)) break;
+      }
+
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(cleanJSON(jsonMatch ? jsonMatch[0] : text));
+      if (!Array.isArray(parsed)) throw new Error(`Not an array in batch ${chunkStart}-${chunkEnd}`);
+      console.log(`✓ Gemini batch ${chunkStart}-${chunkEnd} complete`);
+      return parsed;
+    }
+
+    // Generate batches sequentially for context awareness
+    const batchStarts = [];
+    for (let s = 1; s <= targetChapters; s += CHUNK_SIZE) batchStarts.push(s);
+
+    for (const batchStart of batchStarts) {
+      const lastChapter = allChapters[allChapters.length - 1];
+      const prevEnding = lastChapter?.transition_to || null;
+      const batchResult = await generateBatch(batchStart, prevEnding);
+      allChapters.push(...batchResult);
+    }
+
+    const parsedOutline = { chapters: allChapters };
+
+    // ── Save outline + metadata ──────────────────────────────────────────────
+    const outlineJson = JSON.stringify(parsedOutline);
+    const storyBibleJson = parsedStoryBible ? JSON.stringify(parsedStoryBible) : '';
+
+    const outlineFile = new File([outlineJson], `outline_${project_id}.json`, { type: 'application/json' });
+    const uploadRes = await sr.integrations.Core.UploadFile({ file: outlineFile });
+    const outline_url = uploadRes.file_url;
+
+    let story_bible_url = '';
+    if (storyBibleJson) {
+      const bibleFile = new File([storyBibleJson], `story_bible_${project_id}.json`, { type: 'application/json' });
+      const uploadRes2 = await sr.integrations.Core.UploadFile({ file: bibleFile });
+      story_bible_url = uploadRes2.file_url;
+    }
+
+    await sr.entities.Outline.update(outlineId, {
+      outline_url,
+      story_bible_url,
+      book_metadata: JSON.stringify(bookMetadata),
+      status: 'complete',
+      error_message: '',
+    });
+
+    // Auto-update project name
+    if (bookMetadata?.title) {
+      try {
+        await sr.entities.Project.update(project_id, { name: bookMetadata.title });
+      } catch (nameErr) {
+        console.warn('Project name update failed:', nameErr.message);
+      }
+    }
+
+    // Delete + recreate chapters
+    const existingChapters = await sr.entities.Chapter.filter({ project_id });
+    await Promise.all(existingChapters.map(c => sr.entities.Chapter.delete(c.id)));
+
+    const chapterRecords = allChapters.map((ch, idx) => ({
+      project_id,
+      chapter_number: ch.number || idx + 1,
+      title: ch.title || `Chapter ${ch.number || idx + 1}`,
+      summary: ch.summary || '',
+      prompt: ch.prompt || '',
+      status: 'pending',
+      word_count: 0,
+    }));
+    await sr.entities.Chapter.bulkCreate(chapterRecords);
+    console.log('Gemini nonfiction outline complete:', chapterRecords.length, 'chapters');
+  } catch (err) {
+    console.error('Gemini nonfiction generation failed:', err.message);
+    throw err;
+  }
+}
+
 async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
    let outlineId = null;
    try {
