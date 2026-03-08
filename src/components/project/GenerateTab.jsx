@@ -1000,10 +1000,21 @@ export default function GenerateTab({ projectId, onProceed }) {
       )}
 
       {/* Regenerate outline + One-click write buttons */}
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" size="sm" onClick={handleGenerateOutline} className="text-slate-500">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
         </Button>
+        {spec?.book_type !== 'nonfiction' && totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '') && (
+          <Button
+            onClick={handleGenerateAllScenes}
+            disabled={generatingAllScenes || writeAllActive}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {generatingAllScenes
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating Scenes…</>
+              : <><LayoutGrid className="w-4 h-4 mr-2" />Generate All Scenes</>}
+          </Button>
+        )}
         {totalCount > 0 && generatedCount < totalCount && (
           <Button 
             onClick={handleWriteAllChapters} 
@@ -1015,6 +1026,9 @@ export default function GenerateTab({ projectId, onProceed }) {
           </Button>
         )}
       </div>
+      {allScenesProgress && (
+        <div className="text-sm text-indigo-600 font-medium text-right">{allScenesProgress}</div>
+      )}
 
       {/* Chapters */}
       {chapters.length > 0 && (
