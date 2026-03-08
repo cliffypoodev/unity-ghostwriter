@@ -226,7 +226,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const handleChange = (field, value) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; }
+      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; updated.beat_style = ""; updated.tone_style = ""; }
       if (field === "genre") { updated.subgenre = ""; }
       return updated;
     });
@@ -437,7 +437,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
               <div className={hl("beat_style")}>
                 <Label className="text-sm font-medium">Beat Style</Label>
-                <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} />
+                <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
               </div>
 
               <div>
