@@ -1781,6 +1781,25 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
     fullContent = fullContentWorking;
 
     // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters, storyBible, and permanent quality rules)
+    // DEEPSEEK POST-GENERATION VALIDATION (PART 1, 2, 3 ORCHESTRATION)
+    const isDeepSeek = modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner';
+    if (isDeepSeek) {
+      const deepseekValidation = await base44.functions.invoke('deepseekValidator', {
+        chapter_text: fullContent,
+        chapter_number: chapter.chapter_number,
+        spec: projectSpec,
+        previous_chapters: previousChapters,
+        story_bible: storyBible,
+        characters: storyBible?.characters || [],
+        open_ai_key: openai_key
+      });
+      
+      if (!deepseekValidation.data.passed) {
+        console.log(`DeepSeek Chapter ${chapter.chapter_number} structural check failed:`, deepseekValidation.data.violations);
+        fullContent = deepseekValidation.data.text; // Use cleaned version
+      }
+    }
+
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
     // Meta-response detection
@@ -1802,9 +1821,12 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
     let finalContent = fullContent;
     let passCount = 0;
 
-    // Auto-rewrite loop — max 2 passes
+    // DEEPSEEK AUTO-REWRITE LOOP: increase max passes to 3 (PART 3)
+    const maxRewritePasses = isDeepSeek ? 3 : 2;
+    
+    // Auto-rewrite loop
     if (!qualityResult.passed && qualityResult.warnings.length > 0) {
-      for (let pass = 1; pass <= 2; pass++) {
+      for (let pass = 1; pass <= maxRewritePasses; pass++) {
         console.log(`Chapter ${chapter.chapter_number} auto-rewrite pass ${pass}...`);
         
         try {
@@ -1826,6 +1848,11 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
           console.error(`Rewrite pass ${pass} failed silently, continuing with current text:`, rewriteErr.message);
         }
       }
+    }
+
+    // DEEPSEEK POST-VALIDATION LOGGING (PART 3)
+    if (isDeepSeek && qualityResult.violation_count > 5) {
+      console.warn(`DeepSeek Chapter ${chapter.chapter_number} still has ${qualityResult.violation_count} violations after ${maxRewritePasses} rewrite passes. Consider switching to Claude for this chapter.`);
     }
 
     let contentValue = finalContent;
