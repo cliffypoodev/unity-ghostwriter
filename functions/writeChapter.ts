@@ -1104,8 +1104,7 @@ ${chapterText}
 Return the corrected chapter text with violations fixed. Output ONLY the chapter prose, nothing else.`;
 
   try {
-    const maxTokens = modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner' ? 4000 : 8192;
-    let correctedText = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.4 });
+    let correctedText = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 3000, temperature: 0.4 });
     if (correctedText.includes('```')) {
       correctedText = correctedText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
     }
@@ -1141,8 +1140,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const TARGET_WORDS = 1600;
 
     // callAI wrapper using conversation messages array
-    const DEFAULT_MAX_TOKENS = (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') ? 4000 : 8192;
-    async function callAIConversation(messages, maxTokens = DEFAULT_MAX_TOKENS) {
+    async function callAIConversation(messages, maxTokens = 8192) {
       const systemMsg = messages.find(m => m.role === 'system')?.content || '';
       const nonSystem = messages.filter(m => m.role !== 'system');
       const userMsg = nonSystem.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n');
