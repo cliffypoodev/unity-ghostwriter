@@ -768,7 +768,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     const failures = [];
     let isWriting = true;
 
-    // ISSUE 5 FIX: Validate that chapters exist before starting
+    // Validate that chapters exist before starting
     if (toWrite.length === 0) {
       currentError = "No chapters found to write. Please regenerate your outline first.";
       setWriteAllProgress(prev => ({ ...prev, done: true, error: currentError }));
