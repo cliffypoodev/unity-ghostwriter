@@ -456,15 +456,11 @@ No other fields. No prose outside the JSON array.`;
 
       let text = '';
       for (let attempt = 0; attempt < 3; attempt++) {
-        const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: chunkPrompt }];
-        if (attempt > 0) {
-          messages.push({ role: 'assistant', content: text });
-          messages.push({ role: 'user', content: 'REMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' });
-        }
-        // CHANGE 1 FIX: Reduce max_tokens from 16384 to 8192 (halved)
-        const response = await callOpenAIWithTimeout(messages, 4000);
-        if (!response?.choices?.[0]?.message?.content) throw new Error('No content in response');
-        text = response.choices[0].message.content;
+        const retryNote = attempt > 0 ? '\n\nREMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' : '';
+        text = await callAIWithMessages(modelKey, [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: chunkPrompt + retryNote },
+        ], 4000);
         if (!isRefusal(text)) break;
         console.warn(`Batch ${chunkStart}-${chunkEnd} attempt ${attempt + 1} was a refusal, retrying...`);
       }
