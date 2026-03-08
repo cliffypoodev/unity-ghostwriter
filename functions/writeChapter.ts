@@ -138,27 +138,8 @@ const LANGUAGE_INTENSITY = {
 };
 
 // MODEL-SPECIFIC PROMPT OVERRIDE SYSTEM ────────────────────────────────────────
-function getModelPromptOverrides(modelKey) {
-  if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
-    return {
-      wrapSystemPrompt: true,
-      duplicateRulesInUser: true,
-      useNumberedSteps: true,
-      addSelfCheckBlock: true,
-      maxSystemPromptLength: 3000,
-      prefixUserMessage: true,
-      temperatureOverride: 0.7
-    };
-  }
-  return {
-    wrapSystemPrompt: false,
-    duplicateRulesInUser: false,
-    useNumberedSteps: false,
-    addSelfCheckBlock: false,
-    maxSystemPromptLength: null,
-    prefixUserMessage: false,
-    temperatureOverride: null
-  };
+function getModelPromptOverrides(k) {
+  return (k === 'deepseek-chat' || k === 'deepseek-reasoner') ? { wrapSystemPrompt: true, duplicateRulesInUser: true, useNumberedSteps: true, addSelfCheckBlock: true, maxSystemPromptLength: 3000, prefixUserMessage: true, temperatureOverride: 0.7 } : { wrapSystemPrompt: false, duplicateRulesInUser: false, useNumberedSteps: false, addSelfCheckBlock: false, maxSystemPromptLength: null, prefixUserMessage: false, temperatureOverride: null };
 }
 
 const NONFICTION_SECTION_TYPES = { COLD_OPEN: 'Cold Open', THESIS_ANCHOR: 'Thesis Anchor', EVIDENCE_DEEP_DIVE: 'Evidence Deep Dive', CASE_STUDY: 'Case Study', CONTEXT_LAYER: 'Context Layer', COUNTER_NARRATIVE: 'Counter-Narrative', ANALYTICAL_BREAK: 'Analytical Break', MICRO_VIGNETTE: 'Micro-Vignette', TENSION_POINT: 'Tension Point', CHAPTER_SYNTHESIS: 'Chapter Synthesis' };
