@@ -137,6 +137,8 @@ const LANGUAGE_INTENSITY = {
   4: { name: "Raw", instructions: "Profanity Rules:\n- Language may be harsh and frequent if consistent with trauma, survival, combat, or high-stakes realism.\n- Avoid repetitive filler swearing — each instance must feel earned.\n- Never use profanity purely for shock value.\n- Profanity must reflect emotional state and environment.\n- In narration: raw internal voice permitted if it matches the POV character's psychology." },
 };
 
+const NONFICTION_SECTION_TYPES = { COLD_OPEN: 'Cold Open', THESIS_ANCHOR: 'Thesis Anchor', EVIDENCE_DEEP_DIVE: 'Evidence Deep Dive', CASE_STUDY: 'Case Study', CONTEXT_LAYER: 'Context Layer', COUNTER_NARRATIVE: 'Counter-Narrative', ANALYTICAL_BREAK: 'Analytical Break', MICRO_VIGNETTE: 'Micro-Vignette', TENSION_POINT: 'Tension Point', CHAPTER_SYNTHESIS: 'Chapter Synthesis' };
+
 const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
 - All sexual content must involve adults (18+). No exceptions. No implied exceptions.
 - Consent must be clear. Non-consensual acts may only appear if framed unambiguously as violation — never romanticized, never ambiguous, never presented as desirable.
