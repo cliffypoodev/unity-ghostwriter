@@ -440,10 +440,12 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
               </div>
 
-              <div>
-                <Label className="text-sm font-medium">Spice Level</Label>
-                <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
-              </div>
+              {form.book_type === "fiction" && (
+                <div>
+                  <Label className="text-sm font-medium">Spice Level</Label>
+                  <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
+                </div>
+              )}
 
               <div>
                 <Label className="text-sm font-medium">Language Intensity</Label>
