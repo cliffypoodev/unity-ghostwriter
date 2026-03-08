@@ -882,6 +882,41 @@ export default function GenerateTab({ projectId, onProceed }) {
     writeAllAbortRef.current = true;
   };
 
+  const handleGenerateAllScenes = async () => {
+    setGeneratingAllScenes(true);
+    setAllScenesProgress("Starting scene generation…");
+    try {
+      const response = await base44.functions.invoke('generateAllScenes', { projectId });
+      const total = response.data?.total || 0;
+      if (total === 0) {
+        setAllScenesProgress("All chapters already have scenes.");
+        setTimeout(() => setAllScenesProgress(""), 3000);
+        return;
+      }
+      // Poll until all chapters have scenes
+      let done = 0;
+      let polls = 0;
+      while (done < total && polls < 90) {
+        await new Promise(r => setTimeout(r, 3000));
+        polls++;
+        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+        done = updated.filter(c => {
+          const s = c.scenes?.trim();
+          return s && s !== 'null' && s !== '[]';
+        }).length;
+        setAllScenesProgress(`Generating scenes… ${done} of ${total} chapters done`);
+      }
+      setAllScenesProgress("Scenes ready!");
+      await refetchChapters();
+      setTimeout(() => setAllScenesProgress(""), 3000);
+    } catch (err) {
+      setAllScenesProgress(`Error: ${err.message}`);
+      setTimeout(() => setAllScenesProgress(""), 5000);
+    } finally {
+      setGeneratingAllScenes(false);
+    }
+  };
+
   // ── Empty state ──
   if (!hasOutline && !generating) {
     return (
