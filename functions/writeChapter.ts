@@ -920,19 +920,12 @@ ANTI-REPETITION: You have access to all previously written chapters. You MUST:
 3. This chapter must contain at least ONE event that physically changes the characters' situation (a location change, a new character entering, a revelation, a consequence)
 4. The final 500 words of this chapter must be ENTIRELY UNIQUE — no recycled confrontations, no repeated "walking away" beats, no reused emotional resolutions
 
-OPENING RULE: Use this opening style based on chapter number:
-- Chapters 1,6,11,16: Mid-action, character physically doing something
-- Chapters 2,7,12,17: Open with a line of dialogue, no narration first
-- Chapters 3,8,13,18: One concrete sensory detail, one sentence
-- Chapters 4,9,14,19: Time/place stamp then immediate action
-- Chapters 5,10,15,20: Internal thought that contradicts what happens next
+OPENING: You MUST use this specific opening style for this chapter: ${openingType.name} — ${openingType.desc}
 
-ENDING RULE: Use this ending style based on chapter number:
-- Chapters 1,6,11,16: Mid-action cliffhanger, cut to black
-- Chapters 2,7,12,17: A revelation that recontextualizes the chapter
-- Chapters 3,8,13,18: A single concrete sensory image
-- Chapters 4,9,14,19: A line of dialogue with NO narration after it
-- Chapters 5,10,15,20: A quiet mundane action contrasting the intensity
+ENDING: You MUST use this specific ending style for this chapter: ${endingType.name} — ${endingType.desc}
+THIS IS NON-NEGOTIABLE. The last 2-3 sentences of your chapter MUST match this ending type. If your ending does not match, the chapter will be rejected and regenerated.
+
+STRUCTURAL CONSTRAINT: The final scene of this chapter must take place in a DIFFERENT LOCATION than where the chapter's main conversation happens. The chapter must NOT end with one character walking away while the other watches.
 
 Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
     }
