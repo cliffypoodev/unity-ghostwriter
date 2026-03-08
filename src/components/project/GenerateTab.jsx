@@ -285,6 +285,41 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
     setEditingPrompt(false);
   };
 
+  const handleWriteClick = () => {
+    if (isFiction && !hasScenes) {
+      setWriteConfirm(true);
+    } else {
+      onWrite(chapter);
+    }
+  };
+
+  const handleGenerateScenesThenWrite = async () => {
+    setWriteConfirm(false);
+    setGeneratingScenesThenWrite(true);
+    try {
+      await base44.functions.invoke('generateScenes', {
+        projectId: chapter.project_id,
+        chapterNumber: chapter.chapter_number,
+      });
+      let polls = 0;
+      while (polls < 45) {
+        await new Promise(r => setTimeout(r, 2000));
+        polls++;
+        const updated = await base44.entities.Chapter.filter({ project_id: chapter.project_id });
+        const updCh = updated.find(c => c.id === chapter.id);
+        if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') {
+          if (onScenesUpdated) onScenesUpdated();
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('generateScenesThenWrite error:', err.message);
+    } finally {
+      setGeneratingScenesThenWrite(false);
+      onWrite(chapter);
+    }
+  };
+
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden">
       <div
