@@ -538,7 +538,7 @@ Write ~${target_words} words. Begin immediately with prose — no preamble.`;
 }
 
 // PART B — AUTO-REWRITE FUNCTION
-async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey) {
+async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey, modelKey = 'claude-sonnet') {
   const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.
 
 RULES:
