@@ -5,23 +5,25 @@ const openai_key = Deno.env.get("OPENAI_API_KEY");
 // ── Multi-Provider AI Router ──────────────────────────────────────────────────
 
 const MODEL_MAP = {
-  "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72 },
-  "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514",   defaultTemp: 0.72 },
-  "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5",          defaultTemp: 0.72 },
-  "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5",        defaultTemp: 0.72 },
-  "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5",         defaultTemp: 0.72 },
-  "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4  },
-  "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9  },
-  "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7  },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.0-flash",         defaultTemp: 0.72 },
-  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72 },
+  "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
+  "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514",   defaultTemp: 0.72, maxTokensLimit: null },
+  "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5",          defaultTemp: 0.72, maxTokensLimit: null },
+  "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5",        defaultTemp: 0.72, maxTokensLimit: null },
+  "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5",         defaultTemp: 0.72, maxTokensLimit: null },
+  "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4,  maxTokensLimit: null },
+  "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9,  maxTokensLimit: null },
+  "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7,  maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.0-flash",         defaultTemp: 0.72, maxTokensLimit: null },
+  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
-  const { provider, modelId, defaultTemp } = config;
+  const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
-  const maxTokens = options.maxTokens ?? 8192;
+  let maxTokens = options.maxTokens ?? 8192;
+  // Cap maxTokens if model has a limit
+  if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
 
   if (provider === "anthropic") {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -57,10 +59,11 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   }
 
   if (provider === "deepseek") {
+    const deepseekMaxTokens = Math.min(maxTokens, 8192);
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+      body: JSON.stringify({ model: modelId, max_tokens: deepseekMaxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error('DeepSeek error: ' + (data.error?.message || response.status));
