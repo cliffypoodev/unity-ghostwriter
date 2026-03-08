@@ -65,6 +65,24 @@ const AI_MODEL_PROFILES = {
     proseQuality: 4,
     tokenCost: 3
   },
+  "gpt-4o-creative": {
+    id: "gpt-4o-creative",
+    name: "GPT-4o (Creative Mode)",
+    provider: "OpenAI",
+    description: "Creative writing with accessible, page-turning prose. Higher temperature for more imaginative output.",
+    strengths: ["Fast-paced prose", "Genre conventions", "Dialogue-heavy scenes", "Page-turning momentum"],
+    proseQuality: 4,
+    tokenCost: 4
+  },
+  "gemini-pro": {
+    id: "gemini-pro",
+    name: "Gemini Pro",
+    provider: "Google",
+    description: "Strong at research-backed writing and factual accuracy. Ideal for nonfiction and science books.",
+    strengths: ["Factual accuracy", "Research synthesis", "Data-driven narratives", "Technical precision"],
+    proseQuality: 4,
+    tokenCost: 3
+  },
   "deepseek-chat": {
     id: "deepseek-chat",
     name: "DeepSeek Chat",
