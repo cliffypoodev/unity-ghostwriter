@@ -318,33 +318,45 @@ Return ONLY the JSON object. No preamble.`;
 }
 
 async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
-  let outlineId = null;
-  try {
-    console.log('runGeneration start:', project_id);
+   let outlineId = null;
+   try {
+     console.log('runGeneration start:', project_id);
 
-    // Mark outline as generating
-    const existingOutlines = await sr.entities.Outline.filter({ project_id });
-    if (existingOutlines[0]) {
-      outlineId = existingOutlines[0].id;
-      await sr.entities.Outline.update(outlineId, { status: 'generating', error_message: '' });
-    } else {
-      const created = await sr.entities.Outline.create({ project_id, status: 'generating' });
-      outlineId = created.id;
-    }
+     // Mark outline as generating
+     const existingOutlines = await sr.entities.Outline.filter({ project_id });
+     if (existingOutlines[0]) {
+       outlineId = existingOutlines[0].id;
+       await sr.entities.Outline.update(outlineId, { status: 'generating', error_message: '' });
+     } else {
+       const created = await sr.entities.Outline.create({ project_id, status: 'generating' });
+       outlineId = created.id;
+     }
 
-    const specs = await sr.entities.Specification.filter({ project_id });
-    const rawSpec = specs[0];
-    if (!rawSpec) {
-      await sr.entities.Outline.update(outlineId, { status: 'error', error_message: 'No specification found' });
-      return;
-    }
+     const specs = await sr.entities.Specification.filter({ project_id });
+     const rawSpec = specs[0];
+     if (!rawSpec) {
+       await sr.entities.Outline.update(outlineId, { status: 'error', error_message: 'No specification found' });
+       return;
+     }
 
-    const spec = {
-      ...rawSpec,
-      beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
-      spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)),
-      language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
-    };
+     const spec = {
+       ...rawSpec,
+       beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
+       spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)),
+       language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
+     };
+
+     // NONFICTION ROUTING: Try Gemini for nonfiction outlines, fall back to Claude silently
+     if (spec.book_type === 'nonfiction') {
+       try {
+         console.log('Nonfiction outline detected — attempting Gemini generation...');
+         await runNonfictionOutlineGemini(sr, project_id, spec, outlineId);
+         return; // Success — exit early
+       } catch (geminiErr) {
+         console.warn('Gemini outline generation unavailable or failed:', geminiErr.message, '— falling back to Claude');
+         // Fall through to regular Claude-based generation
+       }
+     }
 
     // CHANGE 3 FIX: Cap chapter count at 20 max; recommend 12-18
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
