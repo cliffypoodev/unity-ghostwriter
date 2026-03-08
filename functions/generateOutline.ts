@@ -274,7 +274,7 @@ Return a JSON object (not array) with these fields:
 Return ONLY the JSON object. No preamble.`;
 }
 
-async function runGeneration(sr, project_id) {
+async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
   let outlineId = null;
   try {
     console.log('runGeneration start:', project_id);
