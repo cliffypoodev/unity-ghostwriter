@@ -30,6 +30,22 @@ const BEAT_STYLES = {
   "urban-gritty-fantasy": { name: "Urban Gritty Fantasy", instructions: "Core Identity: The collision of high-magic elements with the harsh, dirty reality of modern city life.\nSentence Rhythm: Fast, street-level energy. Mix of magical terminology and modern slang. Tough and unsentimental.\nContent Rules: Underground magical economies. Modern problems solved or worsened by magic. Secret societies hidden in plain sight.\nEmotional Handling: Cynical but resilient. Gallows humor. Hard-earned loyalty.\nStructure: Blue-collar magical task > Discovery of threat the normal world cannot see > Chase through city's hidden magical layers > Messy improvised battle using both magic and technology > World remains normal to public but protagonist is scarred.\nEnding Rule: Close with the protagonist taking a drink or lighting a cigarette in the rain." },
 };
 
+const FICTION_ENDING_TYPES = {
+  1: "Type A: Mid-action cliffhanger — interrupt the character mid-action, cut to black. No summary, no reflection.",
+  2: "Type B: A revelation that recontextualizes what the reader just read. End with the new information, no reaction narration.",
+  3: "Type C: A concrete, specific sensory image — an actual thing the character sees/hears/touches. NOT abstract.",
+  4: "Type D: A line of dialogue that lands like a gut-punch — absolutely NO narration after the dialogue. The quote is the last thing.",
+  5: "Type E: A quiet, mundane action that contrasts with the chapter's intensity — e.g., character makes coffee after a harrowing event.",
+};
+
+const NONFICTION_ENDING_TYPES = {
+  1: "A quiet, resonant image — a single specific detail that carries the chapter's emotional weight without stating it.",
+  2: "A reframing sentence — one line that recasts everything the chapter discussed in a new light.",
+  3: "A brief poem, aphorism, or set-apart reflection — 2-4 lines of compressed wisdom, separated from the main text.",
+  4: "A lingering question — posed directly to the reader, unanswered, that invites continued reflection.",
+  5: "A return to the opening vignette — circle back to the scene or person from the beginning, now seen differently.",
+};
+
 function getBeatStyleInstructions(key) {
   if (!key) return "Not specified";
   const beat = BEAT_STYLES[key];
