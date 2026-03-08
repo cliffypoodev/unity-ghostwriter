@@ -1800,7 +1800,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
       }
     }
 
-    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || [], modelKey);
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
@@ -1836,7 +1836,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
             passCount = pass;
             
             // Re-scan after rewrite (with previousChapters, storyBible, and characters)
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || [], modelKey);
             console.log(`After pass ${pass} quality scan:`, qualityResult);
             
             if (qualityResult.passed) {
