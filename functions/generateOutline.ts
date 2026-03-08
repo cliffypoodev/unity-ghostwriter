@@ -243,12 +243,11 @@ async function safeParseJSON(text, modelKey) {
     console.warn('safeParseJSON first attempt failed:', e1.message, '— attempting AI repair...');
   }
   try {
-    const maxTokensRepair = (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') ? 4000 : 8192;
     const repaired = await callAI(
       modelKey,
       'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
       `Fix this malformed JSON and return only the corrected JSON:\n\n${cleaned}`,
-      { maxTokens: maxTokensRepair, temperature: 0.0 }
+      { maxTokens: 4000, temperature: 0.0 }
     );
     return JSON.parse(cleanJSON(repaired));
   } catch {
@@ -263,7 +262,7 @@ async function callAIWithMessages(modelKey, messages, maxTokens = null) {
   // Combine all non-system messages into a single user turn for providers that need it
   const userParts = messages.filter(m => m.role !== 'system');
   const userMsg = userParts.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n');
-  const finalMaxTokens = maxTokens || ((modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') ? 4000 : 8192);
+  const finalMaxTokens = maxTokens || 8192;
   return callAI(modelKey, systemMsg, userMsg, { maxTokens: finalMaxTokens, temperature: 0.8 });
 }
 
