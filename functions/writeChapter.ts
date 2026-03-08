@@ -636,7 +636,58 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const useScenePath = !isNonfiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
 
     let systemPrompt;
-    if (isNonfiction) {
+    if (useScenePath) {
+      // ── SCENE-BASED SYSTEM PROMPT (shorter — scenes carry the structure) ──
+      const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
+      const beatInstructions = beatKey ? getBeatStyleInstructions(beatKey) : 'Not specified';
+      const characters = storyBible?.characters || [];
+      const world = storyBible?.world || storyBible?.settings;
+      const rules = storyBible?.rules;
+
+      const authorVoices = {
+        hemingway: "Terse, declarative sentences. Iceberg theory.",
+        king: "Conversational, immersive. Rich inner monologue, building dread.",
+        austen: "Witty, ironic social commentary.",
+        tolkien: "Mythic, elevated prose. Rich world-building.",
+        morrison: "Lyrical, poetic. Vivid sensory detail.",
+        rowling: "Accessible, whimsical. Clever wordplay.",
+        mccarthy: "Sparse, biblical. No quotation marks.",
+        atwood: "Sharp, sardonic. Precise word choices.",
+        gaiman: "Mythic yet modern. Fairy-tale cadence.",
+        pratchett: "Satirical. Comedic fantasy, warm humanity.",
+        le_guin: "Sparse elegance, philosophical depth.",
+        vonnegut: "Dark humor, short sentences. Absurdist.",
+        garcia_marquez: "Lush magical realism. Sprawling sentences.",
+        chandler: "Hardboiled noir. First-person cynicism.",
+        christie: "Puzzle-box plotting. Clean readable prose.",
+      };
+      const voiceDesc = projectSpec?.author_voice ? (authorVoices[projectSpec.author_voice] || null) : null;
+
+      systemPrompt = `You are a novelist writing Chapter ${chapter.chapter_number} of a ${projectSpec?.genre || 'fiction'} novel.
+
+STYLE: ${beatInstructions}
+
+${voiceDesc ? `VOICE: ${voiceDesc}` : ''}
+
+${projectSpec?.topic ? `BOOK PREMISE:\n${projectSpec.topic}` : ''}
+
+CHARACTERS:
+${characters.length > 0 ? characters.map(c => `- ${c.name} (${c.role || 'character'}): ${c.description || ''}${c.relationships ? ' | ' + c.relationships : ''}`).join('\n') : 'See story bible'}
+
+WORLDBUILDING:
+${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
+
+RULES:
+${rules ? (typeof rules === 'string' ? rules : JSON.stringify(rules)) : 'None'}
+
+${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}
+
+${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}
+
+${CONTENT_GUARDRAILS}
+
+OUTPUT: Return ONLY the chapter prose. No headers, no metadata, no notes, no preamble, no commentary.`;
+    } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
         projectSpec, 
         { chapter_number: chapter.chapter_number, title: chapter.title }, 
