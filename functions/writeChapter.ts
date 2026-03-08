@@ -148,6 +148,8 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 
 const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Return ONLY the prose of the chapter/scene. No preamble. No commentary.
+- Do NOT include a chapter title, chapter number, or any heading at the top of your output. The chapter title is handled by the application — start immediately with the first sentence of prose.
+- Do NOT include scene headers, scene numbers, or scene titles (e.g. "## SCENE 1" or "SCENE 1: Title"). The ONLY structural marker between scenes is a single line containing just: * * *
 - Do not start with "Here is..." or "Sure, here's..." or "I'd be happy to..."
 - Do not end with "Let me know if..." or "I hope this..." or any assistant-style closing.
 - Do not include content warnings, trigger warnings, or age disclaimers in the output.
@@ -686,7 +688,13 @@ ${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}
 
 ${CONTENT_GUARDRAILS}
 
-OUTPUT: Return ONLY the chapter prose. No headers, no metadata, no notes, no preamble, no commentary.`;
+CRITICAL OUTPUT RULES:
+- Do NOT include scene numbers, scene titles, or any scene metadata in your output
+- Do NOT write headers like "## SCENE 1" or "SCENE 1: Title" or anything similar
+- The ONLY structural marker allowed between scenes is a single line containing just: * * *
+- Do NOT include a chapter title header or chapter number — start writing prose immediately
+- Your output must read like a published novel chapter — no outline artifacts, no structural labels, no metadata of any kind
+- Return ONLY the prose. No preamble, no commentary.`;
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
         projectSpec, 
@@ -869,6 +877,18 @@ Write this chapter in full.`
     }
 
     // Get opening and ending types and build user message based on book type
+    // BUG 3 — Collect distinctive phrases from previous chapters to prevent cross-chapter repetition
+    const crossChapterPhrases = [];
+    for (const prevCh of allChapters.slice(0, chapterIndex)) {
+      if (prevCh.distinctive_phrases) {
+        try {
+          const p = JSON.parse(prevCh.distinctive_phrases);
+          if (Array.isArray(p)) crossChapterPhrases.push(...p);
+        } catch {}
+      }
+    }
+    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30);
+
     let currentChapterRequest;
     if (useScenePath) {
       // ── SCENE-BASED USER MESSAGE ──────────────────────────────────────────
@@ -1002,6 +1022,14 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
       currentChapterRequest = antiRepeatContext + currentChapterRequest;
     }
 
+    // BUG 2 — Prevent AI from inventing its own chapter heading or number
+    currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
+
+    // BUG 3 — Cross-chapter phrase ban
+    if (uniqueCrossChapterPhrases.length > 0) {
+      currentChapterRequest += `\n\nPHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE):\n${uniqueCrossChapterPhrases.map(p => `- "${p}"`).join('\n')}`;
+    }
+
     messages.push({ role: 'user', content: currentChapterRequest });
 
     // ── Generate with retry on refusal ────────────────────────────────────────
@@ -1017,6 +1045,15 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
       if (!isRefusal(fullContent)) break;
       console.warn(`Chapter generation attempt ${attempt + 1} returned a refusal, retrying...`);
     }
+
+    // BUG 1 — Strip any scene header or chapter heading artifacts the AI included
+    let _cleaned = fullContent;
+    _cleaned = _cleaned.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+    _cleaned = _cleaned.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
+    _cleaned = _cleaned.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+    _cleaned = _cleaned.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
+    _cleaned = _cleaned.replace(/\n{3,}/g, '\n\n');
+    fullContent = _cleaned.trim();
 
     const wordCount = fullContent.trim().split(/\s+/).length;
 
@@ -1067,12 +1104,29 @@ Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
 
     const finalWordCount = finalContent.trim().split(/\s+/).length;
 
+    // BUG 3 — Extract distinctive phrases for cross-chapter repetition prevention
+    let distinctivePhrases = [];
+    try {
+      const phraseRaw = await callAI(
+        modelKey,
+        'You are a literary analyst. Extract the 15 most distinctive literary phrases, metaphors, and unusual word pairings from this text. Return ONLY a JSON array of strings. No markdown, no explanation.',
+        finalContent.slice(0, 6000),
+        { maxTokens: 512, temperature: 0.0 }
+      );
+      const phraseClean = phraseRaw.trim().replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+      const phraseMatch = phraseClean.match(/\[[\s\S]*\]/);
+      if (phraseMatch) distinctivePhrases = JSON.parse(phraseMatch[0]);
+    } catch (phraseErr) {
+      console.warn('Phrase extraction failed silently:', phraseErr.message);
+    }
+
     await base44.entities.Chapter.update(chapterId, {
       content: contentValue,
       status: 'generated',
       word_count: finalWordCount,
       generated_at: new Date().toISOString(),
       quality_scan: JSON.stringify(qualityResult),
+      distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '',
     });
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
