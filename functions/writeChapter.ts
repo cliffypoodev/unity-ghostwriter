@@ -473,8 +473,8 @@ const DIALOGUE_SUBTEXT_RULES = `DIALOGUE AND SUBTEXT RULES — MANDATORY:
 
 5. NO character should deliver more than 2 consecutive lines of dialogue that are philosophically provocative. Real people pause, deflect, make jokes, say boring things, talk about logistics. Break up intense dialogue with mundane reality.`;
 
-// POST-GENERATION QUALITY SCANNER
-function scanChapterQuality(text, chapterNumber) {
+// PART 6 — EXTENDED POST-GENERATION QUALITY SCANNER
+function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null) {
   const bannedPhrases = {
     physicalReactions: [
       "heart racing", "heart raced", "heart pounding", "heart pounded", "heart hammered", "heart thudded", "heart thundering",
@@ -638,6 +638,71 @@ function scanChapterQuality(text, chapterNumber) {
   }
   if (endingMatches.length > 0) {
     violations.push(`ENDING PATTERN (${endingMatches.length}): ${endingMatches.join(', ')}`);
+  }
+
+  // PART 6 CHECK 1 — Physical tic repetition from previous chapters
+  if (previousChapters && previousChapters.length > 0) {
+    const prevTicsByChar = {};
+    for (const prevCh of previousChapters) {
+      const prevTxt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
+      if (!prevTxt) continue;
+      const tics = extractPhysicalTics(prevTxt);
+      for (const [char, ticCounts] of Object.entries(tics)) {
+        if (!prevTicsByChar[char]) prevTicsByChar[char] = new Set();
+        for (const tic of Object.keys(ticCounts)) {
+          prevTicsByChar[char].add(tic);
+        }
+      }
+    }
+    const newTics = extractPhysicalTics(text);
+    const ticRepeats = [];
+    for (const [char, ticCounts] of Object.entries(newTics)) {
+      if (prevTicsByChar[char]) {
+        for (const tic of Object.keys(ticCounts)) {
+          if (prevTicsByChar[char].has(tic)) {
+            ticRepeats.push(`${char}: "${tic}"`);
+          }
+        }
+      }
+    }
+    if (ticRepeats.length > 0) {
+      violations.push(`PHYSICAL TIC REPETITION (${ticRepeats.length}): ${ticRepeats.slice(0, 3).join(', ')}`);
+      violationCount += ticRepeats.length;
+    }
+  }
+
+  // PART 6 CHECK 2 — Metaphor cluster overuse in new chapter
+  if (previousChapters && previousChapters.length > 0) {
+    const prevClusterTotals = {};
+    for (const prevCh of previousChapters) {
+      const prevTxt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
+      if (!prevTxt) continue;
+      const clusters = extractMetaphorClusters(prevTxt);
+      for (const [clusterName, { count }] of Object.entries(clusters)) {
+        prevClusterTotals[clusterName] = (prevClusterTotals[clusterName] || 0) + count;
+      }
+    }
+    const flaggedForNewChapter = Object.entries(prevClusterTotals).filter(([, c]) => c >= 5).map(([name]) => name);
+    if (flaggedForNewChapter.length > 0) {
+      const newClusters = extractMetaphorClusters(text);
+      const clusterViolations = [];
+      for (const cluster of flaggedForNewChapter) {
+        if ((newClusters[cluster]?.count || 0) > 1) {
+          clusterViolations.push(`${cluster} (${newClusters[cluster].count} uses)`);
+        }
+      }
+      if (clusterViolations.length > 0) {
+        violations.push(`METAPHOR CLUSTER OVERUSE (${clusterViolations.length}): ${clusterViolations.join(', ')}`);
+        violationCount += clusterViolations.length;
+      }
+    }
+  }
+
+  // PART 6 CHECK 3 — Banned dialogue patterns
+  const dialoguePatterns = scanDialoguePatterns(text);
+  if (dialoguePatterns.length > 1) {
+    violations.push(`BANNED DIALOGUE PATTERNS (${dialoguePatterns.length}): ${dialoguePatterns.map(p => p.pattern).join(', ')}`);
+    violationCount += dialoguePatterns.length;
   }
 
   return {
@@ -1143,46 +1208,37 @@ Write this chapter in full.`
     }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30).sort();
 
-    // PART A — Collect physical tics from previous chapters, ban any tic used >= 1 time for same character
-    const ticMap = {}; // charName -> { tic -> chapterNumbers[] }
+    // PART 4A — Collect physical tics from previous chapters (ban any tic used >= 1 time)
+    const ticMap = {}; // charName -> { ticName -> [chapterNumbers] }
     for (const prevCh of allChapters.slice(0, chapterIndex)) {
       const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
       if (!txt) continue;
-      for (const { char, tic } of extractPhysicalTics(txt)) {
+      const tics = extractPhysicalTics(txt);
+      for (const [char, ticCounts] of Object.entries(tics)) {
         if (!ticMap[char]) ticMap[char] = {};
-        if (!ticMap[char][tic]) ticMap[char][tic] = [];
-        ticMap[char][tic].push(prevCh.chapter_number);
+        for (const [tic] of Object.entries(ticCounts)) {
+          if (!ticMap[char][tic]) ticMap[char][tic] = [];
+          ticMap[char][tic].push(prevCh.chapter_number);
+        }
       }
     }
-    const overusedTics = {}; // charName -> [{ tic, chapters }]
+    const bannedTicsByChar = {}; // charName -> [{ tic, chapters }]
     for (const [char, tics] of Object.entries(ticMap)) {
-      const used = Object.entries(tics).filter(([, chs]) => chs.length >= 1).map(([t, chs]) => ({ tic: t, chapters: chs }));
-      if (used.length > 0) overusedTics[char] = used;
+      const banned = Object.entries(tics).map(([t, chs]) => ({ tic: t, chapters: chs }));
+      if (banned.length > 0) bannedTicsByChar[char] = banned;
     }
 
-    // PART B — Collect sensory formula usage counts from previous chapters
-    const formulaCount = {};
-    for (const prevCh of allChapters.slice(0, chapterIndex)) {
-      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
-      if (!txt) continue;
-      for (const formula of extractSensoryFormulas(txt)) {
-        const key = formula.replace(/\b\w+\b(?=\s+and)/g, '[noun]').replace(/\b\w+\b$/, '[noun]').trim();
-        formulaCount[key] = (formulaCount[key] || 0) + 1;
-      }
-    }
-    const overusedFormulas = Object.entries(formulaCount).filter(([, c]) => c >= 3);
-
-    // PART B — Collect metaphor cluster usage from previous chapters
+    // PART 4B — Collect metaphor cluster usage from previous chapters (flag at 5+)
     const clusterTotals = {};
     for (const prevCh of allChapters.slice(0, chapterIndex)) {
       const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
       if (!txt) continue;
-      const counts = extractMetaphorClusters(txt);
-      for (const [cluster, count] of Object.entries(counts)) {
-        clusterTotals[cluster] = (clusterTotals[cluster] || 0) + count;
+      const clusters = extractMetaphorClusters(txt);
+      for (const [clusterName, { count }] of Object.entries(clusters)) {
+        clusterTotals[clusterName] = (clusterTotals[clusterName] || 0) + count;
       }
     }
-    const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5);
+    const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5).map(([name]) => name);
 
     let currentChapterRequest;
     if (useScenePath) {
@@ -1498,8 +1554,8 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
 
     fullContent = fullContentWorking;
 
-    // PART C — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP
-    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number);
+    // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters and storyBible)
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible);
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
@@ -1531,8 +1587,8 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
             finalContent = correctedText;
             passCount = pass;
             
-            // Re-scan after rewrite
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number);
+            // Re-scan after rewrite (with previousChapters and storyBible)
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible);
             console.log(`After pass ${pass} quality scan:`, qualityResult);
             
             if (qualityResult.passed) {
