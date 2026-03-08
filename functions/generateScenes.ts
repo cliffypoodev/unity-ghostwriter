@@ -240,12 +240,8 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
   "word_target": ${wordTarget}
 }`;
 
-    let raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 4096, temperature: 0.6 });
-    raw = raw.trim();
-    // Strip markdown fences if present
-    if (raw.startsWith('```')) raw = raw.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-
-    const scenes = JSON.parse(raw);
+    const raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 8192, temperature: 0.6 });
+    const scenes = await safeParseJSON(raw, modelKey);
     if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
 
     // Save to chapter entity
