@@ -480,12 +480,12 @@ B. BANNED dialogue constructions:
    - Daring another character to "let go" / "stop hiding" / "stop running" (max 1 per entire book)
    - "Do you want to find out?" / "Are you sure you can handle it?"
    - Characters narrating their own dynamic: "You're intrigued, aren't you?"
-   - Labeling tension: "This is dangerous" / "We're playing with fire"
+   - Labeling tension: "This is dangerous" / "We're playing with fire" / "The rule is that [statement about the relationship]"
    - "Tell me you want this" / "Tell me you need this"
    - "What do you truly want/desire?"
 C. Build tension through CONTRAST. Characters try NOT to acknowledge what's happening. Desire leaks through pauses, things left unsaid, moments where conversation veers away from the real subject.
 D. Max 2 consecutive philosophically provocative lines per character. Break intense dialogue with mundane reality.
-E. After physical intimacy, no character may smirk or deliver a witty one-liner.`;
+E. After physical intimacy, no character may smirk, deliver a witty one-liner, or say "You taste like [noun] and [noun]".`;
 
 // PART 6 — EXTENDED POST-GENERATION QUALITY SCANNER
 function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null) {
