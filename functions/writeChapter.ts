@@ -473,6 +473,20 @@ const DIALOGUE_SUBTEXT_RULES = `DIALOGUE AND SUBTEXT RULES — MANDATORY:
 
 5. NO character should deliver more than 2 consecutive lines of dialogue that are philosophically provocative. Real people pause, deflect, make jokes, say boring things, talk about logistics. Break up intense dialogue with mundane reality.`;
 
+const DIALOGUE_SUBTEXT_RULES_CONCISE = `DIALOGUE SUBTEXT RULES (MANDATORY):
+A. Every line of dialogue must have a plausible surface meaning that is NOT about attraction. Subtext can imply desire, but the spoken words must be about work, art, the event, the argument, or logistics.
+B. BANNED dialogue constructions:
+   - "Are you afraid of [metaphor]?" / "What if I want to [metaphor]?"
+   - Daring another character to "let go" / "stop hiding" / "stop running" (max 1 per entire book)
+   - "Do you want to find out?" / "Are you sure you can handle it?"
+   - Characters narrating their own dynamic: "You're intrigued, aren't you?"
+   - Labeling tension: "This is dangerous" / "We're playing with fire"
+   - "Tell me you want this" / "Tell me you need this"
+   - "What do you truly want/desire?"
+C. Build tension through CONTRAST. Characters try NOT to acknowledge what's happening. Desire leaks through pauses, things left unsaid, moments where conversation veers away from the real subject.
+D. Max 2 consecutive philosophically provocative lines per character. Break intense dialogue with mundane reality.
+E. After physical intimacy, no character may smirk or deliver a witty one-liner.`;
+
 // PART 6 — EXTENDED POST-GENERATION QUALITY SCANNER
 function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBible = null) {
   const bannedPhrases = {
@@ -1410,7 +1424,7 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
 === END ===
 
 `;
-      currentChapterRequest = ticInjection + clusterInjection + currentChapterRequest;
+      currentChapterRequest = clusterInjection + currentChapterRequest;
     }
 
     messages.push({ role: 'user', content: currentChapterRequest });
