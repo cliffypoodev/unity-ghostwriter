@@ -633,37 +633,12 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
     const TARGET_WORDS = 1600;
 
-    // ISSUE 3 FIX: Timeout handler for long-running AI calls
-    async function callOpenAI(messages, maxTokens = 3000) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
-      
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openai_key}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages,
-            max_tokens: 8192,
-            temperature: 0.72,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(`OpenAI error: ${errData.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0]?.message?.content || '';
-      } finally {
-        clearTimeout(timeoutId);
-      }
+    // callAI wrapper using conversation messages array
+    async function callAIConversation(messages, maxTokens = 8192) {
+      const systemMsg = messages.find(m => m.role === 'system')?.content || '';
+      const nonSystem = messages.filter(m => m.role !== 'system');
+      const userMsg = nonSystem.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n');
+      return callAI(modelKey, systemMsg, userMsg, { maxTokens });
     }
 
     // ── Build system prompt ────────────────────────────────────────────────────
