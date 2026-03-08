@@ -394,21 +394,14 @@ Return ONLY the JSON object. No preamble.`;
     const storyBiblePromptText = buildStoryBiblePrompt(spec, truncatedTopic, targetChapters);
 
     // Run metadata + story bible in parallel
-    const [metadataResponse, storyBibleResponse] = await Promise.all([
-      callOpenAIWithTimeout([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: metadataPrompt }
-      ], 2000),
-      callOpenAIWithTimeout([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: storyBiblePromptText }
-      ], 2000),
+    const [metaText, bibleText] = await Promise.all([
+      callAI(modelKey, systemPrompt, metadataPrompt, { maxTokens: 2000 }),
+      callAI(modelKey, systemPrompt, storyBiblePromptText, { maxTokens: 2000 }),
     ]);
 
     // Parse metadata
     let bookMetadata = null;
     try {
-      const metaText = metadataResponse?.choices?.[0]?.message?.content || '';
       const cleanMeta = metaText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
       const metaMatch = cleanMeta.match(/\{[\s\S]*\}/);
       if (metaMatch) bookMetadata = JSON.parse(metaMatch[0]);
@@ -419,7 +412,6 @@ Return ONLY the JSON object. No preamble.`;
     // Parse story bible
     let parsedStoryBible = null;
     try {
-      const bibleText = storyBibleResponse?.choices?.[0]?.message?.content || '';
       const cleanBible = bibleText.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '');
       const bibleMatch = cleanBible.match(/\{[\s\S]*\}/);
       if (bibleMatch) parsedStoryBible = JSON.parse(bibleMatch[0]);
