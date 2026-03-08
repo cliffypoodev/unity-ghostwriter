@@ -1,5 +1,3 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-
 // MODEL-SPECIFIC PROMPT OVERRIDE SYSTEM ════════════════════════════════════════
 export function getModelPromptOverrides(modelKey) {
   if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
