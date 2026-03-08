@@ -460,6 +460,8 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [streamingChapterId, setStreamingChapterId] = useState(null);
   const [streamingContent, setStreamingContent] = useState({});
   const [chapterProgress, setChapterProgress] = useState({});
+  const [generatingAllScenes, setGeneratingAllScenes] = useState(false);
+  const [allScenesProgress, setAllScenesProgress] = useState("");
   const [writeAllModalOpen, setWriteAllModalOpen] = useState(false);
   const [writeAllActive, setWriteAllActive] = useState(false);
   const [writeAllProgress, setWriteAllProgress] = useState({
