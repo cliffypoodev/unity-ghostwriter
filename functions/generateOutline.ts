@@ -571,9 +571,13 @@ Deno.serve(async (req) => {
     const { project_id } = await req.json();
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
-    // Fire generation in background and return immediately
+    // Get model from spec
     const sr = base44.asServiceRole;
-    (async () => { await runGeneration(sr, project_id); })();
+    const specs = await sr.entities.Specification.filter({ project_id });
+    const modelKey = specs[0]?.ai_model || 'claude-sonnet';
+
+    // Fire generation in background and return immediately
+    (async () => { await runGeneration(sr, project_id, modelKey); })();
 
     return Response.json({ async: true, project_id });
   } catch (error) {
