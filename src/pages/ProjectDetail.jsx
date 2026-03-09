@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Save, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
 import SpecificationTab from "../components/project/SpecificationTab";
 import GenerateTab from "../components/project/GenerateTab";
