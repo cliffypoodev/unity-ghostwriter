@@ -134,17 +134,94 @@ export default function ImportPrompts() {
     <div className="max-w-2xl mx-auto py-10 space-y-6">
       <h1 className="text-2xl font-bold text-slate-800">Import Prompt Catalog</h1>
       <p className="text-sm text-slate-500">
-        Imports 1,934 prompts from the uploaded JSON file, using AI to categorize each as fiction/nonfiction with genre, title, description, and tags.
+        Import prompts from a JSON file. AI will categorize each with genre, title, description, and tags. New prompts are added without erasing existing ones.
       </p>
+
+      {/* Source selection */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4">
+        <p className="text-sm font-medium text-slate-700">Prompt Source</p>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={sourceMode === "default" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSourceMode("default")}
+            disabled={running}
+          >
+            Default File
+          </Button>
+          <Button
+            variant={sourceMode === "upload" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSourceMode("upload")}
+            disabled={running}
+            className="gap-1.5"
+          >
+            <FileUp className="w-3.5 h-3.5" /> Upload JSON
+          </Button>
+          <Button
+            variant={sourceMode === "paste" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSourceMode("paste")}
+            disabled={running}
+            className="gap-1.5"
+          >
+            <Type className="w-3.5 h-3.5" /> Paste JSON
+          </Button>
+        </div>
+
+        {sourceMode === "upload" && (
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.txt"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || running}
+              className="gap-2"
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
+              {uploadedUrl ? "Change File" : "Choose File"}
+            </Button>
+            {uploadedUrl && (
+              <p className="text-xs text-emerald-600">File ready for import</p>
+            )}
+          </div>
+        )}
+
+        {sourceMode === "paste" && (
+          <Textarea
+            placeholder='Paste JSON array here, e.g. [{"prompt": "Write a story about..."}, ...]'
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            disabled={running}
+            className="h-40 font-mono text-xs"
+          />
+        )}
+      </div>
 
       <div className="flex gap-3">
         {!running ? (
-          <Button onClick={handleImport} className="bg-indigo-600 hover:bg-indigo-700 gap-2" disabled={done}>
+          <Button
+            onClick={handleImport}
+            className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+            disabled={done || (sourceMode === "upload" && !uploadedUrl) || (sourceMode === "paste" && !pasteText.trim())}
+          >
             <Upload className="w-4 h-4" /> {done ? "Import Complete" : "Start Import"}
           </Button>
         ) : (
           <Button onClick={handleStop} variant="destructive" className="gap-2">
             <AlertCircle className="w-4 h-4" /> Stop
+          </Button>
+        )}
+        {done && (
+          <Button variant="outline" onClick={() => { setDone(false); setProgress({ current: 0, total: 0, inserted: 0, errors: 0 }); setLog([]); }}>
+            Import Another
           </Button>
         )}
       </div>
