@@ -1516,7 +1516,9 @@ ${chapter.prompt ? `EXTRA CHAPTER INSTRUCTIONS: ${chapter.prompt}` : ''}
 
 ${prevChapterTail ? `=== PREVIOUS CHAPTER ENDING — DO NOT REPEAT THIS TONE OR STRUCTURE ===\n"...${prevChapterTail}"\n=== END ===` : ''}
 
-Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.`;
+Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.
+
+${_beatUsrBlock(chapterBeat)}`;
     } else if (isNonfiction) {
       currentChapterRequest = _buildNonfictionUserMessage(
         chapter.chapter_number,
@@ -1579,7 +1581,9 @@ THIS IS NON-NEGOTIABLE. The last 2-3 sentences of your chapter MUST match this e
 
 STRUCTURAL CONSTRAINT: The final scene of this chapter must take place in a DIFFERENT LOCATION than where the chapter's main conversation happens. The chapter must NOT end with one character walking away while the other watches.
 
-Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.`;
+Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.
+
+${_beatUsrBlock(chapterBeat)}`;
     }
 
     if (previousChapters && previousChapters.length > 0) {
