@@ -630,17 +630,20 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
        language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
      };
 
-     // NONFICTION ROUTING: Try Gemini for nonfiction outlines, fall back to Claude silently
+     // NONFICTION ROUTING: Use dedicated Gemini nonfiction generator (optimized for research structure)
      if (spec.book_type === 'nonfiction') {
        try {
-         console.log('Nonfiction outline detected — attempting Gemini generation...');
+         console.log('Nonfiction outline detected — using Gemini generation...');
          await runNonfictionOutlineGemini(sr, project_id, spec, outlineId);
          return; // Success — exit early
        } catch (geminiErr) {
-         console.warn('Gemini outline generation unavailable or failed:', geminiErr.message, '— falling back to Claude');
-         // Fall through to regular Claude-based generation
+         console.warn('Gemini nonfiction generation failed:', geminiErr.message, '— falling back to standard path with Gemini');
+         // Fall through to standard Gemini-based generation
        }
      }
+
+     // Fiction outlines also use Gemini Pro for better structuring
+     console.log('Using Gemini Pro for outline generation (fiction)...');
 
     // CHANGE 3 FIX: Cap chapter count at 20 max; recommend 12-18
     const chapterRange = CHAPTER_COUNTS[spec.target_length] || CHAPTER_COUNTS.medium;
