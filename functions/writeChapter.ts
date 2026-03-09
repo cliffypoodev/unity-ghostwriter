@@ -841,32 +841,27 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
     }
   }
 
-  // PART 6 CHECK 3 — Banned dialogue patterns
+  // CHECK 3 — Banned dialogue patterns
   const dialoguePatterns = scanDialoguePatterns(text);
-  if (dialoguePatterns.length > 1) {
-    violations.push(`BANNED DIALOGUE PATTERNS (${dialoguePatterns.length}): ${dialoguePatterns.map(p => p.pattern).join(', ')}`);
-    violationCount += dialoguePatterns.length;
-  }
-
-  // NONFICTION-SPECIFIC CHECKS: Detect fiction-trap patterns
-  if (bookType === "nonfiction") {
-    const nfWarnings = scanNonfictionQuality(text);
-    violations.push(...nfWarnings);
-    violationCount += nfWarnings.length;
-  }
-
-  // PERMANENT RULES VALIDATION — applies to all manuscripts
-  const permanentRuleViolations = validatePermanentRules(text, characters);
-  violations.push(...permanentRuleViolations);
-  violationCount += permanentRuleViolations.length;
-
-  return {
-    chapter_number: chapterNumber,
-    violation_count: violationCount,
-    banned_phrase_total: allBannedFound.length,
-    warnings: violations,
-    passed: violations.length === 0
-  };
+  if (dialoguePatterns.length > 1) { violations.push(`BANNED DIALOGUE (${dialoguePatterns.length}): ${dialoguePatterns.map(p => p.pattern).join(', ')}`); violationCount += dialoguePatterns.length; }
+  // Nonfiction checks
+  if (bookType === "nonfiction") { const nw = scanNonfictionQuality(text); violations.push(...nw); violationCount += nw.length; }
+  // Permanent rules
+  const prv = validatePermanentRules(text, characters); violations.push(...prv); violationCount += prv.length;
+  // PART C — Shape repetition
+  const tw = text.split(/\s+/).length;
+  const dChunks = text.match(/[""\u201C][^""\u201D]{3,}[""\u201D]/g) || [];
+  const dw = dChunks.reduce((s, c) => s + c.split(/\s+/).length, 0);
+  if (tw > 0 && dw / tw > 0.65) { violations.push(`SHAPE: ${((dw/tw)*100).toFixed(0)}% dialogue — add action/description.`); violationCount++; }
+  const qd = text.match(/[""\u201C][^""\u201D]*\?[^""\u201D]*[""\u201D]/g) || [];
+  let tc = 0; for (let i = 1; i < qd.length; i++) { const d = text.indexOf(qd[i], text.indexOf(qd[i-1])) - text.indexOf(qd[i-1]); if (d > 0 && d < 500) tc++; }
+  if (tc > 5) { violations.push(`SHAPE: Dialogue tennis (${tc} consecutive Q exchanges).`); violationCount++; }
+  const f5 = text.slice(0, 500).toLowerCase(), l5 = text.slice(-500).toLowerCase();
+  if (["stepped into","entered the","walked into","arrived at","made his way","made her way"].some(w => f5.includes(w)) && ["ready for","whatever came next","only the beginning","just begun","would never be the same","no turning back"].some(w => l5.includes(w))) { violations.push(`SHAPE: Arrival→departure cliché.`); violationCount++; }
+  // PART E — Ending reflection check
+  const lp = text.slice(-1000).split(/\n\n+/).slice(-3).join(' ').toLowerCase();
+  if (/\b(realized|understood|knew now|felt (ready|prepared|different|changed)|steeled|braced for|whatever (lay|came))\b/.test(lp) && !/(slammed|grabbed|ran|pulled|threw|kicked|screamed|fired|crashed|broke|stabbed|shot)\b/.test(lp)) { violations.push(`PLOT GATE: Ends with reflection, not irreversible event.`); violationCount++; }
+  return { chapter_number: chapterNumber, violation_count: violationCount, banned_phrase_total: allBannedFound.length, warnings: violations, passed: violations.length === 0 };
 }
 
 // NONFICTION QUALITY SCANNER — detects fiction-trap patterns
