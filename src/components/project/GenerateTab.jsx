@@ -298,6 +298,26 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, streamingContent, isSt
     }
   };
 
+  const handleRewrite = async () => {
+    setRewriting(true);
+    try {
+      await base44.entities.Chapter.update(chapter.id, {
+        content: "",
+        status: "pending",
+        word_count: 0,
+        quality_scan: "",
+        distinctive_phrases: "",
+        generated_at: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["chapters", chapter.project_id] });
+      onRewrite(chapter);
+    } catch (err) {
+      console.error('Rewrite clear error:', err.message);
+    } finally {
+      setRewriting(false);
+    }
+  };
+
   const handleGenerateScenesThenWrite = async () => {
     setWriteConfirm(false);
     setGeneratingScenesThenWrite(true);
