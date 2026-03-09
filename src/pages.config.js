@@ -50,6 +50,7 @@
 import Home from './pages/Home';
 import ProjectDetail from './pages/ProjectDetail';
 import Settings from './pages/Settings';
+import ImportPrompts from './pages/ImportPrompts';
 import __Layout from './Layout.jsx';
 
 
@@ -57,6 +58,7 @@ export const PAGES = {
     "Home": Home,
     "ProjectDetail": ProjectDetail,
     "Settings": Settings,
+    "ImportPrompts": ImportPrompts,
 }
 
 export const pagesConfig = {
