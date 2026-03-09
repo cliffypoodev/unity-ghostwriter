@@ -1809,7 +1809,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
       }
     }
 
-    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || [], modelKey);
+    let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
