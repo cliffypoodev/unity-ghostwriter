@@ -376,10 +376,21 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, streamingContent, isSt
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
             </Button>
           )}
+          {chapter.status === "generated" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-2.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+              disabled={isStreaming || generatingScenesThenWrite || rewriting}
+              onClick={(e) => { e.stopPropagation(); handleRewrite(); }}
+            >
+              {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
+            </Button>
+          )}
           <Button
             size="sm"
             className={cn("h-7 text-xs px-2.5", (isStreaming || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
-            disabled={isStreaming || generatingScenesThenWrite}
+            disabled={isStreaming || generatingScenesThenWrite || rewriting}
             onClick={handleWriteClick}
           >
             {generatingScenesThenWrite
