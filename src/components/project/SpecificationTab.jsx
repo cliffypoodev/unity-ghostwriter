@@ -442,22 +442,35 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
               </div>
 
-              {form.book_type === "fiction" && (
-                <div className={hl("beat_sheet_template")}>
-                  <Label className="text-sm font-medium">Story Structure</Label>
-                  <Select value={form.beat_sheet_template || "auto"} onValueChange={v => handleChange("beat_sheet_template", v)}>
-                    <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">Auto-detect (based on genre)</SelectItem>
-                      <SelectItem value="save-the-cat">Save the Cat (Hollywood)</SelectItem>
-                      <SelectItem value="romance-arc">Romance Arc (Relationship-Driven)</SelectItem>
-                      <SelectItem value="thriller-tension">Thriller / Suspense Arc</SelectItem>
-                      <SelectItem value="heros-journey">Hero's Journey (Campbell/Vogler)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-slate-400 mt-1">Controls pacing structure — what kind of chapter goes where. Auto picks the best fit for your genre.</p>
-                </div>
-              )}
+              <div className={hl("beat_sheet_template")}>
+                <Label className="text-sm font-medium">Story Structure</Label>
+                <Select value={form.beat_sheet_template || "auto"} onValueChange={v => handleChange("beat_sheet_template", v)}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-detect (based on genre)</SelectItem>
+                    {form.book_type === "fiction" ? (
+                      <>
+                        <SelectItem value="save-the-cat">Save the Cat (Hollywood)</SelectItem>
+                        <SelectItem value="romance-arc">Romance Arc (Relationship-Driven)</SelectItem>
+                        <SelectItem value="thriller-tension">Thriller / Suspense Arc</SelectItem>
+                        <SelectItem value="heros-journey">Hero's Journey (Campbell/Vogler)</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="argument-driven">Argument-Driven (Self-Help / Business)</SelectItem>
+                        <SelectItem value="narrative-nonfiction">Narrative Nonfiction (Memoir / True Crime)</SelectItem>
+                        <SelectItem value="reference-structured">Reference / Educational (How-To / Guides)</SelectItem>
+                        <SelectItem value="investigative-nonfiction">Investigative / Exposé</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400 mt-1">
+                  {form.book_type === "fiction" 
+                    ? "Controls pacing structure — what kind of chapter goes where. Auto picks the best fit for your genre."
+                    : "Controls argument structure — what each chapter's job is. Auto picks the best fit for your genre."}
+                </p>
+              </div>
 
               {form.book_type === "fiction" && (
                 <div>
