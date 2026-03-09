@@ -55,11 +55,8 @@ Deno.serve(async (req) => {
       // Call writeChapter function
       try {
         const writeResp = await base44.asServiceRole.functions.invoke('writeChapter', {
-          projectId,
-          chapterId: chapter.id,
-          chapterNumber: chapter.chapter_number,
-          title: chapter.title,
-          prompt: chapter.prompt,
+          project_id: projectId,
+          chapter_id: chapter.id,
         });
 
         results.push({
