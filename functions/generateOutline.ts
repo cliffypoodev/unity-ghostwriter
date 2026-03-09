@@ -666,7 +666,7 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
     const baseContext = `${spec.genre} ${spec.book_type} about "${truncatedTopic}"${spec.subgenre ? ` (subgenre: ${spec.subgenre})` : ''}`;
     const promptInstructions = buildFictionChapterPromptInstructions(isNonfiction);
     const chapterPromptSchema = isNonfiction
-      ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`
+      ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next), beat_name (string), beat_function (string), beat_scene_type (string: one of "exposition", "case_study", "analysis", "how_to", "synthesis", "scene_recreation", "profile", "investigative", "teaching"), beat_tempo (string: "fast", "medium", or "slow")`
       : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next), beat_name (string), beat_function (string), beat_scene_type (string: "scene" or "sequel"), beat_tempo (string: "fast", "medium", or "slow")`;
 
     // ── Beat Sheet Assignment (fiction AND nonfiction) ──────────────────────
