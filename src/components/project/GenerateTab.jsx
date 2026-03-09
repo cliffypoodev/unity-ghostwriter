@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import WriteAllChaptersModal from "./WriteAllChaptersModal";
 import SpecSettingsSummary from "./SpecSettingsSummary";
 import SceneSection from "./SceneSection";
+import BeatBadge from "./BeatBadge";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,10 @@ function OutlineCard({ outlineData }) {
             <div className="space-y-2">
               {outline.chapters.map((ch, i) => (
                 <div key={i} className="text-sm p-2 bg-slate-50 rounded-lg">
-                  <p className="font-semibold text-slate-800">Ch {ch.number}: {ch.title}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-800">Ch {ch.number}: {ch.title}</p>
+                    {ch.beat_function && <BeatBadge beatFunction={ch.beat_function} beatName={ch.beat_name} />}
+                  </div>
                   {ch.summary && <p className="text-xs text-slate-600 mt-1 opacity-80">{ch.summary}</p>}
                 </div>
               ))}
