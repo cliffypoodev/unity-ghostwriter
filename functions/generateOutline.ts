@@ -978,13 +978,12 @@ Deno.serve(async (req) => {
     const { project_id } = await req.json();
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
-    // Get model from spec
+    // Always use Gemini Pro for outline/beat sheet generation (better at research & structure)
+    // The user's selected model is only used for prose writing in writeChapter
     const sr = base44.asServiceRole;
-    const specs = await sr.entities.Specification.filter({ project_id });
-    const modelKey = specs[0]?.ai_model || 'claude-sonnet';
 
     // Fire generation in background and return immediately
-    (async () => { await runGeneration(sr, project_id, modelKey); })();
+    (async () => { await runGeneration(sr, project_id, 'gemini-pro'); })();
 
     return Response.json({ async: true, project_id });
   } catch (error) {
