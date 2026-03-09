@@ -1845,7 +1845,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
             passCount = pass;
             
             // Re-scan after rewrite (with previousChapters, storyBible, and characters)
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || [], modelKey);
+            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
             console.log(`After pass ${pass} quality scan:`, qualityResult);
             
             if (qualityResult.passed) {
