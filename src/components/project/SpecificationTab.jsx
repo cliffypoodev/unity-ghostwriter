@@ -365,7 +365,18 @@ export default function SpecificationTab({ projectId, onProceed }) {
               value={form.topic}
               onChange={e => handleChange("topic", e.target.value)}
             />
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <Button
+                onClick={handleDevelopIdea}
+                disabled={developingIdea}
+                size="sm"
+                variant="outline"
+                style={{ border: "1.5px solid #7c3aed", color: "#7c3aed", background: "transparent" }}
+                className="hover:bg-violet-50"
+              >
+                {developingIdea ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lightbulb className="w-4 h-4 mr-2" />}
+                {developingIdea ? "Developing..." : form.topic.trim() ? "Develop Idea" : "Idea?"}
+              </Button>
               <Button onClick={handleAutoExtract} disabled={!form.topic.trim() || extracting} variant="outline" size="sm">
                 {extracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
                 {extracting ? "Analyzing..." : "Auto-Extract Metadata"}
@@ -374,6 +385,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 <Search className="w-4 h-4 mr-2" /> Browse Catalog
               </Button>
             </div>
+            {marketNotes && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg px-4 py-3 text-sm" style={{ background: "#f5f3ff", borderLeft: "3px solid #7c3aed" }}>
+                <div className="flex-1 text-slate-700 leading-relaxed">{marketNotes}</div>
+                <button onClick={() => setMarketNotes(null)} className="text-slate-400 hover:text-slate-600 shrink-0 mt-0.5">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Prompt Catalog Suggestions */}
