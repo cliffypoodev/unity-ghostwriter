@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-const openai_key = Deno.env.get("OPENAI_API_KEY");
+// (openai_key removed — not needed; deepseekValidator uses its own env vars)
 
 // ── Multi-Provider AI Router ──────────────────────────────────────────────────
 
