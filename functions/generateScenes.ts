@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
     ]);
 
     const outlineChapters = outlineData?.chapters || [];
-    const outlineEntry = outlineChapters.find(c => c.chapter_number === Number(chapterNumber)) || {};
+    const outlineEntry = outlineChapters.find(c => (c.number || c.chapter_number) === Number(chapterNumber)) || {};
 
     const targetLength = spec?.target_length || 'medium';
     const sceneCount = getSceneCount(targetLength);
