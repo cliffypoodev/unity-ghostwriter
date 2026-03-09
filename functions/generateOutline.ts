@@ -158,7 +158,11 @@ function assignBeatsToChapters(templateKey, chapterCount) {
 
 function buildBeatSheetOutlineBlock(bs) {
   if (!bs) return '';
+  const isNF = bs.category === 'nonfiction';
   const lines = bs.assignments.map(a => `Ch ${a.chapter}: "${a.beat_name}" | ${a.beat_function} | ${a.beat_scene_type} | ${a.beat_tempo}`).join('\n');
+  if (isNF) {
+    return `=== STRUCTURAL BEAT SHEET (MANDATORY) ===\nThis nonfiction book uses "${bs.template_name}". Each chapter has a pre-assigned structural role.\n${lines}\n\nNONFICTION RULES:\n- Each chapter MUST match its assigned function, scene_type, and tempo.\n- This is NONFICTION. Do NOT use fiction functions (SETUP, DISRUPTION, REVERSAL, CLIMAX).\n- Do NOT use fiction scene types ("scene"/"sequel"). Use: exposition, case_study, analysis, how_to, synthesis, scene_recreation, profile, investigative, teaching.\n- Use ARGUMENT structure: claim → evidence → analysis → synthesis.\n- Do NOT end chapters with fiction-style cliffhangers.\n=== END BEAT SHEET ===`;
+  }
   return `=== STRUCTURAL BEAT SHEET (MANDATORY) ===\nThis book uses "${bs.template_name}". Each chapter has a pre-assigned role.\n${lines}\n\nRULES: Each chapter MUST match its assigned function, scene_type, and tempo. No two chapters should have the same dramatic shape.\n=== END BEAT SHEET ===`;
 }
 
