@@ -271,15 +271,17 @@ function FindBar({ quillRef, onClose }) {
   }, [term, caseSensitive, runFind, quillRef]);
 
   const navigate = useCallback((dir) => {
-    if (matches.length === 0) return;
+    if (matches.length === 0 || !quillRef.current) return;
+    const q = quillRef.current;
     const next = (currentIdx + dir + matches.length) % matches.length;
-    // Restore previous highlight
+    q.off('text-change');
     if (currentIdx >= 0) {
-      quillRef.current.formatText(matches[currentIdx].index, matches[currentIdx].length, { background: "#fef08a" });
+      q.formatText(matches[currentIdx].index, matches[currentIdx].length, { background: "#fef08a" });
     }
     setCurrentIdx(next);
-    quillRef.current.setSelection(matches[next].index, matches[next].length);
-    quillRef.current.formatText(matches[next].index, matches[next].length, { background: "#fb923c" });
+    q.setSelection(matches[next].index, matches[next].length);
+    q.formatText(matches[next].index, matches[next].length, { background: "#fb923c" });
+    q.on('text-change', () => setPlainText(q.getText()));
   }, [matches, currentIdx, quillRef]);
 
   const doReplace = useCallback(() => {
