@@ -185,6 +185,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
     enforce_genre_content: true,
   });
   const [extracting, setExtracting] = useState(false);
+  const [developingIdea, setDevelopingIdea] = useState(false);
+  const [marketNotes, setMarketNotes] = useState(null);
   const [highlightedFields, setHighlightedFields] = useState({});
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
