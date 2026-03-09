@@ -256,9 +256,13 @@ const REFUSAL_INDICATORS = [
 ];
 
 function isRefusal(text) {
-  if (!text || text.trim().length < 200) return true;
+  if (!text || text.trim().length < 50) return true;
   const lower = text.toLowerCase();
-  return REFUSAL_INDICATORS.some(phrase => lower.includes(phrase));
+  // Check for refusal indicators first; short text alone is not a refusal
+  if (REFUSAL_INDICATORS.some(phrase => lower.includes(phrase))) return true;
+  // Very short output (< 200 chars) without refusal indicators is still suspicious
+  if (text.trim().length < 200) return true;
+  return false;
 }
 
 // Helper functions for opening/ending type rotation
