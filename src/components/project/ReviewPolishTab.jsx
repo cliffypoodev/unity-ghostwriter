@@ -468,9 +468,10 @@ Return ONLY the corrected text. No preamble, no explanation.`,
     setFixStates(s => ({ ...s, [issueId]: null }));
   };
 
-  // ── Fix all ────────────────────────────────────────────────────────────────
-  const handleFixAll = async () => {
-    const fixable = (analysis?.issues || []).filter(i => i.auto_fixable && fixStates[i.id] !== "fixed");
+  // ── Fix selected issues ─────────────────────────────────────────────────────
+  const handleFixSelected = async () => {
+    const selectedIds = Object.keys(selectedIssues).filter(id => selectedIssues[id]);
+    const fixable = (analysis?.issues || []).filter(i => selectedIds.includes(String(i.id)) && i.auto_fixable && fixStates[i.id] !== "fixed");
     if (!fixable.length) return;
     setFixAllProgress({ current: 0, total: fixable.length });
     for (let i = 0; i < fixable.length; i++) {
@@ -483,11 +484,24 @@ Return ONLY the corrected text. No preamble, no explanation.`,
         });
         if (issue.original_text) setManuscript(m => m.replace(issue.original_text, result));
         setFixStates(s => ({ ...s, [issue.id]: "fixed" }));
+        setSelectedIssues(s => ({ ...s, [issue.id]: false }));
       } catch {
         setFixStates(s => ({ ...s, [issue.id]: null }));
       }
     }
     setFixAllProgress(null);
+  };
+
+  const toggleIssueSelection = (id) => {
+    setSelectedIssues(s => ({ ...s, [id]: !s[id] }));
+  };
+
+  const toggleSelectAll = () => {
+    const fixable = (analysis?.issues || []).filter(i => i.auto_fixable && fixStates[i.id] !== "fixed");
+    const allSelected = fixable.every(i => selectedIssues[i.id]);
+    const newSelection = {};
+    fixable.forEach(i => { newSelection[i.id] = !allSelected; });
+    setSelectedIssues(s => ({ ...s, ...newSelection }));
   };
 
   // ── Text selection handling ────────────────────────────────────────────────
