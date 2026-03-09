@@ -49,22 +49,61 @@ Deno.serve(async (req) => {
       const chapter = chapters[i];
       const chapterNum = chapter.chapter_number;
 
-      // Update chapter status to "generating"
-      await base44.entities.Chapter.update(chapter.id, { status: 'generating' });
+      console.log(`Writing chapter ${chapterNum} of ${chapters.length}...`);
 
-      // Call writeChapter function
+      // Call writeChapter function (it fires async generation and returns immediately)
       try {
         const writeResp = await base44.asServiceRole.functions.invoke('writeChapter', {
           project_id: projectId,
           chapter_id: chapter.id,
         });
 
-        results.push({
-          chapterNumber: chapterNum,
-          chapterId: chapter.id,
-          success: true,
-          message: 'Chapter written successfully',
-        });
+        // Wait for the async generation to complete by polling chapter status
+        // writeChapter returns immediately but generation runs in background
+        let pollAttempts = 0;
+        const maxPollAttempts = 120; // 10 minutes max per chapter (120 * 5s)
+        let chapterDone = false;
+
+        while (pollAttempts < maxPollAttempts) {
+          await new Promise(r => setTimeout(r, 5000)); // Wait 5 seconds between polls
+          pollAttempts++;
+
+          const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+          const updatedChapter = updatedChapters.find(c => c.id === chapter.id);
+
+          if (updatedChapter?.status === 'generated') {
+            chapterDone = true;
+            console.log(`✓ Chapter ${chapterNum} complete (${updatedChapter.word_count || 0} words)`);
+            results.push({
+              chapterNumber: chapterNum,
+              chapterId: chapter.id,
+              success: true,
+              message: `Chapter written (${updatedChapter.word_count || 0} words)`,
+            });
+            break;
+          } else if (updatedChapter?.status === 'error') {
+            console.warn(`✗ Chapter ${chapterNum} failed`);
+            results.push({
+              chapterNumber: chapterNum,
+              chapterId: chapter.id,
+              success: false,
+              message: 'Chapter generation failed',
+            });
+            chapterDone = true;
+            break;
+          }
+          // Still generating, keep polling...
+        }
+
+        if (!chapterDone) {
+          console.warn(`Chapter ${chapterNum} timed out after ${maxPollAttempts * 5}s`);
+          results.push({
+            chapterNumber: chapterNum,
+            chapterId: chapter.id,
+            success: false,
+            message: 'Chapter generation timed out',
+          });
+        }
       } catch (err) {
         await base44.entities.Chapter.update(chapter.id, { status: 'error' });
         results.push({
@@ -75,15 +114,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Calculate elapsed time
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const chaptersProcessed = i - startIndex + 1;
-      const avgTimePerChapter = elapsed / chaptersProcessed;
-      const remainingChapters = chapters.length - (i + 1);
-      const estimatedRemaining = Math.ceil(avgTimePerChapter * remainingChapters);
-
-      // Send progress update to client (via SSE or return intermediate)
-      // For now, we'll just track and return all at end
+      // Brief pause between chapter launches to avoid rate limits
+      if (i < chapters.length - 1) {
+        console.log(`Pausing 10s before next chapter to avoid rate limits...`);
+        await new Promise(r => setTimeout(r, 10000));
+      }
     }
 
     const totalTime = Math.floor((Date.now() - startTime) / 1000);
