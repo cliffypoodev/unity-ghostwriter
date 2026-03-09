@@ -1324,7 +1324,8 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       systemPrompt += `\n- The next chapter is titled: '${nextChapter.title}' — end in a way that makes the reader want to continue.`;
     }
 
-    // PART C — strict anti-repetition rules with banned phrase list
+    // Voice, genre delivery, plot gate
+    systemPrompt += `\n\n=== CHARACTER VOICE ENFORCEMENT ===\nMatch voice profiles: vocabulary, sentence pattern, verbal tics, "never says", physical communication. Identify speaker without tags.\n=== END ===\n=== GENRE DELIVERY ===\nActual scenes not dialogue about themes. >50% dialogue in PROMISE_OF_PREMISE = failure.\n=== END ===\n=== PLOT GATE ===\nONE-WAY DOOR: Something permanently different at end. Feelings alone ≠ advancement.\n=== END ===`;
     systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION OF THESE RULES IS A FAILURE:
 
     1. BANNED PHRASE LIST — Do NOT use any of these overused phrases:
