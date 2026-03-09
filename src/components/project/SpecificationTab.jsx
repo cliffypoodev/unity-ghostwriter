@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search, X } from "lucide-react";
+import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search, X, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
