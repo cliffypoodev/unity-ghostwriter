@@ -226,8 +226,10 @@ function FindBar({ quillRef, onClose }) {
 
   const clearHighlights = useCallback(() => {
     if (!quillRef.current) return;
-    const len = quillRef.current.getLength();
-    quillRef.current.formatText(0, len, { background: false });
+    const q = quillRef.current;
+    q.off('text-change');
+    q.formatText(0, q.getLength(), { background: false });
+    q.on('text-change', () => setPlainText(q.getText()));
   }, [quillRef]);
 
   const runFind = useCallback((searchTerm, cs) => {
@@ -237,7 +239,9 @@ function FindBar({ quillRef, onClose }) {
       setCurrentIdx(-1);
       return [];
     }
-    const text = quillRef.current.getText();
+    const q = quillRef.current;
+    q.off('text-change');
+    const text = q.getText();
     const needle = cs ? searchTerm : searchTerm.toLowerCase();
     const haystack = cs ? text : text.toLowerCase();
     const found = [];
@@ -248,10 +252,9 @@ function FindBar({ quillRef, onClose }) {
       found.push({ index: idx, length: searchTerm.length });
       start = idx + 1;
     }
-    // Clear all highlights first
-    quillRef.current.formatText(0, text.length, { background: false });
-    // Highlight all matches
-    found.forEach(m => quillRef.current.formatText(m.index, m.length, { background: "#fef08a" }));
+    q.formatText(0, text.length, { background: false });
+    found.forEach(m => q.formatText(m.index, m.length, { background: "#fef08a" }));
+    q.on('text-change', () => setPlainText(q.getText()));
     setMatches(found);
     return found;
   }, [quillRef, clearHighlights]);
