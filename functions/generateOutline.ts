@@ -120,6 +120,7 @@ function autoDetectBeatTemplate(genre, bookType) {
 function assignBeatsToChapters(templateKey, chapterCount) {
   const t = BEAT_TEMPLATES[templateKey];
   if (!t) return null;
+  const isNF = t.cat === 'nonfiction';
   const map = {};
   for (const b of t.beats) {
     const ch = Math.min(chapterCount, Math.max(1, Math.round(b.p * (chapterCount - 1)) + 1));
@@ -127,7 +128,9 @@ function assignBeatsToChapters(templateKey, chapterCount) {
     map[ch].push(b);
   }
   const assignments = [];
-  const fnPri = ['CLIMAX','CRISIS','REVERSAL','DISRUPTION','ESCALATION','PROMISE_OF_PREMISE','COMMITMENT','RECOMMITMENT','SUBPLOT','REACTION','REFLECTION','SETUP','RESOLUTION','CONNECTIVE_TISSUE'];
+  const fnPri = isNF
+    ? ['CALL_TO_ACTION','CONFRONTATION_NF','TURNING_POINT','COLD_OPEN','ANOMALY','DEMOLITION','COUNTERARGUMENT','REFRAME','EVIDENCE_BLOCK','PRACTICAL_APPLICATION','SYNTHESIS','THESIS_INTRODUCTION','PROBLEM_STATEMENT','PROVOCATIVE_OPENING']
+    : ['CLIMAX','CRISIS','REVERSAL','DISRUPTION','ESCALATION','PROMISE_OF_PREMISE','COMMITMENT','RECOMMITMENT','SUBPLOT','REACTION','REFLECTION','SETUP','RESOLUTION','CONNECTIVE_TISSUE'];
   const tPri = { fast: 3, medium: 2, slow: 1 };
   for (let i = 1; i <= chapterCount; i++) {
     const beats = map[i];
@@ -139,14 +142,18 @@ function assignBeatsToChapters(templateKey, chapterCount) {
         const fns = beats.map(b => b.fn);
         const bestFn = fnPri.find(f => fns.includes(f)) || fns[0];
         const bestT = beats.reduce((best, b) => (tPri[b.t] || 0) > (tPri[best] || 0) ? b.t : best, beats[0].t);
-        const bestSt = beats.some(b => b.st === 'scene') ? 'scene' : 'sequel';
+        const bestSt = isNF ? beats[0].st : (beats.some(b => b.st === 'scene') ? 'scene' : 'sequel');
         assignments.push({ chapter: i, beat_name: names, beat_function: bestFn, beat_scene_type: bestSt, beat_tempo: bestT });
       }
     } else {
-      assignments.push({ chapter: i, beat_name: 'Connective Tissue', beat_function: 'CONNECTIVE_TISSUE', beat_scene_type: 'scene', beat_tempo: 'medium' });
+      if (isNF) {
+        assignments.push({ chapter: i, beat_name: 'Connective Chapter', beat_function: 'EVIDENCE_BLOCK', beat_scene_type: 'exposition', beat_tempo: 'medium' });
+      } else {
+        assignments.push({ chapter: i, beat_name: 'Connective Tissue', beat_function: 'CONNECTIVE_TISSUE', beat_scene_type: 'scene', beat_tempo: 'medium' });
+      }
     }
   }
-  return { template_name: t.name, template_key: templateKey, assignments };
+  return { template_name: t.name, template_key: templateKey, category: t.cat, assignments };
 }
 
 function buildBeatSheetOutlineBlock(bs) {
