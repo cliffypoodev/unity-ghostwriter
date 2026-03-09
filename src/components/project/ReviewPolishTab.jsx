@@ -301,6 +301,7 @@ export default function ReviewPolishTab({ projectId }) {
   const [fixStates, setFixStates] = useState({}); // id -> "fixing" | "comparing" | "fixed"
   const [fixTexts, setFixTexts] = useState({}); // id -> fixed text
   const [fixAllProgress, setFixAllProgress] = useState(null);
+  const [selectedIssues, setSelectedIssues] = useState({}); // id -> boolean
   const [saveFormat, setSaveFormat] = useState("txt");
   const [lastAnalyzedManuscript, setLastAnalyzedManuscript] = useState("");
 
