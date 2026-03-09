@@ -220,10 +220,52 @@ function assignBeatsToChapters(templateKey, chapterCount) {
 
 function buildBeatSheetPromptBlock(beatSheet) {
   if (!beatSheet || !beatSheet.assignments) return '';
+  const isNF = beatSheet.category === 'nonfiction';
   const lines = beatSheet.assignments.map(a =>
-    `CHAPTER ${a.chapter} — Beat: "${a.beat_name}" | Function: ${a.beat_function} | Type: ${a.beat_scene_type} | Tempo: ${a.beat_tempo}\n  → ${a.beat_description}`
+    `CHAPTER ${a.chapter} — Beat: "${a.beat_name}" | Function: ${a.beat_function} | Mode: ${a.beat_scene_type} | Tempo: ${a.beat_tempo}\n  → ${a.beat_description}`
   ).join('\n\n');
 
+  if (isNF) {
+    return `=== STRUCTURAL BEAT SHEET (MANDATORY — EACH CHAPTER MUST FOLLOW ITS ASSIGNED ROLE) ===
+
+This nonfiction book uses the "${beatSheet.template_name}" structure. Each chapter has a pre-assigned STRUCTURAL ROLE that dictates what kind of chapter it is. You MUST follow these assignments.
+
+${lines}
+
+NONFICTION BEAT ENFORCEMENT RULES:
+
+1. FUNCTION determines the chapter's JOB — see the beat descriptions above for specific requirements.
+
+2. SCENE_TYPE determines the chapter's MODE:
+   - "exposition" = AUTHOR EXPLAINS. Thesis, context, analysis. Author's voice carries the chapter.
+   - "case_study" = SPECIFIC EXAMPLE carries the chapter. One story, one study, one person in depth.
+   - "analysis" = AUTHOR ARGUES. Weighing evidence, comparing viewpoints, drawing conclusions.
+   - "how_to" = READER DOES. Step-by-step, actionable, practical. Checklists and exercises.
+   - "synthesis" = CONNECTING ideas. Zooming out. Finding patterns across earlier chapters.
+   - "scene_recreation" = RECONSTRUCTING a real event. Primary sources. Never invent dialogue.
+   - "profile" = INTRODUCING real people. Primary sources, contradictions, motivations.
+   - "investigative" = FOLLOWING a trail. Documents, interviews, evidence.
+   - "teaching" = INSTRUCTING. Concept → Example → Counter-example → Practice.
+
+3. TEMPO determines PACING:
+   - "fast" = Short paragraphs. Punchy facts. Urgency. No meandering.
+   - "medium" = Balanced. Evidence and analysis interwoven.
+   - "slow" = Long reflective passages. Deep analysis. Rich context.
+   - NEVER same tempo for more than 2 consecutive chapters.
+
+4. NO REPEATED CHAPTER SHAPES: Rotate between establishing the problem, demolishing myths, presenting evidence, telling a case study, making it actionable, addressing objections, zooming out, profiling a key figure, reconstructing an event, synthesizing themes.
+
+5. CRITICAL NONFICTION RULES:
+   - This is NONFICTION. Do NOT describe fictional scenes, invented dialogue, or imagined characters.
+   - Do NOT use fiction pacing structures (rising action, climax, denouement).
+   - Use ARGUMENT structure: claim → evidence → analysis → synthesis.
+   - Vignettes and anecdotes are ILLUSTRATIONS — ratio of 1 part anecdote to 4 parts analysis.
+   - Do NOT end chapters with fiction-style cliffhangers. End with: a provocative question, a bridge to the next topic, or a reframed understanding.
+
+=== END BEAT SHEET ===`;
+  }
+
+  // Fiction version
   return `=== STRUCTURAL BEAT SHEET (MANDATORY — EACH CHAPTER MUST FOLLOW ITS ASSIGNED ROLE) ===
 
 This book uses the "${beatSheet.template_name}" structure. Each chapter has a pre-assigned STRUCTURAL ROLE. You MUST follow these. Do NOT give two chapters the same dramatic shape.
@@ -266,8 +308,41 @@ BEAT ENFORCEMENT RULES:
 === END BEAT SHEET ===`;
 }
 
-function buildChapterBeatBlock(assignment) {
+function buildChapterBeatBlock(assignment, isNonfiction) {
   if (!assignment) return '';
+
+  if (isNonfiction) {
+    const nfModeRules = {
+      'exposition': 'AUTHOR EXPLAINS. Your analytical voice carries this chapter. Present context, define terms, build the argument.',
+      'case_study': 'ONE DEEP EXAMPLE. Pick one story, study, or person and go DEEP. Do not skim five examples — drill into one. Specific names, dates, places, outcomes.',
+      'analysis': 'ARGUE. Weigh evidence. Compare viewpoints. Draw conclusions. Acknowledge uncertainty, address objections, then make your case.',
+      'how_to': 'MAKE IT ACTIONABLE. Step 1, Step 2, Step 3. Specific enough that the reader can start TODAY. Checklists, exercises, templates.',
+      'synthesis': 'CONNECT. Link ideas from earlier chapters. Show patterns. Zoom out from details to big picture.',
+      'scene_recreation': 'RECONSTRUCT a real event with cinematic detail. Use primary sources. Never invent dialogue. Present tense for immediacy.',
+      'profile': 'INTRODUCE real people as three-dimensional humans. Use their own words. Show contradictions.',
+      'investigative': 'FOLLOW THE TRAIL. Present evidence in discovery order. Let the reader process clues alongside you.',
+      'teaching': 'INSTRUCT. Concept → Example → Counter-example → Practice. One concept per section.',
+    };
+    const modeRule = nfModeRules[assignment.beat_scene_type] || '';
+    return `=== THIS CHAPTER'S STRUCTURAL ROLE ===
+Beat: "${assignment.beat_name}" | Function: ${assignment.beat_function} | Mode: ${assignment.beat_scene_type} | Tempo: ${assignment.beat_tempo}
+
+NONFICTION STRUCTURAL RULES:
+- Mode "${assignment.beat_scene_type}": ${modeRule}
+- If fast tempo: Short paragraphs. Punchy facts. Urgency. No meandering.
+- If medium tempo: Balanced. Evidence and analysis interwoven.
+- If slow tempo: Long reflective passages. Deep analysis. Rich context.
+
+CRITICAL NONFICTION RULES:
+- This is NONFICTION. Do NOT write fictional scenes, invented dialogue, or imagined characters.
+- Do NOT use fiction pacing (rising action, climax, denouement). Use ARGUMENT structure (claim, evidence, analysis, synthesis).
+- Author's analytical voice is the backbone. Vignettes = illustrations — ratio 1:4 anecdote to analysis.
+- Every claim must be grounded in evidence, research, or documented experience.
+- Do NOT end with fiction-style cliffhangers. End with: a provocative question, a bridge to the next topic, or a reframed understanding.
+=== END STRUCTURAL ROLE ===`;
+  }
+
+  // Fiction version
   const fnRules = {
     'SETUP': 'Establish, don\'t resolve. Plant questions. Reader finishes CURIOUS, not satisfied.',
     'DISRUPTION': 'A concrete external EVENT. Not a conversation. Not a feeling. Something that changes the protagonist\'s situation.',
@@ -300,8 +375,19 @@ FUNCTION-SPECIFIC: ${fnRule}
 === END STRUCTURAL ROLE ===`;
 }
 
-function buildChapterBeatUserBlock(assignment) {
+function buildChapterBeatUserBlock(assignment, isNonfiction) {
   if (!assignment) return '';
+
+  if (isNonfiction) {
+    return `STRUCTURAL ROLE: This is a ${assignment.beat_function} chapter (beat: "${assignment.beat_name}"). Mode: ${assignment.beat_scene_type}. Tempo: ${assignment.beat_tempo}.
+- This is NONFICTION. No fictional scenes, no invented dialogue, no imagined characters.
+- If mode is case_study: Go DEEP on ONE example. Do not skim five. Names, dates, places, outcomes.
+- If mode is how_to: Specific actionable steps. Not "think about your goals" but "Do X, then Y, then Z."
+- If mode is analysis: ARGUE with evidence. Acknowledge the counterargument, then make your case.
+- If mode is exposition: Your analytical voice carries this chapter. Build the argument.
+- Chapter must advance the book's THESIS, not just present information.`;
+  }
+
   return `STRUCTURAL ROLE: This is a ${assignment.beat_function} chapter (beat: "${assignment.beat_name}"). Mode: ${assignment.beat_scene_type}. Tempo: ${assignment.beat_tempo}.
 - If scene: ACTION chapter — things must HAPPEN. Don't write people talking about doing things. Write them DOING things.
 - If sequel: REACTION chapter — character must PROCESS. Internal monologue. No new plot. No new characters.
