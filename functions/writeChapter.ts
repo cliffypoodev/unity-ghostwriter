@@ -1260,6 +1260,8 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
         "",
         modelKey
       );
+      // Inject nonfiction beat structural role into system prompt
+      systemPrompt += _beatSysBlock(chapterBeat);
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
