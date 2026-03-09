@@ -77,8 +77,9 @@ Deno.serve(async (req) => {
 
       // Calculate elapsed time
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const avgTimePerChapter = elapsed / chapterNum;
-      const remainingChapters = chapters.length - chapterNum;
+      const chaptersProcessed = i - startIndex + 1;
+      const avgTimePerChapter = elapsed / chaptersProcessed;
+      const remainingChapters = chapters.length - (i + 1);
       const estimatedRemaining = Math.ceil(avgTimePerChapter * remainingChapters);
 
       // Send progress update to client (via SSE or return intermediate)
