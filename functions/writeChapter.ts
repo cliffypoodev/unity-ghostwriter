@@ -140,23 +140,7 @@ const LANGUAGE_INTENSITY = {
   4: { name: "Raw", instructions: "Profanity Rules:\n- Language may be harsh and frequent if consistent with trauma, survival, combat, or high-stakes realism.\n- Avoid repetitive filler swearing — each instance must feel earned.\n- Never use profanity purely for shock value.\n- Profanity must reflect emotional state and environment.\n- In narration: raw internal voice permitted if it matches the POV character's psychology." },
 };
 
-// MODEL-SPECIFIC PROMPT OVERRIDE SYSTEM ────────────────────────────────────────
-function getModelPromptOverrides(k) {
-  return (k === 'deepseek-chat' || k === 'deepseek-reasoner') ? { wrapSystemPrompt: true, duplicateRulesInUser: true, useNumberedSteps: true, addSelfCheckBlock: true, maxSystemPromptLength: 3000, prefixUserMessage: true, temperatureOverride: 0.7 } : { wrapSystemPrompt: false, duplicateRulesInUser: false, useNumberedSteps: false, addSelfCheckBlock: false, maxSystemPromptLength: null, prefixUserMessage: false, temperatureOverride: null };
-}
 
-const NONFICTION_SECTION_TYPES = { COLD_OPEN: 'Cold Open', THESIS_ANCHOR: 'Thesis Anchor', EVIDENCE_DEEP_DIVE: 'Evidence Deep Dive', CASE_STUDY: 'Case Study', CONTEXT_LAYER: 'Context Layer', COUNTER_NARRATIVE: 'Counter-Narrative', ANALYTICAL_BREAK: 'Analytical Break', MICRO_VIGNETTE: 'Micro-Vignette', TENSION_POINT: 'Tension Point', CHAPTER_SYNTHESIS: 'Chapter Synthesis' };
-
-// DEEPSEEK-SPECIFIC BANNED PHRASES ────────────────────────────────────────────
-const DEEPSEEK_BANNED_PHRASES = `Physical: "heart racing/pounding/hammering", "pulse quickened/raced", "breath hitched/caught", "swallowed hard", "shiver down spine", "a jolt/surge/rush of", "knees weak", "legs trembled", "a flicker/spark of", "igniting a fire", "fire within", "heat pooling"
-
-Atmosphere: "intoxicating", "electric/electricity" (for mood), "palpable", "air thickened/crackled/charged/grew heavy", "shadows danced/twisted/swirled/crept", "darkness enveloped/pressed/wrapped", "tendrils of", "the weight of", "siren's call", "like a moth to a flame", "hung/lingered in the air", "thick with tension", "heavy with implication", "charged with possibility", "fraught with", "neon lights flickered", "neon glow", "neon-lit", "cast a spectrum of colors", "rain-slicked pavement", "the scent of sweat and smoke", "the metallic tang"
-
-Narration: "in that moment", "just the beginning", "no turning back", "on the precipice/brink", "teetering on the edge", "double-edged sword", "ready to embrace/confront", "a mix/blend/cocktail of", "a kaleidoscope/whirlwind/tapestry of", "felt alive", "the world faded", "something deeper/unspoken/primal", "unspoken tension/promise", "invisible thread/force/pull", "couldn't shake/ignore the feeling", "the facade slipping/cracking", "storm brewing within", "dangerous game/dance", "thrill of the chase", "testing/pushing boundaries", "playing with fire"
-
-Dialogue: "what do you truly want/desire", "how far are you willing to go", "let's see where this leads", "embrace your desires", "let go of your fear", "you're not like the others", "control is an illusion"
-
-Smiles: "a knowing/playful/mischievous/teasing smile/smirk/grin/glint"`;
 
 const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
 - All sexual content must involve adults (18+). No exceptions. No implied exceptions.
@@ -418,23 +402,7 @@ function extractPhysicalTics(text) {
   return ticsByChar; // { charName -> { ticName -> count } }
 }
 
-// PART B — Extract overused sensory formula patterns
-function extractSensoryFormulas(text) {
-  const formulas = [];
-  const patterns = [
-    /the smell of \w+ and \w+/gi,
-    /the scent of \w+ and \w+/gi,
-    /the sound of \w+ and \w+/gi,
-    /the taste of \w+ and \w+/gi,
-    /smelled? (like|of) \w+ and \w+/gi,
-    /something like \w+,?\s+something like \w+/gi,
-  ];
-  for (const rx of patterns) {
-    let m;
-    while ((m = rx.exec(text)) !== null) formulas.push(m[0].toLowerCase().trim());
-  }
-  return formulas;
-}
+
 
 // PART 2 — Extract metaphor cluster usage (6 families)
 const METAPHOR_CLUSTER_WORDS = {
@@ -934,6 +902,23 @@ function scanNonfictionQuality(text) {
     );
   }
 
+  // Fiction-trap: invented character + past-tense action (e.g. "Laura sat at her kitchen table")
+  const fictCharMatches = (text.match(/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|felt|thought|smiled|sighed|cried|realized|wondered|looked|opened|entered|left|turned|knew|decided|held|reached)\b/g) || [])
+    .filter(m => !['January','February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','America','Europe','Asia','Congress','Harvard','Stanford','Oxford','Google','Apple','Amazon'].some(w => m.startsWith(w)));
+  if (fictCharMatches.length >= 3) {
+    warnings.push(`FICTIONAL NARRATIVE: Invented character+action pattern (${fictCharMatches.length}x, e.g. "${fictCharMatches[0]}") — remove fictional characters, replace with research and analysis`);
+  }
+  // Fiction-trap: internal monologue / fictional third-person narration
+  const imCount = (text.match(/\b(?:she felt|he felt|they felt|she wondered|he wondered|she realized|he realized|her heart|his heart|she thought|he thought)\b/gi) || []).length;
+  if (imCount >= 2) {
+    warnings.push(`FICTIONAL NARRATIVE: Fictional internal monologue detected (${imCount} instances) — replace third-person character narration with authorial voice`);
+  }
+  // Fiction-trap: excessive dialogue lines (>5 in nonfiction)
+  const nfDialogueCount = (text.match(/[""][^""]{5,}[""]/g) || []).length;
+  if (nfDialogueCount > 5) {
+    warnings.push(`FICTIONAL NARRATIVE: ${nfDialogueCount} quoted dialogue lines in nonfiction (max 5) — replace invented dialogue with research citations or authorial analysis`);
+  }
+
   // Check for nonfiction-specific banned phrases
   const nfBanned = [
     { rx: /(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi, label: "emotional melodrama" },
@@ -960,9 +945,11 @@ function scanNonfictionQuality(text) {
 
 // ── NONFICTION SYSTEM PROMPT BUILDER ──────────────────────────────────────────
 function _buildNonfictionSystemPrompt(spec, chapter_info, total_chapters, target_words,
-                                       story_bible, outline_data, transition_instructions) {
+                                       story_bible, outline_data, transition_instructions, modelKey = 'claude-sonnet') {
   const ch_num = chapter_info.chapter_number;
-  return `AUTHOR MODE — NONFICTION PROSE GENERATION
+  const _isDS = modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner';
+  const _dsBlock = _isDS ? `=== ABSOLUTE NONFICTION CONSTRAINT — READ THIS FIRST ===\nYou are writing NONFICTION. RULES:\n1. DO NOT invent fictional characters. No "Laura," "James," or any made-up person. Every person = real+verifiable OR labeled composite ("One caregiver I spoke with...").\n2. DO NOT write a novel. No scenes with invented dialogue, internal monologue, or dramatic arcs. No "Laura sat at her kitchen table..."\n3. DO write like Gladwell/Brown/Clear: thesis + evidence (real studies, named researchers, stats) + analysis + reader application.\n4. Anecdotes: max 1-4 paragraphs, no invented names, immediately followed by 3-5x more analysis.\n5. EVERY chapter: ≥2 real research references, ≥1 statistic, direct "you" reader address, clear advancing argument.\n6. BANNED: extended fictional scenes, invented dialogue (quotes = real people/studies only), "She felt/He realized..." about invented people.\nIF WRITING A FICTIONAL SCENE — STOP. Delete it. Replace with research, analysis, or direct reader address.\n=== END NONFICTION CONSTRAINT ===\n\n` : '';
+  return `${_dsBlock}AUTHOR MODE — NONFICTION PROSE GENERATION
 You are a professional nonfiction ghostwriter fulfilling a paid writing commission. You are NOT an assistant having a conversation. You are generating polished prose for a published nonfiction book.
 
 You are writing Chapter ${ch_num} of ${total_chapters}: "${chapter_info.title}".
@@ -1070,6 +1057,18 @@ Write ~${target_words} words. Begin immediately with prose — no preamble.`;
 
 // PART B — AUTO-REWRITE FUNCTION
 async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey, modelKey = 'claude-sonnet') {
+  const hasNfViolation = violations.some(v => v.startsWith('FICTIONAL NARRATIVE'));
+  if (hasNfViolation) {
+    const nfSystemPrompt = `You are a nonfiction editor. This chapter contains fictional narrative elements that must be removed and replaced with proper nonfiction content.\n\nRULES:\n1. Remove all invented fictional characters (anyone with a name who is not a real public figure).\n2. Replace fictional scenes and "She felt/He realized..." narration with: research citations, real expert quotes, authorial analysis, or "Consider the person who..." constructions.\n3. Replace invented dialogue with quoted real research, expert statements, or authorial voice.\n4. Preserve any factual content, real names, statistics, or research references.\n5. The rewritten chapter must sound like Gladwell/Brown/Clear — not a novel.\n6. Return ONLY the corrected chapter prose. No commentary.`;
+    try {
+      const corrected = await callAI(modelKey, nfSystemPrompt, `Rewrite this nonfiction chapter, removing all fictional narrative elements:\n\n---\n${chapterText}\n---\n\nReturn only the corrected prose.`, { maxTokens: 3000, temperature: 0.4 });
+      return corrected.includes('```') ? corrected.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '') : corrected;
+    } catch (err) {
+      console.error('Nonfiction rewrite error:', err.message);
+      throw err;
+    }
+  }
+
   const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.
 
 RULES:
@@ -1247,7 +1246,8 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
         TARGET_WORDS,
         storyBible || {}, 
         outlineData || {}, 
-        ""
+        "",
+        modelKey
       );
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
@@ -1556,6 +1556,9 @@ Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.`;
         totalChapters,
         TARGET_WORDS
       );
+      if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
+        currentChapterRequest = `REMINDER: This is NONFICTION. Do not invent characters or write fictional scenes. Write as an authoritative nonfiction author using research, evidence, and direct reader address. Every claim should reference real research or verifiable information.\n\n` + currentChapterRequest;
+      }
     } else {
       // ── LEGACY FICTION PATH (no scenes) ──────────────────────────────────
       const openingType = getOpeningType(chapter.chapter_number);
