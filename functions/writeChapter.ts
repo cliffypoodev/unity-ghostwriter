@@ -1549,6 +1549,10 @@ ${_beatUsrBlock(chapterBeat)}`;
         totalChapters,
         TARGET_WORDS
       );
+      // Inject nonfiction beat user block
+      if (chapterBeat) {
+        currentChapterRequest += `\n\n${_beatUsrBlock(chapterBeat)}`;
+      }
       if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
         currentChapterRequest = `REMINDER: This is NONFICTION. Do not invent characters or write fictional scenes. Write as an authoritative nonfiction author using research, evidence, and direct reader address. Every claim should reference real research or verifiable information.\n\n` + currentChapterRequest;
       }
