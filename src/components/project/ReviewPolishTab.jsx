@@ -428,6 +428,7 @@ Provide 8-20 specific, actionable issues. Sort by severity (high first). Be prec
       setLastAnalyzedManuscript(manuscript);
       setFixStates({});
       setFixTexts({});
+      setSelectedIssues({});
     } catch (err) {
       console.error("Analysis failed:", err);
     } finally {
