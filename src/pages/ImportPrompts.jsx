@@ -90,7 +90,7 @@ export default function ImportPrompts() {
       
       try {
         const res = await base44.functions.invoke('importPromptsFromFile', {
-          file_url: FILE_URL,
+          file_url: fileUrl,
           batch_start: batchStart,
           batch_size: BATCH_SIZE
         });
