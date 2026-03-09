@@ -1804,7 +1804,6 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
         previous_chapters: previousChapters,
         story_bible: storyBible,
         characters: storyBible?.characters || [],
-        open_ai_key: openai_key
       });
       
       if (!deepseekValidation.data.passed) {
