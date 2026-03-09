@@ -126,12 +126,7 @@ export default function ProjectDetail() {
 
   const handleDelete = async () => {
     setDeleting(true);
-    await fetch(`/api/functions/deleteProject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ project_id: projectId }),
-    });
+    await base44.functions.invoke('deleteProject', { project_id: projectId });
     queryClient.invalidateQueries({ queryKey: ["projects"] });
     window.scrollTo(0, 0);
     navigate(createPageUrl("Home"));
