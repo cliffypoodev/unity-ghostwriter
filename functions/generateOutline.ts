@@ -73,6 +73,68 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
 
+// ── Beat Sheet Engine (inline for outline generation) ─────────────────────────
+const BEAT_TEMPLATES = {
+  "save-the-cat": { name: "Save the Cat", beats: [
+    {p:0,n:"Opening Image",fn:"SETUP",st:"scene",t:"medium"},{p:.07,n:"Theme Stated",fn:"SETUP",st:"sequel",t:"slow"},{p:.10,n:"Setup Continued",fn:"SETUP",st:"scene",t:"medium"},{p:.15,n:"Catalyst",fn:"DISRUPTION",st:"scene",t:"fast"},{p:.20,n:"Debate",fn:"REACTION",st:"sequel",t:"slow"},{p:.25,n:"Break Into Two",fn:"COMMITMENT",st:"scene",t:"fast"},{p:.30,n:"B-Story Begins",fn:"SUBPLOT",st:"scene",t:"medium"},{p:.35,n:"Fun & Games A",fn:"PROMISE_OF_PREMISE",st:"scene",t:"fast"},{p:.42,n:"Fun & Games B",fn:"PROMISE_OF_PREMISE",st:"scene",t:"fast"},{p:.50,n:"Midpoint",fn:"REVERSAL",st:"scene",t:"fast"},{p:.55,n:"Bad Guys Close In",fn:"ESCALATION",st:"scene",t:"fast"},{p:.65,n:"All Is Lost",fn:"CRISIS",st:"scene",t:"fast"},{p:.70,n:"Dark Night of the Soul",fn:"REFLECTION",st:"sequel",t:"slow"},{p:.80,n:"Break Into Three",fn:"RECOMMITMENT",st:"scene",t:"medium"},{p:.90,n:"Finale",fn:"CLIMAX",st:"scene",t:"fast"},{p:1,n:"Final Image",fn:"RESOLUTION",st:"sequel",t:"slow"}
+  ]},
+  "romance-arc": { name: "Romance Arc", beats: [
+    {p:0,n:"Separate Worlds",fn:"SETUP",st:"scene",t:"medium"},{p:.08,n:"The Meeting",fn:"DISRUPTION",st:"scene",t:"fast"},{p:.15,n:"Forced Proximity",fn:"ESCALATION",st:"scene",t:"medium"},{p:.22,n:"Walls Up",fn:"REACTION",st:"sequel",t:"slow"},{p:.30,n:"First Surrender",fn:"PROMISE_OF_PREMISE",st:"scene",t:"fast"},{p:.38,n:"Deepening",fn:"PROMISE_OF_PREMISE",st:"scene",t:"medium"},{p:.45,n:"The Lie Exposed",fn:"REVERSAL",st:"scene",t:"fast"},{p:.50,n:"Midpoint Shift",fn:"REVERSAL",st:"sequel",t:"slow"},{p:.60,n:"Escalation & Stakes",fn:"ESCALATION",st:"scene",t:"fast"},{p:.70,n:"The Break",fn:"CRISIS",st:"scene",t:"fast"},{p:.78,n:"Alone Again",fn:"REFLECTION",st:"sequel",t:"slow"},{p:.85,n:"The Realization",fn:"RECOMMITMENT",st:"sequel",t:"medium"},{p:.92,n:"Grand Gesture",fn:"CLIMAX",st:"scene",t:"fast"},{p:1,n:"Together / HEA",fn:"RESOLUTION",st:"sequel",t:"slow"}
+  ]},
+  "thriller-tension": { name: "Thriller / Suspense Arc", beats: [
+    {p:0,n:"Normal World",fn:"SETUP",st:"scene",t:"medium"},{p:.08,n:"The Disturbance",fn:"DISRUPTION",st:"scene",t:"fast"},{p:.15,n:"Investigation Begins",fn:"PROMISE_OF_PREMISE",st:"scene",t:"medium"},{p:.22,n:"First Complication",fn:"ESCALATION",st:"scene",t:"fast"},{p:.30,n:"Allies & Enemies",fn:"SUBPLOT",st:"scene",t:"medium"},{p:.38,n:"Trail Heats Up",fn:"PROMISE_OF_PREMISE",st:"scene",t:"fast"},{p:.50,n:"Midpoint Revelation",fn:"REVERSAL",st:"scene",t:"fast"},{p:.58,n:"Counterattack",fn:"ESCALATION",st:"scene",t:"fast"},{p:.65,n:"Racing Clock",fn:"ESCALATION",st:"scene",t:"fast"},{p:.75,n:"Darkest Hour",fn:"CRISIS",st:"sequel",t:"slow"},{p:.80,n:"The Key",fn:"RECOMMITMENT",st:"scene",t:"medium"},{p:.90,n:"The Confrontation",fn:"CLIMAX",st:"scene",t:"fast"},{p:1,n:"Aftermath",fn:"RESOLUTION",st:"sequel",t:"slow"}
+  ]},
+  "heros-journey": { name: "Hero's Journey", beats: [
+    {p:0,n:"Ordinary World",fn:"SETUP",st:"scene",t:"medium"},{p:.08,n:"Call to Adventure",fn:"DISRUPTION",st:"scene",t:"fast"},{p:.12,n:"Refusal of the Call",fn:"REACTION",st:"sequel",t:"slow"},{p:.18,n:"Meeting the Mentor",fn:"SETUP",st:"scene",t:"medium"},{p:.25,n:"Crossing the Threshold",fn:"COMMITMENT",st:"scene",t:"fast"},{p:.35,n:"Tests, Allies, Enemies",fn:"PROMISE_OF_PREMISE",st:"scene",t:"fast"},{p:.45,n:"Approach to Inmost Cave",fn:"ESCALATION",st:"scene",t:"medium"},{p:.50,n:"The Ordeal",fn:"REVERSAL",st:"scene",t:"fast"},{p:.60,n:"Reward",fn:"PROMISE_OF_PREMISE",st:"scene",t:"medium"},{p:.70,n:"The Road Back",fn:"ESCALATION",st:"scene",t:"fast"},{p:.85,n:"The Resurrection",fn:"CLIMAX",st:"scene",t:"fast"},{p:1,n:"Return with the Elixir",fn:"RESOLUTION",st:"sequel",t:"slow"}
+  ]},
+};
+
+function autoDetectBeatTemplate(genre) {
+  const g = (genre || '').toLowerCase();
+  if (/romance|erotica/.test(g)) return 'romance-arc';
+  if (/thriller|mystery|suspense|crime/.test(g)) return 'thriller-tension';
+  if (/fantasy|science fiction|adventure|epic/.test(g)) return 'heros-journey';
+  return 'save-the-cat';
+}
+
+function assignBeatsToChapters(templateKey, chapterCount) {
+  const t = BEAT_TEMPLATES[templateKey];
+  if (!t) return null;
+  const map = {};
+  for (const b of t.beats) {
+    const ch = Math.min(chapterCount, Math.max(1, Math.round(b.p * (chapterCount - 1)) + 1));
+    if (!map[ch]) map[ch] = [];
+    map[ch].push(b);
+  }
+  const assignments = [];
+  const fnPri = ['CLIMAX','CRISIS','REVERSAL','DISRUPTION','ESCALATION','PROMISE_OF_PREMISE','COMMITMENT','RECOMMITMENT','SUBPLOT','REACTION','REFLECTION','SETUP','RESOLUTION','CONNECTIVE_TISSUE'];
+  const tPri = { fast: 3, medium: 2, slow: 1 };
+  for (let i = 1; i <= chapterCount; i++) {
+    const beats = map[i];
+    if (beats && beats.length > 0) {
+      if (beats.length === 1) {
+        const b = beats[0]; assignments.push({ chapter: i, beat_name: b.n, beat_function: b.fn, beat_scene_type: b.st, beat_tempo: b.t });
+      } else {
+        const names = beats.map(b => b.n).join(' + ');
+        const fns = beats.map(b => b.fn);
+        const bestFn = fnPri.find(f => fns.includes(f)) || fns[0];
+        const bestT = beats.reduce((best, b) => (tPri[b.t] || 0) > (tPri[best] || 0) ? b.t : best, beats[0].t);
+        const bestSt = beats.some(b => b.st === 'scene') ? 'scene' : 'sequel';
+        assignments.push({ chapter: i, beat_name: names, beat_function: bestFn, beat_scene_type: bestSt, beat_tempo: bestT });
+      }
+    } else {
+      assignments.push({ chapter: i, beat_name: 'Connective Tissue', beat_function: 'CONNECTIVE_TISSUE', beat_scene_type: 'scene', beat_tempo: 'medium' });
+    }
+  }
+  return { template_name: t.name, template_key: templateKey, assignments };
+}
+
+function buildBeatSheetOutlineBlock(bs) {
+  if (!bs) return '';
+  const lines = bs.assignments.map(a => `Ch ${a.chapter}: "${a.beat_name}" | ${a.beat_function} | ${a.beat_scene_type} | ${a.beat_tempo}`).join('\n');
+  return `=== STRUCTURAL BEAT SHEET (MANDATORY) ===\nThis book uses "${bs.template_name}". Each chapter has a pre-assigned role.\n${lines}\n\nRULES: Each chapter MUST match its assigned function, scene_type, and tempo. No two chapters should have the same dramatic shape.\n=== END BEAT SHEET ===`;
+}
+
 const BEAT_STYLES = {
   "fast-paced-thriller": { name: "Fast-Paced Thriller", instructions: "Core Identity: Relentless momentum. Immediate stakes. Forward propulsion at all times.\nSentence Rhythm: Short to medium sentences. Strong, active verbs. Tight paragraphs (1-4 lines). Occasional single-line impact beats.\nPacing: Introduce danger or stakes within first paragraph. Escalate every 2-4 paragraphs. No long exposition blocks. Embed backstory inside action.\nEmotional Handling: Minimal introspection. Decisions made under pressure. Fear shown through action, not reflection.\nDialogue: Direct. Tactical. Urgent. Often incomplete sentences.\nScene Structure: Immediate problem > Tactical reaction > Escalation > Complication > Cliffhanger or propulsion.\nEnding Rule: Scene must close with forward momentum, not emotional resolution." },
   "gritty-cinematic": { name: "Gritty Cinematic", instructions: "Core Identity: Raw realism. Texture-heavy environments. Physical consequence.\nSentence Rhythm: Medium-length sentences. Concrete nouns and verbs. Sparse but sharp metaphors. Weight in description.\nEnvironmental Focus: Sound design (metal, wind, boots, breathing). Temperature, sweat, blood, dust. Physical discomfort emphasized.\nPacing: Tension builds steadily. Physical consequences matter. Injuries affect performance.\nEmotional Handling: Internal conflict expressed through physical sensation. Characters rarely over-explain feelings.\nDialogue: Hard. Minimal. Subtext heavy. Power shifts mid-conversation.\nScene Structure: Immersive environmental anchor > Rising tension > Physical obstacle > Consequence > Stark closing beat.\nEnding Rule: End on something tangible and unsettling." },
