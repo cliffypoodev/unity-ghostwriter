@@ -1619,7 +1619,11 @@ ${_beatUsrBlock(chapterBeat)}`;
 
     if (previousChapters && previousChapters.length > 0) {
       const lastCh = previousChapters[previousChapters.length - 1];
-      const lastLines = lastCh.content.trim().split("\n").slice(-3);
+      let lastChContent = lastCh.content || '';
+      if (lastChContent.startsWith('http://') || lastChContent.startsWith('https://')) {
+        try { lastChContent = await (await fetch(lastChContent)).text(); } catch { lastChContent = ''; }
+      }
+      const lastLines = lastChContent.trim().split("\n").slice(-3);
       const antiRepeatContext =
         "\n=== PREVIOUS CHAPTER ENDING (DO NOT REPEAT OR CLOSELY MIRROR THIS) ===\n" +
         lastLines.join("\n") +
