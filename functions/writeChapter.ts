@@ -1665,8 +1665,9 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
       currentChapterRequest = clusterInjection + currentChapterRequest;
     }
 
+    // PART F — Topic tracking: ban overused dialogue topics
+    if (previousChapters.length > 0) { const tw = ["power","control","desire","fear","vulnerability","trust","boundaries","limits","darkness","submission","dominance","dangerous","surrender"]; const tc = {}; for (const pc of previousChapters) { let c = pc.content||''; if (c.startsWith('http')) continue; const dl = (c.match(/[""\u201C][^""\u201D]+[""\u201D]/g)||[]).join(' ').toLowerCase(); for (const t of tw) { const m = dl.match(new RegExp(`\\b${t}\\b`,'gi')); if (m) tc[t]=(tc[t]||0)+m.length; } } const ou = Object.entries(tc).filter(([,c])=>c>3).map(([w])=>w); if (ou.length>0) currentChapterRequest += `\n\n=== TOPICS ALREADY COVERED — DO NOT REPEAT ===\nPrevious dialogue discussed: ${ou.join(', ')}. Focus on DIFFERENT subjects: plot logistics, shared memory, concrete decisions, practical problems.\n=== END ===`; }
     messages.push({ role: 'user', content: currentChapterRequest });
-
     // ── Generate with retry on refusal ────────────────────────────────────────
 
     let fullContent = '';
