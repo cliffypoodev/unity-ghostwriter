@@ -1598,6 +1598,7 @@ WRITE LIKE THIS INSTEAD:
 - BAD: ''What do you truly desire?' The words hung heavy in the air.' → GOOD: ''You didn't come here for the lecture notes.' She set down her pen.'
 - Tension comes from ACTIONS and SILENCE, not from the narrator labeling feelings.
 
+GENRE DELIVERY: For PROMISE_OF_PREMISE beats, write actual ${projectSpec?.genre||'genre'} scenes. Min 40% action, not dialogue.
 SUPPORTING CAST: If any named character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explained.
 
 ANTI-REPETITION: You have access to all previously written chapters. You MUST:
