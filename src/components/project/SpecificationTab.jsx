@@ -228,7 +228,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const handleChange = (field, value) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; updated.beat_style = ""; updated.tone_style = ""; }
+      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; updated.beat_style = ""; updated.tone_style = ""; updated.beat_sheet_template = "auto"; }
       if (field === "genre") { updated.subgenre = ""; }
       return updated;
     });
