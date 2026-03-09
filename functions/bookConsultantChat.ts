@@ -1,7 +1,55 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import Anthropic from 'npm:@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
+const MODEL_MAP = {
+  "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
+  "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514" },
+  "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5" },
+  "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5" },
+  "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5" },
+  "gpt-4o":            { provider: "openai",    modelId: "gpt-4o" },
+  "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo" },
+  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat" },
+};
+
+async function callChat(modelKey, systemPrompt, messages) {
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const { provider, modelId } = config;
+
+  if (provider === "anthropic") {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, system: systemPrompt, messages }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error('Anthropic error: ' + (data.error?.message || response.status));
+    return data.content[0].text;
+  }
+
+  if (provider === "openai") {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + Deno.env.get('OPENAI_API_KEY'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error('OpenAI error: ' + (data.error?.message || response.status));
+    return data.choices[0].message.content;
+  }
+
+  if (provider === "deepseek") {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error('DeepSeek error: ' + (data.error?.message || response.status));
+    return data.choices[0].message.content;
+  }
+
+  throw new Error('Unknown provider: ' + provider);
+}
 
 Deno.serve(async (req) => {
   try {
@@ -16,10 +64,14 @@ Deno.serve(async (req) => {
     await base44.entities.Conversation.create({ project_id, role: 'user', content: message });
 
     // Fetch conversation history and source files in parallel
-    const [history, sourceFiles] = await Promise.all([
+    const [history, sourceFiles, specRecords] = await Promise.all([
       base44.entities.Conversation.filter({ project_id }, 'created_date'),
       base44.entities.SourceFile.filter({ project_id }),
+      base44.entities.Specification.filter({ project_id }),
     ]);
+
+    // Determine model from spec
+    const modelKey = specRecords[0]?.ai_model || spec?.ai_model || 'claude-sonnet';
 
     // Build source files context
     const sourceFilesContext = sourceFiles.length > 0
@@ -59,14 +111,7 @@ Keep responses concise and conversational. Focus on one or two key suggestions o
     const priorMessages = history.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
     priorMessages.push({ role: 'user', content: message });
 
-    const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: priorMessages,
-    });
-
-    const assistantContent = response.content[0].text;
+    const assistantContent = await callChat(modelKey, systemPrompt, priorMessages);
 
     // Save assistant message
     await base44.entities.Conversation.create({ project_id, role: 'assistant', content: assistantContent });
