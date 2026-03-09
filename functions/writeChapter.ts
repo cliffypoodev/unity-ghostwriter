@@ -1163,24 +1163,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       const world = storyBible?.world || storyBible?.settings;
       const rules = storyBible?.rules;
 
-      const authorVoices = {
-        hemingway: "Terse, declarative sentences. Iceberg theory.",
-        king: "Conversational, immersive. Rich inner monologue, building dread.",
-        austen: "Witty, ironic social commentary.",
-        tolkien: "Mythic, elevated prose. Rich world-building.",
-        morrison: "Lyrical, poetic. Vivid sensory detail.",
-        rowling: "Accessible, whimsical. Clever wordplay.",
-        mccarthy: "Sparse, biblical. No quotation marks.",
-        atwood: "Sharp, sardonic. Precise word choices.",
-        gaiman: "Mythic yet modern. Fairy-tale cadence.",
-        pratchett: "Satirical. Comedic fantasy, warm humanity.",
-        le_guin: "Sparse elegance, philosophical depth.",
-        vonnegut: "Dark humor, short sentences. Absurdist.",
-        garcia_marquez: "Lush magical realism. Sprawling sentences.",
-        chandler: "Hardboiled noir. First-person cynicism.",
-        christie: "Puzzle-box plotting. Clean readable prose.",
-      };
-      const voiceDesc = projectSpec?.author_voice ? (authorVoices[projectSpec.author_voice] || null) : null;
+      const voiceDesc = projectSpec?.author_voice ? (AUTHOR_VOICES_MAP[projectSpec.author_voice] || null) : null;
 
       systemPrompt = `You are a novelist writing Chapter ${chapter.chapter_number} of a ${projectSpec?.genre || 'fiction'} novel.
 
@@ -1260,28 +1243,7 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // Author voice
     if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
-      const authorVoices = {
-        hemingway: "Terse, declarative sentences. Iceberg theory.",
-        king: "Conversational, immersive. Rich inner monologue, building dread.",
-        austen: "Witty, ironic social commentary.",
-        tolkien: "Mythic, elevated prose. Rich world-building.",
-        morrison: "Lyrical, poetic. Vivid sensory detail.",
-        rowling: "Accessible, whimsical. Clever wordplay.",
-        mccarthy: "Sparse, biblical. No quotation marks.",
-        atwood: "Sharp, sardonic. Precise word choices.",
-        gaiman: "Mythic yet modern. Fairy-tale cadence.",
-        pratchett: "Satirical. Comedic fantasy, warm humanity.",
-        le_guin: "Sparse elegance, philosophical depth.",
-        vonnegut: "Dark humor, short sentences. Absurdist.",
-        garcia_marquez: "Lush magical realism. Sprawling sentences.",
-        chandler: "Hardboiled noir. First-person cynicism.",
-        christie: "Puzzle-box plotting. Clean readable prose.",
-        gladwell: "Nonfiction storytelling. Counterintuitive hooks.",
-        bryson: "Humorous nonfiction. Self-deprecating wit.",
-        sagan: "Awe-inspiring science writing. Poetic wonder.",
-        didion: "Cool, precise observation.",
-      };
-      const voiceDesc = authorVoices[projectSpec.author_voice];
+      const voiceDesc = AUTHOR_VOICES_MAP[projectSpec.author_voice];
       if (voiceDesc) systemPrompt += `\n\nAuthor Voice: Write in a style reminiscent of: ${voiceDesc}`;
     }
 
