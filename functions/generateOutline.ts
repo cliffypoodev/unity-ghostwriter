@@ -574,7 +574,20 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
     const promptInstructions = buildFictionChapterPromptInstructions(isNonfiction);
     const chapterPromptSchema = isNonfiction
       ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`
-      : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`;
+      : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next), beat_name (string), beat_function (string), beat_scene_type (string: "scene" or "sequel"), beat_tempo (string: "fast", "medium", or "slow")`;
+
+    // ── Beat Sheet Assignment ────────────────────────────────────────────────
+    let beatSheetBlock = '';
+    let beatAssignments = null;
+    if (!isNonfiction) {
+      const bsKey = spec.beat_sheet_template || 'auto';
+      const resolvedKey = (bsKey === 'auto' || !bsKey) ? autoDetectBeatTemplate(spec.genre) : bsKey;
+      beatAssignments = assignBeatsToChapters(resolvedKey, targetChapters);
+      if (beatAssignments) {
+        beatSheetBlock = buildBeatSheetOutlineBlock(beatAssignments);
+        console.log(`Beat sheet assigned: ${beatAssignments.template_name} (${beatAssignments.assignments.length} beats for ${targetChapters} chapters)`);
+      }
+    }
 
     const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional book outline generator. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
 
@@ -672,7 +685,15 @@ Return ONLY the JSON object. No preamble.`;
         ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending context: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a clear transition_from that references this ending.`
         : '';
 
-      // CHANGE 2 & 3 & 5 & 6 FIX: Reduce prompt length requirement and integrate subgenre + author voice
+      // Build per-chunk beat context
+      let chunkBeatContext = '';
+      if (beatAssignments) {
+        const chunkAssignments = beatAssignments.assignments.filter(a => a.chapter >= chunkStart && a.chapter <= chunkEnd);
+        chunkBeatContext = chunkAssignments.map(a =>
+          `Ch ${a.chapter}: Beat "${a.beat_name}" | ${a.beat_function} | ${a.beat_scene_type} | ${a.beat_tempo} → ${a.beat_description}`
+        ).join('\n');
+      }
+
       const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
 Book title: "${bookMetadata?.title || 'Untitled'}"
 ${beatInstructions}${spiceInstructions}${langInstructions}
@@ -681,6 +702,10 @@ ${authorVoiceInfo}
 ${CONTENT_GUARDRAILS}
 ${ANTI_REPETITION_RULES}
 ${prevContext}
+
+${beatSheetBlock ? beatSheetBlock : ''}
+
+${chunkBeatContext ? `BEAT ASSIGNMENTS FOR THIS BATCH:\n${chunkBeatContext}\n\nEach chapter MUST include beat_name, beat_function, beat_scene_type, and beat_tempo fields matching the assignments above.` : ''}
 
 SUBGENRE PACING & TONE: The SUBGENRE determines chapter pacing, tropes, and reader expectations. Use it to make chapter prompts SPECIFIC to what readers expect from this subgenre.
 
