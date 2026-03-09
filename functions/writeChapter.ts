@@ -1156,20 +1156,41 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
     const useScenePath = !isNonfiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
 
-    // ── Beat Sheet: look up this chapter's beat from outline data ──
+    // ── Beat Sheet: look up this chapter's beat from outline data (fiction AND nonfiction) ──
     let chapterBeat = null;
-    if (!isNonfiction) {
+    {
       const olChs = outlineData?.chapters || [];
       const olE = olChs.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
-      if (olE?.beat_function) chapterBeat = { beat_name: olE.beat_name||'', beat_function: olE.beat_function||'', beat_scene_type: olE.beat_scene_type||'scene', beat_tempo: olE.beat_tempo||'medium' };
+      if (olE?.beat_function) chapterBeat = { beat_name: olE.beat_name||'', beat_function: olE.beat_function||'', beat_scene_type: olE.beat_scene_type||(isNonfiction?'exposition':'scene'), beat_tempo: olE.beat_tempo||'medium' };
     }
+
+    // Nonfiction mode descriptions for system prompt injection
+    const NF_MODE_RULES = {
+      'exposition': 'AUTHOR EXPLAINS. Your analytical voice carries this chapter. Present context, define terms, build the argument.',
+      'case_study': 'ONE DEEP EXAMPLE. Pick one story, study, or person and go DEEP. Specific names, dates, places, outcomes.',
+      'analysis': 'ARGUE. Weigh evidence. Compare viewpoints. Draw conclusions. Acknowledge uncertainty, address objections, then make your case.',
+      'how_to': 'MAKE IT ACTIONABLE. Step 1, Step 2, Step 3. Specific enough that the reader can start TODAY.',
+      'synthesis': 'CONNECT. Link ideas from earlier chapters. Show patterns. Zoom out from details to big picture.',
+      'scene_recreation': 'RECONSTRUCT a real event with cinematic detail. Use primary sources. Never invent dialogue. Present tense for immediacy.',
+      'profile': 'INTRODUCE real people as three-dimensional humans. Use their own words. Show contradictions.',
+      'investigative': 'FOLLOW THE TRAIL. Present evidence in discovery order. Let the reader process clues alongside you.',
+      'teaching': 'INSTRUCT. Concept → Example → Counter-example → Practice. One concept per section.',
+    };
+
     function _beatSysBlock(cb) {
       if (!cb) return '';
+      if (isNonfiction) {
+        const modeRule = NF_MODE_RULES[cb.beat_scene_type] || '';
+        return `\n\n=== THIS CHAPTER'S STRUCTURAL ROLE ===\nBeat: "${cb.beat_name}" | Function: ${cb.beat_function} | Mode: ${cb.beat_scene_type} | Tempo: ${cb.beat_tempo}\n\nNONFICTION STRUCTURAL RULES:\n- Mode "${cb.beat_scene_type}": ${modeRule}\n- fast=short paragraphs, punchy facts | medium=balanced evidence+analysis | slow=long reflective passages\n\nCRITICAL: This is NONFICTION. No fictional scenes, no invented dialogue, no imagined characters.\nUse ARGUMENT structure (claim, evidence, analysis, synthesis). Author's analytical voice is the backbone.\nDo NOT end with fiction-style cliffhangers.\n=== END STRUCTURAL ROLE ===`;
+      }
       const r = { SETUP:'Establish, don\'t resolve.', DISRUPTION:'Concrete external EVENT.', PROMISE_OF_PREMISE:'Deliver genre promise NOW.', REVERSAL:'Something believed proven WRONG.', CRISIS:'Irreversible devastation.', REFLECTION:'NO new plot/characters. Process loss.', REACTION:'Character PROCESSES.', CLIMAX:'Maximum intensity. All threads converge.', RESOLUTION:'Mirror opening. Show transformation.', COMMITMENT:'Deliberate CHOICE.', RECOMMITMENT:'Understand theme, new path.', ESCALATION:'Stakes rise.', SUBPLOT:'B-story focus.', CONNECTIVE_TISSUE:'Bridge. One irreversible event.' };
       return `\n\n=== STRUCTURAL ROLE ===\nBeat: "${cb.beat_name}" | ${cb.beat_function} | ${cb.beat_scene_type} | ${cb.beat_tempo}\nscene=ACTION(max 20% reflection) | sequel=REACTION(min 40% thought) | fast=short paragraphs | slow=long flowing paragraphs\nFUNCTION: ${r[cb.beat_function]||''}\n=== END ===`;
     }
     function _beatUsrBlock(cb) {
       if (!cb) return '';
+      if (isNonfiction) {
+        return `STRUCTURAL ROLE: ${cb.beat_function} (beat: "${cb.beat_name}"). Mode: ${cb.beat_scene_type}. Tempo: ${cb.beat_tempo}.\n- This is NONFICTION. No fictional scenes, no invented dialogue, no imagined characters.\n- If mode is case_study: Go DEEP on ONE example. Names, dates, places, outcomes.\n- If mode is how_to: Specific actionable steps. Not "think about your goals" but "Do X, then Y, then Z."\n- If mode is analysis: ARGUE with evidence. Acknowledge the counterargument, then make your case.\n- If mode is exposition: Your analytical voice carries this chapter. Build the argument.\n- Chapter must advance the book's THESIS, not just present information.`;
+      }
       return `STRUCTURAL ROLE: ${cb.beat_function} (beat: "${cb.beat_name}"). Mode: ${cb.beat_scene_type}. Tempo: ${cb.beat_tempo}. Must contain ≥1 IRREVERSIBLE EVENT.`;
     }
 
