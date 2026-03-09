@@ -1069,18 +1069,7 @@ async function rewriteWithCorrections(chapterText, violations, chapterNumber, op
     }
   }
 
-  const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.
-
-RULES:
-1. Replace ONLY the sentences or clauses that contain the flagged violations.
-2. Do NOT rewrite, restructure, or 'improve' any other part of the text.
-3. Do NOT add new scenes, dialogue, or plot. Do NOT remove scenes or dialogue.
-4. Do NOT change character names, settings, or plot events.
-5. Do NOT add meta-commentary, notes, or explanations.
-6. Each replacement must be ORIGINAL — do not swap one cliché for another.
-7. Replacements must be SPECIFIC to the scene — a character in a library reacts differently than one in a rainstorm.
-8. For 'show don't tell' violations: replace the named emotion with a concrete physical action, sensory detail, or dialogue that IMPLIES the emotion.
-9. Return ONLY the complete corrected chapter text. Nothing else.`;
+  const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.\n\nRULES:\n1. Replace ONLY the sentences or clauses that contain the flagged violations.\n2. Do NOT rewrite, restructure, or 'improve' any other part of the text.\n3. Do NOT add new scenes, dialogue, or plot. Do NOT remove scenes or dialogue.\n4. Do NOT change character names, settings, or plot events.\n5. Do NOT add meta-commentary, notes, or explanations.\n6. Each replacement must be ORIGINAL — do not swap one cliché for another.\n7. Replacements must be SPECIFIC to the scene — a character in a library reacts differently than one in a rainstorm.\n8. For 'show don't tell' violations: replace the named emotion with a concrete physical action, sensory detail, or dialogue that IMPLIES the emotion.\n9. Return ONLY the complete corrected chapter text. Nothing else.`;
 
   const violationList = violations.map(v => `- ${v}`).join('\n');
   
