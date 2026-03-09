@@ -256,7 +256,7 @@ function useResolvedContent(rawContent) {
   return isUrl ? (fetched || "") : (rawContent || "");
 }
 
-function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, chapterProgress, onScenesUpdated }) {
+function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, chapterProgress, onScenesUpdated, beatData }) {
   const [expanded, setExpanded] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [promptValue, setPromptValue] = useState(chapter.prompt || "");
@@ -339,6 +339,7 @@ function ChapterItem({ chapter, spec, onWrite, streamingContent, isStreaming, ch
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-slate-800 truncate">{chapter.title}</span>
+            {beatData?.beat_function && <BeatBadge beatFunction={beatData.beat_function} beatName={beatData.beat_name} />}
             <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", sc.className)}>{sc.label}</span>
             {hasScenes && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
@@ -1065,18 +1066,25 @@ export default function GenerateTab({ projectId, onProceed }) {
       {chapters.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
-          {chapters.map(chapter => (
-            <ChapterItem
-              key={chapter.id}
-              chapter={chapter}
-              spec={spec}
-              onWrite={handleWriteChapter}
-              streamingContent={streamingContent[chapter.id] || ""}
-              isStreaming={streamingChapterId === chapter.id}
-              chapterProgress={chapterProgress[chapter.id] || null}
-              onScenesUpdated={refetchChapters}
-            />
-          ))}
+          {chapters.map(chapter => {
+            // Look up beat data from outline
+            const parsedOl = safeParse(resolvedOutlineData);
+            const olCh = parsedOl?.chapters?.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
+            const beatData = olCh?.beat_function ? { beat_name: olCh.beat_name, beat_function: olCh.beat_function } : null;
+            return (
+              <ChapterItem
+                key={chapter.id}
+                chapter={chapter}
+                spec={spec}
+                onWrite={handleWriteChapter}
+                streamingContent={streamingContent[chapter.id] || ""}
+                isStreaming={streamingChapterId === chapter.id}
+                chapterProgress={chapterProgress[chapter.id] || null}
+                onScenesUpdated={refetchChapters}
+                beatData={beatData}
+              />
+            );
+          })}
         </div>
       )}
 
