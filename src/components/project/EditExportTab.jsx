@@ -312,22 +312,51 @@ function FindBar({ quillRef, onClose }) {
     onClose();
   }, [clearHighlights, onClose]);
 
-  // Re-run find when term or case changes
+  // Re-run find when term or case changes — debounced to avoid freezing
   useEffect(() => {
-    if (term) {
-      const found = runFind(term, caseSensitive);
-      if (found.length > 0) {
-        setCurrentIdx(0);
-        quillRef.current.setSelection(found[0].index, found[0].length);
-        quillRef.current.formatText(found[0].index, found[0].length, { background: "#fb923c" });
+    const timer = setTimeout(() => {
+      if (!quillRef.current) return;
+      if (term) {
+        // Temporarily disable text-change listener to avoid cascading renders
+        const q = quillRef.current;
+        q.off('text-change');
+        
+        const text = q.getText();
+        const needle = caseSensitive ? term : term.toLowerCase();
+        const haystack = caseSensitive ? text : text.toLowerCase();
+        const found = [];
+        let start = 0;
+        while (true) {
+          const idx = haystack.indexOf(needle, start);
+          if (idx === -1) break;
+          found.push({ index: idx, length: term.length });
+          start = idx + 1;
+        }
+        // Clear old highlights then apply new
+        q.formatText(0, text.length, { background: false });
+        found.forEach(m => q.formatText(m.index, m.length, { background: "#fef08a" }));
+        
+        setMatches(found);
+        if (found.length > 0) {
+          setCurrentIdx(0);
+          q.setSelection(found[0].index, found[0].length);
+          q.formatText(found[0].index, found[0].length, { background: "#fb923c" });
+        } else {
+          setCurrentIdx(-1);
+        }
+        
+        // Re-enable text-change listener
+        q.on('text-change', () => setPlainText(q.getText()));
       } else {
+        const q = quillRef.current;
+        q.off('text-change');
+        q.formatText(0, q.getLength(), { background: false });
+        q.on('text-change', () => setPlainText(q.getText()));
+        setMatches([]);
         setCurrentIdx(-1);
       }
-    } else {
-      clearHighlights();
-      setMatches([]);
-      setCurrentIdx(-1);
-    }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [term, caseSensitive]);
 
   const matchLabel = matches.length === 0
