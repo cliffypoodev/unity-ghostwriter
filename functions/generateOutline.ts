@@ -89,8 +89,15 @@ const BEAT_TEMPLATES = {
   ]},
 };
 
-function autoDetectBeatTemplate(genre) {
+function autoDetectBeatTemplate(genre, bookType) {
   const g = (genre || '').toLowerCase();
+  if (bookType === 'nonfiction') {
+    if (/self.help|business|psychology|science|health/.test(g)) return 'argument-driven';
+    if (/memoir|biography|history|true crime/.test(g)) return 'narrative-nonfiction';
+    if (/reference|education|how.to|technical|cooking|technology/.test(g)) return 'reference-structured';
+    if (/investigat|journalism|expos|politic/.test(g)) return 'investigative-nonfiction';
+    return 'argument-driven';
+  }
   if (/romance|erotica/.test(g)) return 'romance-arc';
   if (/thriller|mystery|suspense|crime/.test(g)) return 'thriller-tension';
   if (/fantasy|science fiction|adventure|epic/.test(g)) return 'heros-journey';
