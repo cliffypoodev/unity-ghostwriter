@@ -620,6 +620,7 @@ Rewrite the selected passage now:`,
 
   const autoFixableCount = sortedIssues.filter(i => i.auto_fixable && fixStates[i.id] !== "fixed").length;
   const fixedCount = Object.values(fixStates).filter(v => v === "fixed").length;
+  const selectedCount = Object.keys(selectedIssues).filter(id => selectedIssues[id] && fixStates[id] !== "fixed").length;
 
   return (
     <div className="p-6 space-y-6" onClick={(e) => {
