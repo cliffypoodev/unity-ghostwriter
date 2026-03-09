@@ -430,12 +430,13 @@ Deno.serve(async (req) => {
       const { book_type } = body;
       const resolvedKey = (template_key === 'auto' || !template_key) ? autoDetectTemplate(genre, book_type) : template_key;
       const beatSheet = assignBeatsToChapters(resolvedKey, chapter_count || 15);
+      const isNF = beatSheet.category === 'nonfiction';
       return Response.json({
         outline_block: buildBeatSheetPromptBlock(beatSheet),
         chapter_blocks: beatSheet.assignments.map(a => ({
           chapter: a.chapter,
-          system_block: buildChapterBeatBlock(a),
-          user_block: buildChapterBeatUserBlock(a),
+          system_block: buildChapterBeatBlock(a, isNF),
+          user_block: buildChapterBeatUserBlock(a, isNF),
         })),
       });
     }
