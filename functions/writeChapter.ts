@@ -1073,8 +1073,11 @@ async function rewriteWithCorrections(chapterText, violations, chapterNumber, op
   const systemPrompt = `You are a prose editor. Your ONLY job is to fix specific banned phrases and clichés in the text below.\n\nRULES:\n1. Replace ONLY the sentences or clauses that contain the flagged violations.\n2. Do NOT rewrite, restructure, or 'improve' any other part of the text.\n3. Do NOT add new scenes, dialogue, or plot. Do NOT remove scenes or dialogue.\n4. Do NOT change character names, settings, or plot events.\n5. Do NOT add meta-commentary, notes, or explanations.\n6. Each replacement must be ORIGINAL — do not swap one cliché for another.\n7. Replacements must be SPECIFIC to the scene — a character in a library reacts differently than one in a rainstorm.\n8. For 'show don't tell' violations: replace the named emotion with a concrete physical action, sensory detail, or dialogue that IMPLIES the emotion.\n9. Return ONLY the complete corrected chapter text. Nothing else.`;
 
   const violationList = violations.map(v => `- ${v}`).join('\n');
-  
-  const userMessage = `Fix the following violations in this Chapter ${chapterNumber} text.
+  const hasShape = violations.some(v => v.startsWith('SHAPE:'));
+  const shapeFix = hasShape ? `\nSTRUCTURAL FIXES: If dialogue too high, convert 3+ exchanges to narrated action. If dialogue tennis, replace Q-A pairs with physical action or topic shift. If arrival-departure, start mid-scene and cut ending mid-action.\n` : '';
+  const hasPlotGate = violations.some(v => v.startsWith('PLOT GATE:'));
+  const plotFix = hasPlotGate ? `\nPLOT FIX: Rewrite ending to include an irreversible event — a reveal, a broken promise, a physical consequence.\n` : '';
+  const userMessage = `Fix the following violations in this Chapter ${chapterNumber} text.${shapeFix}${plotFix}
 
 VIOLATIONS FOUND:
 ${violationList}
