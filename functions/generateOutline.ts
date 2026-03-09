@@ -288,9 +288,11 @@ const REFUSAL_INDICATORS = [
 ];
 
 function isRefusal(text) {
-  if (!text || text.trim().length < 100) return true;
+  if (!text || text.trim().length < 50) return true;
   const lower = text.toLowerCase();
-  return REFUSAL_INDICATORS.some(phrase => lower.includes(phrase));
+  if (REFUSAL_INDICATORS.some(phrase => lower.includes(phrase))) return true;
+  if (text.trim().length < 100) return true;
+  return false;
 }
 
 function getSpiceLevelInstructions(level) {
