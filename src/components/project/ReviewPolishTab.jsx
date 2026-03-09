@@ -793,21 +793,29 @@ Rewrite the selected passage now:`,
                   {/* Issues */}
                   {sortedIssues.length > 0 && (
                     <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Issues ({sortedIssues.length}) · {fixedCount} fixed
                         </p>
                         {autoFixableCount > 0 && (
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs bg-violet-600 hover:bg-violet-700"
-                            onClick={handleFixAll}
-                            disabled={!!fixAllProgress}
-                          >
-                            {fixAllProgress
-                              ? `Fixing ${fixAllProgress.current} of ${fixAllProgress.total}…`
-                              : `Fix All (${autoFixableCount})`}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={toggleSelectAll}
+                              className="text-xs text-violet-600 hover:text-violet-800 font-medium underline underline-offset-2"
+                            >
+                              {sortedIssues.filter(i => i.auto_fixable && fixStates[i.id] !== "fixed").every(i => selectedIssues[i.id]) ? "Deselect All" : "Select All"}
+                            </button>
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs bg-violet-600 hover:bg-violet-700"
+                              onClick={handleFixSelected}
+                              disabled={!!fixAllProgress || selectedCount === 0}
+                            >
+                              {fixAllProgress
+                                ? `Fixing ${fixAllProgress.current} of ${fixAllProgress.total}…`
+                                : `Fix Selected (${selectedCount})`}
+                            </Button>
+                          </div>
                         )}
                       </div>
 
@@ -819,6 +827,8 @@ Rewrite the selected passage now:`,
                               onFix={handleFix}
                               fixing={fixStates[issue.id] === "fixing"}
                               fixed={fixStates[issue.id] === "fixed"}
+                              selected={!!selectedIssues[issue.id]}
+                              onToggleSelect={toggleIssueSelection}
                             />
                             {fixStates[issue.id] === "comparing" && fixTexts[issue.id] && (
                               <div className="mt-2">
