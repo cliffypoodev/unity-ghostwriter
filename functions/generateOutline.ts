@@ -817,7 +817,21 @@ No other fields. No prose outside the JSON array.`;
       }
     }
 
-    const parsedOutline = { chapters: allChapters };
+    // Merge beat assignments into outline chapters
+    if (beatAssignments) {
+      for (const ch of allChapters) {
+        const chNum = ch.number || allChapters.indexOf(ch) + 1;
+        const ba = beatAssignments.assignments.find(a => a.chapter === chNum);
+        if (ba) {
+          ch.beat_name = ch.beat_name || ba.beat_name;
+          ch.beat_function = ch.beat_function || ba.beat_function;
+          ch.beat_scene_type = ch.beat_scene_type || ba.beat_scene_type;
+          ch.beat_tempo = ch.beat_tempo || ba.beat_tempo;
+        }
+      }
+    }
+
+    const parsedOutline = { chapters: allChapters, beat_sheet: beatAssignments || null };
 
     // ── Save outline + metadata (upload large fields as files) ───────────────
     const outlineJson = JSON.stringify(parsedOutline);
