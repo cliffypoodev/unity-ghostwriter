@@ -236,6 +236,35 @@ export default function SpecificationTab({ projectId, onProceed }) {
     });
   };
 
+  const handleDevelopIdea = async () => {
+    setDevelopingIdea(true);
+    setMarketNotes(null);
+    try {
+      const res = await base44.functions.invoke('developIdea', {
+        idea: form.topic.trim(),
+        book_type: form.book_type,
+        genre: form.genre || "",
+      });
+      const data = res.data;
+      setForm(prev => {
+        const next = { ...prev, topic: data.developed_premise };
+        if (data.book_type && data.book_type !== prev.book_type) {
+          next.book_type = data.book_type;
+          next.genre = "";
+          next.subgenre = "";
+        }
+        return next;
+      });
+      setMarketNotes(data.market_notes);
+      toast.success("Idea developed! Click 'Auto-Extract Metadata' to populate all fields");
+    } catch (err) {
+      console.error("Develop idea error:", err);
+      toast.error("Failed to develop idea");
+    } finally {
+      setDevelopingIdea(false);
+    }
+  };
+
   const handleAutoExtract = async () => {
     if (!form.topic.trim()) { toast.error("Please enter a topic/premise first"); return; }
     setExtracting(true);
