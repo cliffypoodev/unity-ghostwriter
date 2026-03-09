@@ -398,6 +398,7 @@ Return a JSON object (not array) with these fields:
 - style_guidelines: Prose and structural style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
 - characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number)
+- world_rules: Object with fields: setting_unique_details (array of 3+ unique specific details about the setting), social_rules (array of power structures/norms that create constraints), economy (what is common/rare/forbidden in this world)
 
 Return ONLY the JSON object. No preamble.`;
   }
@@ -411,7 +412,8 @@ Return a JSON object (not array) with these fields:
 - tone_voice: Narrative voice, POV, and tone (1 sentence)
 - style_guidelines: Prose style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
-- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number)
+- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number), voice_profile (object with fields: vocabulary_level, sentence_pattern, verbal_tic, never_says, physical_communication)
+- world_rules: Object with fields: powers_abilities (array of objects with name, mechanic, limitation, tell — or empty if no powers), setting_unique_details (array of 3+ unique specific details about the setting), social_rules (array of power structures/norms that create constraints), economy (what is common/rare/forbidden)
 
 Return ONLY the JSON object. No preamble.`;
 }
@@ -696,6 +698,20 @@ CHARACTER VOICE DIFFERENTIATION RULES:
 - In dialogue, a reader should be able to identify the speaker WITHOUT dialogue tags
 - NEVER have multiple characters deliver philosophical monologues. Maximum ONE character per book serves as the "philosopher" voice. All others must contrast.
 
+=== CHARACTER VOICE DIFFERENTIATION (MANDATORY) ===
+
+Every named character MUST be assigned a distinct VOICE PROFILE in the story bible. Each voice profile must specify:
+1. VOCABULARY LEVEL: monosyllabic / street-smart / educated / clinical / poetic / archaic
+2. SENTENCE PATTERN: short and clipped / long and flowing / questions-as-answers / interrupts others / trails off
+3. VERBAL TICS: a repeated word, phrase structure, or speech habit unique to THIS character (e.g., always uses food metaphors, never asks direct questions, starts sentences with "Look,")
+4. WHAT THEY NEVER SAY: each character must have at least one communication style they avoid (e.g., "never speaks about feelings directly", "never uses metaphors", "never asks permission")
+5. PHYSICAL COMMUNICATION: how they express emotion WITHOUT words (e.g., "cracks knuckles when nervous", "goes very still when angry", "talks faster when lying")
+
+NO TWO CHARACTERS may share the same vocabulary level AND sentence pattern. If Character A is "educated + long flowing sentences", Character B CANNOT also be "educated + long flowing sentences."
+
+The dialogue test: if you cover the dialogue tags, a reader should be able to tell WHO is speaking from the words alone.
+=== END CHARACTER VOICE ===
+
 CHAPTER ENDING VARIATION RULES:
 - Each chapter MUST end with a structurally different type of ending. Assign one per chapter from this list and do NOT repeat:
   - CLIFFHANGER: Cut mid-action or mid-revelation
@@ -722,7 +738,26 @@ PROTAGONIST AGENCY — MANDATORY:
 - The protagonist must make at least ONE difficult choice per chapter where both options have real costs.
 - "Deciding to keep exploring" is NOT a difficult choice if there are no consequences for doing so.
 - The protagonist must CAUSE at least some of the plot events, not merely react to what others do or offer.
-- At least once in the book, the protagonist must refuse something, lose something, or sacrifice something. A character who always says yes to every invitation is not a protagonist — they are a passenger.`;
+- At least once in the book, the protagonist must refuse something, lose something, or sacrifice something. A character who always says yes to every invitation is not a protagonist — they are a passenger.
+
+=== WORLDBUILDING SPECIFICITY RULES ===
+
+The story bible MUST include a "world_rules" section with:
+
+1. POWERS/ABILITIES: If any character has supernatural, magical, or unusual abilities, each ability MUST have:
+   - A specific NAME (not "energy powers" or "abilities")
+   - A concrete MECHANIC (what physically happens when used — "her scales emit infrared light that disrupts electronics within 3 meters" NOT "she channels energy")
+   - A LIMITATION (what it costs, what it can't do, when it fails)
+   - A TELL (what it looks like to observers — specific visual/sound/smell)
+
+2. SETTING: The primary setting MUST have at least 3 UNIQUE details that distinguish it from generic settings. "Neon-lit cyberpunk city" is NOT unique. "A city where buildings grow from bio-engineered coral and streets flood at high tide" IS unique. Each unique detail must appear in at least 2 chapters.
+
+3. SOCIAL RULES: What are the power structures, social norms, or cultural rules that affect character behavior? These must create CONSTRAINTS that drive plot (e.g., "hybrids cannot own property" creates a concrete story problem, not just flavor).
+
+4. ECONOMY OF MAGIC/TECH: What is common, what is rare, what is forbidden? This creates natural conflict without requiring dialogue to explain it.
+
+Every chapter prompt in the outline must reference at least ONE specific worldbuilding element from world_rules — not as exposition, but as something that affects a character's actions or choices in that chapter.
+=== END WORLDBUILDING ===`;
 
     // ── STEP 1: Generate book metadata ──────────────────────────────────────
     console.log('Generating book metadata...');
