@@ -665,12 +665,12 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
       ? `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next)`
       : `number (integer), title (string), summary (string 1-2 sentences), prompt (string AT LEAST 300 words with all required sections), transition_from (string or null for ch 1 — how to pick up from previous chapter's ending), transition_to (string — how this chapter's ending sets up the next), beat_name (string), beat_function (string), beat_scene_type (string: "scene" or "sequel"), beat_tempo (string: "fast", "medium", or "slow")`;
 
-    // ── Beat Sheet Assignment ────────────────────────────────────────────────
+    // ── Beat Sheet Assignment (fiction AND nonfiction) ──────────────────────
     let beatSheetBlock = '';
     let beatAssignments = null;
-    if (!isNonfiction) {
+    {
       const bsKey = spec.beat_sheet_template || 'auto';
-      const resolvedKey = (bsKey === 'auto' || !bsKey) ? autoDetectBeatTemplate(spec.genre) : bsKey;
+      const resolvedKey = (bsKey === 'auto' || !bsKey) ? autoDetectBeatTemplate(spec.genre, spec.book_type) : bsKey;
       beatAssignments = assignBeatsToChapters(resolvedKey, targetChapters);
       if (beatAssignments) {
         beatSheetBlock = buildBeatSheetOutlineBlock(beatAssignments);
