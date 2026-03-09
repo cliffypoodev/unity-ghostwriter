@@ -99,35 +99,50 @@ function CategoryBar({ label, score, notes }) {
 
 // ── Issue Card ────────────────────────────────────────────────────────────────
 
-function IssueCard({ issue, onFix, fixing, fixed }) {
+function IssueCard({ issue, onFix, fixing, fixed, selected, onToggleSelect }) {
   const sc = severityConfig(issue.severity);
   return (
     <div className={cn("border rounded-xl p-4 space-y-2 transition-all", fixed ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200")}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          <Badge className={cn("text-xs border", sc.className)}>{sc.label}</Badge>
-          <Badge variant="outline" className="text-xs capitalize">{issue.category?.replace(/_/g, " ")}</Badge>
-          {issue.chapter && <Badge variant="outline" className="text-xs">Ch. {issue.chapter}</Badge>}
+      <div className="flex items-start gap-2">
+        {/* Selection checkbox — only for auto-fixable, unfixed issues */}
+        {issue.auto_fixable && !fixed && (
+          <label className="flex items-center mt-0.5 flex-shrink-0 cursor-pointer" onClick={e => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={() => onToggleSelect(issue.id)}
+              className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+            />
+          </label>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              <Badge className={cn("text-xs border", sc.className)}>{sc.label}</Badge>
+              <Badge variant="outline" className="text-xs capitalize">{issue.category?.replace(/_/g, " ")}</Badge>
+              {issue.chapter && <Badge variant="outline" className="text-xs">Ch. {issue.chapter}</Badge>}
+            </div>
+            {fixed ? (
+              <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium flex-shrink-0">
+                <Check className="w-3.5 h-3.5" /> Fixed
+              </span>
+            ) : issue.auto_fixable ? (
+              <Button
+                size="sm"
+                className="h-7 text-xs px-3 bg-violet-600 hover:bg-violet-700 flex-shrink-0"
+                onClick={() => onFix(issue)}
+                disabled={fixing}
+              >
+                {fixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3 mr-1" />}
+                {fixing ? "Fixing…" : "Fix"}
+              </Button>
+            ) : null}
+          </div>
+          <p className="text-sm font-medium text-slate-800 mt-1">{issue.description}</p>
+          {issue.location && <p className="text-xs text-slate-400">{issue.location}</p>}
+          {issue.suggestion && <p className="text-xs text-slate-500 italic leading-relaxed">💡 {issue.suggestion}</p>}
         </div>
-        {fixed ? (
-          <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium flex-shrink-0">
-            <Check className="w-3.5 h-3.5" /> Fixed
-          </span>
-        ) : issue.auto_fixable ? (
-          <Button
-            size="sm"
-            className="h-7 text-xs px-3 bg-violet-600 hover:bg-violet-700 flex-shrink-0"
-            onClick={() => onFix(issue)}
-            disabled={fixing}
-          >
-            {fixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3 mr-1" />}
-            {fixing ? "Fixing…" : "Fix"}
-          </Button>
-        ) : null}
       </div>
-      <p className="text-sm font-medium text-slate-800">{issue.description}</p>
-      {issue.location && <p className="text-xs text-slate-400">{issue.location}</p>}
-      {issue.suggestion && <p className="text-xs text-slate-500 italic leading-relaxed">💡 {issue.suggestion}</p>}
     </div>
   );
 }
