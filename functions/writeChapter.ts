@@ -101,6 +101,8 @@ const BEAT_STYLES = {
   "urban-gritty-fantasy": { name: "Urban Gritty Fantasy", instructions: "Core Identity: The collision of high-magic elements with the harsh, dirty reality of modern city life.\nSentence Rhythm: Fast, street-level energy. Mix of magical terminology and modern slang. Tough and unsentimental.\nContent Rules: Underground magical economies. Modern problems solved or worsened by magic. Secret societies hidden in plain sight.\nEmotional Handling: Cynical but resilient. Gallows humor. Hard-earned loyalty.\nStructure: Blue-collar magical task > Discovery of threat the normal world cannot see > Chase through city's hidden magical layers > Messy improvised battle using both magic and technology > World remains normal to public but protagonist is scarred.\nEnding Rule: Close with the protagonist taking a drink or lighting a cigarette in the rain." },
 };
 
+const AUTHOR_VOICES_MAP = { hemingway:"Terse, declarative sentences. Iceberg theory.", king:"Conversational, immersive. Rich inner monologue, building dread.", austen:"Witty, ironic social commentary.", tolkien:"Mythic, elevated prose. Rich world-building.", morrison:"Lyrical, poetic. Vivid sensory detail.", rowling:"Accessible, whimsical. Clever wordplay.", mccarthy:"Sparse, biblical. No quotation marks.", atwood:"Sharp, sardonic. Precise word choices.", gaiman:"Mythic yet modern. Fairy-tale cadence.", pratchett:"Satirical. Comedic fantasy, warm humanity.", le_guin:"Sparse elegance, philosophical depth.", vonnegut:"Dark humor, short sentences. Absurdist.", garcia_marquez:"Lush magical realism. Sprawling sentences.", chandler:"Hardboiled noir. First-person cynicism.", christie:"Puzzle-box plotting. Clean readable prose.", gladwell:"Nonfiction storytelling. Counterintuitive hooks.", bryson:"Humorous nonfiction. Self-deprecating wit.", sagan:"Awe-inspiring science writing. Poetic wonder.", didion:"Cool, precise observation." };
+
 const FICTION_ENDING_TYPES = {
   1: "Type A: Mid-action cliffhanger — interrupt the character mid-action, cut to black. No summary, no reflection.",
   2: "Type B: A revelation that recontextualizes what the reader just read. End with the new information, no reaction narration.",
@@ -1154,6 +1156,23 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
     const useScenePath = !isNonfiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
 
+    // ── Beat Sheet: look up this chapter's beat from outline data ──
+    let chapterBeat = null;
+    if (!isNonfiction) {
+      const olChs = outlineData?.chapters || [];
+      const olE = olChs.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
+      if (olE?.beat_function) chapterBeat = { beat_name: olE.beat_name||'', beat_function: olE.beat_function||'', beat_scene_type: olE.beat_scene_type||'scene', beat_tempo: olE.beat_tempo||'medium' };
+    }
+    function _beatSysBlock(cb) {
+      if (!cb) return '';
+      const r = { SETUP:'Establish, don\'t resolve.', DISRUPTION:'Concrete external EVENT.', PROMISE_OF_PREMISE:'Deliver genre promise NOW.', REVERSAL:'Something believed proven WRONG.', CRISIS:'Irreversible devastation.', REFLECTION:'NO new plot/characters. Process loss.', REACTION:'Character PROCESSES.', CLIMAX:'Maximum intensity. All threads converge.', RESOLUTION:'Mirror opening. Show transformation.', COMMITMENT:'Deliberate CHOICE.', RECOMMITMENT:'Understand theme, new path.', ESCALATION:'Stakes rise.', SUBPLOT:'B-story focus.', CONNECTIVE_TISSUE:'Bridge. One irreversible event.' };
+      return `\n\n=== STRUCTURAL ROLE ===\nBeat: "${cb.beat_name}" | ${cb.beat_function} | ${cb.beat_scene_type} | ${cb.beat_tempo}\nscene=ACTION(max 20% reflection) | sequel=REACTION(min 40% thought) | fast=short paragraphs | slow=long flowing paragraphs\nFUNCTION: ${r[cb.beat_function]||''}\n=== END ===`;
+    }
+    function _beatUsrBlock(cb) {
+      if (!cb) return '';
+      return `STRUCTURAL ROLE: ${cb.beat_function} (beat: "${cb.beat_name}"). Mode: ${cb.beat_scene_type}. Tempo: ${cb.beat_tempo}. Must contain ≥1 IRREVERSIBLE EVENT.`;
+    }
+
     let systemPrompt;
     if (useScenePath) {
       // ── SCENE-BASED SYSTEM PROMPT (shorter — scenes carry the structure) ──
@@ -1207,9 +1226,8 @@ ${PLOT_SUBTEXT_RULES}
 ${DIALOGUE_SUBTEXT_RULES}
 
 ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
-      if (isIntimateGenre(projectSpec)) {
-        systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
-      }
+      if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
+      systemPrompt += _beatSysBlock(chapterBeat);
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
         projectSpec, 
@@ -1343,9 +1361,8 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
-    if (isIntimateGenre(projectSpec)) {
-      systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`;
-    }
+    if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
+    systemPrompt += _beatSysBlock(chapterBeat);
     }
 
     // ── PART A — Build conversation-style messages array ─────────────────────
