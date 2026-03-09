@@ -2,9 +2,10 @@ import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, Check, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Upload, Check, AlertCircle, FileUp, Type } from "lucide-react";
 
-const FILE_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69aadec3c961db7ad00f82dc/62f05c36b_prompts-2026-03-09.json";
+const DEFAULT_FILE_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69aadec3c961db7ad00f82dc/62f05c36b_prompts-2026-03-09.json";
 const BATCH_SIZE = 20;
 
 export default function ImportPrompts() {
@@ -13,10 +14,66 @@ export default function ImportPrompts() {
   const [log, setLog] = useState([]);
   const [done, setDone] = useState(false);
   const abortRef = useRef(false);
+  const [sourceMode, setSourceMode] = useState("default"); // "default" | "upload" | "paste"
+  const [uploadedUrl, setUploadedUrl] = useState("");
+  const [pasteText, setPasteText] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const addLog = (msg) => setLog(prev => [...prev.slice(-100), `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
+  const getFileUrl = () => {
+    if (sourceMode === "upload" && uploadedUrl) return uploadedUrl;
+    if (sourceMode === "default") return DEFAULT_FILE_URL;
+    return null;
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadedUrl(file_url);
+      addLog(`File uploaded: ${file.name}`);
+    } catch (err) {
+      addLog(`Upload failed: ${err.message}`);
+    }
+    setUploading(false);
+  };
+
+  const handlePasteImport = async () => {
+    // Parse pasted text as JSON, upload it, then import
+    try {
+      const parsed = JSON.parse(pasteText);
+      const blob = new Blob([JSON.stringify(parsed)], { type: "application/json" });
+      const file = new File([blob], "pasted-prompts.json", { type: "application/json" });
+      setUploading(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadedUrl(file_url);
+      setSourceMode("upload");
+      addLog(`Pasted JSON uploaded (${Array.isArray(parsed) ? parsed.length : 'object'} items)`);
+      setUploading(false);
+      return file_url;
+    } catch (err) {
+      addLog(`Invalid JSON: ${err.message}`);
+      setUploading(false);
+      return null;
+    }
+  };
+
   const handleImport = async () => {
+    let fileUrl = getFileUrl();
+    
+    if (sourceMode === "paste") {
+      fileUrl = await handlePasteImport();
+      if (!fileUrl) return;
+    }
+    
+    if (!fileUrl) {
+      addLog("No file source selected.");
+      return;
+    }
     setRunning(true);
     setDone(false);
     abortRef.current = false;
