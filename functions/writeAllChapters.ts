@@ -25,9 +25,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No chapters found' }, { status: 400 });
     }
 
-    // Find the last fully written chapter
-    const lastWrittenIndex = chapters.findIndex(c => c.status === 'generated', 0);
-    const startIndex = lastWrittenIndex === -1 ? 0 : lastWrittenIndex + 1;
+    // Find the first chapter that is NOT generated (to start writing from there)
+    const firstPendingIndex = chapters.findIndex(c => c.status !== 'generated');
+    const startIndex = firstPendingIndex === -1 ? chapters.length : firstPendingIndex;
 
     // If all chapters already written, return early
     if (startIndex >= chapters.length) {
