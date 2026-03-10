@@ -911,6 +911,9 @@ Return ONLY the JSON object.`;
         ).join('\n');
       }
 
+      // Inject scope lock into chapter generation context
+      const scopeCtx = scopeLock ? `\n=== SCOPE LOCK (binding contract — every chapter must serve this) ===\nTHROUGHLINE: ${scopeLock.throughline || 'N/A'}\nESCALATION MAP: ${JSON.stringify(scopeLock.escalation_map || [])}\n${scopeLock.relationship_arc ? 'RELATIONSHIP ARC: ' + JSON.stringify(scopeLock.relationship_arc) : scopeLock.concept_budget ? 'CONCEPT BUDGET: ' + JSON.stringify(scopeLock.concept_budget) : ''}\nTHREAD REGISTER: ${JSON.stringify(scopeLock.thread_register || [])}\n=== END SCOPE LOCK ===\n` : '';
+
       const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
 Book title: "${bookMetadata?.title || 'Untitled'}"
 ${beatInstructions}${spiceInstructions}${langInstructions}
@@ -918,6 +921,7 @@ ${subgenreInfo}
 ${authorVoiceInfo}
 ${CONTENT_GUARDRAILS}
 ${ANTI_REPETITION_RULES}
+${scopeCtx}
 ${prevContext}
 
 ${beatSheetBlock ? beatSheetBlock : ''}
