@@ -970,7 +970,7 @@ BANNED NONFICTION PATTERNS:
 - Summarizing lessons at the end in lists
 - Ending with "The journey continues..."
 - Exclamation marks in narration (one per chapter maximum)
-- Inspirational clichés: "strength in unity", "the power of community", "making a difference"`;
+- Inspirational clichés: "strength in unity", "the power of community", "making a difference"
 
 BOOK PREMISE (anchor for every section):
 ${spec.topic || 'Not specified'}
