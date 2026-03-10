@@ -410,23 +410,30 @@ async function callAIWithMessages(modelKey, messages, maxTokens = null) {
   return callAI(modelKey, systemMsg, userMsg, { maxTokens: finalMaxTokens, temperature: 0.8 });
 }
 
-// CHANGE 2 FIX: Reduce chapter prompt length requirement from 300+ to 100-150 words
 function buildFictionChapterPromptInstructions(isNonfiction) {
   if (isNonfiction) {
-    return `Each chapter object MUST include a "prompt" field of 100-150 words covering these sections concisely:
-HOOK: Opening anecdote or startling fact (1-2 sentences).
-CONTENT: 2-3 key topics/stories with concrete names or facts.
-STRUCTURE: Brief structural note and key angle.
-TRANSITION_IN: Thread from previous chapter.
-TRANSITION_OUT: Momentum into next chapter.`;
+    return `Each chapter object MUST include a "prompt" field of 100-150 words AND these structural fields:
+- "scope_boundary": One sentence defining exactly what this chapter covers and what it does NOT cover.
+- "opens_with": Specific scene/fact/moment — not a mood. Name the subject, source, what is being discussed.
+- "primary_beat": The single most important thing that happens. If removed, the book's argument would not work.
+- "argument_advance": How the central argument moves forward. Must be in a different place at chapter end vs start.
+- "threads_activated": Array of thread names introduced or advanced.
+- "threads_paid_off": Array of thread names resolved.
+- "must_not_do": Array of 2+ things this chapter must avoid.
+
+PROMPT sections: HOOK (opening fact/anecdote), CONTENT (2-3 key topics with names), STRUCTURE (key angle), TRANSITION_IN, TRANSITION_OUT.`;
   }
-  return `Each chapter object MUST include a "prompt" field of 100-150 words covering these sections concisely:
-HOOK: Opening image or action (1-2 sentences).
-PLOT: 2-3 key beats with character names.
-ARC: Character conflict and advance.
-EMOTION: Start → end emotional shift.
-TRANSITION_IN: Pickup from previous chapter.
-TRANSITION_OUT: Hook into next chapter.`;
+  return `Each chapter object MUST include a "prompt" field of 100-150 words AND these structural fields:
+- "scope_boundary": One sentence defining exactly what this chapter covers and what it does NOT cover.
+- "opens_with": Specific scene/action — not a mood. Name the character, location, what they are doing.
+- "primary_beat": The single most important thing that happens. If removed, the story would not work.
+- "character_development": What does the POV character learn/decide/become that is irreversible?
+- "relationship_shift": How does the central relationship change? Must be different at end vs start.
+- "threads_activated": Array of thread names introduced or advanced.
+- "threads_paid_off": Array of thread names resolved.
+- "must_not_do": Array of 2+ things this chapter must avoid.
+
+PROMPT sections: HOOK (opening image/action), PLOT (2-3 beats with names), ARC (conflict/advance), EMOTION (start→end shift), TRANSITION_IN, TRANSITION_OUT.`;
 }
 
 // CHANGE 6 FIX: Simplify story bible output and integrate subgenre + author voice
