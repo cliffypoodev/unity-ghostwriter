@@ -627,7 +627,7 @@ Return a JSON array with exactly ${chunkCount} objects. No prose outside the arr
       allChapters.push(...batchResult);
     }
 
-    const parsedOutline = { chapters: allChapters };
+    const parsedOutline = { scope_lock: nfScopeLock, chapters: allChapters };
 
     // ── Save outline + metadata ──────────────────────────────────────────────
     const outlineJson = JSON.stringify(parsedOutline);
