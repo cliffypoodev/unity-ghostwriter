@@ -1898,6 +1898,11 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
       quality_scan: JSON.stringify(qualityResult),
       distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '',
     });
+    // Auto-generate Chapter State Document for continuity tracking
+    try {
+      await base44.functions.invoke('generateChapterState', { project_id: projectId, chapter_id: chapterId });
+      console.log(`Chapter ${chapter.chapter_number} state document generated successfully`);
+    } catch (stateErr) { console.warn('State document generation failed (non-blocking):', stateErr.message); }
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
     console.error('Async generation error for chapter', chapterId, ':', err.message);
