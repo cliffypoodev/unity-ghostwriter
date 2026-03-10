@@ -266,10 +266,13 @@ NONFICTION BEAT ENFORCEMENT RULES:
   }
 
   // Fiction version
+  const eroticaTagBlock = beatSheet.template_name.includes('Romance') ? `\n\nEXPLICIT SCENE TAGGING (erotica/romance only):
+When a chapter beat requires explicit sexual content, tag that beat description with [EXPLICIT]...[/EXPLICIT] markers in the chapter summary or prompt. Standard beats remain untagged. This enables automatic model routing for explicit scenes.\n` : '';
+
   return `=== STRUCTURAL BEAT SHEET (MANDATORY — EACH CHAPTER MUST FOLLOW ITS ASSIGNED ROLE) ===
 
 This book uses the "${beatSheet.template_name}" structure. Each chapter has a pre-assigned STRUCTURAL ROLE. You MUST follow these. Do NOT give two chapters the same dramatic shape.
-
+${eroticaTagBlock}
 ${lines}
 
 BEAT ENFORCEMENT RULES:
