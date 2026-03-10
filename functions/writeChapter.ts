@@ -1509,7 +1509,7 @@ ${isLast ? `ENDING STYLE (applies to this scene only): ${endingType.name} — ${
       if (prevChapter?.content) {
         let prevContent = prevChapter.content || '';
         if (prevContent.startsWith('http')) {
-          try { prevContent = await (await fetch(prevContent)).text(); } catch { prevContent = ''; }
+          try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
         }
         if (prevContent) prevChapterTail = prevContent.trim().slice(-200);
       }
