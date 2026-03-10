@@ -256,6 +256,55 @@ const ANTI_REPETITION_RULES = `ANTI-REPETITION RULES (mandatory for every chapte
 - Each chapter must have at least one unexpected moment that breaks the established pattern.
 - Avoid cliche phrases: "little did they know", "it was a dark and stormy night", "with bated breath", "heart pounding in her chest", "she couldn't believe it", etc.`;
 
+const SCOPE_LOCK_INSTRUCTIONS_FICTION = `=== PHASE 0: SCOPE LOCK (complete BEFORE writing any chapter entry) ===
+
+You MUST define and embed these into the outline JSON as a "scope_lock" object. These are permanent — they govern every chapter.
+
+1. THROUGHLINE: One sentence. What does the protagonist want, what stands in the way, and what will it cost them?
+
+2. ESCALATION_MAP: Divide chapters into 4 equal blocks. For each block, define emotional/situational intensity (1-10). Block 1 < Block 2 < Block 3 < Block 4. Numbers MUST rise.
+
+3. RELATIONSHIP_ARC: Define the central relationship at 5 checkpoints (Ch 1, 25%, 50%, 75%, final). Each MUST describe a state the relationship has NEVER been in before. If two sound similar, one is wrong.
+
+4. THREAD_REGISTER: List every plot thread, character secret, or mystery. Next to each, write the chapter number where it pays off. If no payoff chapter, cut the thread.
+
+=== PACING RULES (MANDATORY) ===
+- Block 1 (first 25%): Establish world, protagonist, central tension, first glimpse of what will be lost. Complicate without resolving. Every chapter ends with things worse or more complicated.
+- Block 2 (25-50%): Raise the cost. Decisions from Block 1 now have irreversible consequences.
+- Block 3 (50-75%): Force protagonist into positions requiring fundamental change. External plot and internal arc MUST intersect.
+- Block 4 (75-100%): Execute consequences. NO new major plot elements — only harvest of what was planted. Final chapter resolves the throughline with an earned, specific answer to Ch 1's question.
+
+=== ANTI-REPETITION ENFORCEMENT (run silently before outputting) ===
+- OPENING CHECK: No two chapters open in same location with same character doing same type of thing.
+- BEAT CHECK: No two chapters share same beat type (confrontation, revelation, seduction, betrayal, escape) unless in different escalation blocks with demonstrably higher stakes.
+- TRANSITION CHECK: No two chapters use same type of hook (same threat, question, or discovery type).
+- RELATIONSHIP CHECK: All relationship shifts read as a clear progressive story with obvious escalation.
+=== END SCOPE LOCK ===`;
+
+const SCOPE_LOCK_INSTRUCTIONS_NONFICTION = `=== PHASE 0: SCOPE LOCK (complete BEFORE writing any chapter entry) ===
+
+You MUST define and embed these into the outline JSON as a "scope_lock" object. These are permanent — they govern every chapter.
+
+1. THROUGHLINE: One sentence. What is the book's central thesis, what evidence supports it, and what will the reader understand by the end?
+
+2. ESCALATION_MAP: Divide chapters into 4 equal blocks. For each block, define complexity/depth intensity (1-10). Block 1 < Block 2 < Block 3 < Block 4. Numbers MUST rise.
+
+3. CONCEPT_BUDGET: List every major idea, argument, or theme. Assign each to exactly ONE chapter as PRIMARY home. A concept may support other chapters, but it may only be introduced and fully explored once. If a concept is primary in two chapters, cut one.
+
+4. THREAD_REGISTER: List every argument thread, case study, or introduced question requiring payoff. Next to each, write the chapter where it resolves.
+
+=== PACING RULES (MANDATORY) ===
+- Block 1 (first 25%): Establish the problem, the reader's stake, the landscape. Complicate without resolving.
+- Block 2 (25-50%): Deepen. Evidence that challenges assumptions. Consequences of current thinking.
+- Block 3 (50-75%): Force the reader to reconsider. Synthesis of earlier evidence. Internal contradictions addressed.
+- Block 4 (75-100%): No new major concepts. Only harvest. Final chapter resolves the throughline with a specific, earned conclusion.
+
+=== ANTI-REPETITION ENFORCEMENT (run silently before outputting) ===
+- OPENING CHECK: No two chapters open with same technique.
+- ARGUMENT CHECK: All argument advances read as clear progressive escalation.
+- TRANSITION CHECK: No two chapters use same type of hook.
+=== END SCOPE LOCK ===`;
+
 function buildAuthorModeBlock(spec) {
   const beatKey = spec?.beat_style || spec?.tone_style;
   const beatName = beatKey ? (BEAT_STYLES[beatKey]?.name || beatKey) : 'Not specified';
