@@ -941,8 +941,7 @@ You are writing Chapter ${ch_num} of ${total_chapters}: "${chapter_info.title}".
 
 BOOK SPECIFICATIONS:
 - Type: nonfiction
-- Genre: ${spec.genre || 'General'}
-- Subgenre: ${spec.subgenre || 'Not specified'}
+- Genre: ${spec.genre || 'General'}${spec.subgenre ? `\n- Subgenre: ${spec.subgenre}` : ''}
 - Beat Style: ${getBeatStyleInstructions(spec.tone_style || spec.beat_style)}
 - Target Audience: ${spec.target_audience || 'General readers'}
 - Detail Level: ${spec.detail_level || 'moderate'}
@@ -988,7 +987,7 @@ THEMES: ${JSON.stringify(outline_data.themes || [])}
 ${transition_instructions}
 
 REMINDER — THIS IS NONFICTION: Write in the author's voice. Use brief vignettes to illustrate, then ANALYZE. The author's interpretive voice is the backbone. Do NOT create fictional characters with dialogue exchanges.
-
+${spec.subgenre ? `\nThis is a ${spec.genre || 'nonfiction'} book with subgenre focus: ${spec.subgenre}. All content must remain within this subject area.\n` : ''}
 OUTPUT FORMAT RULES:
 - Return ONLY the prose of the chapter. No preamble. No commentary.
 - Do not start with "Here is..." or any assistant-style opening.

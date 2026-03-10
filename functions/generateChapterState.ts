@@ -191,13 +191,54 @@ ${chapterContent}`;
     if (uploadResult?.file_url) stateLogValue = uploadResult.file_url;
   }
 
-  // Update chapter with its state document, and project with cumulative log + banned phrases
+  // FIX 3A — Subject extraction for nonfiction duplicate prevention
+  let subjectLine = '';
+  if (spec.book_type === 'nonfiction') {
+    try {
+      const subjectSystemPrompt = 'You are a subject tagger for a nonfiction book generation system.';
+      const subjectUserMessage = `Read the following chapter and return a single sentence summarizing: (1) the historical time period covered, (2) the primary institution or subject, and (3) the geographic location.
+
+Format: [TIME PERIOD] | [PRIMARY SUBJECT] | [LOCATION]
+Example: 9th century CE | Benedictine monastic scriptoriums | Western Europe
+
+Return only this one line. No other text.
+
+Chapter text:
+${chapterContent.slice(0, 6000)}`;
+
+      if (isEroticaGenre(spec)) {
+        subjectLine = await callOpenRouter(subjectSystemPrompt, subjectUserMessage, spec.openrouter_model, 256);
+      } else {
+        subjectLine = await callClaude(subjectSystemPrompt, subjectUserMessage, 256);
+      }
+      subjectLine = subjectLine.trim().split('\n')[0].trim(); // Take only first line
+      console.log(`Chapter ${chapter.chapter_number} subject: ${subjectLine}`);
+    } catch (subjectErr) {
+      console.warn('Subject extraction failed (non-blocking):', subjectErr.message);
+    }
+  }
+
+  // Build updated chapter_subjects_log
+  let existingSubjectsLog = project.chapter_subjects_log || '';
+  if (subjectLine) {
+    const newEntry = `Ch ${chapter.chapter_number}: ${subjectLine}`;
+    existingSubjectsLog = existingSubjectsLog
+      ? existingSubjectsLog + '\n' + newEntry
+      : newEntry;
+  }
+
+  // Update chapter with its state document, and project with cumulative log + banned phrases + subjects
+  const projectUpdate = {
+    chapter_state_log: stateLogValue,
+    banned_phrases_log: JSON.stringify(allBannedPhrases),
+  };
+  if (subjectLine) {
+    projectUpdate.chapter_subjects_log = existingSubjectsLog;
+  }
+
   await Promise.all([
     base44.entities.Chapter.update(chapter_id, { state_document: stateDocument }),
-    base44.entities.Project.update(project_id, {
-      chapter_state_log: stateLogValue,
-      banned_phrases_log: JSON.stringify(allBannedPhrases),
-    }),
+    base44.entities.Project.update(project_id, projectUpdate),
   ]);
 
   return Response.json({
@@ -206,5 +247,6 @@ ${chapterContent}`;
     new_phrases_count: newPhrases.length,
     total_banned_phrases: allBannedPhrases.length,
     escalation_target: escalationTarget.label,
+    subject_line: subjectLine || null,
   });
 });
