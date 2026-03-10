@@ -1477,6 +1477,16 @@ Write this chapter in full.`
     }
     const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5).map(([name]) => name);
 
+    // Structural contract from scope lock + outline entry
+    const _oe = outlineEntry, _sc = [];
+    if (scopeLock?.throughline) _sc.push(`THROUGHLINE: ${scopeLock.throughline}`);
+    if (_oe.scope_boundary) _sc.push(`SCOPE: ${_oe.scope_boundary}`);
+    if (_oe.primary_beat) _sc.push(`PRIMARY BEAT: ${_oe.primary_beat}`);
+    if (_oe.character_development) _sc.push(`ARC: ${_oe.character_development}`);
+    if (_oe.relationship_shift||_oe.argument_advance) _sc.push(`SHIFT: ${_oe.relationship_shift||_oe.argument_advance}`);
+    if (_oe.must_not_do?.length) _sc.push(`MUST NOT: ${_oe.must_not_do.join('; ')}`);
+    const structuralBlock = _sc.length>0 ? `\n=== STRUCTURAL CONTRACT ===\n${_sc.join('\n')}\n=== END ===\n` : '';
+
     let currentChapterRequest;
     if (useScenePath) {
       // ── SCENE-BASED USER MESSAGE ──────────────────────────────────────────
