@@ -1231,6 +1231,7 @@ ${PLOT_SUBTEXT_RULES}
 
 ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
+      systemPrompt += getEroticaOverride(projectSpec);
       systemPrompt += _beatSysBlock(chapterBeat);
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
