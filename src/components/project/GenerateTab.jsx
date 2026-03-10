@@ -307,6 +307,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, streamingContent, isSt
         word_count: 0,
         quality_scan: "",
         distinctive_phrases: "",
+        state_document: "",
         generated_at: "",
       });
       queryClient.invalidateQueries({ queryKey: ["chapters", chapter.project_id] });
