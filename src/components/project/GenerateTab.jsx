@@ -744,11 +744,23 @@ export default function GenerateTab({ projectId, onProceed }) {
          }
        }, 2000);
 
-       // Stop polling after 15 minutes
+       // Stop polling after 20 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
-          setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout after 15 minutes" }));
-        }, 15 * 60 * 1000);
+          // Check one final time before declaring timeout
+          base44.entities.Chapter.filter({ project_id: projectId }).then(chs => {
+            const ch = chs.find(c => c.id === chapter.id);
+            if (ch?.status === 'generated') {
+              setStreamingContent(prev => ({ ...prev, [chapter.id]: ch.content || "" }));
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: `Complete (${ch.word_count || 0} words)` }));
+              refetchChapters();
+            } else {
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — chapter may still be processing. Refresh to check." }));
+            }
+          }).catch(() => {
+            setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
+          });
+        }, 20 * 60 * 1000);
      }
    } catch (err) {
      console.error('writeChapter error:', err.message);
