@@ -474,23 +474,12 @@ function scanDialoguePatterns(text) {
   return results; // [{ pattern, count, examples }]
 }
 
-const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE GENRE:
-
-1. MINIMUM PHYSICAL ESCALATION: When a physical/intimate moment begins (kiss, touch, embrace), it MUST continue for a MINIMUM of 4 full paragraphs before any interruption, pullback, or scene break. This is non-negotiable.
-
-2. WHAT THOSE 4 PARAGRAPHS MUST CONTAIN:
-   - Paragraph 1: The initial physical contact — described through specific, concrete sensory detail. Not "the kiss was raw and urgent" but the actual physical reality: how the other person's mouth felt, the texture of skin, the pressure of hands, whether it was tentative or confident, what their body was doing.
-   - Paragraph 2: Escalation through a second sense — if P1 was about touch, P2 brings in taste, or sound, or the way the other person smells up close. Layer the senses. Show the character's awareness narrowing to the physical.
-   - Paragraph 3: Interiority during the physical act — what this contact is doing to the character emotionally. Not "he felt desire" but the specific texture of what they're feeling: is it relief? Grief? The terrifying sense of something they can't take back? The surprise of another person's body?
-   - Paragraph 4: The moment shifts — either deepening further (hands move, bodies adjust, breathing changes, the dynamic shifts from tentative to certain) OR the natural conclusion that doesn't feel like a cop-out.
-
-3. INTERRUPTIONS EARN THEIR PLACE: If a physical moment IS interrupted, it must arrive AFTER the 4-paragraph minimum. The interruption must be felt as a LOSS. Characters must show physical aftermath (disorientation, difficulty speaking, hands still warm from contact).
-
-4. BAN ON SMIRKING AFTER INTIMACY: After a kiss or physical moment, no character may "smirk" or deliver a witty one-liner. Characters after genuine intimate contact are affected — breathless, disoriented, serious, frightened, or elated — but never smug.
-
-5. BY CHAPTER 3 of an erotica novel, physical intimacy must have progressed BEYOND a single kiss. The pacing must match genre expectations. This doesn't mean rushing — it means honoring the genre the reader chose.
-
-6. NO CONVENIENT INTERRUPTIONS: Do NOT use plot devices (phone rings, someone knocks, character suddenly remembers an obligation) to cut away from an intimate scene before the 4-paragraph minimum is met. This is a genre violation.`;
+const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE:
+1. MIN 4 PARAGRAPHS: Physical/intimate moments must continue for ≥4 paragraphs before any interruption. P1: concrete sensory contact. P2: layer a second sense. P3: emotional interiority during the act. P4: escalation or natural conclusion.
+2. INTERRUPTIONS: Only AFTER 4-paragraph minimum. Must be felt as LOSS with physical aftermath (disorientation, difficulty speaking).
+3. NO SMIRKING: After intimacy, characters are affected — breathless, disoriented, serious — never smug or witty.
+4. PACING: By chapter 3 of erotica, intimacy must progress beyond a single kiss. Honor the genre.
+5. NO CONVENIENT INTERRUPTIONS: No phones ringing, knocks, or sudden obligations to cut away before the minimum.`;
 
 const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
 - When a chapter contains a twist, reversal, or reveal, the dialogue and interiority leading up to it must support MULTIPLE interpretations until the reveal moment.
