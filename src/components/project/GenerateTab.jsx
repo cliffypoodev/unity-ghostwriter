@@ -891,7 +891,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         // CRITICAL: Block here until this chapter is fully saved before moving on.
         // The backend writes asynchronously, so we poll until status === 'generated'.
         let pollCount = 0;
-        const maxPolls = 450; // 15 minutes at 2s intervals
+        const maxPolls = 600; // 20 minutes at 2s intervals
         let done = false;
 
         while (!done && pollCount < maxPolls) {
