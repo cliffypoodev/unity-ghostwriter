@@ -307,18 +307,15 @@ async function parseOutlineField(field, fieldUrl) {
   try {
     let data = field;
     if (!data && fieldUrl) {
-      const response = await fetch(fieldUrl);
-      data = await response.json();
-      return data;
+      const r = await fetch(fieldUrl);
+      if (!r.ok) return null;
+      const t = await r.text();
+      if (t.trim().startsWith('<')) return null; // HTML error page
+      return JSON.parse(t);
     }
-    if (typeof data === 'string' && data.trim()) {
-      return JSON.parse(data);
-    }
+    if (typeof data === 'string' && data.trim() && !data.trim().startsWith('<')) return JSON.parse(data);
     return null;
-  } catch (err) {
-    console.error('Parse field error:', err.message);
-    return null;
-  }
+  } catch (err) { console.error('Parse field error:', err.message); return null; }
 }
 
 // PART A — Build character consistency enforcement block from story bible
