@@ -1360,7 +1360,6 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     // PART C — Plot and dialogue subtext rules (legacy fiction path)
     systemPrompt += `\n\n${PERMANENT_QUALITY_RULES}`;
     systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
-    systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES}`;
     systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
