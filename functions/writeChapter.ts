@@ -1825,8 +1825,8 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     let finalContent = fullContent;
     let passCount = 0;
 
-    // DEEPSEEK AUTO-REWRITE LOOP: increase max passes to 3 (PART 3)
-    const maxRewritePasses = isDeepSeek ? 3 : 2;
+    // Rewrite passes: 1 for standard models, 2 for DeepSeek (reduced to prevent timeouts)
+    const maxRewritePasses = isDeepSeek ? 2 : 1;
     
     // Auto-rewrite loop
     if (!qualityResult.passed && qualityResult.warnings.length > 0) {
