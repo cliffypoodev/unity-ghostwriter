@@ -926,7 +926,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         }
 
         if (!done && isWriting) {
-          throw new Error('Generation timeout after 15 minutes');
+          throw new Error('Generation timeout after 20 minutes');
         }
       } catch (err) {
         const errorMsg = err.message || 'Unknown error';
