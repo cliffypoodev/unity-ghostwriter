@@ -1369,6 +1369,7 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
     if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
+    systemPrompt += getEroticaOverride(projectSpec);
     systemPrompt += _beatSysBlock(chapterBeat);
     }
 
