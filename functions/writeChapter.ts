@@ -1395,10 +1395,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
-    // Add previously written chapters as alternating user/assistant turns
+    // Add last 3 written chapters as context (full history causes timeouts on later chapters)
     const previousChapters = allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated');
-
-    for (const prevCh of previousChapters) {
+    for (const prevCh of previousChapters.slice(-3)) {
       // Resolve content if it's a URL
       let prevContent = prevCh.content || '';
       if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) {
