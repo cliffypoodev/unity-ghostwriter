@@ -970,8 +970,7 @@ BANNED NONFICTION PATTERNS:
 - Summarizing lessons at the end in lists
 - Ending with "The journey continues..."
 - Exclamation marks in narration (one per chapter maximum)
-- Inspirational clichés: "strength in unity", "the power of community", "making a difference"
-${((spec.tone_style||spec.beat_style||'').toLowerCase().includes('investigative'))?`\nEVIDENCE GROUNDING (Investigative Nonfiction — mandatory): Every section must anchor to a specific named individual+actions, date+event, or institution+verifiable fact. No ungrounded general patterns. Replace unverifiable claims with better-documented examples.`:''}`;
+- Inspirational clichés: "strength in unity", "the power of community", "making a difference"`;
 
 BOOK PREMISE (anchor for every section):
 ${spec.topic || 'Not specified'}
