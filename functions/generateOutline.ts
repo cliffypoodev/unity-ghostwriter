@@ -584,7 +584,9 @@ Return ONLY JSON.`;
         ? `\nThe previous batch ended with Chapter ${chunkStart - 1}. Ending: "${previousChapterEnding}"\nEnsure Chapter ${chunkStart} opens with a transition_from that references this.`
         : '';
 
-      const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"${beatInstructions}${authorVoiceInfo}${prevContext}
+      const nfScopeCtx = nfScopeLock ? `\n=== SCOPE LOCK ===\nTHROUGHLINE: ${nfScopeLock.throughline || 'N/A'}\nESCALATION MAP: ${JSON.stringify(nfScopeLock.escalation_map || [])}\nCONCEPT BUDGET: ${JSON.stringify(nfScopeLock.concept_budget || [])}\nTHREAD REGISTER: ${JSON.stringify(nfScopeLock.thread_register || [])}\n=== END ===\n` : '';
+
+      const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${prevContext}
 
 Each chapter MUST have these fields:
 - number, title, summary (1-2 sentences on the chapter's argument/focus)
