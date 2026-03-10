@@ -611,7 +611,9 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "a flicker of", "a spark of", "a flash of heat", "a flash of desire", "a flash of anger", "a flash of fear",
       "igniting a fire", "ignited a fire", "igniting a flame", "ignited a flame", "igniting a spark", "ignited a spark", "igniting a hunger", "ignited a hunger",
       "a fire in him", "a fire within him", "a fire inside him", "a fire in her", "a fire within her", "a fire inside her", "a fire in them", "a fire within them", "a fire inside them",
-      "heat pooling in", "heat pooled in"
+      "heat pooling in", "heat pooled in",
+      "waves of sensation", "cascades of heat", "power flowing through", "something building in her core",
+      "she felt herself opening to", "transcendence"
     ],
     atmosphereClichés: [
       "intoxicating", "intoxicated", "electric", "electricity", "electrifying", "palpable", "air thickened", "air crackled", "air grew heavy",
