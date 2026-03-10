@@ -1607,12 +1607,9 @@ ${_beatUsrBlock(chapterBeat)}`;
 
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
 
-    // FIX 2 — Inject subgenre into chapter generation for both fiction and nonfiction
-    if (projectSpec?.subgenre && !isNonfiction) {
-      currentChapterRequest += `\n\nThis is a ${projectSpec.genre || 'fiction'} book with subgenre focus: ${projectSpec.subgenre}. All content must remain within this subject area.`;
-    }
-    if (projectSpec?.subgenre && isNonfiction) {
-      currentChapterRequest += `\n\nThis is a ${projectSpec.genre || 'nonfiction'} book with subgenre focus: ${projectSpec.subgenre}. All content must remain within this subject area.`;
+    // FIX 2 — Inject subgenre into chapter generation
+    if (projectSpec?.subgenre) {
+      currentChapterRequest += `\n\nThis is a ${projectSpec.genre || projectSpec.book_type || 'fiction'} book with subgenre focus: ${projectSpec.subgenre}. All content must remain within this subject area.`;
     }
 
     // FIX 3B — Inject chapter_subjects_log to prevent thematic duplicates (nonfiction)
