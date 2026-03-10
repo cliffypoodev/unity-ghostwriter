@@ -1398,7 +1398,7 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       // Resolve content if it's a URL
       let prevContent = prevCh.content || '';
       if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) {
-        try { prevContent = await (await fetch(prevContent)).text(); } catch { prevContent = ''; }
+        try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
       }
       if (!prevContent) continue;
 
