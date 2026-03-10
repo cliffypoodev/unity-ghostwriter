@@ -149,9 +149,6 @@ const LANGUAGE_INTENSITY = {
   3: { name: "Strong", instructions: "Profanity Rules:\n- Profanity used in moments of physical danger, anger, betrayal, or shock.\n- Dialogue may contain short explosive phrases. Internal monologue may include raw thoughts.\n- Keep it character-driven, not decorative. Every instance must reflect the character's emotional state.\n- Variety matters — do not repeat the same expletive. Profanity should punctuate, not saturate." },
   4: { name: "Raw", instructions: "Profanity Rules:\n- Language may be harsh and frequent if consistent with trauma, survival, combat, or high-stakes realism.\n- Avoid repetitive filler swearing — each instance must feel earned.\n- Never use profanity purely for shock value.\n- Profanity must reflect emotional state and environment.\n- In narration: raw internal voice permitted if it matches the POV character's psychology." },
 };
-
-
-
 const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
 - All sexual content must involve adults (18+). No exceptions. No implied exceptions.
 - Consent must be clear. Non-consensual acts may only appear if framed unambiguously as violation — never romanticized, never ambiguous, never presented as desirable.
@@ -410,11 +407,8 @@ function extractPhysicalTics(text) {
       ticsByChar[charName][canonical] = (ticsByChar[charName][canonical] || 0) + 1;
     }
   }
-  return ticsByChar; // { charName -> { ticName -> count } }
+  return ticsByChar;
 }
-
-
-
 // PART 2 — Extract metaphor cluster usage (6 families)
 const METAPHOR_CLUSTER_WORDS = {
   'FIRE': ['burn', 'burns', 'burned', 'burning', 'flame', 'flames', 'flaming', 'ignite', 'ignited', 'igniting', 'blaze', 'blazed', 'blazing', 'scorch', 'scorched', 'scorching', 'ember', 'embers', 'ash', 'ashes', 'smoke', 'smoked', 'smoking', 'kindle', 'kindled', 'kindling', 'spark', 'sparks', 'sparked', 'sparking', 'inferno', 'fire', 'fires', 'smolder', 'smoldered', 'smoldering', 'sear', 'seared', 'searing'],
@@ -441,9 +435,8 @@ function extractMetaphorClusters(text) {
     }
     result[cluster] = { count, matched: [...new Set(matched)] };
   }
-  return result; // { clusterName -> { count, matched } }
+  return result;
 }
-
 // PART D — Genre detection helpers
 function isIntimateGenre(spec) { const g = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase(); return /erotica|romance|adult|erotic/.test(g); }
 function isEroticaGenre(spec) { return /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase()); }
@@ -496,7 +489,7 @@ function scanDialoguePatterns(text) {
       results.push({ pattern: patternName, count: matches.length, examples: matches.slice(0, 2) });
     }
   }
-  return results; // [{ pattern, count, examples }]
+  return results;
 }
 
 const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE:
