@@ -959,7 +959,13 @@ No other fields. No prose outside the JSON array.`;
       }
     }
 
-    const parsedOutline = { chapters: allChapters, beat_sheet: beatAssignments || null };
+    // Extract scope_lock from first chapter batch if AI included it, or from allChapters metadata
+    let scopeLock = null;
+    if (allChapters.length > 0 && allChapters[0].scope_lock) {
+      scopeLock = allChapters[0].scope_lock;
+      delete allChapters[0].scope_lock;
+    }
+    const parsedOutline = { scope_lock: scopeLock, chapters: allChapters, beat_sheet: beatAssignments || null };
 
     // ── Save outline + metadata (upload large fields as files) ───────────────
     const outlineJson = JSON.stringify(parsedOutline);
