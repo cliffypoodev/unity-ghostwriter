@@ -1968,7 +1968,8 @@ Deno.serve(async (req) => {
     // Mark as generating and fire async generation in background
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
 
-    const modelKey = spec?.ai_model || 'claude-sonnet';
+    let modelKey = spec?.ai_model || 'claude-sonnet';
+    if (isEroticaGenre(spec)) { modelKey = 'openrouter'; if (spec?.openrouter_model) MODEL_MAP['openrouter'].modelId = spec.openrouter_model; console.log('Erotica genre — routing to OpenRouter:', MODEL_MAP['openrouter'].modelId); }
 
     // Start async generation without waiting
     generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey).catch(err => {
