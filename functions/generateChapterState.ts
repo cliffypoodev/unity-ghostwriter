@@ -34,6 +34,25 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 4096) {
   return data.content[0].text;
 }
 
+async function callOpenRouter(systemPrompt, userMessage, openrouterModel, maxTokens = 4096) {
+  const orKey = Deno.env.get('OPENROUTER_API_KEY');
+  if (!orKey) throw new Error('OpenRouter generation failed: OPENROUTER_API_KEY not configured');
+  const model = openrouterModel || 'meta-llama/llama-3.1-70b-instruct';
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' },
+    body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error('OpenRouter generation failed: ' + (data.error?.message || JSON.stringify(data.error) || response.status));
+  if (!data.choices?.[0]?.message?.content) throw new Error('OpenRouter generation failed: empty response');
+  return data.choices[0].message.content;
+}
+
+function isEroticaGenre(spec) {
+  return /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase());
+}
+
 async function resolveContent(content) {
   if (!content) return '';
   if (content.startsWith('http://') || content.startsWith('https://')) {
@@ -125,8 +144,18 @@ OPEN QUESTION CARRIED INTO NEXT CHAPTER: [the specific unresolved threat, questi
 CHAPTER TEXT:
 ${chapterContent}`;
 
-  // Generate state document
-  const stateDocument = await callClaude(systemPrompt, userMessage, 2048);
+  // Load spec to check genre for routing
+  const specs = await base44.entities.Specification.filter({ project_id });
+  const spec = specs[0] || {};
+
+  // Generate state document — route erotica to OpenRouter
+  let stateDocument;
+  if (isEroticaGenre(spec)) {
+    console.log(`Erotica genre detected — routing state generation to OpenRouter`);
+    stateDocument = await callOpenRouter(systemPrompt, userMessage, spec.openrouter_model, 2048);
+  } else {
+    stateDocument = await callClaude(systemPrompt, userMessage, 2048);
+  }
 
   // Parse banned phrases from state document
   const phrasesMatch = stateDocument.match(/PHRASES AND METAPHORS USED THIS CHAPTER:\s*([\s\S]*?)(?=\nRELATIONSHIP STATUS|$)/i);
