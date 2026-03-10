@@ -862,7 +862,34 @@ Return ONLY the JSON object. No preamble.`;
       console.warn('Story bible parse failed:', e.message);
     }
 
-    // ── STEP 3: Generate chapters in batches of 4 ───────────────────────────
+    // ── STEP 3: Generate Scope Lock ─────────────────────────────────────────
+    console.log('Generating scope lock...');
+    const scopeLockType = isNonfiction ? 'nonfiction' : 'fiction';
+    const scopeLockPrompt = isNonfiction
+      ? `Generate a SCOPE LOCK for a ${targetChapters}-chapter ${baseContext}. Return a JSON object with:
+- "throughline": One sentence — central thesis, evidence, and what reader understands by the end.
+- "escalation_map": Array of 4 objects, each with "block" (1-4), "chapters" (e.g. "1-5"), "intensity" (1-10, must increase), "description" (what this block achieves).
+- "concept_budget": Array of objects with "concept" (string), "primary_chapter" (number), "supporting_chapters" (array of numbers).
+- "thread_register": Array of objects with "thread" (string), "introduced_chapter" (number), "payoff_chapter" (number).
+Return ONLY the JSON object.`
+      : `Generate a SCOPE LOCK for a ${targetChapters}-chapter ${baseContext}. Return a JSON object with:
+- "throughline": One sentence — what protagonist wants, what stands in the way, what it costs.
+- "escalation_map": Array of 4 objects, each with "block" (1-4), "chapters" (e.g. "1-5"), "intensity" (1-10, must increase), "description" (what this block achieves).
+- "relationship_arc": Array of 5 objects with "checkpoint" (chapter number), "state" (description of relationship state — each MUST be unique and never repeated).
+- "thread_register": Array of objects with "thread" (string), "introduced_chapter" (number), "payoff_chapter" (number).
+Return ONLY the JSON object.`;
+
+    let scopeLock = null;
+    try {
+      const scopeText = await callAI(modelKey, systemPrompt, scopeLockPrompt, { maxTokens: 2000 });
+      const scopeMatch = scopeText.match(/\{[\s\S]*\}/);
+      scopeLock = await safeParseJSON(scopeMatch ? scopeMatch[0] : scopeText, modelKey);
+      console.log('Scope lock generated:', Object.keys(scopeLock));
+    } catch (e) {
+      console.warn('Scope lock generation failed:', e.message, '— proceeding without it');
+    }
+
+    // ── STEP 4: Generate chapters in batches of 4 ───────────────────────────
     console.log(`Generating ${targetChapters} detailed chapters...`);
     const CHUNK_SIZE = 4;
 
