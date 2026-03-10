@@ -986,9 +986,8 @@ No other fields. No prose outside the JSON array.`;
       }
     }
 
-    // Extract scope_lock from first chapter batch if AI included it, or from allChapters metadata
-    let scopeLock = null;
-    if (allChapters.length > 0 && allChapters[0].scope_lock) {
+    // Merge scope_lock from first chapter if AI included it there
+    if (!scopeLock && allChapters.length > 0 && allChapters[0].scope_lock) {
       scopeLock = allChapters[0].scope_lock;
       delete allChapters[0].scope_lock;
     }
