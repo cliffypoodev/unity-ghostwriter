@@ -1762,8 +1762,12 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     // PART E — Run 1 validation+regeneration cycle (reduced from 2 to prevent timeouts)
     const validationFailures = await runValidationChecks(fullContentWorking, bannedTicsByChar, bannedClusterNames, isErotic);
     if (validationFailures.length > 0) {
-      // Only regenerate for critical failures (dialogue patterns, intimate scene issues), not metaphor clusters
-      const criticalFailures = validationFailures.filter(f => !f.startsWith('METAPHOR CLUSTER'));
+      // Only regenerate for truly critical failures (intimate scene issues), not stylistic ones
+      const criticalFailures = validationFailures.filter(f => 
+        !f.startsWith('METAPHOR CLUSTER') && 
+        !f.startsWith('TIC REPETITION') && 
+        !f.startsWith('BANNED DIALOGUE PATTERNS')
+      );
       if (criticalFailures.length > 0) {
         console.warn(`Chapter ${chapter.chapter_number} validation failed (regenerating):`, criticalFailures);
         const regenNotice = `=== REGENERATION — PREVIOUS ATTEMPT FAILED QUALITY CHECKS ===\nYour previous chapter attempt was rejected for:\n${criticalFailures.map(f => `- ${f}`).join('\n')}\nRewrite fixing these specific issues. Keep plot, arcs, and progression the same.\n=== END ===\n\n`;
