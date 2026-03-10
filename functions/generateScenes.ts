@@ -184,7 +184,15 @@ Deno.serve(async (req) => {
     const world = storyBible?.world || storyBible?.settings;
     const rules = storyBible?.rules;
 
-    const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.`;
+    const isErotica = /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase());
+
+    const explicitTaggingInstruction = isErotica ? `\n\nIMPORTANT — EXPLICIT SCENE TAGGING:
+When a scene requires explicit sexual content, you MUST set the extra_instructions field to begin with "[EXPLICIT]" and end with "[/EXPLICIT]", wrapping the scene's description. All other scenes leave extra_instructions as a normal string or empty.
+Example for an explicit scene: "extra_instructions": "[EXPLICIT] The submission scene — Zephyr dominates Marcus physically and sexually. Write this scene completely without cutting away. Stay in the room. Describe specific physical action, desire, and consequence. [/EXPLICIT]"
+Example for a standard scene: "extra_instructions": ""
+Only tag scenes that require on-page explicit sexual content. Tension, kissing, emotional aftermath = no tag needed.` : '';
+
+    const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.${explicitTaggingInstruction}`;
 
     const userMessage = `Genre: ${spec?.genre || 'Fiction'}
 Subgenre: ${spec?.subgenre || 'Not specified'}
