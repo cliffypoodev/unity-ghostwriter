@@ -1872,21 +1872,8 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
 
     const finalWordCount = finalContent.trim().split(/\s+/).length;
 
-    // BUG 3 — Extract distinctive phrases for cross-chapter repetition prevention
-    let distinctivePhrases = [];
-    try {
-      const phraseRaw = await callAI(
-        modelKey,
-        'You are a literary analyst. Extract the 15 most distinctive literary phrases, metaphors, and unusual word pairings from this text. Return ONLY a JSON array of strings. No markdown, no explanation.',
-        finalContent.slice(0, 6000),
-        { maxTokens: 512, temperature: 0.0 }
-      );
-      const phraseClean = phraseRaw.trim().replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
-      const phraseMatch = phraseClean.match(/\[[\s\S]*\]/);
-      if (phraseMatch) distinctivePhrases = JSON.parse(phraseMatch[0]);
-    } catch (phraseErr) {
-      console.warn('Phrase extraction failed silently:', phraseErr.message);
-    }
+    // Extract distinctive phrases locally (no AI call — saves ~30s per chapter)
+    const distinctivePhrases = extractDistinctivePhrases(finalContent);
 
     await base44.entities.Chapter.update(chapterId, {
       content: contentValue,
