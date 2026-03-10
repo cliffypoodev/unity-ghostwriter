@@ -1,8 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// (openai_key removed — not needed; deepseekValidator uses its own env vars)
-
-// ── Multi-Provider AI Router ──────────────────────────────────────────────────
+// ── Multi-Provider AI Router ──
 
 const MODEL_MAP = {
   "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
