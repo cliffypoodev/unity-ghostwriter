@@ -500,7 +500,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId) {
 
   try {
     const targetChapters = spec.chapter_count
-      ? Math.min(parseInt(spec.chapter_count), 20)
+      ? parseInt(spec.chapter_count)
       : 12; // Default for nonfiction
     const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
     const beatKey = spec.beat_style || spec.tone_style;
@@ -732,11 +732,7 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
       ? parseInt(spec.chapter_count)
       : Math.floor((chapterRange.min + chapterRange.max) / 2);
     
-    // Cap at 20 chapters to reduce token usage and generation time
-    if (targetChapters > 20) {
-      console.log(`User requested ${targetChapters} chapters. Capping at 20 for optimal generation.`);
-      targetChapters = 20;
-    }
+    // No cap — respect user's chapter_count from spec
 
     const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
     const isNonfiction = spec.book_type === 'nonfiction';
