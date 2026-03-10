@@ -1759,36 +1759,28 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
 
     let fullContentWorking = fullContent;
 
-    // PART E — Run up to 2 validation+regeneration cycles
-    for (let regenAttempt = 0; regenAttempt <= 2; regenAttempt++) {
-      const validationFailures = await runValidationChecks(fullContentWorking, bannedTicsByChar, bannedClusterNames, isErotic);
-      if (validationFailures.length === 0) break; // passed
-      if (regenAttempt === 2) {
-        console.warn(`Chapter ${chapter.chapter_number}: Still failing after 2 regen attempts. Delivering anyway.`);
-        break;
-      }
-      console.warn(`Chapter ${chapter.chapter_number} validation attempt ${regenAttempt + 1} failed:`, validationFailures);
-      const regenNotice = `=== REGENERATION — PREVIOUS ATTEMPT FAILED QUALITY CHECKS ===
-Your previous chapter attempt was rejected for the following reasons:
-${validationFailures.map(f => `- ${f}`).join('\n')}
-
-Rewrite the chapter, fixing these specific issues while keeping the plot, character arcs, and story progression the same. Do not simply delete the flagged content — replace it with BETTER alternatives.
-=== END REGENERATION NOTICE ===
-
-`;
-      const regenMessages = [...messages.slice(0, -1), { role: 'user', content: regenNotice + currentChapterRequest }];
-      for (let attempt = 0; attempt < 2; attempt++) {
+    // PART E — Run 1 validation+regeneration cycle (reduced from 2 to prevent timeouts)
+    const validationFailures = await runValidationChecks(fullContentWorking, bannedTicsByChar, bannedClusterNames, isErotic);
+    if (validationFailures.length > 0) {
+      // Only regenerate for critical failures (dialogue patterns, intimate scene issues), not metaphor clusters
+      const criticalFailures = validationFailures.filter(f => !f.startsWith('METAPHOR CLUSTER'));
+      if (criticalFailures.length > 0) {
+        console.warn(`Chapter ${chapter.chapter_number} validation failed (regenerating):`, criticalFailures);
+        const regenNotice = `=== REGENERATION — PREVIOUS ATTEMPT FAILED QUALITY CHECKS ===\nYour previous chapter attempt was rejected for:\n${criticalFailures.map(f => `- ${f}`).join('\n')}\nRewrite fixing these specific issues. Keep plot, arcs, and progression the same.\n=== END ===\n\n`;
+        const regenMessages = [...messages.slice(0, -1), { role: 'user', content: regenNotice + currentChapterRequest }];
         const newText = await callAIConversation(regenMessages, 8192);
-        if (!isRefusal(newText)) { fullContentWorking = newText; break; }
+        if (!isRefusal(newText)) {
+          let rc = newText;
+          rc = rc.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+          rc = rc.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
+          rc = rc.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
+          rc = rc.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
+          rc = rc.replace(/\n{3,}/g, '\n\n');
+          fullContentWorking = rc.trim();
+        }
+      } else {
+        console.log(`Chapter ${chapter.chapter_number} validation: only non-critical issues (metaphor clusters), skipping regen.`);
       }
-      // Strip artifacts again after regen
-      let rc = fullContentWorking;
-      rc = rc.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-      rc = rc.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
-      rc = rc.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-      rc = rc.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
-      rc = rc.replace(/\n{3,}/g, '\n\n');
-      fullContentWorking = rc.trim();
     }
 
     fullContent = fullContentWorking;
