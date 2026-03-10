@@ -1843,7 +1843,7 @@ Rewrite the chapter, fixing these specific issues while keeping the plot, charac
         console.log(`Chapter ${chapter.chapter_number} auto-rewrite pass ${pass}...`);
         
         try {
-          const correctedText = await rewriteWithCorrections(finalContent, qualityResult.warnings, chapter.chapter_number, openai_key, modelKey);
+          const correctedText = await rewriteWithCorrections(finalContent, qualityResult.warnings, chapter.chapter_number, null, modelKey);
           if (correctedText && correctedText.length > 100) {
             finalContent = correctedText;
             passCount = pass;
