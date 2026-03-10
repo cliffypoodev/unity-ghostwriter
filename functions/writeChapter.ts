@@ -1426,24 +1426,25 @@ Write this chapter in full.`
       });
     }
 
-    // Get opening and ending types and build user message based on book type
-    // BUG 3 — Collect distinctive phrases from previous chapters to prevent cross-chapter repetition
-    const crossChapterPhrases = [];
-    for (const prevCh of allChapters.slice(0, chapterIndex)) {
-      // From AI-extracted distinctive phrases stored after generation
-      if (prevCh.distinctive_phrases) {
-        try {
-          const p = JSON.parse(prevCh.distinctive_phrases);
-          if (Array.isArray(p)) crossChapterPhrases.push(...p);
-        } catch {}
-      }
-      // From local regex extraction on inline chapter content
-      if (prevCh.content && !prevCh.content.startsWith('http')) {
-        const localPhrases = extractDistinctivePhrases(prevCh.content);
-        crossChapterPhrases.push(...localPhrases);
-      }
+    // ── CHAPTER STATE DOCUMENT SYSTEM ──
+    let chapterStateLog = '', projectBannedPhrases = [], lastStateDoc = null;
+    let currentEscalation = '1', lastRelationshipStatus = '', lastOpenQuestion = '';
+    try {
+      const prjs = await base44.entities.Project.filter({ id: projectId });
+      const prj = prjs[0];
+      if (prj?.chapter_state_log) { chapterStateLog = prj.chapter_state_log.startsWith('http') ? await (await fetch(prj.chapter_state_log)).text() : prj.chapter_state_log; }
+      if (prj?.banned_phrases_log) { try { projectBannedPhrases = JSON.parse(prj.banned_phrases_log); } catch {} }
+    } catch (e) { console.warn('State log load:', e.message); }
+    for (let i = chapterIndex - 1; i >= 0; i--) { if (allChapters[i].state_document) { lastStateDoc = allChapters[i].state_document; break; } }
+    if (lastStateDoc) {
+      const em = lastStateDoc.match(/ESCALATION STAGE:\s*(\d)/i); if (em) currentEscalation = em[1];
+      const rm = lastStateDoc.match(/RELATIONSHIP STATUS[^:]*:\s*(.+)/i); if (rm) lastRelationshipStatus = rm[1].trim();
+      const oq = lastStateDoc.match(/OPEN QUESTION[^:]*:\s*(.+)/i); if (oq) lastOpenQuestion = oq[1].trim();
     }
-    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 30).sort();
+    const nextEscalation = Math.min(6, parseInt(currentEscalation) + 1);
+    const crossChapterPhrases = [...projectBannedPhrases];
+    for (const pc of allChapters.slice(0, chapterIndex)) { if (pc.distinctive_phrases) { try { const p = JSON.parse(pc.distinctive_phrases); if (Array.isArray(p)) crossChapterPhrases.push(...p); } catch {} } }
+    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 60).sort();
 
     // PART 4A — Collect physical tics from previous chapters (ban any tic used >= 1 time)
     const ticMap = {}; // charName -> { ticName -> [chapterNumbers] }
