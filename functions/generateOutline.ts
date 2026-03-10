@@ -554,7 +554,23 @@ Return ONLY the JSON object.`;
       console.warn('Gemini story bible parse failed:', e.message);
     }
 
-    // ── STEP 3: Generate chapters in batches ──────────────────────────────────
+    // ── STEP 3: Generate Scope Lock ──────────────────────────────────────────
+    console.log('Gemini: Generating scope lock...');
+    let nfScopeLock = null;
+    try {
+      const slPrompt = `Generate a SCOPE LOCK for a ${targetChapters}-chapter ${spec.genre} nonfiction book about "${truncatedTopic}". Return a JSON object with:
+- "throughline": One sentence — central thesis, evidence, what reader understands by end.
+- "escalation_map": Array of 4 objects with "block" (1-4), "chapters" (range), "intensity" (1-10, must increase), "description".
+- "concept_budget": Array of objects with "concept", "primary_chapter" (number), "supporting_chapters" (array).
+- "thread_register": Array of objects with "thread", "introduced_chapter", "payoff_chapter".
+Return ONLY JSON.`;
+      const slText = await callGemini(systemPrompt, slPrompt, 2000);
+      const slMatch = slText.match(/\{[\s\S]*\}/);
+      nfScopeLock = JSON.parse(cleanJSON(slMatch ? slMatch[0] : slText));
+      console.log('Gemini scope lock generated');
+    } catch (e) { console.warn('Gemini scope lock failed:', e.message); }
+
+    // ── STEP 4: Generate chapters in batches ──────────────────────────────────
     console.log(`Gemini: Generating ${targetChapters} chapters...`);
     const CHUNK_SIZE = 4;
     const allChapters = [];
