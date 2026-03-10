@@ -434,10 +434,25 @@ function extractMetaphorClusters(text) {
   return result; // { clusterName -> { count, matched } }
 }
 
-// PART D — Genre detection helper for intimate scene rules
-function isIntimateGenre(spec) {
-  const g = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
-  return /erotica|romance|adult|erotic/.test(g);
+// PART D — Genre detection helpers
+function isIntimateGenre(spec) { const g = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase(); return /erotica|romance|adult|erotic/.test(g); }
+function isEroticaGenre(spec) { return /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase()); }
+function getEroticaOverride(spec) {
+  if (!isEroticaGenre(spec)) return '';
+  const sub = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase();
+  let tone = 'Character-driven: intimate scenes reveal character depth no other scene type could access.';
+  if (/dark/.test(sub)) tone = 'Dark Erotica: desire alongside danger/moral compromise. Heat and wrongness inseparable.';
+  else if (/roman/.test(sub)) tone = 'Romantic Erotica: physical specificity and emotional vulnerability in equal measure.';
+  else if (/plot|thriller|suspense/.test(sub)) tone = 'Plot-driven: intimate scenes advance story — power shifts, alliances form/fracture.';
+  return `\n=== EROTICA GENRE OVERRIDE — ACTIVE (overrides all fade-to-black/cut-away rules) ===
+PHYSICAL SCENE MANDATE: Write intimate scenes completely. No cut-away, fade-to-black, skip to aftermath, or replacing action with metaphor/philosophy. Stay in the room. Write from inside the experiencing character's body — their specific sensations, responses, emotional state. Not observed from outside, not symbolized.
+REQUIRED: 1) Specific physical detail (where hands are, what they do, what that produces). 2) Desire that costs something — heat and danger simultaneous. 3) Power exchange physical first — body before dialogue. 4) Consent through action choreography. 5) Consequence — every scene changes something permanently.
+BANNED: Replacing climax with mystical transformation. Speeches about power/fate during intensity. These substitutes: "waves of sensation", "cascades of heat", "power flowing through", "something building in her core", "she felt herself opening to", "transcendence", "became" for arousal. Plot interruptions before scene conclusion.
+EXPLICIT STANDARD: Full specificity including the act itself in concrete language. Avoid clinical AND purple prose. Language should feel like the characters.
+SCENE STRUCTURE: 1.Approach(desire+conflict) → 2.First contact(specific,charged) → 3.Escalation(physical+emotional stakes rise) → 4.Peak(written completely) → 5.Aftermath(what changed). Do NOT skip/compress stages 3-4.
+TONE: ${tone}
+SUSPENDED: Fade-to-black, cut-away-to-aftermath, emotional-suggestion-only, kissing-and-implied-tension-only rules. All other rules remain active.
+=== END EROTICA OVERRIDE ===`;
 }
 
 // PART 3 — Scan dialogue for banned subtext patterns
