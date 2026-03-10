@@ -499,23 +499,6 @@ const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
 - Avoid single-line dialogue responses that function as winking confessions (e.g., "Did I?" or "You'll see" or "Maybe that was the point"). These telegraph intent. Replace with responses that carry genuine emotional ambiguity.
 - Subtext is always more powerful than text. A character's true motives should be visible only in retrospect, when the reader replays the scene knowing the truth.`;
 
-const DIALOGUE_SUBTEXT_RULES = `DIALOGUE AND SUBTEXT RULES — MANDATORY:
-
-1. NO CHARACTER may speak in a way that ONLY makes sense as flirtation or seduction. Every line of dialogue must have a plausible surface meaning that is NOT about attraction. The subtext can be about desire, but the TEXT must be about something else — the art, the assignment, the argument, the event, the work.
-
-2. BANNED DIALOGUE PATTERNS — never generate these:
-   - "Are you afraid of [X]?" / "What if I want to [X]?" exchanges
-   - One character daring the other to "let go" or "stop hiding" or "step outside your comfort zone" more than once per chapter
-   - Rhetorical questions functioning as sexual invitations: "Do you want to find out?" / "Are you sure you can handle it?" / "Then why are you still here?"
-   - Characters narrating their own dynamic: "You're intrigued, aren't you?" / "You can't just stand on the sidelines"
-   - Any line where a character explicitly labels the tension: "This is dangerous" / "We're playing with fire" / "This could ruin everything"
-
-3. TENSION MUST BE BUILT THROUGH CONTRAST, NOT ESCALATION. The most effective scenes work because the characters are trying NOT to acknowledge what's happening. They talk about work, art, other people — and desire leaks through in pauses, in things left unsaid, in moments where the conversation almost touches the real subject and then veers away.
-
-4. SHOW, DON'T TELL THE DYNAMIC. Instead of Character A saying "You're afraid to let go," SHOW Character B watching A's hands while A talks about something unrelated. Instead of Character B saying "This is dangerous," show them leaving the room mid-conversation and not being able to explain why.
-
-5. NO character should deliver more than 2 consecutive lines of dialogue that are philosophically provocative. Real people pause, deflect, make jokes, say boring things, talk about logistics. Break up intense dialogue with mundane reality.`;
-
 const DIALOGUE_SUBTEXT_RULES_CONCISE = `DIALOGUE SUBTEXT RULES (MANDATORY):
 A. Every line of dialogue must have a plausible surface meaning that is NOT about attraction. Subtext can imply desire, but the spoken words must be about work, art, the event, the argument, or logistics.
 B. BANNED dialogue constructions:
