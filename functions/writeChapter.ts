@@ -1622,9 +1622,19 @@ ${_beatUsrBlock(chapterBeat)}`;
     // BUG 2 — Prevent AI from inventing its own chapter heading or number
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
 
-    // Cross-chapter phrase ban
+    // Banned phrases (from state documents + local extraction)
     if (uniqueCrossChapterPhrases.length > 0) {
-      currentChapterRequest += `\n\n=== PHRASES ALREADY USED IN PREVIOUS CHAPTERS (DO NOT REUSE THESE) ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END PREVIOUS PHRASES ===`;
+      currentChapterRequest += `\n\n=== BANNED PHRASES — DO NOT USE ANY OF THESE IN THIS CHAPTER ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END BANNED PHRASES ===`;
+    }
+    // Inject chapter state log for arc continuity
+    if (chapterStateLog && chapterIndex > 0) {
+      const sl = chapterStateLog.length > 8000 ? chapterStateLog.slice(-8000) : chapterStateLog;
+      currentChapterRequest += `\n\n=== CHAPTER STATE LOG — ALL CHAPTERS WRITTEN SO FAR ===\n${sl}\n=== END STATE LOG ===`;
+    }
+    if (lastStateDoc) {
+      currentChapterRequest += `\n\nCURRENT ESCALATION STAGE: ${currentEscalation}\nThis chapter must advance escalation from ${currentEscalation} toward ${nextEscalation}.`;
+      if (lastOpenQuestion) currentChapterRequest += `\nLAST OPEN QUESTION TO RESOLVE OR ADVANCE: ${lastOpenQuestion}`;
+      if (lastRelationshipStatus) currentChapterRequest += `\nRelationship status entering this chapter: ${lastRelationshipStatus}`;
     }
 
     // PART 4A — Inject physical tics ban into user message
