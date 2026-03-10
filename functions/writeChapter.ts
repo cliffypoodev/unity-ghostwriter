@@ -78,9 +78,6 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   }
   throw new Error('Unknown provider: ' + provider);
 }
-
-
-
 const BEAT_STYLES = {
   "fast-paced-thriller": { name: "Fast-Paced Thriller", instructions: "Core Identity: Relentless momentum. Immediate stakes. Forward propulsion at all times.\nSentence Rhythm: Short to medium sentences. Strong, active verbs. Tight paragraphs (1-4 lines). Occasional single-line impact beats.\nPacing: Introduce danger or stakes within first paragraph. Escalate every 2-4 paragraphs. No long exposition blocks. Embed backstory inside action.\nEmotional Handling: Minimal introspection. Decisions made under pressure. Fear shown through action, not reflection.\nDialogue: Direct. Tactical. Urgent. Often incomplete sentences.\nScene Structure: Immediate problem > Tactical reaction > Escalation > Complication > Cliffhanger or propulsion.\nEnding Rule: Scene must close with forward momentum, not emotional resolution." },
   "gritty-cinematic": { name: "Gritty Cinematic", instructions: "Core Identity: Raw realism. Texture-heavy environments. Physical consequence.\nSentence Rhythm: Medium-length sentences. Concrete nouns and verbs. Sparse but sharp metaphors. Weight in description.\nEnvironmental Focus: Sound design (metal, wind, boots, breathing). Temperature, sweat, blood, dust. Physical discomfort emphasized.\nPacing: Tension builds steadily. Physical consequences matter. Injuries affect performance.\nEmotional Handling: Internal conflict expressed through physical sensation. Characters rarely over-explain feelings.\nDialogue: Hard. Minimal. Subtext heavy. Power shifts mid-conversation.\nScene Structure: Immersive environmental anchor > Rising tension > Physical obstacle > Consequence > Stark closing beat.\nEnding Rule: End on something tangible and unsettling." },
@@ -1437,7 +1434,6 @@ Write this chapter in full.`
     for (const pc of allChapters.slice(0, chapterIndex)) { if (pc.distinctive_phrases) { try { const p = JSON.parse(pc.distinctive_phrases); if (Array.isArray(p)) crossChapterPhrases.push(...p); } catch {} } }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 60).sort();
 
-    // PART 4A — Collect physical tics from previous chapters
     const ticMap = {}, bannedTicsByChar = {};
     for (const pc of allChapters.slice(0, chapterIndex)) {
       const txt = (pc.content && !pc.content.startsWith('http')) ? pc.content : ''; if (!txt) continue;
@@ -1445,7 +1441,6 @@ Write this chapter in full.`
       for (const [ch, tc] of Object.entries(tics)) { if (!ticMap[ch]) ticMap[ch] = {}; for (const t of Object.keys(tc)) { if (!ticMap[ch][t]) ticMap[ch][t] = []; ticMap[ch][t].push(pc.chapter_number); } }
     }
     for (const [ch, tics] of Object.entries(ticMap)) { const b = Object.entries(tics).map(([t, c]) => ({ tic: t, chapters: c })); if (b.length > 0) bannedTicsByChar[ch] = b; }
-    // PART 4B — Collect metaphor cluster usage from previous chapters
     const clusterTotals = {};
     for (const pc of allChapters.slice(0, chapterIndex)) {
       const txt = (pc.content && !pc.content.startsWith('http')) ? pc.content : ''; if (!txt) continue;
@@ -1453,7 +1448,6 @@ Write this chapter in full.`
     }
     const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5).map(([n]) => n);
 
-    // Structural contract from scope lock + outline entry
     const _oe = outlineEntry, _sc = [];
     if (scopeLock?.throughline) _sc.push(`THROUGHLINE: ${scopeLock.throughline}`);
     if (_oe.scope_boundary) _sc.push(`SCOPE: ${_oe.scope_boundary}`);
@@ -1610,14 +1604,11 @@ ${_beatUsrBlock(chapterBeat)}`;
       currentChapterRequest = antiRepeatContext + currentChapterRequest;
     }
 
-    // BUG 2 — Prevent AI from inventing its own chapter heading or number
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
 
-    // Banned phrases (from state documents + local extraction)
     if (uniqueCrossChapterPhrases.length > 0) {
       currentChapterRequest += `\n\n=== BANNED PHRASES — DO NOT USE ANY OF THESE IN THIS CHAPTER ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END BANNED PHRASES ===`;
     }
-    // Inject chapter state log for arc continuity
     if (chapterStateLog && chapterIndex > 0) {
       const sl = chapterStateLog.length > 8000 ? chapterStateLog.slice(-8000) : chapterStateLog;
       currentChapterRequest += `\n\n=== CHAPTER STATE LOG — ALL CHAPTERS WRITTEN SO FAR ===\n${sl}\n=== END STATE LOG ===`;
@@ -1628,7 +1619,6 @@ ${_beatUsrBlock(chapterBeat)}`;
       if (lastRelationshipStatus) currentChapterRequest += `\nRelationship status entering this chapter: ${lastRelationshipStatus}`;
     }
 
-    // PART 4A — Inject physical tics ban into user message
     if (chapterIndex > 0 && Object.keys(bannedTicsByChar).length > 0) {
       const ticLines = Object.entries(bannedTicsByChar).map(([char, banned]) =>
         `${char}: ${banned.map(b => b.tic).join(', ')}`
@@ -1642,7 +1632,6 @@ INSTEAD USE: stillness, grip pressure on objects, posture changes, swallowing di
       currentChapterRequest = ticInjection + currentChapterRequest;
     }
 
-    // PART 4B — Inject metaphor cluster ban into user message
     if (chapterIndex > 0 && flaggedClusters.length > 0) {
       const clusterLines = flaggedClusters.map(cluster => {
         const totalCount = clusterTotals[cluster] || 0;
@@ -1657,7 +1646,7 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
       currentChapterRequest = clusterInjection + currentChapterRequest;
     }
 
-    // PART F — Topic tracking: ban overused dialogue topics
+    //Topic tracking
     if (previousChapters.length > 0) { const tw = ["power","control","desire","fear","vulnerability","trust","boundaries","limits","darkness","submission","dominance","dangerous","surrender"]; const tc = {}; for (const pc of previousChapters) { let c = pc.content||''; if (c.startsWith('http')) continue; const dl = (c.match(/[""\u201C][^""\u201D]+[""\u201D]/g)||[]).join(' ').toLowerCase(); for (const t of tw) { const m = dl.match(new RegExp(`\\b${t}\\b`,'gi')); if (m) tc[t]=(tc[t]||0)+m.length; } } const ou = Object.entries(tc).filter(([,c])=>c>3).map(([w])=>w); if (ou.length>0) currentChapterRequest += `\n\n=== TOPICS ALREADY COVERED — DO NOT REPEAT ===\nPrevious dialogue discussed: ${ou.join(', ')}. Focus on DIFFERENT subjects: plot logistics, shared memory, concrete decisions, practical problems.\n=== END ===`; }
     messages.push({ role: 'user', content: currentChapterRequest });
     // ── Generate with retry on refusal ────────────────────────────────────────
