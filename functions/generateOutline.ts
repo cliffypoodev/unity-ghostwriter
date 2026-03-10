@@ -745,7 +745,8 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
       }
     }
 
-    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional book outline generator. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
+    const scopeLockBlock = isNonfiction ? SCOPE_LOCK_INSTRUCTIONS_NONFICTION : SCOPE_LOCK_INSTRUCTIONS_FICTION;
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\n${scopeLockBlock}\n\nYou are a professional story architect and book outline generator. Your PRIMARY obligation is to prevent: (1) flat repetition — same tension level recycled, (2) scope bleed — chapters covering same ground under different headings, (3) orphaned threads — elements introduced and never paid off. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
 
 CHARACTER VOICE DIFFERENTIATION RULES:
 - Every named character MUST have a distinct speech pattern defined in their outline entry
