@@ -1618,7 +1618,7 @@ THIS IS NON-NEGOTIABLE. The last 2-3 sentences of your chapter MUST match this e
 STRUCTURAL CONSTRAINT: The final scene of this chapter must take place in a DIFFERENT LOCATION than where the chapter's main conversation happens. The chapter must NOT end with one character walking away while the other watches.
 
 Write ~${TARGET_WORDS} words. Begin immediately with prose. No preamble.
-
+${structuralBlock}
 ${_beatUsrBlock(chapterBeat)}`;
     }
 
