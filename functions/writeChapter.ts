@@ -1548,7 +1548,7 @@ ${chapter.prompt ? `EXTRA CHAPTER INSTRUCTIONS: ${chapter.prompt}` : ''}
 ${prevChapterTail ? `=== PREVIOUS CHAPTER ENDING — DO NOT REPEAT THIS TONE OR STRUCTURE ===\n"...${prevChapterTail}"\n=== END ===` : ''}
 
 Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.
-
+${structuralBlock}
 ${_beatUsrBlock(chapterBeat)}`;
     } else if (isNonfiction) {
       currentChapterRequest = _buildNonfictionUserMessage(
