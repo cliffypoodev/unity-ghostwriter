@@ -501,7 +501,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId) {
   try {
     const targetChapters = spec.chapter_count
       ? parseInt(spec.chapter_count)
-      : 12; // Default for nonfiction
+      : 20; // Default for nonfiction
     const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
     const beatKey = spec.beat_style || spec.tone_style;
     const beatInstructions = beatKey ? `\n\nBeat Style: ${getBeatStyleInstructions(beatKey)}\n` : '';
@@ -509,14 +509,23 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId) {
     const authorVoiceDesc = getAuthorVoiceDescription(authorVoiceKey);
     const authorVoiceInfo = authorVoiceKey !== 'basic' ? `\nAuthor Voice: ${authorVoiceDesc}` : '';
 
+    const subgenreBlock = spec.subgenre ? `\nSubgenre: ${spec.subgenre}\nAll chapters must be relevant to the subgenre. Do not generate chapters that fall outside the subgenre focus.` : '';
+
     const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional nonfiction book architect specializing in research compilation and evidence-based narrative structure. You generate structured outlines for nonfiction books. Return only valid JSON. No prose outside the JSON.
+
+This book must contain exactly ${targetChapters} chapters. Generate an outline with exactly ${targetChapters} chapters — no more, no fewer.
+
+Genre: ${spec.genre || 'General'}${subgenreBlock}
 
 NONFICTION STRUCTURE RULES:
 - This is NONFICTION. Chapters are organized around ARGUMENTS, THEMES, or CHRONOLOGICAL PERIODS — not fictional plot arcs.
 - Every chapter must be grounded in RESEARCH, documented facts, real people, and the author's analytical voice.
 - Avoid extended fictional dialogue scenes. Focus on authorial analysis and evidence presentation.
 - Characters are REAL PEOPLE — include their names, roles, and factual context.
-- Each chapter must advance the book's central argument or thesis.`;
+- Each chapter must advance the book's central argument or thesis.
+
+CHAPTER SUBJECT UNIQUENESS (MANDATORY):
+Each chapter in this outline must cover a distinct historical subject. No two chapters may share the same primary institution or subject AND the same time period. Review your outline before outputting it — if any two chapters overlap in both subject and era, revise one of them before responding.`;
 
     // ── STEP 1: Metadata ──────────────────────────────────────────────────────
     console.log('Gemini: Generating book metadata...');
@@ -586,7 +595,9 @@ Return ONLY JSON.`;
 
       const nfScopeCtx = nfScopeLock ? `\n=== SCOPE LOCK ===\nTHROUGHLINE: ${nfScopeLock.throughline || 'N/A'}\nESCALATION MAP: ${JSON.stringify(nfScopeLock.escalation_map || [])}\nCONCEPT BUDGET: ${JSON.stringify(nfScopeLock.concept_budget || [])}\nTHREAD REGISTER: ${JSON.stringify(nfScopeLock.thread_register || [])}\n=== END ===\n` : '';
 
-      const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${prevContext}
+      const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"
+Genre: ${spec.genre || 'General'}${spec.subgenre ? `\nSubgenre: ${spec.subgenre}\nAll chapters must be relevant to the subgenre "${spec.subgenre}". Do not generate chapters that fall outside the subgenre focus.` : ''}
+This book must contain exactly ${targetChapters} chapters total.${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${prevContext}
 
 Each chapter MUST have these fields:
 - number, title, summary (1-2 sentences on the chapter's argument/focus)
@@ -936,6 +947,7 @@ Return ONLY the JSON object.`;
       const scopeCtx = scopeLock ? `\n=== SCOPE LOCK (binding contract — every chapter must serve this) ===\nTHROUGHLINE: ${scopeLock.throughline || 'N/A'}\nESCALATION MAP: ${JSON.stringify(scopeLock.escalation_map || [])}\n${scopeLock.relationship_arc ? 'RELATIONSHIP ARC: ' + JSON.stringify(scopeLock.relationship_arc) : scopeLock.concept_budget ? 'CONCEPT BUDGET: ' + JSON.stringify(scopeLock.concept_budget) : ''}\nTHREAD REGISTER: ${JSON.stringify(scopeLock.thread_register || [])}\n=== END SCOPE LOCK ===\n` : '';
 
       const chunkPrompt = `Generate ${chunkCount} detailed chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for a ${baseContext}.
+This book must contain exactly ${targetChapters} chapters. Generate chapters for this batch accordingly — no more, no fewer than requested.
 Book title: "${bookMetadata?.title || 'Untitled'}"
 ${beatInstructions}${spiceInstructions}${langInstructions}
 ${subgenreInfo}

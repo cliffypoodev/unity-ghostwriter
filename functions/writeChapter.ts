@@ -1417,11 +1417,13 @@ Write this chapter in full.`
     // ── CHAPTER STATE DOCUMENT SYSTEM ──
     let chapterStateLog = '', projectBannedPhrases = [], lastStateDoc = null;
     let currentEscalation = '1', lastRelationshipStatus = '', lastOpenQuestion = '';
+    let chapterSubjectsLog = '';
     try {
       const prjs = await base44.entities.Project.filter({ id: projectId });
       const prj = prjs[0];
       if (prj?.chapter_state_log) { chapterStateLog = prj.chapter_state_log.startsWith('http') ? await (await fetch(prj.chapter_state_log)).text() : prj.chapter_state_log; }
       if (prj?.banned_phrases_log) { try { projectBannedPhrases = JSON.parse(prj.banned_phrases_log); } catch {} }
+      if (prj?.chapter_subjects_log) { chapterSubjectsLog = prj.chapter_subjects_log; }
     } catch (e) { console.warn('State log load:', e.message); }
     for (let i = chapterIndex - 1; i >= 0; i--) { if (allChapters[i].state_document) { lastStateDoc = allChapters[i].state_document; break; } }
     if (lastStateDoc) {
@@ -1605,6 +1607,27 @@ ${_beatUsrBlock(chapterBeat)}`;
     }
 
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
+
+    // FIX 2 — Inject subgenre into chapter generation for both fiction and nonfiction
+    if (projectSpec?.subgenre && !isNonfiction) {
+      currentChapterRequest += `\n\nThis is a ${projectSpec.genre || 'fiction'} book with subgenre focus: ${projectSpec.subgenre}. All content must remain within this subject area.`;
+    }
+    if (projectSpec?.subgenre && isNonfiction) {
+      currentChapterRequest += `\n\nThis is a ${projectSpec.genre || 'nonfiction'} book with subgenre focus: ${projectSpec.subgenre}. All content must remain within this subject area.`;
+    }
+
+    // FIX 3B — Inject chapter_subjects_log to prevent thematic duplicates (nonfiction)
+    if (isNonfiction && chapterSubjectsLog && chapterSubjectsLog.trim()) {
+      currentChapterRequest += `\n\n=== SUBJECTS ALREADY COVERED IN PREVIOUS CHAPTERS — DO NOT REPEAT ===\nThe following subjects have already been covered in previous chapters. Do NOT write a chapter that covers the same time period, institution, and location as any entry below. Each chapter must cover a meaningfully distinct subject:\n\n${chapterSubjectsLog.trim()}\n\nIf the assigned chapter outline overlaps with a covered subject, shift the focus to a related but distinct angle, a different geographic region, or a different time period within the same era.\n=== END COVERED SUBJECTS ===`;
+    }
+
+    // FIX 4 — Evidence grounding enforcement for Investigative Nonfiction
+    if (isNonfiction) {
+      const beatStyleKey = (projectSpec?.beat_style || projectSpec?.tone_style || '').toLowerCase();
+      if (beatStyleKey.includes('investigative')) {
+        currentChapterRequest += `\n\n=== EVIDENCE GROUNDING REQUIREMENT (Investigative Nonfiction — mandatory) ===\nEvery section of this chapter must be anchored to at least one of:\n- A specific named individual and their documented actions\n- A specific date or date range and a documented event\n- A specific named institution and a verifiable fact about it\n\nDo NOT write paragraphs that describe general historical patterns without grounding them in specific documented cases.\n\nBAD (ungrounded): 'Medieval libraries often faced challenges from political instability and relied on aristocratic patronage.'\n\nGOOD (grounded): 'The library at Jumièges lost its entire collection during a Viking raid in 841, forcing the community to rebuild from memory and borrowed texts.'\n\nIf you cannot ground a claim in a specific documented case, replace the claim with a better-documented example that you can ground specifically. Do not use placeholder statistics or unverified quotes.\n=== END EVIDENCE GROUNDING ===`;
+      }
+    }
 
     if (uniqueCrossChapterPhrases.length > 0) {
       currentChapterRequest += `\n\n=== BANNED PHRASES — DO NOT USE ANY OF THESE IN THIS CHAPTER ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END BANNED PHRASES ===`;
