@@ -1225,8 +1225,6 @@ CRITICAL OUTPUT RULES:
 
 ${PLOT_SUBTEXT_RULES}
 
-${DIALOGUE_SUBTEXT_RULES}
-
 ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
       systemPrompt += _beatSysBlock(chapterBeat);
