@@ -1617,7 +1617,7 @@ ${_beatUsrBlock(chapterBeat)}`;
       const lastCh = previousChapters[previousChapters.length - 1];
       let lastChContent = lastCh.content || '';
       if (lastChContent.startsWith('http://') || lastChContent.startsWith('https://')) {
-        try { lastChContent = await (await fetch(lastChContent)).text(); } catch { lastChContent = ''; }
+        try { const r = await fetch(lastChContent); lastChContent = r.ok ? await r.text() : ''; if (lastChContent.startsWith('<')) lastChContent = ''; } catch { lastChContent = ''; }
       }
       const lastLines = lastChContent.trim().split("\n").slice(-3);
       const antiRepeatContext =
