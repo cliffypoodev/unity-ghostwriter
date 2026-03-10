@@ -744,8 +744,11 @@ export default function GenerateTab({ projectId, onProceed }) {
          }
        }, 2000);
 
-       // Stop polling after 5 minutes
-       setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
+       // Stop polling after 15 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout after 15 minutes" }));
+        }, 15 * 60 * 1000);
      }
    } catch (err) {
      console.error('writeChapter error:', err.message);
@@ -876,7 +879,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         // CRITICAL: Block here until this chapter is fully saved before moving on.
         // The backend writes asynchronously, so we poll until status === 'generated'.
         let pollCount = 0;
-        const maxPolls = 150; // 5 minutes at 2s intervals
+        const maxPolls = 450; // 15 minutes at 2s intervals
         let done = false;
 
         while (!done && pollCount < maxPolls) {
@@ -911,7 +914,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         }
 
         if (!done && isWriting) {
-          throw new Error('Generation timeout after 5 minutes');
+          throw new Error('Generation timeout after 15 minutes');
         }
       } catch (err) {
         const errorMsg = err.message || 'Unknown error';
