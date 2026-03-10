@@ -590,7 +590,14 @@ Return ONLY JSON.`;
 
 Each chapter MUST have these fields:
 - number, title, summary (1-2 sentences on the chapter's argument/focus)
-- prompt: 300+ words covering HOOK (opening fact/anecdote), CONTENT (research focus with names/dates/places), STRUCTURE (subheadings), TRANSITIONS, TONE, RESEARCH SOURCES
+- prompt: 100-150 words covering HOOK (opening fact/anecdote), CONTENT (research focus with names/dates/places), STRUCTURE (key angle), TRANSITION_IN, TRANSITION_OUT
+- scope_boundary: One sentence — what this chapter covers and what it does NOT cover
+- opens_with: Specific opening fact/scene/moment — not a mood
+- primary_beat: The single most important argument advance
+- argument_advance: How the central argument moves forward (must differ from start to end)
+- threads_activated: Array of thread names introduced or advanced
+- threads_paid_off: Array of thread names resolved
+- must_not_do: Array of 2+ things this chapter must avoid
 - transition_from: How to pick up from previous chapter (null for ch 1)
 - transition_to: How this chapter sets up the next
 
