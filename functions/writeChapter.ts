@@ -1121,10 +1121,11 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const outlineData = await parseOutlineField(outline?.outline_data, outline?.outline_url);
     const storyBible = await parseOutlineField(outline?.story_bible, outline?.story_bible_url);
 
-    // Find this chapter's outline entry for transition fields
+    // Find this chapter's outline entry for transition fields + structural contract
     const outlineChapters = outlineData?.chapters || [];
-    const outlineEntry = outlineChapters.find(c => c.chapter_number === chapter.chapter_number) || {};
-    const prevOutlineEntry = prevChapter ? (outlineChapters.find(c => c.chapter_number === prevChapter.chapter_number) || {}) : null;
+    const outlineEntry = outlineChapters.find(c => (c.chapter_number || c.number) === chapter.chapter_number) || {};
+    const prevOutlineEntry = prevChapter ? (outlineChapters.find(c => (c.chapter_number || c.number) === prevChapter.chapter_number) || {}) : null;
+    const scopeLock = outlineData?.scope_lock || null;
 
     const TARGET_WORDS = 1600;
 
