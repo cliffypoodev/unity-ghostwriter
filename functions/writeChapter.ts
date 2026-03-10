@@ -1446,37 +1446,21 @@ Write this chapter in full.`
     for (const pc of allChapters.slice(0, chapterIndex)) { if (pc.distinctive_phrases) { try { const p = JSON.parse(pc.distinctive_phrases); if (Array.isArray(p)) crossChapterPhrases.push(...p); } catch {} } }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 60).sort();
 
-    // PART 4A — Collect physical tics from previous chapters (ban any tic used >= 1 time)
-    const ticMap = {}; // charName -> { ticName -> [chapterNumbers] }
-    for (const prevCh of allChapters.slice(0, chapterIndex)) {
-      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
-      if (!txt) continue;
+    // PART 4A — Collect physical tics from previous chapters
+    const ticMap = {}, bannedTicsByChar = {};
+    for (const pc of allChapters.slice(0, chapterIndex)) {
+      const txt = (pc.content && !pc.content.startsWith('http')) ? pc.content : ''; if (!txt) continue;
       const tics = extractPhysicalTics(txt);
-      for (const [char, ticCounts] of Object.entries(tics)) {
-        if (!ticMap[char]) ticMap[char] = {};
-        for (const [tic] of Object.entries(ticCounts)) {
-          if (!ticMap[char][tic]) ticMap[char][tic] = [];
-          ticMap[char][tic].push(prevCh.chapter_number);
-        }
-      }
+      for (const [ch, tc] of Object.entries(tics)) { if (!ticMap[ch]) ticMap[ch] = {}; for (const t of Object.keys(tc)) { if (!ticMap[ch][t]) ticMap[ch][t] = []; ticMap[ch][t].push(pc.chapter_number); } }
     }
-    const bannedTicsByChar = {}; // charName -> [{ tic, chapters }]
-    for (const [char, tics] of Object.entries(ticMap)) {
-      const banned = Object.entries(tics).map(([t, chs]) => ({ tic: t, chapters: chs }));
-      if (banned.length > 0) bannedTicsByChar[char] = banned;
-    }
-
-    // PART 4B — Collect metaphor cluster usage from previous chapters (flag at 5+)
+    for (const [ch, tics] of Object.entries(ticMap)) { const b = Object.entries(tics).map(([t, c]) => ({ tic: t, chapters: c })); if (b.length > 0) bannedTicsByChar[ch] = b; }
+    // PART 4B — Collect metaphor cluster usage from previous chapters
     const clusterTotals = {};
-    for (const prevCh of allChapters.slice(0, chapterIndex)) {
-      const txt = (prevCh.content && !prevCh.content.startsWith('http')) ? prevCh.content : '';
-      if (!txt) continue;
-      const clusters = extractMetaphorClusters(txt);
-      for (const [clusterName, { count }] of Object.entries(clusters)) {
-        clusterTotals[clusterName] = (clusterTotals[clusterName] || 0) + count;
-      }
+    for (const pc of allChapters.slice(0, chapterIndex)) {
+      const txt = (pc.content && !pc.content.startsWith('http')) ? pc.content : ''; if (!txt) continue;
+      const cl = extractMetaphorClusters(txt); for (const [n, { count }] of Object.entries(cl)) { clusterTotals[n] = (clusterTotals[n] || 0) + count; }
     }
-    const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5).map(([name]) => name);
+    const flaggedClusters = Object.entries(clusterTotals).filter(([, c]) => c >= 5).map(([n]) => n);
 
     // Structural contract from scope lock + outline entry
     const _oe = outlineEntry, _sc = [];
