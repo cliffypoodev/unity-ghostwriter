@@ -1500,8 +1500,6 @@ ${sceneSections}
 - ENDING STYLE (above) applies to the final scene's last lines only
 - MAX 3 consecutive dialogue exchanges before a paragraph of action/description/thought breaks the rhythm
 
-BANNED PHRASES: 'heart racing/pounding', 'pulse quickened', 'breath hitched', 'intoxicating', 'electric' (atmosphere), 'shadows danced', 'in that moment', 'no turning back', 'something deeper/unspoken', 'invisible thread/force', 'just the beginning', 'air thickened/crackled'
-
 ${chapter.prompt ? `EXTRA CHAPTER INSTRUCTIONS: ${chapter.prompt}` : ''}
 
 ${prevChapterTail ? `=== PREVIOUS CHAPTER ENDING — DO NOT REPEAT THIS TONE OR STRUCTURE ===\n"...${prevChapterTail}"\n=== END ===` : ''}
