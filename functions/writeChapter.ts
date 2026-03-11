@@ -1377,26 +1377,28 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
-    // Add only the LAST written chapter as brief context (full history causes worker timeouts)
+    // CUT 1: Use state document (compact summary) + last 2-3 sentences instead of full prose
     const previousChapters = allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated');
     if (previousChapters.length > 0) {
       const lastPrev = previousChapters[previousChapters.length - 1];
+
+      // State document: compact summary of character positions, open threads, escalation
+      const stateDoc = lastPrev.state_document || '';
+
+      // Last 2-3 sentences for prose continuity
       let prevContent = lastPrev.content || '';
       if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) {
         try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
       }
-      if (prevContent) {
-        // Send only last ~800 words to keep token count manageable
-        const words = prevContent.trim().split(/\s+/);
-        const tail = words.length > 800 ? words.slice(-800).join(' ') : prevContent;
-        messages.push({
-          role: 'user',
-          content: `Here is how Chapter ${lastPrev.chapter_number} ("${lastPrev.title}") ended:\n\n${tail}`
-        });
-        messages.push({
-          role: 'assistant',
-          content: 'Understood. I have the context from the previous chapter ending. Ready to write the next chapter.'
-        });
+      const lastSentences = prevContent ? prevContent.trim().split(/(?<=[.!?])\s+/).slice(-3).join(' ') : '';
+
+      let contextBlock = `PREVIOUS CHAPTER ${lastPrev.chapter_number} ("${lastPrev.title}") CONTEXT:`;
+      if (stateDoc) contextBlock += `\n\nSTATE DOCUMENT:\n${stateDoc}`;
+      if (lastSentences) contextBlock += `\n\nLAST SENTENCES:\n${lastSentences}`;
+
+      if (stateDoc || lastSentences) {
+        messages.push({ role: 'user', content: contextBlock });
+        messages.push({ role: 'assistant', content: 'Understood. I have the state and ending from the previous chapter. Ready to write the next chapter.' });
       }
     }
 
