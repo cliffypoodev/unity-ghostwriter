@@ -25,19 +25,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No chapters found' }, { status: 400 });
     }
 
-    // Find the first chapter that is NOT generated (to start writing from there)
-    const firstPendingIndex = chapters.findIndex(c => c.status !== 'generated');
-    const startIndex = firstPendingIndex === -1 ? chapters.length : firstPendingIndex;
+    // Find chapters that need writing
+    const toWrite = chapters.filter(c => c.status !== 'generated');
 
-    // If all chapters already written, return early
-    if (startIndex >= chapters.length) {
+    if (toWrite.length === 0) {
       return Response.json({
         success: true,
         totalChapters: chapters.length,
         completedChapters: chapters.length,
         failedChapters: 0,
         totalTimeSeconds: 0,
-        results: [],
         message: 'All chapters already written',
       });
     }
@@ -45,79 +42,39 @@ Deno.serve(async (req) => {
     const results = [];
     const startTime = Date.now();
 
-    for (let i = startIndex; i < chapters.length; i++) {
-      const chapter = chapters[i];
+    // Write chapters sequentially — each writeChapter call awaits full generation
+    for (let i = 0; i < toWrite.length; i++) {
+      const chapter = toWrite[i];
       const chapterNum = chapter.chapter_number;
 
-      console.log(`Writing chapter ${chapterNum} of ${chapters.length}...`);
+      console.log(`[${i + 1}/${toWrite.length}] Writing chapter ${chapterNum}: "${chapter.title}"...`);
 
-      // Call writeChapter function (it fires async generation and returns immediately)
       try {
+        // writeChapter runs synchronously — it awaits the full AI generation
+        // Using asServiceRole so it stays within the same server context
         const writeResp = await base44.asServiceRole.functions.invoke('writeChapter', {
           project_id: projectId,
           chapter_id: chapter.id,
         });
 
-        // Wait for the async generation to complete by polling chapter status
-        // writeChapter returns immediately but generation runs in background
-        let pollAttempts = 0;
-        const maxPollAttempts = 120; // 10 minutes max per chapter (120 * 5s)
-        let chapterDone = false;
-
-        while (pollAttempts < maxPollAttempts) {
-          await new Promise(r => setTimeout(r, 5000)); // Wait 5 seconds between polls
-          pollAttempts++;
-
-          const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
-          const updatedChapter = updatedChapters.find(c => c.id === chapter.id);
-
-          if (updatedChapter?.status === 'generated') {
-            chapterDone = true;
-            console.log(`✓ Chapter ${chapterNum} complete (${updatedChapter.word_count || 0} words)`);
-            results.push({
-              chapterNumber: chapterNum,
-              chapterId: chapter.id,
-              success: true,
-              message: `Chapter written (${updatedChapter.word_count || 0} words)`,
-            });
-            break;
-          } else if (updatedChapter?.status === 'error') {
-            console.warn(`✗ Chapter ${chapterNum} failed`);
-            results.push({
-              chapterNumber: chapterNum,
-              chapterId: chapter.id,
-              success: false,
-              message: 'Chapter generation failed',
-            });
-            chapterDone = true;
-            break;
-          }
-          // Still generating, keep polling...
-        }
-
-        if (!chapterDone) {
-          console.warn(`Chapter ${chapterNum} timed out after ${maxPollAttempts * 5}s`);
-          results.push({
-            chapterNumber: chapterNum,
-            chapterId: chapter.id,
-            success: false,
-            message: 'Chapter generation timed out',
-          });
+        if (writeResp.data?.success) {
+          console.log(`✓ Chapter ${chapterNum} complete`);
+          results.push({ chapterNumber: chapterNum, success: true });
+        } else {
+          console.warn(`✗ Chapter ${chapterNum} returned error:`, writeResp.data?.error);
+          results.push({ chapterNumber: chapterNum, success: false, message: writeResp.data?.error || 'Unknown error' });
         }
       } catch (err) {
-        await base44.entities.Chapter.update(chapter.id, { status: 'error' });
-        results.push({
-          chapterNumber: chapterNum,
-          chapterId: chapter.id,
-          success: false,
-          message: err.message || 'Failed to write chapter',
-        });
+        console.error(`✗ Chapter ${chapterNum} exception:`, err.message);
+        // Mark as error if not already
+        try { await base44.entities.Chapter.update(chapter.id, { status: 'error' }); } catch {}
+        results.push({ chapterNumber: chapterNum, success: false, message: err.message });
       }
 
-      // Brief pause between chapter launches to avoid rate limits
-      if (i < chapters.length - 1) {
-        console.log(`Pausing 10s before next chapter to avoid rate limits...`);
-        await new Promise(r => setTimeout(r, 10000));
+      // Brief pause between chapters to avoid rate limits
+      if (i < toWrite.length - 1) {
+        console.log('Pausing 5s before next chapter...');
+        await new Promise(r => setTimeout(r, 5000));
       }
     }
 
