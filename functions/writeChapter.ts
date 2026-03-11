@@ -1764,6 +1764,8 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     //Topic tracking
     if (previousChapters.length > 0) { const tw = ["power","control","desire","fear","vulnerability","trust","boundaries","limits","darkness","submission","dominance","dangerous","surrender"]; const tc = {}; for (const pc of previousChapters) { let c = pc.content||''; if (c.startsWith('http')) continue; const dl = (c.match(/[""\u201C][^""\u201D]+[""\u201D]/g)||[]).join(' ').toLowerCase(); for (const t of tw) { const m = dl.match(new RegExp(`\\b${t}\\b`,'gi')); if (m) tc[t]=(tc[t]||0)+m.length; } } const ou = Object.entries(tc).filter(([,c])=>c>3).map(([w])=>w); if (ou.length>0) currentChapterRequest += `\n\n=== TOPICS ALREADY COVERED — DO NOT REPEAT ===\nPrevious dialogue discussed: ${ou.join(', ')}. Focus on DIFFERENT subjects: plot logistics, shared memory, concrete decisions, practical problems.\n=== END ===`; }
 
+    // Chapter-opening quality rule
+    currentChapterRequest += `\n\n=== CHAPTER OPENING RULE (MANDATORY) ===\nDo not open any chapter with a character reflecting that change is or isn't coming. Do not open with internal monologue about what the character has told themselves. Open with a concrete sensory detail, a physical action, or a line of dialogue. The first sentence must be happening now, not a reflection on what happened before.\n=== END OPENING RULE ===`;
     // FIX 9 — Inject unified canonical state document
     const unifiedState = buildUnifiedStateDocument(storyBible, outlineData, allChapters, chapterIndex, scopeLock);
     if (unifiedState) { currentChapterRequest = unifiedState + '\n\n' + currentChapterRequest; }
