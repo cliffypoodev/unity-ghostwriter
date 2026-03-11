@@ -1509,6 +1509,9 @@ Before writing this chapter, review the character motivations established in the
     }
 
     // ── PART A — Build conversation-style messages array ─────────────────────
+    // PATCH 2 — Cliffhanger resolution: check previous chapter's state doc for ending_type
+    const prevStateDocs = []; for (let i = chapterIndex - 1; i >= 0; i--) { if (allChapters[i].state_document) { prevStateDocs.push(allChapters[i].state_document); break; } }
+    if (prevStateDocs.length > 0) { const etM = prevStateDocs[0].match(/ENDING_TYPE:\s*([\w_]+)/i); const pet = etM ? etM[1].trim().toLowerCase() : ''; if (pet === 'cliffhanger' || pet === 'unresolved_action') { systemPrompt = `=== REQUIRED OPENING — CLIFFHANGER RESOLUTION (OVERRIDES ALL OTHER OPENING RULES) ===\nThe previous chapter ended with an unresolved physical confrontation or action. The first scene of this chapter must show the direct outcome of that confrontation. Name who was involved. Show what happened. Show the immediate aftermath — injuries, emotions, consequences. Do not skip to a later time, a new location, or a new scene until the cliffhanger has been fully resolved on the page. The reader watched the moment of danger. They are owed the resolution before anything else happens.\n=== END REQUIRED OPENING ===\n\n` + systemPrompt; } }
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
