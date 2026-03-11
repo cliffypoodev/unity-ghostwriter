@@ -1376,7 +1376,7 @@ The final image of this book should reflect the emotional truth of the protagoni
       systemPrompt += `\n\n${allegianceBlock}`;
     }
     // FIX 8 — Character registry (legacy fiction path)
-    const regBlock = buildCharacterRegistryBlock(storyBible);
+    const regBlock = buildCharacterRegistryBlock(storyBible, nameRegistry);
     if (regBlock) { systemPrompt += `\n\n${regBlock}`; }
 
     // PART B — transition instructions
