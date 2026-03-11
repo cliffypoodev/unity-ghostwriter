@@ -902,6 +902,13 @@ CHAPTER ENDING VARIATION RULES:
 - NEVER end a chapter with a character thinking "I'm ready to go deeper/explore more/face what's ahead." That is not an ending, it is a placeholder.
 - The final line of each chapter must be CONCRETE (an image, a sound, a single action) — not abstract philosophical musing.
 
+CHARACTER REGISTRY CONFLICT PREVENTION — MANDATORY:
+- Before introducing any new named character in any chapter, check all existing characters in the story bible.
+- No new character may share a name with, or have a name closely resembling, an existing character.
+- No new character may fill a role already occupied by an existing character (mentor, love interest, inside contact, tech expert, confidant, rival) unless the chapter prompt explicitly justifies why the established character cannot serve that role.
+- If the outline introduces a new character filling an already-occupied role, revise the chapter to use the existing character instead, or add explicit justification for the new character.
+- A character introduced as a mentor in chapter 2 cannot also appear as an unrelated rogue scientist in chapter 12 unless this is an explicit plot twist with a bridge scene.
+
 PLOT PROGRESSION — MANDATORY:
 - Every chapter must contain at least ONE of these concrete plot advances:
   - A new piece of information the reader did not have before

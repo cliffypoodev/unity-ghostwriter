@@ -400,6 +400,24 @@ If a character uses she/her pronouns, use she/her in EVERY chapter. No exception
 === END CHARACTER CONSISTENCY ===`;
 }
 
+// FIX 8 — Character registry block: prevents new character conflicts
+function buildCharacterRegistryBlock(storyBible) {
+  const chars = storyBible?.characters;
+  if (!chars || !Array.isArray(chars) || chars.length === 0) return '';
+  const registry = chars.map(c => `- ${c.name} (${c.role || 'unspecified role'})`).join('\n');
+  return `=== CHARACTER REGISTRY — CHECK BEFORE NAMING ANYONE ===
+Do not introduce new named characters unless the story bible has no existing character who could fulfill this role. Check this registry before naming anyone. A character introduced as a mentor in chapter 2 cannot also appear as an unrelated rogue scientist in chapter 12 unless this is an explicit plot twist established in the outline.
+
+REGISTERED CHARACTERS:
+${registry}
+
+RULES:
+1. If a scene needs a role already filled above, USE the existing character.
+2. If you must introduce a new named character, their name must not duplicate or closely resemble any name above.
+3. If a new character fills a role already occupied (mentor, love interest, inside contact, tech expert), the narrative must justify why the established character cannot fill that role.
+=== END CHARACTER REGISTRY ===`;
+}
+
 // PART B — Extract distinctive phrases from chapter text for cross-chapter repetition prevention
 function extractDistinctivePhrases(text) {
   const phrases = new Set();
@@ -1210,6 +1228,8 @@ ${buildCapabilitiesBlock(storyBible)}
 
 ${buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number)}
 
+${buildCharacterRegistryBlock(storyBible)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -1265,6 +1285,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       // Allegiance shift (nonfiction path)
       const nfAllegianceBlock = buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number);
       if (nfAllegianceBlock) { systemPrompt += `\n\n${nfAllegianceBlock}`; }
+      // Character registry (nonfiction path)
+      const nfRegBlock = buildCharacterRegistryBlock(storyBible);
+      if (nfRegBlock) { systemPrompt += `\n\n${nfRegBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
@@ -1327,6 +1350,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     if (allegianceBlock) {
       systemPrompt += `\n\n${allegianceBlock}`;
     }
+    // FIX 8 — Character registry (legacy fiction path)
+    const regBlock = buildCharacterRegistryBlock(storyBible);
+    if (regBlock) { systemPrompt += `\n\n${regBlock}`; }
 
     // PART B — transition instructions
     if (prevChapter && prevOutlineEntry) {
