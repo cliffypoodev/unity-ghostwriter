@@ -475,7 +475,7 @@ Return ONLY the JSON object. No preamble.`;
 }
 
 // NONFICTION GEMINI OUTLINE GENERATOR — Uses Gemini for better research structuring
-async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId) {
+async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookResearch = null) {
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
 
