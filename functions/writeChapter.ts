@@ -1420,7 +1420,7 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const nextEscalation = Math.min(6, parseInt(currentEscalation) + 1);
     const crossChapterPhrases = [...projectBannedPhrases];
     for (const pc of allChapters.slice(0, chapterIndex)) { if (pc.distinctive_phrases) { try { const p = JSON.parse(pc.distinctive_phrases); if (Array.isArray(p)) crossChapterPhrases.push(...p); } catch {} } }
-    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 60).sort();
+    const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(0, 20).sort();
 
     const ticMap = {}, bannedTicsByChar = {};
     for (const pc of allChapters.slice(0, chapterIndex)) {
