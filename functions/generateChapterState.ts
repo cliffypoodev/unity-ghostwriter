@@ -225,10 +225,19 @@ ${chapterContent.slice(0, 6000)}`;
       : newEntry;
   }
 
+  // Upload banned phrases as file if large
+  const bannedPhrasesJson = JSON.stringify(allBannedPhrases);
+  let bannedPhrasesValue = bannedPhrasesJson;
+  if (bannedPhrasesJson.length > 20000) {
+    const phrasesFile = new File([bannedPhrasesJson], `banned_phrases_${project_id}.json`, { type: 'application/json' });
+    const phrasesUpload = await base44.integrations.Core.UploadFile({ file: phrasesFile });
+    if (phrasesUpload?.file_url) bannedPhrasesValue = phrasesUpload.file_url;
+  }
+
   // Update chapter with its state document, and project with cumulative log + banned phrases + subjects
   const projectUpdate = {
     chapter_state_log: stateLogValue,
-    banned_phrases_log: JSON.stringify(allBannedPhrases),
+    banned_phrases_log: bannedPhrasesValue,
   };
   if (subjectLine) {
     projectUpdate.chapter_subjects_log = existingSubjectsLog;
