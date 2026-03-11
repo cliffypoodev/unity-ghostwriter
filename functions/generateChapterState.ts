@@ -170,10 +170,12 @@ ${chapterContent}`;
     }
   }
 
-  // Load existing banned phrases from project
+  // Load existing banned phrases from project (may be inline JSON or a file URL)
   let existingBannedPhrases = [];
   if (project.banned_phrases_log) {
-    try { existingBannedPhrases = JSON.parse(project.banned_phrases_log); } catch {}
+    let bpRaw = project.banned_phrases_log;
+    if (bpRaw.startsWith('http')) { try { const r = await fetch(bpRaw); bpRaw = r.ok ? await r.text() : '[]'; } catch { bpRaw = '[]'; } }
+    try { existingBannedPhrases = JSON.parse(bpRaw); } catch {}
   }
   const allBannedPhrases = [...new Set([...existingBannedPhrases, ...newPhrases])];
 
