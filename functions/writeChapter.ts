@@ -1453,24 +1453,19 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       const openingType = getOpeningType(chapter.chapter_number);
       const endingType = getEndingType(chapter.chapter_number);
 
+      // CUT 4: Strip verbose scene fields — keep only structural essentials
       const sceneSections = parsedScenes.map((scene, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === parsedScenes.length - 1;
         return `SCENE ${scene.scene_number}: ${scene.title}
-
-Location: ${scene.location}
-Time: ${scene.time}
-POV: ${scene.pov}
-Characters present: ${Array.isArray(scene.characters_present) ? scene.characters_present.join(', ') : scene.characters_present}
+Location: ${scene.location} | Time: ${scene.time} | POV: ${scene.pov}
+Characters: ${Array.isArray(scene.characters_present) ? scene.characters_present.join(', ') : scene.characters_present}
 Purpose: ${scene.purpose}
 Emotional arc: ${scene.emotional_arc}
 KEY ACTION (MUST happen): ${scene.key_action}
-Dialogue focus: ${scene.dialogue_focus || 'None — this is an action-focused scene'}
-Sensory anchor (must appear in first 3 sentences of this scene): ${scene.sensory_anchor}
 Word target: ~${scene.word_target} words
-${scene.extra_instructions ? `Notes: ${scene.extra_instructions}` : ''}
-${isFirst ? `OPENING STYLE (applies to this scene only): ${openingType.name} — ${openingType.desc}` : ''}
-${isLast ? `ENDING STYLE (applies to this scene only): ${endingType.name} — ${endingType.desc}` : ''}`;
+${isFirst ? `OPENING STYLE: ${openingType.name} — ${openingType.desc}` : ''}
+${isLast ? `ENDING STYLE: ${endingType.name} — ${endingType.desc}` : ''}`;
       }).join('\n\n---\n\n');
 
       // Get anti-repetition context from last written chapter
