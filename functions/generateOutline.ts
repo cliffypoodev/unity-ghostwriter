@@ -854,8 +854,18 @@ This is a short-form intimate fiction work. The central conflict must be emotion
       }
     }
 
-    const scopeLockBlock = isNonfiction ? SCOPE_LOCK_INSTRUCTIONS_NONFICTION : SCOPE_LOCK_INSTRUCTIONS_FICTION;
-    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\n${scopeLockBlock}${shortEroticaConstraint}\n\nYou are a professional story architect and book outline generator. Your PRIMARY obligation is to prevent: (1) flat repetition — same tension level recycled, (2) scope bleed — chapters covering same ground under different headings, (3) orphaned threads — elements introduced and never paid off. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
+    // FIX 7 — Thriller scope lock: personal stakes must always be emotional core
+    let thrillerScopeLock = '';
+    if (!isNonfiction) {
+      const thrillerGenre = ((spec.genre || '') + ' ' + (spec.subgenre || '')).toLowerCase();
+      if (/thriller|suspense|crime|mystery/.test(thrillerGenre)) {
+        thrillerScopeLock = `\n\n=== THRILLER PERSONAL STAKES CONSTRAINT (MANDATORY) ===
+External stakes must escalate personal stakes — they must never replace them. The protagonist's personal emotional wound, their relationships, and their immediate survival must remain the emotional core of every chapter regardless of how large the plot becomes. If the plot has introduced world-scale threats (mass casualties, geopolitical events, species-level events), each chapter must still contain a moment where those stakes are filtered through the protagonist's personal emotional reality. A Christmas tsunami that kills a million people is less emotionally effective than the protagonist thinking about their daughter's crayon drawings of whales.
+=== END THRILLER CONSTRAINT ===\n`;
+      }
+    }
+
+    const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\n${scopeLockBlock}${shortEroticaConstraint}${thrillerScopeLock}\n\nYou are a professional story architect and book outline generator. Your PRIMARY obligation is to prevent: (1) flat repetition — same tension level recycled, (2) scope bleed — chapters covering same ground under different headings, (3) orphaned threads — elements introduced and never paid off. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
 
 CHARACTER VOICE DIFFERENTIATION RULES:
 - Every named character MUST have a distinct speech pattern defined in their outline entry
