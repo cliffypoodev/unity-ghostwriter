@@ -1282,6 +1282,8 @@ ${buildFiredBeatsBlock(allChapters, chapterIndex)}
 
 ${buildCapabilitiesBlock(storyBible)}
 
+${buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -1334,6 +1336,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       // Character capabilities (nonfiction path)
       const nfCapBlock = buildCapabilitiesBlock(storyBible);
       if (nfCapBlock) { systemPrompt += `\n\n${nfCapBlock}`; }
+      // Allegiance shift (nonfiction path)
+      const nfAllegianceBlock = buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number);
+      if (nfAllegianceBlock) { systemPrompt += `\n\n${nfAllegianceBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
@@ -1390,6 +1395,11 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const capabilitiesBlock = buildCapabilitiesBlock(storyBible);
     if (capabilitiesBlock) {
       systemPrompt += `\n\n${capabilitiesBlock}`;
+    }
+    // Allegiance shift detection
+    const allegianceBlock = buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number);
+    if (allegianceBlock) {
+      systemPrompt += `\n\n${allegianceBlock}`;
     }
 
     // PART B — transition instructions
