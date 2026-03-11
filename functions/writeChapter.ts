@@ -1468,16 +1468,6 @@ ${isFirst ? `OPENING STYLE: ${openingType.name} — ${openingType.desc}` : ''}
 ${isLast ? `ENDING STYLE: ${endingType.name} — ${endingType.desc}` : ''}`;
       }).join('\n\n---\n\n');
 
-      // Get anti-repetition context from last written chapter
-      let prevChapterTail = '';
-      if (prevChapter?.content) {
-        let prevContent = prevChapter.content || '';
-        if (prevContent.startsWith('http')) {
-          try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
-        }
-        if (prevContent) prevChapterTail = prevContent.trim().slice(-200);
-      }
-
       currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
 
 WRITE THIS CHAPTER SCENE-BY-SCENE IN THIS EXACT ORDER:
