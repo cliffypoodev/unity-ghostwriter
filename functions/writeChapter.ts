@@ -1716,6 +1716,10 @@ ${_beatUsrBlock(chapterBeat)}`;
       }
     }
 
+    // FIX 2 — Final chapter banned phrases (sequel hooks / ominous reopeners)
+    if (isLastChapter) {
+      uniqueCrossChapterPhrases.push("we know what you are", "they had found us", "this wasn't over", "this was far from over", "it wasn't over", "but they would be back", "a new threat", "the real enemy");
+    }
     if (uniqueCrossChapterPhrases.length > 0) {
       currentChapterRequest += `\n\n=== BANNED PHRASES — DO NOT USE ANY OF THESE IN THIS CHAPTER ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END BANNED PHRASES ===`;
     }
