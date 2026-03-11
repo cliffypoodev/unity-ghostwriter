@@ -1759,37 +1759,8 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     const bannedClusterNames = flaggedClusters;
     const isErotic = isIntimateGenre(projectSpec);
 
-    let fullContentWorking = fullContent;
-
-    // PART E — Run 1 validation+regeneration cycle (reduced from 2 to prevent timeouts)
-    const validationFailures = await runValidationChecks(fullContentWorking, bannedTicsByChar, bannedClusterNames, isErotic);
-    if (validationFailures.length > 0) {
-      // Only regenerate for truly critical failures (intimate scene issues), not stylistic ones
-      const criticalFailures = validationFailures.filter(f => 
-        !f.startsWith('METAPHOR CLUSTER') && 
-        !f.startsWith('TIC REPETITION') && 
-        !f.startsWith('BANNED DIALOGUE PATTERNS')
-      );
-      if (criticalFailures.length > 0) {
-        console.warn(`Chapter ${chapter.chapter_number} validation failed (regenerating):`, criticalFailures);
-        const regenNotice = `=== REGENERATION — PREVIOUS ATTEMPT FAILED QUALITY CHECKS ===\nYour previous chapter attempt was rejected for:\n${criticalFailures.map(f => `- ${f}`).join('\n')}\nRewrite fixing these specific issues. Keep plot, arcs, and progression the same.\n=== END ===\n\n`;
-        const regenMessages = [...messages.slice(0, -1), { role: 'user', content: regenNotice + currentChapterRequest }];
-        const newText = await callAIConversation(regenMessages, 8192);
-        if (!isRefusal(newText)) {
-          let rc = newText;
-          rc = rc.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-          rc = rc.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
-          rc = rc.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-          rc = rc.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
-          rc = rc.replace(/\n{3,}/g, '\n\n');
-          fullContentWorking = rc.trim();
-        }
-      } else {
-        console.log(`Chapter ${chapter.chapter_number} validation: only non-critical issues (metaphor clusters), skipping regen.`);
-      }
-    }
-
-    fullContent = fullContentWorking;
+    // SKIP validation regeneration to stay within Deno worker time limits.
+    // Quality scan still runs below for logging purposes.
 
     // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters, storyBible, and permanent quality rules)
     // DEEPSEEK POST-GENERATION VALIDATION (PART 1, 2, 3 ORCHESTRATION)
