@@ -1600,8 +1600,8 @@ ${_beatUsrBlock(chapterBeat)}`;
       currentChapterRequest += `\n\n=== BANNED PHRASES — DO NOT USE ANY OF THESE IN THIS CHAPTER ===\n${uniqueCrossChapterPhrases.map(p => `- ${p}`).join('\n')}\n=== END BANNED PHRASES ===`;
     }
     if (chapterStateLog && chapterIndex > 0) {
-      const sl = chapterStateLog.length > 8000 ? chapterStateLog.slice(-8000) : chapterStateLog;
-      currentChapterRequest += `\n\n=== CHAPTER STATE LOG — ALL CHAPTERS WRITTEN SO FAR ===\n${sl}\n=== END STATE LOG ===`;
+      const sl = chapterStateLog.length > 3000 ? chapterStateLog.slice(-3000) : chapterStateLog;
+      currentChapterRequest += `\n\n=== CHAPTER STATE LOG ===\n${sl}\n=== END STATE LOG ===`;
     }
     if (lastStateDoc) {
       currentChapterRequest += `\n\nCURRENT ESCALATION STAGE: ${currentEscalation}\nThis chapter must advance escalation from ${currentEscalation} toward ${nextEscalation}.`;
