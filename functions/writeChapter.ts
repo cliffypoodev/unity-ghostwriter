@@ -1555,18 +1555,19 @@ ${structuralBlock}
 ${_beatUsrBlock(chapterBeat)}`;
     }
 
+    // Anti-repeat: last sentence only (full context already provided via state doc in messages)
     if (previousChapters && previousChapters.length > 0) {
       const lastCh = previousChapters[previousChapters.length - 1];
       let lastChContent = lastCh.content || '';
       if (lastChContent.startsWith('http://') || lastChContent.startsWith('https://')) {
         try { const r = await fetch(lastChContent); lastChContent = r.ok ? await r.text() : ''; if (lastChContent.startsWith('<')) lastChContent = ''; } catch { lastChContent = ''; }
       }
-      const lastLines = lastChContent.trim().split("\n").slice(-3);
-      const antiRepeatContext =
-        "\n=== PREVIOUS CHAPTER ENDING (DO NOT REPEAT OR CLOSELY MIRROR THIS) ===\n" +
-        lastLines.join("\n") +
-        "\n=== END PREVIOUS CHAPTER ENDING ===\n\n";
-      currentChapterRequest = antiRepeatContext + currentChapterRequest;
+      if (lastChContent) {
+        const lastSentence = lastChContent.trim().split(/(?<=[.!?])\s+/).slice(-1)[0] || '';
+        if (lastSentence) {
+          currentChapterRequest = `=== PREVIOUS CHAPTER'S LAST LINE (DO NOT MIRROR) ===\n"${lastSentence}"\n=== END ===\n\n` + currentChapterRequest;
+        }
+      }
     }
 
     currentChapterRequest += `\n\nREMINDER: You are writing Chapter ${chapter.chapter_number}: "${chapter.title}". Do NOT output a chapter heading. Do NOT renumber or rename the chapter. Start directly with the first sentence of prose.`;
