@@ -1311,7 +1311,7 @@ The final image of this book should reflect the emotional truth of the protagoni
       const nfAllegianceBlock = buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number);
       if (nfAllegianceBlock) { systemPrompt += `\n\n${nfAllegianceBlock}`; }
       // Character registry (nonfiction path)
-      const nfRegBlock = buildCharacterRegistryBlock(storyBible);
+      const nfRegBlock = buildCharacterRegistryBlock(storyBible, nameRegistry);
       if (nfRegBlock) { systemPrompt += `\n\n${nfRegBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
