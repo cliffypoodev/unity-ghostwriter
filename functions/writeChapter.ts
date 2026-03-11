@@ -1540,27 +1540,7 @@ ${chapter.summary || ''}
 
 === CRITICAL RULES — VIOLATION MEANS REJECTION ===
 
-BANNED PHRASES — if you use ANY of these, the chapter is auto-rejected and rewritten by a second AI pass. Using them wastes time and money:
-'heart racing/pounding/hammering', 'pulse quickened/raced', 'breath hitched/caught', 'swallowed hard',
-'shiver down spine', 'a jolt/surge/rush of', 'intoxicating', 'electric/electricity' (atmosphere/touch),
-'shadows danced/twisted/swirled', 'tendrils of', 'the weight of', 'in that moment',
-'no turning back', 'teetering on the edge', 'on the precipice/brink', 'a mix/blend/cocktail of [X] and [Y]',
-'a kaleidoscope/whirlwind/tapestry/maelstrom of', 'he/she felt alive', 'the world faded',
-'Control is an illusion', 'Embrace it/your desires', 'Let go of fear', 'What if I lose myself',
-'ready to embrace/confront', 'just the beginning', 'air thickened/crackled/charged', 'palpable', 'siren's call',
-'thrill of the chase', 'dangerous game/dance/allure', 'playing with fire', 'testing/pushing boundaries',
-'like a moth to a flame', 'a knowing/playful/mischievous smile/smirk/glint', 'something deeper/unspoken',
-'unspoken tension/promise/understanding', 'invisible thread/force/pull', 'cutting through like a knife',
-'storm/tempest brewing within', 'facade slipping/cracking', 'igniting a fire', 'fire within him/her',
-'laced with', 'heavy with implication', 'thick with tension', 'charged with possibility', 'hung in the air',
-'what do you truly want/desire', 'how far are you willing to go', 'let's see where this leads',
-'a flicker of', 'a spark of', 'couldn't shake/ignore/resist the feeling'
-
-WRITE LIKE THIS INSTEAD:
-- BAD: 'His heart raced as the air between them grew charged.' → GOOD: 'His collar stuck to his neck. He pulled at it, aware she hadn't blinked.'
-- BAD: 'A knowing smile played on her lips.' → GOOD: 'She tilted her head and said nothing, which was worse.'
-- BAD: ''What do you truly desire?' The words hung heavy in the air.' → GOOD: ''You didn't come here for the lecture notes.' She set down her pen.'
-- Tension comes from ACTIONS and SILENCE, not from the narrator labeling feelings.
+BANNED PHRASES: 'heart racing/pounding', 'pulse quickened', 'breath hitched', 'intoxicating', 'electric' (atmosphere), 'shadows danced', 'in that moment', 'no turning back', 'just the beginning', 'air thickened/crackled', 'something deeper/unspoken', 'invisible thread/force', 'playing with fire', 'testing boundaries'. Build tension through ACTIONS and SILENCE, not labeled feelings.
 
 GENRE DELIVERY: For PROMISE_OF_PREMISE beats, write actual ${projectSpec?.genre||'genre'} scenes. Min 40% action, not dialogue.
 SUPPORTING CAST: If any named character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explained.
