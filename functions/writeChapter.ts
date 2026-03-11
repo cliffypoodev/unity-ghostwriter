@@ -108,21 +108,8 @@ const BEAT_STYLES = {
 
 const AUTHOR_VOICES_MAP = { hemingway:"Terse, declarative sentences. Iceberg theory.", king:"Conversational, immersive. Rich inner monologue, building dread.", austen:"Witty, ironic social commentary.", tolkien:"Mythic, elevated prose. Rich world-building.", morrison:"Lyrical, poetic. Vivid sensory detail.", rowling:"Accessible, whimsical. Clever wordplay.", mccarthy:"Sparse, biblical. No quotation marks.", atwood:"Sharp, sardonic. Precise word choices.", gaiman:"Mythic yet modern. Fairy-tale cadence.", pratchett:"Satirical. Comedic fantasy, warm humanity.", le_guin:"Sparse elegance, philosophical depth.", vonnegut:"Dark humor, short sentences. Absurdist.", garcia_marquez:"Lush magical realism. Sprawling sentences.", chandler:"Hardboiled noir. First-person cynicism.", christie:"Puzzle-box plotting. Clean readable prose.", gladwell:"Nonfiction storytelling. Counterintuitive hooks.", bryson:"Humorous nonfiction. Self-deprecating wit.", sagan:"Awe-inspiring science writing. Poetic wonder.", didion:"Cool, precise observation." };
 
-const FICTION_ENDING_TYPES = {
-  1: "Type A: Mid-action cliffhanger — interrupt the character mid-action, cut to black. No summary, no reflection.",
-  2: "Type B: A revelation that recontextualizes what the reader just read. End with the new information, no reaction narration.",
-  3: "Type C: A concrete, specific sensory image — an actual thing the character sees/hears/touches. NOT abstract.",
-  4: "Type D: A line of dialogue that lands like a gut-punch — absolutely NO narration after the dialogue. The quote is the last thing.",
-  5: "Type E: A quiet, mundane action that contrasts with the chapter's intensity — e.g., character makes coffee after a harrowing event.",
-};
-
-const NONFICTION_ENDING_TYPES = {
-  1: "A quiet, resonant image — a single specific detail that carries the chapter's emotional weight without stating it.",
-  2: "A reframing sentence — one line that recasts everything the chapter discussed in a new light.",
-  3: "A brief poem, aphorism, or set-apart reflection — 2-4 lines of compressed wisdom, separated from the main text.",
-  4: "A lingering question — posed directly to the reader, unanswered, that invites continued reflection.",
-  5: "A return to the opening vignette — circle back to the scene or person from the beginning, now seen differently.",
-};
+const FICTION_ENDING_TYPES = { 1:"Type A: Mid-action cliffhanger — cut mid-action. No summary.", 2:"Type B: Revelation that recontextualizes. End with new info, no reaction.", 3:"Type C: Concrete sensory image — actual thing seen/heard/touched. NOT abstract.", 4:"Type D: Gut-punch dialogue — NO narration after. Quote is last.", 5:"Type E: Quiet mundane action contrasting chapter's intensity." };
+const NONFICTION_ENDING_TYPES = { 1:"Quiet resonant image — single detail carrying emotional weight.", 2:"Reframing sentence — recasts everything in new light.", 3:"Brief poem/aphorism — 2-4 lines compressed wisdom.", 4:"Lingering question — unanswered, inviting reflection.", 5:"Return to opening vignette — circle back, now seen differently." };
 
 function getBeatStyleInstructions(key) {
   if (!key) return "Not specified";
@@ -745,100 +732,31 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
   const violations = [];
   let violationCount = 0;
 
-  // Check physical reactions
-  const physicalMatches = [];
-  for (const phrase of bannedPhrases.physicalReactions) {
-    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = lowerText.match(regex);
-    if (matches) {
-      physicalMatches.push(...matches.slice(0, 2).map(m => phrase));
-      violationCount += matches.length;
+  // Generic phrase checker helper
+  function _checkPhrases(phrases, text, label, maxPerPhrase = 2) {
+    const found = [];
+    for (const phrase of phrases) {
+      const rx = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      const m = text.match(rx);
+      if (m) { found.push(...m.slice(0, maxPerPhrase).map(() => phrase)); violationCount += m.length; }
     }
+    if (found.length > 0) violations.push(`${label} (${found.length}): ${found.join(', ')}`);
+    return found;
   }
-
-  // Check atmosphere clichés
-  const atmosphereMatches = [];
-  for (const phrase of bannedPhrases.atmosphereClichés) {
-    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = lowerText.match(regex);
-    if (matches) {
-      atmosphereMatches.push(...matches.slice(0, 2).map(m => phrase));
-      violationCount += matches.length;
-    }
-  }
-
-  // Check narration clichés
-  const narrationMatches = [];
-  for (const phrase of bannedPhrases.narrationClichés) {
-    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = lowerText.match(regex);
-    if (matches) {
-      narrationMatches.push(...matches.slice(0, 2).map(m => phrase));
-      violationCount += matches.length;
-    }
-  }
-
-  // Check dialogue clichés
-  const dialogueMatches = [];
-  for (const phrase of bannedPhrases.dialogueClichés) {
-    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = lowerText.match(regex);
-    if (matches) {
-      dialogueMatches.push(...matches.slice(0, 2).map(m => phrase));
-      violationCount += matches.length;
-    }
-  }
-
-  // Check show-don't-tell patterns
+  const physicalMatches = _checkPhrases(bannedPhrases.physicalReactions, lowerText, 'PHYSICAL REACTIONS');
+  const atmosphereMatches = _checkPhrases(bannedPhrases.atmosphereClichés, lowerText, 'ATMOSPHERE CLICHÉS');
+  const narrationMatches = _checkPhrases(bannedPhrases.narrationClichés, lowerText, 'NARRATION CLICHÉS');
+  const dialogueMatches = _checkPhrases(bannedPhrases.dialogueClichés, lowerText, 'DIALOGUE CLICHÉS');
+  // Show-don't-tell (slightly different regex)
   const showDontTellMatches = [];
-  for (const pattern of bannedPhrases.showDontTellPatterns) {
-    const regex = new RegExp(`${pattern}\\s+\\w+`, 'gi');
-    const matches = lowerText.match(regex);
-    if (matches) {
-      showDontTellMatches.push(...matches.slice(0, 2));
-      violationCount += matches.length;
-    }
-  }
+  for (const pattern of bannedPhrases.showDontTellPatterns) { const rx = new RegExp(`${pattern}\\s+\\w+`, 'gi'); const m = lowerText.match(rx); if (m) { showDontTellMatches.push(...m.slice(0, 2)); violationCount += m.length; } }
+  if (showDontTellMatches.length > 0) violations.push(`SHOW-DON'T-TELL (${showDontTellMatches.length}): ${showDontTellMatches.slice(0, 2).join(', ')}`);
+  // Ending patterns (last 200 chars)
+  const endingMatches = _checkPhrases(bannedPhrases.endingPatterns, lowerText.slice(-200), 'ENDING PATTERN', 1);
+  // Opening bleed phrases (first 500 chars)
+  const openingBleedMatches = _checkPhrases(bannedPhrases.openingBleed, lowerText.slice(0, 500), 'OPENING BLEED', 1);
 
-  // Check ending patterns (last 200 chars only)
-  const lastChunk = lowerText.slice(-200);
-  const endingMatches = [];
-  for (const pattern of bannedPhrases.endingPatterns) {
-    const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = lastChunk.match(regex);
-    if (matches) {
-      endingMatches.push(...matches.slice(0, 1).map(m => pattern));
-      violationCount += matches.length;
-    }
-  }
-
-  const allBannedFound = [
-    ...physicalMatches,
-    ...atmosphereMatches,
-    ...narrationMatches,
-    ...dialogueMatches,
-    ...showDontTellMatches,
-    ...endingMatches
-  ];
-
-  if (physicalMatches.length > 0) {
-    violations.push(`PHYSICAL REACTIONS (${physicalMatches.length}): ${physicalMatches.join(', ')}`);
-  }
-  if (atmosphereMatches.length > 0) {
-    violations.push(`ATMOSPHERE CLICHÉS (${atmosphereMatches.length}): ${atmosphereMatches.join(', ')}`);
-  }
-  if (narrationMatches.length > 0) {
-    violations.push(`NARRATION CLICHÉS (${narrationMatches.length}): ${narrationMatches.join(', ')}`);
-  }
-  if (dialogueMatches.length > 0) {
-    violations.push(`DIALOGUE CLICHÉS (${dialogueMatches.length}): ${dialogueMatches.join(', ')}`);
-  }
-  if (showDontTellMatches.length > 0) {
-    violations.push(`SHOW-DON'T-TELL (${showDontTellMatches.length}): ${showDontTellMatches.slice(0, 2).join(', ')}`);
-  }
-  if (endingMatches.length > 0) {
-    violations.push(`ENDING PATTERN (${endingMatches.length}): ${endingMatches.join(', ')}`);
-  }
+  const allBannedFound = [...physicalMatches, ...atmosphereMatches, ...narrationMatches, ...dialogueMatches, ...showDontTellMatches, ...endingMatches, ...openingBleedMatches];
 
   // PART 6 CHECK 1 — Physical tic repetition from previous chapters
   if (previousChapters && previousChapters.length > 0) {
