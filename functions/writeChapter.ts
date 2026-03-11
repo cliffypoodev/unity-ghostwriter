@@ -1420,7 +1420,7 @@ Write this chapter in full.`
       const prjs = await base44.entities.Project.filter({ id: projectId });
       const prj = prjs[0];
       if (prj?.chapter_state_log) { chapterStateLog = prj.chapter_state_log.startsWith('http') ? await (await fetch(prj.chapter_state_log)).text() : prj.chapter_state_log; }
-      if (prj?.banned_phrases_log) { try { projectBannedPhrases = JSON.parse(prj.banned_phrases_log); } catch {} }
+      if (prj?.banned_phrases_log) { let bpRaw = prj.banned_phrases_log; if (bpRaw.startsWith('http')) { try { bpRaw = await (await fetch(bpRaw)).text(); } catch { bpRaw = '[]'; } } try { projectBannedPhrases = JSON.parse(bpRaw); } catch {} }
       if (prj?.chapter_subjects_log) { chapterSubjectsLog = prj.chapter_subjects_log; }
     } catch (e) { console.warn('State log load:', e.message); }
     for (let i = chapterIndex - 1; i >= 0; i--) { if (allChapters[i].state_document) { lastStateDoc = allChapters[i].state_document; break; } }
