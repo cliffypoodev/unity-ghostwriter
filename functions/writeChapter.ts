@@ -1243,7 +1243,7 @@ ${buildCapabilitiesBlock(storyBible)}
 
 ${buildAllegianceShiftBlock(storyBible, outlineData, chapter.chapter_number)}
 
-${buildCharacterRegistryBlock(storyBible)}
+${buildCharacterRegistryBlock(storyBible, nameRegistry)}
 
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
