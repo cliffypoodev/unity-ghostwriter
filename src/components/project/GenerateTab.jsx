@@ -920,18 +920,46 @@ export default function GenerateTab({ projectId, onProceed }) {
       let chapterSuccess = false;
 
       try {
-        // Invoke writeChapter — now awaits full generation
-        const response = await base44.functions.invoke('writeChapter', {
-          project_id: projectId,
-          chapter_id: chapter.id,
-        }, { timeout: 900000 }); // 15 min timeout
-
-        if (response.status !== 200) {
-          throw new Error(response.data?.error || `Request failed with status ${response.status}`);
+        // Invoke writeChapter — awaits full generation (synchronous mode)
+        let response;
+        try {
+          response = await base44.functions.invoke('writeChapter', {
+            project_id: projectId,
+            chapter_id: chapter.id,
+          }, { timeout: 900000 }); // 15 min timeout
+        } catch (invokeErr) {
+          // Network timeout or connection error — check if chapter actually completed
+          console.warn(`Chapter ${chapter.chapter_number} invoke error (checking status):`, invokeErr.message);
+          await new Promise(r => setTimeout(r, 3000));
+          const checkUpdated = await base44.entities.Chapter.filter({ project_id: projectId });
+          const checkChapter = checkUpdated.find(c => c.id === chapter.id);
+          if (checkChapter?.status === 'generated') {
+            // Generation actually succeeded despite the network error
+            let finalContent = checkChapter.content || '';
+            if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
+              try { finalContent = await (await fetch(finalContent)).text(); } catch {}
+            }
+            const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
+            chapterWordsCount = finalWords;
+            totalWordsWritten += finalWords;
+            successes++;
+            chapterSuccess = true;
+            setWriteAllProgress(prev => ({ ...prev, chapterWords: chapterWordsCount, wordsWritten: totalWordsWritten, successes }));
+          } else {
+            // Reset stuck chapter and throw to trigger retry
+            if (checkChapter?.status === 'generating') {
+              await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
+            }
+            throw new Error(invokeErr.message || 'Network timeout');
+          }
         }
 
-        // If synchronous completion — chapter is done, skip polling
-        if (!response.data?.async) {
+        if (!chapterSuccess && response) {
+          if (response.status !== 200) {
+            throw new Error(response.data?.error || `Request failed with status ${response.status}`);
+          }
+
+          // Check chapter status after synchronous return
           const updated = await base44.entities.Chapter.filter({ project_id: projectId });
           const updatedChapter = updated.find(c => c.id === chapter.id);
           if (updatedChapter?.status === 'generated') {
@@ -944,72 +972,12 @@ export default function GenerateTab({ projectId, onProceed }) {
             totalWordsWritten += finalWords;
             successes++;
             chapterSuccess = true;
-            setWriteAllProgress(prev => ({
-              ...prev,
-              chapterWords: chapterWordsCount,
-              wordsWritten: totalWordsWritten,
-              successes,
-            }));
-          }
-        }
-
-        // Poll only if async (legacy fallback) and not already completed
-        if (response.data?.async && !chapterSuccess) {
-          let pollCount = 0;
-          const maxPolls = 600;
-          let done = false;
-          let lastUpdatedDate = null;
-          let stuckCount = 0;
-          const STUCK_THRESHOLD = 90;
-          let retryAttempts = 0;
-          const MAX_RETRIES = 2;
-
-          while (!done && pollCount < maxPolls) {
-            if (writeAllAbortRef.current) { isWriting = false; break; }
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            pollCount++;
-            const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-            const updatedChapter = updated.find(c => c.id === chapter.id);
-
-            if (updatedChapter?.status === 'generated') {
-              let finalContent = updatedChapter.content || '';
-              if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
-                try { finalContent = await (await fetch(finalContent)).text(); } catch (e) { /* ignore */ }
-              }
-              const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
-              chapterWordsCount = finalWords;
-              totalWordsWritten += finalWords;
-              successes++;
-              done = true;
-              setWriteAllProgress(prev => ({
-                ...prev,
-                chapterWords: chapterWordsCount,
-                wordsWritten: totalWordsWritten,
-                successes,
-              }));
-            } else if (updatedChapter?.status === 'error') {
-              throw new Error('Chapter generation failed on server');
-            } else if (updatedChapter?.status === 'generating') {
-              const currentUpdated = updatedChapter.updated_date;
-              if (lastUpdatedDate && currentUpdated === lastUpdatedDate) {
-                stuckCount++;
-              } else {
-                stuckCount = 0;
-                lastUpdatedDate = currentUpdated;
-              }
-              if (stuckCount >= STUCK_THRESHOLD && retryAttempts < MAX_RETRIES) {
-                retryAttempts++;
-                stuckCount = 0;
-                setWriteAllProgress(prev => ({ ...prev, error: `Chapter ${chapter.chapter_number} stalled — retrying (attempt ${retryAttempts})...` }));
-                await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
-                await new Promise(r => setTimeout(r, 2000));
-                await base44.functions.invoke('writeChapter', { project_id: projectId, chapter_id: chapter.id }, { timeout: 900000 });
-                lastUpdatedDate = null;
-              }
-            }
-          }
-          if (!done && isWriting) {
-            throw new Error('Generation timeout after 20 minutes');
+            setWriteAllProgress(prev => ({ ...prev, chapterWords: chapterWordsCount, wordsWritten: totalWordsWritten, successes }));
+          } else if (updatedChapter?.status === 'error') {
+            throw new Error('Chapter generation failed on server');
+          } else {
+            // Still generating or pending — shouldn't happen with sync mode, but handle it
+            throw new Error('Chapter did not complete — server may have timed out');
           }
         }
       } catch (err) {
