@@ -800,18 +800,6 @@ export default function GenerateTab({ projectId, onProceed }) {
       error: null,
     });
 
-    let successes = 0;
-    let totalWordsWritten = 0;
-    const failures = [];
-    let isWriting = true;
-
-    // Validate that chapters exist before starting
-    if (toWrite.length === 0) {
-      setWriteAllProgress(prev => ({ ...prev, done: true, error: "No chapters found to write. Please regenerate your outline first." }));
-      setWriteAllActive(false);
-      return;
-    }
-
     // ── PHASE 1: Generate scenes for fiction chapters that don't have them ──
     if (spec?.book_type !== 'nonfiction') {
       const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '');
@@ -839,84 +827,84 @@ export default function GenerateTab({ projectId, onProceed }) {
       }
     }
 
+    // ── PHASE 2: Write chapters SEQUENTIALLY from the frontend ──
+    // Each writeChapter call is independent — we fire it and poll for completion.
+    // This avoids the server-to-server timeout chain that caused 504 errors.
     setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: "Phase 2: Writing Chapters" }));
 
-    // Fire off the backend writeAllChapters orchestrator (server-to-server calls)
-    // This keeps the Deno worker alive because it awaits each writeChapter call synchronously
-    console.log('Starting write for all chapters via backend orchestrator...');
+    let successes = 0;
+    let totalWordsWritten = 0;
+    const failedChapters = [];
+
+    // Reset any stuck chapters first
     try {
-      await base44.functions.invoke('writeAllChapters', { projectId }, { timeout: 10000 });
-    } catch (invokeErr) {
-      // Expected — the backend runs for a long time, the HTTP request may timeout
-      // That's fine, the backend continues running server-side
-      console.log('writeAllChapters invoke returned/timed out (backend continues):', invokeErr?.message || 'ok');
+      await base44.functions.invoke('writeAllChapters', { projectId }, { timeout: 15000 });
+    } catch (err) {
+      console.log('writeAllChapters reset call:', err?.message || 'ok');
     }
 
-    // Poll chapter statuses to track progress
-    let lastGenerated = successes;
-    let pollCount = 0;
-    const maxPolls = 900; // 30 min max at 2s intervals
-
-    while (pollCount < maxPolls) {
+    for (let i = 0; i < toWrite.length; i++) {
       if (writeAllAbortRef.current) break;
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      pollCount++;
 
-      const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-      const generated = updated.filter(c => c.status === 'generated');
-      const errored = updated.filter(c => c.status === 'error');
-      const generating = updated.find(c => c.status === 'generating');
-      const allDone = toWrite.every(tw => {
-        const u = updated.find(c => c.id === tw.id);
-        return u?.status === 'generated' || u?.status === 'error';
-      });
-
-      // Count total words from all generated chapters
-      totalWordsWritten = 0;
-      for (const ch of generated) {
-        totalWordsWritten += ch.word_count || 0;
-      }
-      successes = generated.length - chapters.filter(c => c.status === 'generated').length + (lastGenerated - 0);
-      // Simpler: count how many of toWrite are now generated
-      const toWriteGenerated = toWrite.filter(tw => updated.find(c => c.id === tw.id)?.status === 'generated').length;
-      const toWriteFailed = toWrite.filter(tw => updated.find(c => c.id === tw.id)?.status === 'error').length;
+      const ch = toWrite[i];
+      console.log(`[${i + 1}/${toWrite.length}] Writing chapter ${ch.chapter_number}: "${ch.title}"...`);
 
       setWriteAllProgress(prev => ({
         ...prev,
-        current: toWriteGenerated + toWriteFailed,
-        currentTitle: generating?.title || prev.currentTitle,
-        successes: toWriteGenerated,
-        failures: toWrite.filter(tw => updated.find(c => c.id === tw.id)?.status === 'error').map(tw => ({ number: tw.chapter_number, title: tw.title, error: 'Generation failed' })),
-        wordsWritten: totalWordsWritten,
-        chapterWords: generating?.word_count || 0,
-        error: null,
+        current: i,
+        currentTitle: ch.title,
+        chapterWords: 0,
       }));
 
-      if (allDone) break;
+      try {
+        const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
+          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
+        });
+
+        // Refresh chapter data to get word count
+        const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+        totalWordsWritten = updatedChapters.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+
+        if (result === "generated") {
+          successes++;
+        } else {
+          failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === "timeout" ? "Timed out" : "Generation failed" });
+        }
+
+        setWriteAllProgress(prev => ({
+          ...prev,
+          current: i + 1,
+          successes,
+          failures: [...failedChapters],
+          wordsWritten: totalWordsWritten,
+          chapterWords: 0,
+        }));
+
+      } catch (err) {
+        console.error(`Chapter ${ch.chapter_number} error:`, err.message);
+        failedChapters.push({ number: ch.chapter_number, title: ch.title, error: err.message });
+      }
+
+      // Brief pause between chapters
+      if (i < toWrite.length - 1 && !writeAllAbortRef.current) {
+        await new Promise(r => setTimeout(r, 3000));
+      }
     }
 
     const elapsed = Date.now() - startTime;
     const mins = Math.floor(elapsed / 60000);
     const secs = Math.floor((elapsed % 60000) / 1000);
 
-    const finalUpdated = await base44.entities.Chapter.filter({ project_id: projectId });
-    const finalGenerated = toWrite.filter(tw => finalUpdated.find(c => c.id === tw.id)?.status === 'generated').length;
-    const finalFailed = toWrite.filter(tw => finalUpdated.find(c => c.id === tw.id)?.status === 'error');
-    totalWordsWritten = 0;
-    for (const ch of finalUpdated.filter(c => c.status === 'generated')) {
-      totalWordsWritten += ch.word_count || 0;
-    }
-
     setWriteAllProgress(prev => ({
       ...prev,
       current: toWrite.length,
-      successes: finalGenerated,
-      failures: finalFailed.map(tw => ({ number: tw.chapter_number, title: tw.title, error: 'Generation failed' })),
+      successes,
+      failures: failedChapters,
       done: true,
       elapsed: `${mins}m ${secs}s`,
       wordsWritten: totalWordsWritten,
       chapterWords: 0,
-      error: finalFailed.length > 0 ? `${finalFailed.length} chapter(s) failed. See details below.` : null,
+      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed. See details below.` : null,
     }));
 
     setWriteAllActive(false);
