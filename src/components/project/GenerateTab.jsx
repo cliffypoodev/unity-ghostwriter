@@ -683,19 +683,26 @@ export default function GenerateTab({ projectId, onProceed }) {
   // Shared helper: fire writeChapter and poll until chapter reaches generated/error status.
   // Returns "generated" | "error" | "timeout"
   const writeAndPollChapter = async (chapterId, chapterNumber, onProgress) => {
-    // Fire the writeChapter request — don't await it fully since it may timeout from browser
-    const invokePromise = base44.functions.invoke('writeChapter', {
+    let httpDone = false;
+    let httpError = null;
+
+    // Fire the writeChapter request — track when it completes/fails
+    base44.functions.invoke('writeChapter', {
       project_id: projectId,
       chapter_id: chapterId,
-    }, { timeout: 600000 }).catch(err => {
-      // Browser timeout is expected — the backend continues running
-      console.log(`writeChapter HTTP returned/timed out for ch ${chapterNumber}:`, err?.message || 'ok');
+    }, { timeout: 600000 }).then(() => {
+      httpDone = true;
+    }).catch(err => {
+      httpDone = true;
+      httpError = err?.message || 'HTTP error';
+      console.log(`writeChapter HTTP returned/errored for ch ${chapterNumber}:`, httpError);
     });
 
     // Poll chapter status until done
     const startedAt = Date.now();
-    const maxWaitMs = 10 * 60 * 1000; // 10 min max per chapter
+    const maxWaitMs = 7 * 60 * 1000; // 7 min max per chapter (Deno CPU limit is ~5 min)
     const progressMessages = ["Generating prose…", "Writing chapter content…", "Building narrative…", "Crafting scenes…", "Finalizing chapter…"];
+    let lastUpdatedAt = null; // Track when the chapter record was last modified
 
     while (Date.now() - startedAt < maxWaitMs) {
       await new Promise(r => setTimeout(r, 3000));
@@ -716,14 +723,48 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (onProgress) onProgress(`Error during generation`);
         return "error";
       }
+
+      // Detect Deno crash: if HTTP request completed (with error) but chapter is still "generating",
+      // the backend died without updating status. Mark it as error and move on.
+      if (httpDone && httpError && ch?.status === 'generating' && elapsed > 30) {
+        console.warn(`Ch ${chapterNumber}: Backend crashed (${httpError}) — marking as error`);
+        if (onProgress) onProgress(`Backend crashed — skipping to next chapter`);
+        try {
+          await base44.entities.Chapter.update(chapterId, { status: 'error' });
+        } catch (e) { console.warn('Failed to mark crashed chapter:', e.message); }
+        return "error";
+      }
+
+      // Detect stale "generating": if 4+ minutes have passed and the chapter updated_date
+      // hasn't changed in 2+ minutes, the worker likely died silently
+      if (ch?.updated_date) {
+        const updMs = new Date(ch.updated_date).getTime();
+        if (lastUpdatedAt && updMs === lastUpdatedAt && elapsed > 240) {
+          const staleSecs = Math.floor((Date.now() - updMs) / 1000);
+          if (staleSecs > 120) {
+            console.warn(`Ch ${chapterNumber}: Stale "generating" for ${staleSecs}s — marking as error`);
+            if (onProgress) onProgress(`Worker timed out — skipping to next chapter`);
+            try {
+              await base44.entities.Chapter.update(chapterId, { status: 'error' });
+            } catch (e) { console.warn('Failed to mark stale chapter:', e.message); }
+            return "error";
+          }
+        }
+        lastUpdatedAt = updMs;
+      }
+
       if (onProgress) onProgress(`${progressMessages[msgIdx]} (${timeStr})`);
     }
 
-    // Timeout — check one last time
+    // Timeout — check one last time, then mark as error so pipeline continues
     const finalCheck = await base44.entities.Chapter.filter({ project_id: projectId });
     const finalCh = finalCheck.find(c => c.id === chapterId);
     if (finalCh?.status === 'generated') return "generated";
     if (finalCh?.status === 'error') return "error";
+    // Force-mark as error so Write All pipeline doesn't get stuck
+    try {
+      await base44.entities.Chapter.update(chapterId, { status: 'error' });
+    } catch (e) { console.warn('Failed to mark timed-out chapter:', e.message); }
     return "timeout";
   };
 
