@@ -461,6 +461,9 @@ function extractDistinctivePhrases(text) {
   return [...phrases].slice(0, 30).sort();
 }
 
+// PATCH 3 — Extract named characters from generated prose for name registry
+function extractNamedCharacters(text, chNum, reg = {}) { const SKIP = new Set(['January','February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Chapter','Scene','The','This','That','What','When','Where','Which','There','Here','They','Then','But','And','His','Her','God','Sir','Lord','Lady']); const nameRx = /\b([A-Z][a-z]{2,})(?:\s+[A-Z][a-z]+)?\b/g; const names = {}; let m; while ((m = nameRx.exec(text)) !== null) { const n = m[0]; if (SKIP.has(n.split(' ')[0])) continue; names[n] = (names[n]||0)+1; } const u = { ...reg }; for (const [name, count] of Object.entries(names)) { if (count >= 2 && !u[name]) u[name] = { role: 'discovered', first_chapter: chNum }; } return u; }
+
 // PART 1 — Extract and normalize physical tics per character (16 families)
 function extractPhysicalTics(text) {
   const TIC_PATTERNS = [
