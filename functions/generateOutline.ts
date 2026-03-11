@@ -722,11 +722,44 @@ async function runGeneration(sr, project_id, modelKey = 'claude-sonnet') {
        language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)),
      };
 
-     // NONFICTION ROUTING: Use dedicated Gemini nonfiction generator (optimized for research structure)
+     // NONFICTION ROUTING: Web search research pre-pass + Gemini nonfiction generator
      if (spec.book_type === 'nonfiction') {
+       // Web search research pre-pass for factual grounding
+       let bookResearch = null;
+       try {
+         console.log('Nonfiction: Running web search research pre-pass...');
+         const researchResp = await sr.functions.invoke('researchNonfictionTopic', {
+           topic: spec.topic,
+           subject: null,
+           genre: spec.genre,
+           subgenre: spec.subgenre,
+           scope: 'full book overview',
+         });
+         bookResearch = researchResp.data || researchResp;
+         if (bookResearch?.facts?.length > 0) {
+           console.log(`Research pre-pass complete: ${bookResearch.facts.length} facts, ${bookResearch.keyFigures?.length || 0} figures`);
+           // Store as project source file for visibility in UI
+           try {
+             await sr.entities.SourceFile.create({
+               project_id,
+               filename: 'book_research.json',
+               file_type: 'reference',
+               content: JSON.stringify(bookResearch, null, 2),
+               description: 'Auto-generated research from web search during outline generation',
+             });
+           } catch (sfErr) { console.warn('Source file creation failed (non-blocking):', sfErr.message); }
+         } else {
+           console.warn('Research pre-pass returned no facts, continuing without it');
+           bookResearch = null;
+         }
+       } catch (researchErr) {
+         console.warn('Research pre-pass failed, continuing without it:', researchErr.message);
+         bookResearch = null;
+       }
+
        try {
          console.log('Nonfiction outline detected — using Gemini generation...');
-         await runNonfictionOutlineGemini(sr, project_id, spec, outlineId);
+         await runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookResearch);
          return; // Success — exit early
        } catch (geminiErr) {
          console.warn('Gemini nonfiction generation failed:', geminiErr.message, '— falling back to standard path with Gemini');
