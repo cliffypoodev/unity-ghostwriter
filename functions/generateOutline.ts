@@ -356,6 +356,31 @@ function getLanguageIntensityInstructions(level) {
   return `Language Intensity: ${l}/4 — ${entry.name}\n${entry.instructions}`;
 }
 
+// ── Chapter title deduplication ───────────────────────────────────────────────
+function titleSimilarity(a, b) {
+  const wa = a.toLowerCase().split(/\s+/);
+  const wb = b.toLowerCase().split(/\s+/);
+  const all = new Set([...wa, ...wb]);
+  const shared = wa.filter(w => wb.includes(w)).length;
+  return all.size > 0 ? shared / all.size : 0;
+}
+
+function deduplicateChapterTitles(chapters) {
+  for (let i = 0; i < chapters.length; i++) {
+    const ti = (chapters[i].title || '').trim();
+    if (!ti) continue;
+    for (let j = i + 1; j < chapters.length; j++) {
+      const tj = (chapters[j].title || '').trim();
+      if (!tj) continue;
+      if (ti.toLowerCase() === tj.toLowerCase() || titleSimilarity(ti, tj) > 0.8) {
+        const num = chapters[j].number || j + 1;
+        chapters[j].title = `${tj} (Ch ${num})`;
+        console.log(`Title dedup: "${tj}" → "${chapters[j].title}"`);
+      }
+    }
+  }
+}
+
 // ── Shared JSON repair helpers ────────────────────────────────────────────────
 
 function cleanJSON(text) {
@@ -640,6 +665,9 @@ Return a JSON array with exactly ${chunkCount} objects. No prose outside the arr
       const batchResult = await generateBatch(batchStart, prevEnding);
       allChapters.push(...batchResult);
     }
+
+    // ── Title deduplication pass ────────────────────────────────────────────
+    deduplicateChapterTitles(allChapters);
 
     const parsedOutline = { scope_lock: nfScopeLock, chapters: allChapters };
 
@@ -1075,6 +1103,9 @@ No other fields. No prose outside the JSON array.`;
       scopeLock = allChapters[0].scope_lock;
       delete allChapters[0].scope_lock;
     }
+    // ── Title deduplication pass ────────────────────────────────────────────
+    deduplicateChapterTitles(allChapters);
+
     const parsedOutline = { scope_lock: scopeLock, chapters: allChapters, beat_sheet: beatAssignments || null };
 
     // ── Save outline + metadata (upload large fields as files) ───────────────
