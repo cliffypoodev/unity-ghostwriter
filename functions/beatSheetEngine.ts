@@ -291,10 +291,127 @@ function autoDetectTemplate(genre, bookType) {
   return 'save-the-cat';
 }
 
-function assignBeatsToChapters(templateKey, chapterCount) {
+function assignBeatsShort(templateKey, chapterCount) {
+  const clusters = SHORT_FICTION_CLUSTERS[templateKey];
+  if (!clusters) return assignBeatsToChaptersStandard(templateKey, chapterCount);
+
+  const [IGNITION, COMMITMENT, CRUCIBLE, BREAKING_POINT, RESOLUTION] = clusters;
+  const last = chapterCount;
+
+  let breakingStart, resolutionStart, ignitionEnd, commitmentChapter, crucibleStart, crucibleEnd;
+
+  if (chapterCount === 5)       { ignitionEnd=1; commitmentChapter=2; crucibleStart=3; crucibleEnd=3; breakingStart=4; resolutionStart=5; }
+  else if (chapterCount === 6)  { ignitionEnd=1; commitmentChapter=2; crucibleStart=3; crucibleEnd=4; breakingStart=5; resolutionStart=6; }
+  else if (chapterCount === 7)  { ignitionEnd=1; commitmentChapter=2; crucibleStart=3; crucibleEnd=5; breakingStart=6; resolutionStart=7; }
+  else if (chapterCount === 8)  { ignitionEnd=1; commitmentChapter=2; crucibleStart=3; crucibleEnd=6; breakingStart=7; resolutionStart=8; }
+  else if (chapterCount === 9)  { ignitionEnd=2; commitmentChapter=3; crucibleStart=4; crucibleEnd=7; breakingStart=8; resolutionStart=9; }
+  else                          { ignitionEnd=2; commitmentChapter=3; crucibleStart=4; crucibleEnd=7; breakingStart=8; resolutionStart=10; }
+
+  const crucibleSize = crucibleEnd - crucibleStart + 1;
+  const breakingSize = resolutionStart - breakingStart;
+  const assignments = [];
+
+  for (let ch = 1; ch <= chapterCount; ch++) {
+    if (ch <= ignitionEnd) {
+      assignments.push({ chapter: ch, beat_name: IGNITION.label, beat_function: IGNITION.fn, beat_scene_type: IGNITION.scene_type, beat_tempo: IGNITION.tempo, beat_description: IGNITION.primary_desc });
+      continue;
+    }
+    if (ch === commitmentChapter) {
+      assignments.push({ chapter: ch, beat_name: COMMITMENT.label, beat_function: COMMITMENT.fn, beat_scene_type: COMMITMENT.scene_type, beat_tempo: COMMITMENT.tempo, beat_description: COMMITMENT.primary_desc });
+      continue;
+    }
+    if (ch >= crucibleStart && ch <= crucibleEnd) {
+      const ci = ch - crucibleStart;
+      let desc, beatName, tempo;
+      if (crucibleSize === 1) {
+        desc = CRUCIBLE.primary_desc; beatName = CRUCIBLE.label; tempo = CRUCIBLE.tempo;
+      } else {
+        const ed = CRUCIBLE.expansion_desc;
+        desc = ed[Math.min(ci, ed.length - 1)];
+        const en = ["Fun & Games", "Escalation", "Midpoint Reversal", "Bad Guys Close In"];
+        beatName = en[Math.min(ci, en.length - 1)];
+        tempo = "fast";
+      }
+      assignments.push({
+        chapter: ch, beat_name: beatName,
+        beat_function: ci === 0 ? "PROMISE_OF_PREMISE" : ci === Math.floor(crucibleSize / 2) ? "REVERSAL" : "ESCALATION",
+        beat_scene_type: "scene", beat_tempo: tempo, beat_description: desc,
+      });
+      continue;
+    }
+    if (ch >= breakingStart && ch < resolutionStart) {
+      if (breakingSize === 1) {
+        assignments.push({ chapter: ch, beat_name: BREAKING_POINT.label, beat_function: BREAKING_POINT.fn, beat_scene_type: BREAKING_POINT.scene_type, beat_tempo: BREAKING_POINT.tempo, beat_description: BREAKING_POINT.primary_desc });
+      } else if (ch === breakingStart) {
+        assignments.push({ chapter: ch, beat_name: "All Is Lost", beat_function: "CRISIS", beat_scene_type: "scene", beat_tempo: "fast", beat_description: "The lowest point. Something irreversible — death, betrayal, total failure. The protagonist is worse off than at the start. This event must be SHOWN, not summarized. End the chapter at the moment of devastation — do not begin processing yet." });
+      } else {
+        assignments.push({ chapter: ch, beat_name: "Dark Night of the Soul", beat_function: "REFLECTION", beat_scene_type: "sequel", beat_tempo: "slow", beat_description: "REACTION ONLY. Grief, anger, denial. No new characters. No new plot events. The protagonist processes the devastation. End with the glimmer of realization — not a plan, just a shift. The seed of 'break into three.'" });
+      }
+      continue;
+    }
+    if (ch === resolutionStart) {
+      assignments.push({ chapter: ch, beat_name: RESOLUTION.label, beat_function: RESOLUTION.fn, beat_scene_type: RESOLUTION.scene_type, beat_tempo: RESOLUTION.tempo, beat_description: RESOLUTION.primary_desc });
+      continue;
+    }
+  }
+
+  const template = BEAT_SHEET_TEMPLATES[templateKey];
+  return { template_name: template.name + " (Short Fiction)", template_key: templateKey, category: "fiction", short_fiction_mode: true, assignments };
+}
+
+function assignBeatsToChaptersStandard(templateKey, chapterCount) {
   const template = BEAT_SHEET_TEMPLATES[templateKey];
   if (!template) return null;
   const isNF = template.category === 'nonfiction';
+
+  const chapterBeats = {};
+  for (const beat of template.beats) {
+    const chNum = Math.min(chapterCount, Math.max(1, Math.round(beat.position * (chapterCount - 1)) + 1));
+    if (!chapterBeats[chNum]) chapterBeats[chNum] = [];
+    chapterBeats[chNum].push(beat);
+  }
+
+  const assignments = [];
+  const fictionFnPri = ['CLIMAX','CRISIS','REVERSAL','DISRUPTION','ESCALATION','PROMISE_OF_PREMISE','COMMITMENT','RECOMMITMENT','SUBPLOT','REACTION','REFLECTION','SETUP','RESOLUTION','CONNECTIVE_TISSUE'];
+  const nfFnPri = ['CALL_TO_ACTION','CONFRONTATION_NF','TURNING_POINT','COLD_OPEN','ANOMALY','DEMOLITION','COUNTERARGUMENT','REFRAME','EVIDENCE_BLOCK','PRACTICAL_APPLICATION','SYNTHESIS','THESIS_INTRODUCTION','PROBLEM_STATEMENT','PROVOCATIVE_OPENING','CLOSING_IMAGE','THEMATIC_SYNTHESIS'];
+  const fnPriority = isNF ? nfFnPri : fictionFnPri;
+  const tempoPriority = { fast: 3, medium: 2, slow: 1 };
+
+  for (let i = 1; i <= chapterCount; i++) {
+    const beats = chapterBeats[i];
+    if (beats && beats.length > 0) {
+      if (beats.length === 1) {
+        const b = beats[0];
+        assignments.push({ chapter: i, beat_name: b.name, beat_function: b.fn, beat_scene_type: b.scene_type, beat_tempo: b.tempo, beat_description: b.desc });
+      } else {
+        const names = beats.map(b => b.name).join(' + ');
+        const fns = beats.map(b => b.fn);
+        const bestFn = fnPriority.find(f => fns.includes(f)) || fns[0];
+        const bestTempo = beats.reduce((best, b) => (tempoPriority[b.tempo] || 0) > (tempoPriority[best] || 0) ? b.tempo : best, beats[0].tempo);
+        const bestSceneType = isNF ? beats[0].scene_type : (beats.some(b => b.scene_type === 'scene') ? 'scene' : 'sequel');
+        const desc = beats.map(b => b.desc).join(' ALSO: ');
+        assignments.push({ chapter: i, beat_name: names, beat_function: bestFn, beat_scene_type: bestSceneType, beat_tempo: bestTempo, beat_description: desc });
+      }
+    } else {
+      if (isNF) {
+        assignments.push({ chapter: i, beat_name: 'Connective Chapter', beat_function: 'EVIDENCE_BLOCK', beat_scene_type: 'exposition', beat_tempo: 'medium', beat_description: 'Bridge chapter — deepen a thread from a previous chapter with additional evidence, examples, or analysis. Advance the book\'s central argument.' });
+      } else {
+        assignments.push({ chapter: i, beat_name: 'Connective Tissue', beat_function: 'CONNECTIVE_TISSUE', beat_scene_type: 'scene', beat_tempo: 'medium', beat_description: 'Bridge chapter — advance subplots, deepen relationships, maintain momentum. Must contain at least one irreversible event.' });
+      }
+    }
+  }
+  return { template_name: template.name, template_key: templateKey, category: template.category, assignments };
+}
+
+function assignBeatsToChapters(templateKey, chapterCount) {
+  // ── SHORT FICTION ROUTING ─────────────────────────────────────────────────
+  const template = BEAT_SHEET_TEMPLATES[templateKey];
+  if (template?.category === 'fiction' && chapterCount >= 5 && chapterCount <= 10) {
+    return assignBeatsShort(templateKey, chapterCount);
+  }
+  // ── END SHORT FICTION ROUTING ─────────────────────────────────────────────
+  return assignBeatsToChaptersStandard(templateKey, chapterCount);
+}
 
   // Map beats to chapter numbers
   const chapterBeats = {};
