@@ -1539,8 +1539,6 @@ ${chapter.summary || ''}
 
 === CRITICAL RULES — VIOLATION MEANS REJECTION ===
 
-BANNED PHRASES: 'heart racing/pounding', 'pulse quickened', 'breath hitched', 'intoxicating', 'electric' (atmosphere), 'shadows danced', 'in that moment', 'no turning back', 'just the beginning', 'air thickened/crackled', 'something deeper/unspoken', 'invisible thread/force', 'playing with fire', 'testing boundaries'. Build tension through ACTIONS and SILENCE, not labeled feelings.
-
 GENRE DELIVERY: For PROMISE_OF_PREMISE beats, write actual ${projectSpec?.genre||'genre'} scenes. Min 40% action, not dialogue.
 SUPPORTING CAST: If any named character appeared in previous chapters, they must appear in this chapter, be referenced by name, or have their absence explained.
 
