@@ -419,22 +419,15 @@ function buildUnifiedStateDocument(storyBible, outlineData, allChapters, chapter
   return `=== UNIFIED CANONICAL STATE DOCUMENT ===\nBefore writing a single word of this chapter, read the entire state document below. Every character detail, relationship status, and plot thread listed here is canonical. Your chapter must be consistent with all of it. If the scene you are about to write would contradict anything in this state document, stop and rewrite the scene so it does not.\n\n${s.join('\n\n')}\n=== END UNIFIED STATE DOCUMENT ===`;
 }
 
-// FIX 8 — Character registry block: prevents new character conflicts
-function buildCharacterRegistryBlock(storyBible) {
-  const chars = storyBible?.characters;
-  if (!chars || !Array.isArray(chars) || chars.length === 0) return '';
-  const registry = chars.map(c => `- ${c.name} (${c.role || 'unspecified role'})`).join('\n');
-  return `=== CHARACTER REGISTRY — CHECK BEFORE NAMING ANYONE ===
-Do not introduce new named characters unless the story bible has no existing character who could fulfill this role. Check this registry before naming anyone. A character introduced as a mentor in chapter 2 cannot also appear as an unrelated rogue scientist in chapter 12 unless this is an explicit plot twist established in the outline.
-
-REGISTERED CHARACTERS:
-${registry}
-
-RULES:
-1. If a scene needs a role already filled above, USE the existing character.
-2. If you must introduce a new named character, their name must not duplicate or closely resemble any name above.
-3. If a new character fills a role already occupied (mentor, love interest, inside contact, tech expert), the narrative must justify why the established character cannot fill that role.
-=== END CHARACTER REGISTRY ===`;
+// FIX 8 — Character registry block: prevents new character conflicts. Enhanced with runtime name_registry.
+function buildCharacterRegistryBlock(storyBible, nameRegistry) {
+  const bibleChars = (storyBible?.characters || []).filter(c => c.name);
+  const bibleNames = new Set(bibleChars.map(c => c.name.toLowerCase()));
+  const lines = bibleChars.map(c => `- ${c.name} (${c.role || 'unspecified role'}) [story bible]`);
+  // Merge runtime-discovered names not in the story bible
+  if (nameRegistry && typeof nameRegistry === 'object') { for (const [name, info] of Object.entries(nameRegistry)) { if (!bibleNames.has(name.toLowerCase())) lines.push(`- ${name} (${info.role || 'discovered'}) [first: ch ${info.first_chapter || '?'}]`); } }
+  if (lines.length === 0) return '';
+  return `=== CHARACTER NAME REGISTRY — CHECK BEFORE NAMING ANYONE ===\nBefore naming any new character, check this registry. Do not reuse a name that already belongs to another character in this project, even if their role is different. If you are about to introduce a character named [X] and [X] already exists in this story, rename the new character before writing them into the scene.\n\nREGISTERED NAMES:\n${lines.join('\n')}\n\nRULES:\n1. If a scene needs a role already filled above, USE the existing character.\n2. New named characters must not duplicate or closely resemble any name above.\n3. If a new character fills an occupied role (mentor, love interest, tech expert), justify why the existing one cannot.\n=== END NAME REGISTRY ===`;
 }
 
 // PART B — Extract distinctive phrases from chapter text for cross-chapter repetition prevention
