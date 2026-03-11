@@ -1897,16 +1897,10 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     // Extract distinctive phrases locally (no AI call — saves ~30s per chapter)
     const distinctivePhrases = extractDistinctivePhrases(finalContent);
 
-    await base44.entities.Chapter.update(chapterId, {
-      content: contentValue,
-      status: 'generated',
-      word_count: finalWordCount,
-      generated_at: new Date().toISOString(),
-      quality_scan: JSON.stringify(qualityResult),
-      distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '',
-    });
-    // State document generation skipped to stay within worker time limits.
-    // Can be triggered separately as a post-processing step if needed.
+    // PATCH 3 — Update name registry with characters discovered in this chapter
+    const updatedRegistry = extractNamedCharacters(finalContent, chapter.chapter_number, nameRegistry);
+    await base44.entities.Chapter.update(chapterId, { content: contentValue, status: 'generated', word_count: finalWordCount, generated_at: new Date().toISOString(), quality_scan: JSON.stringify(qualityResult), distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '' });
+    try { await base44.entities.Project.update(projectId, { name_registry: JSON.stringify(updatedRegistry) }); } catch (nrErr) { console.warn('Name registry update failed:', nrErr.message); }
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
     console.error('Async generation error for chapter', chapterId, ':', err.message);
