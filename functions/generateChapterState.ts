@@ -141,6 +141,7 @@ FIRED_BEATS: [bullet list of romantic/emotional milestones that occurred in THIS
 - BEAT: [beat type] | CHARACTERS: [Character A, Character B] | CHAPTER: ${chapter.chapter_number} | DETAIL: [one-sentence description]
 Beat types to track: first_kiss, first_intimate_scene, first_declaration_of_feelings, emotional_vulnerability_confession, first_physical_contact, jealousy_confrontation, breakup, reconciliation, sacrifice_for_other.
 If no romantic/emotional beats fired this chapter, write: - none]
+ENDING_TYPE: [one of: resolved, cliffhanger, emotional_open, time_skip — classify based on how the chapter's final scene ends. "cliffhanger" = ends mid-action, mid-confrontation, or with an unresolved physical threat. "emotional_open" = ends with unresolved emotional tension but no physical danger. "time_skip" = ends by jumping forward in time. "resolved" = the scene reaches a natural stopping point.]
 ESCALATION STAGE: [1 through 6 — where 1 is lowest tension and 6 is highest. Target range for this chapter: ${escalationTarget.label}]
 FINAL LINE OF CHAPTER: [exact text of the last sentence written]
 OPEN QUESTION CARRIED INTO NEXT CHAPTER: [the specific unresolved threat, question, or discovery the reader is left with]
