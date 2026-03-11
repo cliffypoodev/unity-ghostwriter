@@ -1219,6 +1219,8 @@ ${characters.length > 0 ? characters.map(c => `- ${c.name} (${c.role || 'charact
 
 ${buildCharacterConsistencyBlock(storyBible)}
 
+${buildCanonicalBackstoryBlock(storyBible)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -1262,6 +1264,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       );
       // Inject nonfiction beat structural role into system prompt
       systemPrompt += _beatSysBlock(chapterBeat);
+      // Canonical backstory lock (nonfiction path)
+      const nfBackstoryBlock = buildCanonicalBackstoryBlock(storyBible);
+      if (nfBackstoryBlock) { systemPrompt += `\n\n${nfBackstoryBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
@@ -1300,6 +1305,12 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const charConsistencyBlock = buildCharacterConsistencyBlock(storyBible);
     if (charConsistencyBlock) {
       systemPrompt += `\n\n${charConsistencyBlock}`;
+    }
+
+    // Canonical backstory lock
+    const backstoryBlock = buildCanonicalBackstoryBlock(storyBible);
+    if (backstoryBlock) {
+      systemPrompt += `\n\n${backstoryBlock}`;
     }
 
     // PART B — transition instructions
