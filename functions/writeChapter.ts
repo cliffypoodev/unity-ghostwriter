@@ -1977,22 +1977,14 @@ Deno.serve(async (req) => {
     }
     try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
 
-    // Mark as generating and fire async generation in background
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
-
     const modelKey = spec?.ai_model || 'claude-sonnet';
-    // Start async generation without waiting
+    // Fire generation — ensure error recovery if background work dies
     generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey).catch(err => {
       console.error('Background generation failed:', err.message);
+      base44.entities.Chapter.update(chapter_id, { status: 'error' }).catch(() => {});
     });
-
-    // Return immediately so we don't hit Deno's 10s limit
-    return Response.json({
-      text: '',
-      success: true,
-      async: true,
-      message: 'Chapter generation started in background'
-    });
+    return Response.json({ text: '', success: true, async: true, message: 'Chapter generation started' });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
