@@ -1762,25 +1762,8 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     // SKIP validation regeneration to stay within Deno worker time limits.
     // Quality scan still runs below for logging purposes.
 
-    // PART 6 — RUN QUALITY SCAN WITH AUTO-REWRITE LOOP (with previousChapters, storyBible, and permanent quality rules)
-    // DEEPSEEK POST-GENERATION VALIDATION (PART 1, 2, 3 ORCHESTRATION)
-    const isDeepSeek = modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner';
-    if (isDeepSeek) {
-      const deepseekValidation = await base44.functions.invoke('deepseekValidator', {
-        chapter_text: fullContent,
-        chapter_number: chapter.chapter_number,
-        spec: projectSpec,
-        previous_chapters: previousChapters,
-        story_bible: storyBible,
-        characters: storyBible?.characters || [],
-      });
-      
-      if (!deepseekValidation.data.passed) {
-        console.log(`DeepSeek Chapter ${chapter.chapter_number} structural check failed:`, deepseekValidation.data.violations);
-        fullContent = deepseekValidation.data.text; // Use cleaned version
-      }
-    }
-
+    // Run quality scan for LOGGING ONLY — no auto-rewrite passes to stay within Deno worker time limits.
+    // The quality scan results are saved on the chapter for later review.
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
     // Meta-response detection
@@ -1800,53 +1783,6 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
 
     let finalContent = fullContent;
-    let passCount = 0;
-
-    // Rewrite passes: 1 for standard models, 2 for DeepSeek (reduced to prevent timeouts)
-    const maxRewritePasses = isDeepSeek ? 2 : 1;
-    
-    // Auto-rewrite loop — only for actionable violations (banned phrases, clichés, nonfiction fiction-traps)
-    // Skip rewrite for non-actionable violations that the rewrite AI can't reliably fix
-    const NON_ACTIONABLE_PREFIXES = [
-      'METAPHOR CLUSTER', 'PRONOUN CONSISTENCY', 'VOCABULARY REPETITION',
-      'SHAPE:', 'PHYSICAL TIC REPETITION', 'OVER-NARRATED INTERIORITY',
-      'ON-THE-NOSE FINAL IMAGE', 'PLOT GATE:', 'BANNED DIALOGUE'
-    ];
-    const actionableWarnings = qualityResult.warnings.filter(w => !NON_ACTIONABLE_PREFIXES.some(p => w.startsWith(p)));
-    
-    if (actionableWarnings.length > 0) {
-      for (let pass = 1; pass <= maxRewritePasses; pass++) {
-        console.log(`Chapter ${chapter.chapter_number} auto-rewrite pass ${pass} for ${actionableWarnings.length} actionable violations...`);
-        
-        try {
-          const correctedText = await rewriteWithCorrections(finalContent, actionableWarnings, chapter.chapter_number, null, modelKey);
-          if (correctedText && correctedText.length > 100) {
-            finalContent = correctedText;
-            passCount = pass;
-            
-            // Re-scan after rewrite (with previousChapters, storyBible, and characters)
-            qualityResult = scanChapterQuality(finalContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
-            console.log(`After pass ${pass} quality scan:`, qualityResult);
-            
-            // Check if remaining violations are all non-actionable
-            const remainingActionable = qualityResult.warnings.filter(w => !NON_ACTIONABLE_PREFIXES.some(p => w.startsWith(p)));
-            if (remainingActionable.length === 0) {
-              console.log(`Chapter ${chapter.chapter_number} passed actionable quality checks after pass ${pass}`);
-              break;
-            }
-          }
-        } catch (rewriteErr) {
-          console.error(`Rewrite pass ${pass} failed silently, continuing with current text:`, rewriteErr.message);
-        }
-      }
-    } else if (qualityResult.warnings.length > 0) {
-      console.log(`Chapter ${chapter.chapter_number}: ${qualityResult.warnings.length} warnings are all non-actionable, skipping rewrite.`);
-    }
-
-    // DEEPSEEK POST-VALIDATION LOGGING (PART 3)
-    if (isDeepSeek && qualityResult.violation_count > 5) {
-      console.warn(`DeepSeek Chapter ${chapter.chapter_number} still has ${qualityResult.violation_count} violations after ${maxRewritePasses} rewrite passes. Consider switching to Claude for this chapter.`);
-    }
 
     let contentValue = finalContent;
     if (finalContent.length > 30000) {
