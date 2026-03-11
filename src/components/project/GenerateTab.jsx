@@ -682,6 +682,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleWriteChapter = async (chapter) => {
    setStreamingChapterId(chapter.id);
+   setActiveChapterIds(prev => new Set([...prev, chapter.id]));
    setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
 
    // Update status optimistically
@@ -699,6 +700,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
      if (response.status !== 200) {
        console.error('writeChapter error:', response.data);
+       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
        return;
      }
 
@@ -714,9 +716,9 @@ export default function GenerateTab({ projectId, onProceed }) {
 
            if (updatedChapter?.status === 'generated') {
              clearInterval(pollInterval);
+             setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
              setStreamingContent(prev => ({ ...prev, [chapter.id]: updatedChapter.content || "" }));
 
-             // Handle quality scan results
              let qualityMsg = "Complete";
              if (updatedChapter.quality_scan) {
                try {
@@ -730,16 +732,14 @@ export default function GenerateTab({ projectId, onProceed }) {
                } catch (e) { /* ignore parse errors */ }
              }
              setChapterProgress(prev => ({ ...prev, [chapter.id]: qualityMsg }));
-
              await refetchChapters();
            } else if (updatedChapter?.status === 'error') {
              clearInterval(pollInterval);
+             setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Error during generation" }));
            } else {
-             // Show rotating progress message
              const messages = ["Writing section 1 of 3...", "Writing section 2 of 3...", "Writing section 3 of 3..."];
-             const msgIndex = pollCount % messages.length;
-             setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[msgIndex] }));
+             setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[pollCount % messages.length] }));
            }
          } catch (err) {
            console.warn('Poll error:', err.message);
@@ -749,23 +749,28 @@ export default function GenerateTab({ projectId, onProceed }) {
        // Stop polling after 20 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
-          // Check one final time before declaring timeout
           base44.entities.Chapter.filter({ project_id: projectId }).then(chs => {
             const ch = chs.find(c => c.id === chapter.id);
+            setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
             if (ch?.status === 'generated') {
               setStreamingContent(prev => ({ ...prev, [chapter.id]: ch.content || "" }));
               setChapterProgress(prev => ({ ...prev, [chapter.id]: `Complete (${ch.word_count || 0} words)` }));
               refetchChapters();
             } else {
-              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — chapter may still be processing. Refresh to check." }));
+              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
             }
           }).catch(() => {
+            setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
             setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
           });
         }, 20 * 60 * 1000);
+     } else {
+       // Synchronous response — done immediately
+       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
      }
    } catch (err) {
      console.error('writeChapter error:', err.message);
+     setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
      setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
    } finally {
      setStreamingChapterId(null);
