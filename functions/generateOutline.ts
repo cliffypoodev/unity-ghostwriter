@@ -478,7 +478,7 @@ Return a JSON object (not array) with these fields:
 - tone_voice: The authorial voice and tone (1 sentence)
 - style_guidelines: Prose and structural style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
-- characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number)
+- characters: Array of key figures (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number), character_backstory (object with fields: formative_event (string — the single canonical biographical event that shaped this figure), location (string — the specific place), people_involved (array of strings — specific names involved), emotional_consequence (string — the lasting result))
 - world_rules: Object with fields: setting_unique_details (array of 3+ unique specific details about the setting), social_rules (array of power structures/norms that create constraints), economy (what is common/rare/forbidden in this world)
 
 Return ONLY the JSON object. No preamble.`;
@@ -493,8 +493,10 @@ Return a JSON object (not array) with these fields:
 - tone_voice: Narrative voice, POV, and tone (1 sentence)
 - style_guidelines: Prose style guidelines (1-2 sentences)
 - rules: An array of exactly 5 strings — the most important consistency rules for this manuscript (include: no repeated metaphors, vary chapter openings, vary emotional texture, vary sentence rhythm, one genre-specific rule)
-- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number), voice_profile (object with fields: vocabulary_level, sentence_pattern, verbal_tic, never_says, physical_communication)
+- characters: Array of main characters (max 5) with fields: name, role (protagonist/antagonist/supporting), description (1-2 sentences max), arc (1 sentence), first_appearance (chapter number), voice_profile (object with fields: vocabulary_level, sentence_pattern, verbal_tic, never_says, physical_communication), character_backstory (object with fields: formative_event (string — the single canonical traumatic or formative past event that shaped this character), location (string — the specific place where the formative event occurred), people_involved (array of strings — specific names of anyone lost, harmed, or involved), emotional_consequence (string — the lasting emotional result that drives present behavior))
 - world_rules: Object with fields: powers_abilities (array of objects with name, mechanic, limitation, tell — or empty if no powers), setting_unique_details (array of 3+ unique specific details about the setting), social_rules (array of power structures/norms that create constraints), economy (what is common/rare/forbidden)
+
+CRITICAL — CHARACTER BACKSTORY RULE: The character_backstory field for each character is CANONICAL and PERMANENT. It defines the single formative past event, the specific location, the specific names of people involved, and the emotional consequence. Once set in the story bible, this backstory must NEVER be changed, contradicted, or added to in any subsequent operation. No new traumatic events, no new past relationships, no new biographical details may be invented for any named character beyond what is recorded here.
 
 Return ONLY the JSON object. No preamble.`;
 }

@@ -320,6 +320,22 @@ async function parseOutlineField(field, fieldUrl) {
   } catch (err) { console.error('Parse field error:', err.message); return null; }
 }
 
+// Build canonical backstory block from story bible — injected as read-only into every chapter
+function buildCanonicalBackstoryBlock(storyBible) {
+  const characters = storyBible?.characters;
+  if (!characters || !Array.isArray(characters) || characters.length === 0) return '';
+  const entries = characters.filter(c => c.character_backstory).map(c => {
+    const b = c.character_backstory;
+    return `- ${c.name}: FORMATIVE EVENT: ${b.formative_event || 'Not specified'}. LOCATION: ${b.location || 'Not specified'}. PEOPLE INVOLVED: ${(b.people_involved || []).join(', ') || 'None specified'}. EMOTIONAL CONSEQUENCE: ${b.emotional_consequence || 'Not specified'}.`;
+  });
+  if (entries.length === 0) return '';
+  return `=== CANONICAL CHARACTER BACKSTORIES (READ-ONLY — NEVER MODIFY) ===
+The following character backstories are canonical and must not be changed, added to, or contradicted. Do not invent new traumatic events, new past relationships, or new biographical details for any named character. If a character's past is referenced in this chapter, it must match exactly what is recorded here.
+
+${entries.join('\n')}
+=== END CANONICAL BACKSTORIES ===`;
+}
+
 // PART A — Build character consistency enforcement block from story bible
 function buildCharacterConsistencyBlock(storyBible) {
   const characters = storyBible?.characters;
