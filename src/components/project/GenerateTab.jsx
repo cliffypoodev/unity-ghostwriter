@@ -540,6 +540,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const outline = outlines[0];
   const hasOutline = !!(outline?.outline_data || outline?.outline_url);
+  const isPartial = outline?.status === 'partial' || outline?.status === 'shell_complete';
 
   // If the outline query picks up completion via auto-refetch, stop the spinner
   useEffect(() => {
