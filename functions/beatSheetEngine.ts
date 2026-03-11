@@ -413,49 +413,6 @@ function assignBeatsToChapters(templateKey, chapterCount) {
   return assignBeatsToChaptersStandard(templateKey, chapterCount);
 }
 
-  // Map beats to chapter numbers
-  const chapterBeats = {};
-  for (const beat of template.beats) {
-    const chNum = Math.min(chapterCount, Math.max(1, Math.round(beat.position * (chapterCount - 1)) + 1));
-    if (!chapterBeats[chNum]) chapterBeats[chNum] = [];
-    chapterBeats[chNum].push(beat);
-  }
-
-  const assignments = [];
-  // Fiction fn priority
-  const fictionFnPri = ['CLIMAX','CRISIS','REVERSAL','DISRUPTION','ESCALATION','PROMISE_OF_PREMISE','COMMITMENT','RECOMMITMENT','SUBPLOT','REACTION','REFLECTION','SETUP','RESOLUTION','CONNECTIVE_TISSUE'];
-  // Nonfiction fn priority (most important first)
-  const nfFnPri = ['CALL_TO_ACTION','CONFRONTATION_NF','TURNING_POINT','COLD_OPEN','ANOMALY','DEMOLITION','COUNTERARGUMENT','REFRAME','EVIDENCE_BLOCK','PRACTICAL_APPLICATION','SYNTHESIS','THESIS_INTRODUCTION','PROBLEM_STATEMENT','PROVOCATIVE_OPENING','CLOSING_IMAGE','THEMATIC_SYNTHESIS'];
-  const fnPriority = isNF ? nfFnPri : fictionFnPri;
-  const tempoPriority = { fast: 3, medium: 2, slow: 1 };
-
-  for (let i = 1; i <= chapterCount; i++) {
-    const beats = chapterBeats[i];
-    if (beats && beats.length > 0) {
-      if (beats.length === 1) {
-        const b = beats[0];
-        assignments.push({ chapter: i, beat_name: b.name, beat_function: b.fn, beat_scene_type: b.scene_type, beat_tempo: b.tempo, beat_description: b.desc });
-      } else {
-        const names = beats.map(b => b.name).join(' + ');
-        const fns = beats.map(b => b.fn);
-        const bestFn = fnPriority.find(f => fns.includes(f)) || fns[0];
-        const bestTempo = beats.reduce((best, b) => (tempoPriority[b.tempo] || 0) > (tempoPriority[best] || 0) ? b.tempo : best, beats[0].tempo);
-        // For nonfiction: pick first beat's scene_type (they're specific like "case_study"). For fiction: scene over sequel.
-        const bestSceneType = isNF ? beats[0].scene_type : (beats.some(b => b.scene_type === 'scene') ? 'scene' : 'sequel');
-        const desc = beats.map(b => b.desc).join(' ALSO: ');
-        assignments.push({ chapter: i, beat_name: names, beat_function: bestFn, beat_scene_type: bestSceneType, beat_tempo: bestTempo, beat_description: desc });
-      }
-    } else {
-      if (isNF) {
-        assignments.push({ chapter: i, beat_name: 'Connective Chapter', beat_function: 'EVIDENCE_BLOCK', beat_scene_type: 'exposition', beat_tempo: 'medium', beat_description: 'Bridge chapter — deepen a thread from a previous chapter with additional evidence, examples, or analysis. Advance the book\'s central argument.' });
-      } else {
-        assignments.push({ chapter: i, beat_name: 'Connective Tissue', beat_function: 'CONNECTIVE_TISSUE', beat_scene_type: 'scene', beat_tempo: 'medium', beat_description: 'Bridge chapter — advance subplots, deepen relationships, maintain momentum. Must contain at least one irreversible event.' });
-      }
-    }
-  }
-  return { template_name: template.name, template_key: templateKey, category: template.category, assignments };
-}
-
 function buildBeatSheetPromptBlock(beatSheet) {
   if (!beatSheet || !beatSheet.assignments) return '';
   const isNF = beatSheet.category === 'nonfiction';
