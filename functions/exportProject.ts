@@ -130,8 +130,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── DOCX Export (via HTML → MHTML) ─────────────────────────────────────────
-    if (format === 'docx') {
+    // ── DOC Export (via HTML → MHTML) ──────────────────────────────────────────
+    if (format === 'doc') {
       const { html: editorHtml, settings: ds } = body;
 
       const bodyFamily = ds?.bodyFont
