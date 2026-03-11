@@ -900,6 +900,11 @@ export default function GenerateTab({ projectId, onProceed }) {
         let pollCount = 0;
         const maxPolls = 600; // 20 minutes at 2s intervals
         let done = false;
+        let lastUpdatedDate = null;
+        let stuckCount = 0;
+        const STUCK_THRESHOLD = 90; // polls (90 × 2s = 3 minutes with no update_date change)
+        let retryAttempts = 0;
+        const MAX_RETRIES = 2;
 
         while (!done && pollCount < maxPolls) {
           if (writeAllAbortRef.current) { isWriting = false; break; }
@@ -928,6 +933,34 @@ export default function GenerateTab({ projectId, onProceed }) {
             }));
           } else if (updatedChapter?.status === 'error') {
             throw new Error('Chapter generation failed on server');
+          } else if (updatedChapter?.status === 'generating') {
+            // Detect stuck chapters — if updated_date hasn't changed in 3 minutes, retry
+            const currentUpdated = updatedChapter.updated_date;
+            if (lastUpdatedDate && currentUpdated === lastUpdatedDate) {
+              stuckCount++;
+            } else {
+              stuckCount = 0;
+              lastUpdatedDate = currentUpdated;
+            }
+
+            if (stuckCount >= STUCK_THRESHOLD && retryAttempts < MAX_RETRIES) {
+              retryAttempts++;
+              stuckCount = 0;
+              console.warn(`Chapter ${chapter.chapter_number} appears stuck (no update for 3 min), retrying (attempt ${retryAttempts})...`);
+              setWriteAllProgress(prev => ({ ...prev, error: `Chapter ${chapter.chapter_number} stalled — retrying (attempt ${retryAttempts})...` }));
+              
+              // Reset to pending and re-invoke
+              await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
+              await new Promise(r => setTimeout(r, 2000));
+              await base44.functions.invoke('writeChapter', {
+                project_id: projectId,
+                chapter_id: chapter.id,
+              }, { timeout: 60000 });
+              lastUpdatedDate = null;
+            }
+          } else if (updatedChapter?.status === 'pending' && pollCount > 10) {
+            // Chapter reverted to pending (e.g. by stuck detection) but hasn't been picked up
+            // Give it more time — the retry invoke should handle it
           }
           // else still generating — keep polling
         }
