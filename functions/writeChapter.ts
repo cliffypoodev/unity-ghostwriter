@@ -361,20 +361,16 @@ function buildAllegianceShiftBlock(storyBible, outlineData, chapterNumber) {
   return `=== ALLEGIANCE SHIFT DETECTED — MUST ACKNOWLEDGE ON-PAGE ===\nThis character's role has changed since their last appearance. The chapter must explicitly acknowledge this shift through action, dialogue, or internal reaction from the POV character. The reader should not be expected to accept the change without witnessing its cause or consequence.\n\n${shifted.map(s=>`- ${s.name}: was ${s.from} (ch ${s.since||'bible'}), now ${s.to}`).join('\n')}\n=== END ALLEGIANCE SHIFT ===`;
 }
 
-// Build canonical backstory block from story bible — injected as read-only into every chapter
+// Build canonical backstory block — read-only, never modify
 function buildCanonicalBackstoryBlock(storyBible) {
-  const characters = storyBible?.characters;
-  if (!characters || !Array.isArray(characters) || characters.length === 0) return '';
-  const entries = characters.filter(c => c.character_backstory).map(c => {
+  const chars = storyBible?.characters;
+  if (!chars?.length) return '';
+  const entries = chars.filter(c => c.character_backstory).map(c => {
     const b = c.character_backstory;
-    return `- ${c.name}: FORMATIVE EVENT: ${b.formative_event || 'Not specified'}. LOCATION: ${b.location || 'Not specified'}. PEOPLE INVOLVED: ${(b.people_involved || []).join(', ') || 'None specified'}. EMOTIONAL CONSEQUENCE: ${b.emotional_consequence || 'Not specified'}.`;
+    return `- ${c.name}: ${b.formative_event||'N/A'} at ${b.location||'N/A'}. People: ${(b.people_involved||[]).join(', ')||'N/A'}. Consequence: ${b.emotional_consequence||'N/A'}`;
   });
-  if (entries.length === 0) return '';
-  return `=== CANONICAL CHARACTER BACKSTORIES (READ-ONLY — NEVER MODIFY) ===
-The following character backstories are canonical and must not be changed, added to, or contradicted. Do not invent new traumatic events, new past relationships, or new biographical details for any named character. If a character's past is referenced in this chapter, it must match exactly what is recorded here.
-
-${entries.join('\n')}
-=== END CANONICAL BACKSTORIES ===`;
+  if (!entries.length) return '';
+  return `=== CANONICAL BACKSTORIES (READ-ONLY — NEVER MODIFY OR CONTRADICT) ===\n${entries.join('\n')}\n=== END BACKSTORIES ===`;
 }
 
 // PART A — Build character consistency enforcement block from story bible
