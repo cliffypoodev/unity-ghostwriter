@@ -1718,6 +1718,9 @@ ${_beatUsrBlock(chapterBeat)}`;
       }
     }
 
+    // Banned opening constructions — all chapters
+    uniqueCrossChapterPhrases.push("nothing fundamental would change", "nothing would really change", "he told himself nothing had changed", "she convinced herself this wouldn't change anything", "everything was about to change", "nothing could have prepared him for", "little did he know", "she had convinced herself", "he had spent the last");
+
     // FIX 2 — Final chapter banned phrases (sequel hooks / ominous reopeners)
     if (isLastChapter) {
       uniqueCrossChapterPhrases.push("we know what you are", "they had found us", "this wasn't over", "this was far from over", "it wasn't over", "but they would be back", "a new threat", "the real enemy");
