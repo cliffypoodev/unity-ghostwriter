@@ -175,24 +175,14 @@ export default function WriteAllChaptersModal({
 
           {/* Current chapter — shown while writing */}
           {!done && currentTitle && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="wac-pulse" />
-                <span className="text-sm font-semibold text-slate-700">
-                  Writing Chapter {current + 1}
-                </span>
-              </div>
-              <p className="text-sm font-medium text-slate-900 truncate mb-0.5">{currentTitle}</p>
-              <div className="wac-chapter-bar-track">
-                <div
-                  className="wac-chapter-bar-fill"
-                  style={{ width: `${Math.min((chapterWords / targetChapterWords) * 100, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-500">
-                {chapterWords.toLocaleString()} / ~{targetChapterWords.toLocaleString()} words
-              </p>
-            </div>
+            <ChapterProgressCard
+              current={current}
+              currentTitle={currentTitle}
+              chapterWords={chapterWords}
+              targetChapterWords={targetChapterWords}
+              startTime={startTime}
+              successes={successes}
+            />
           )}
 
           {/* ISSUE 6 FIX: Error display during generation */}
