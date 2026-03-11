@@ -1377,39 +1377,27 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     const messages = [{ role: 'system', content: systemPrompt }];
 
-    // Add last 3 written chapters as context (full history causes timeouts on later chapters)
+    // Add only the LAST written chapter as brief context (full history causes worker timeouts)
     const previousChapters = allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated');
-    for (const prevCh of previousChapters.slice(-3)) {
-      // Resolve content if it's a URL
-      let prevContent = prevCh.content || '';
+    if (previousChapters.length > 0) {
+      const lastPrev = previousChapters[previousChapters.length - 1];
+      let prevContent = lastPrev.content || '';
       if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) {
         try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
       }
-      if (!prevContent) continue;
-
-      const prevChNum = prevCh.chapter_number;
-      const prevEndingIdx = ((prevChNum + 1) % 5) + 1;
-      const endingTypesDict = isNonfiction ? NONFICTION_ENDING_TYPES : FICTION_ENDING_TYPES;
-      const prevEndingType = endingTypesDict[prevEndingIdx] || "";
-
-      messages.push({
-        role: 'user',
-        content: `Write Chapter ${prevChNum}: "${prevCh.title}"
-
-CHAPTER PROMPT:
-${prevCh.prompt || ''}
-
-CHAPTER SUMMARY:
-${prevCh.summary || ''}
-
-ENDING TYPE USED: ${prevEndingType}
-
-Write this chapter in full.`
-      });
-      messages.push({
-        role: 'assistant',
-        content: prevContent
-      });
+      if (prevContent) {
+        // Send only last ~800 words to keep token count manageable
+        const words = prevContent.trim().split(/\s+/);
+        const tail = words.length > 800 ? words.slice(-800).join(' ') : prevContent;
+        messages.push({
+          role: 'user',
+          content: `Here is how Chapter ${lastPrev.chapter_number} ("${lastPrev.title}") ended:\n\n${tail}`
+        });
+        messages.push({
+          role: 'assistant',
+          content: 'Understood. I have the context from the previous chapter ending. Ready to write the next chapter.'
+        });
+      }
     }
 
     // ── CHAPTER STATE DOCUMENT SYSTEM ──
