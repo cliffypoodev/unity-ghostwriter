@@ -1026,6 +1026,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (!done && isWriting) {
           throw new Error('Generation timeout after 20 minutes');
         }
+        } // end async polling block
       } catch (err) {
         const errorMsg = err.message || 'Unknown error';
         console.error(`Chapter ${chapter.chapter_number} error:`, errorMsg);
