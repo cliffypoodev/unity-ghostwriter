@@ -920,14 +920,37 @@ export default function GenerateTab({ projectId, onProceed }) {
       let chapterSuccess = false;
 
       try {
-        // Invoke writeChapter — returns immediately with async:true
+        // Invoke writeChapter — now awaits full generation
         const response = await base44.functions.invoke('writeChapter', {
           project_id: projectId,
           chapter_id: chapter.id,
-        }, { timeout: 60000 });
+        }, { timeout: 900000 }); // 15 min timeout
 
         if (response.status !== 200) {
-          throw new Error(`Request failed with status ${response.status}`);
+          throw new Error(response.data?.error || `Request failed with status ${response.status}`);
+        }
+
+        // If synchronous completion — chapter is done, skip polling
+        if (!response.data?.async) {
+          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+          const updatedChapter = updated.find(c => c.id === chapter.id);
+          if (updatedChapter?.status === 'generated') {
+            let finalContent = updatedChapter.content || '';
+            if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
+              try { finalContent = await (await fetch(finalContent)).text(); } catch {}
+            }
+            const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
+            chapterWordsCount = finalWords;
+            totalWordsWritten += finalWords;
+            successes++;
+            chapterSuccess = true;
+            setWriteAllProgress(prev => ({
+              ...prev,
+              chapterWords: chapterWordsCount,
+              wordsWritten: totalWordsWritten,
+              successes,
+            }));
+          }
         }
 
         // CRITICAL: Block here until this chapter is fully saved before moving on.
