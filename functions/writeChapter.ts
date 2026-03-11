@@ -341,6 +341,22 @@ ${firedBeats.join('\n')}
 === END FIRED BEATS ===`;
 }
 
+// Build character capabilities block — prevents characters from exceeding their established competency
+function buildCapabilitiesBlock(storyBible) {
+  const characters = storyBible?.characters;
+  if (!characters || !Array.isArray(characters) || characters.length === 0) return '';
+  const entries = characters.filter(c => c.capabilities_under_pressure).map(c => {
+    const cap = c.capabilities_under_pressure;
+    return `- ${c.name}: Combat: ${cap.combat_training || 'None'}. Weapons: ${cap.weapons_experience || 'None'}. Under threat: ${cap.violence_response || 'Will freeze or flee'}. Lethal force: ${cap.lethal_force || 'Cannot kill without severe psychological consequence'}.`;
+  });
+  if (entries.length === 0) return '';
+  return `=== CHARACTER CAPABILITIES UNDER PRESSURE (MANDATORY — NEVER EXCEED) ===
+A character cannot perform actions beyond their established capability level. A marine biologist with no combat training cannot efficiently kill trained security operatives. A corporate executive cannot suddenly display tactical awareness they have never demonstrated. If the plot requires a character to act beyond their established capabilities, the scene must acknowledge this explicitly — they fail, they freeze, they get help, or they pay a cost.
+
+${entries.join('\n')}
+=== END CAPABILITIES ===`;
+}
+
 // Build canonical backstory block from story bible — injected as read-only into every chapter
 function buildCanonicalBackstoryBlock(storyBible) {
   const characters = storyBible?.characters;
@@ -1244,6 +1260,8 @@ ${buildCanonicalBackstoryBlock(storyBible)}
 
 ${buildFiredBeatsBlock(allChapters, chapterIndex)}
 
+${buildCapabilitiesBlock(storyBible)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -1293,6 +1311,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       // Fired beats (nonfiction path — rare but consistent)
       const nfFiredBeatsBlock = buildFiredBeatsBlock(allChapters, chapterIndex);
       if (nfFiredBeatsBlock) { systemPrompt += `\n\n${nfFiredBeatsBlock}`; }
+      // Character capabilities (nonfiction path)
+      const nfCapBlock = buildCapabilitiesBlock(storyBible);
+      if (nfCapBlock) { systemPrompt += `\n\n${nfCapBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
@@ -1343,6 +1364,12 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const firedBeatsBlock = buildFiredBeatsBlock(allChapters, chapterIndex);
     if (firedBeatsBlock) {
       systemPrompt += `\n\n${firedBeatsBlock}`;
+    }
+
+    // Character capabilities — prevent competency violations
+    const capabilitiesBlock = buildCapabilitiesBlock(storyBible);
+    if (capabilitiesBlock) {
+      systemPrompt += `\n\n${capabilitiesBlock}`;
     }
 
     // PART B — transition instructions
