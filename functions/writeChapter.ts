@@ -895,14 +895,13 @@ function scanNonfictionQuality(text) {
   }
   // Fiction-trap: internal monologue / fictional third-person narration
   const imCount = (text.match(/\b(?:she felt|he felt|they felt|she wondered|he wondered|she realized|he realized|her heart|his heart|she thought|he thought)\b/gi) || []).length;
-  if (imCount >= 2) {
-    warnings.push(`FICTIONAL NARRATIVE: Fictional internal monologue detected (${imCount} instances) — replace third-person character narration with authorial voice`);
-  }
+  if (imCount >= 2) { warnings.push(`FICTIONAL NARRATIVE: Fictional internal monologue detected (${imCount} instances) — replace with authorial voice`); }
   // Fiction-trap: excessive dialogue lines (>5 in nonfiction)
   const nfDialogueCount = (text.match(/[""][^""]{5,}[""]/g) || []).length;
-  if (nfDialogueCount > 5) {
-    warnings.push(`FICTIONAL NARRATIVE: ${nfDialogueCount} quoted dialogue lines in nonfiction (max 5) — replace invented dialogue with research citations or authorial analysis`);
-  }
+  if (nfDialogueCount > 5) { warnings.push(`FICTIONAL NARRATIVE: ${nfDialogueCount} dialogue lines in nonfiction (max 5) — replace with research citations`); }
+  // [VERIFY] tags from web search research integration
+  const verifyTags = (text.match(/\[VERIFY\]/g) || []).length;
+  if (verifyTags > 0) { warnings.push(`UNVERIFIED CLAIMS (${verifyTags}): flagged [VERIFY] for author verification`); }
 
   // Check for nonfiction-specific banned phrases
   const nfBanned = [
