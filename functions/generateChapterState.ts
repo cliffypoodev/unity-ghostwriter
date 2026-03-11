@@ -162,6 +162,19 @@ ${chapterContent}`;
     stateDocument = await callClaude(systemPrompt, userMessage, 2048);
   }
 
+  // Auto-classify ending_type if the LLM omitted it
+  if (!/ENDING_TYPE:/i.test(stateDocument)) {
+    const last500 = chapterContent.slice(-500).toLowerCase();
+    let endingType = 'resolved';
+    const cliffhangerPatterns = /\b(lunged|swung|fired|grabbed|shoved|knife|blade|gun|punch|struck|slammed|fell|explosion|scream|crash|charging)\b/;
+    const timeSkipPatterns = /\b(hours later|days later|weeks later|the next morning|by the time|when .+ woke)\b/;
+    const emotionalOpenPatterns = /\b(walked away|turned .+ back|closed .+ eyes|didn't answer|silence|stared|watched .+ go|left standing)\b/;
+    if (cliffhangerPatterns.test(last500)) endingType = 'cliffhanger';
+    else if (timeSkipPatterns.test(last500)) endingType = 'time_skip';
+    else if (emotionalOpenPatterns.test(last500)) endingType = 'emotional_open';
+    stateDocument += `\nENDING_TYPE: ${endingType}`;
+  }
+
   // Parse banned phrases from state document
   const phrasesMatch = stateDocument.match(/PHRASES AND METAPHORS USED THIS CHAPTER:\s*([\s\S]*?)(?=\nRELATIONSHIP STATUS|$)/i);
   const newPhrases = [];
