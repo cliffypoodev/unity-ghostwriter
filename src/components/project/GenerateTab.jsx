@@ -1092,6 +1092,16 @@ export default function GenerateTab({ projectId, onProceed }) {
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
 
+      {/* Partial outline banner */}
+      {isPartial && !generating && !generateError && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center justify-between">
+          <span>Outline structure is ready but detail is incomplete. Resume to add prompts and story bible.</span>
+          <Button size="sm" onClick={handleResumeDetail} className="bg-amber-600 hover:bg-amber-700 text-white ml-3 shrink-0">
+            <Sparkles className="w-3 h-3 mr-1" /> Resume
+          </Button>
+        </div>
+      )}
+
       {/* Error banner */}
       {generateError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
