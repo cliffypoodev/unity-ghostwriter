@@ -182,7 +182,7 @@ const SHORT_FICTION_CLUSTERS = {
     },
     {
       id: "BREAKING_POINT", label: "All Is Lost + Dark Night", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
-      primary_desc: "The lowest point. Something irreversible — death, betrayal, total failure. The protagonist is worse off than at the start of the book. Immediately follow with the dark night of the soul: grief, anger, denial. No new characters. No new plot. Let the devastation register fully before any hint of recovery. This chapter MUST be slow.",
+      primary_desc: "The protagonist has made a choice with serious consequences. This chapter must spend meaningful time in the emotional fallout of that choice before any forward momentum resumes. The character should not recover quickly. The reader should feel the weight of what was lost or done. Something irreversible — death, betrayal, total failure. The protagonist is worse off than at the start of the book. Immediately follow with the dark night of the soul: grief, anger, denial. No new characters. No new plot. Resolution should not begin in this chapter — it belongs entirely to grief, guilt, or reckoning. This chapter MUST be slow.",
     },
     {
       id: "RESOLUTION", label: "Finale + Final Image", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
@@ -196,7 +196,7 @@ const SHORT_FICTION_CLUSTERS = {
     },
     {
       id: "COMMITMENT", label: "First Surrender", fn: "PROMISE_OF_PREMISE", scene_type: "scene", tempo: "fast",
-      primary_desc: "Forced proximity breaks down one wall. Genuine vulnerability or first real physical intimacy (calibrated to spice level). For erotica: first intimate scene — do not defer it. The leads acknowledge something is happening, even if they won't say it aloud. End with one of them pulling back — the commitment is real but also terrifying.",
+      primary_desc: "Forced proximity breaks down one wall. Genuine vulnerability or first real physical intimacy (calibrated to spice level). For erotica: the first intimate scene MUST occur in this chapter and reach a satisfying moment — not a tease that defers to the next chapter. The intimate scene should begin AND reach its peak or conclusion within this chapter. Do not end this chapter before the intimate scene has been fully realized. The leads acknowledge something is happening, even if they won't say it aloud. The commitment is real and terrifying — but the consummation (at the configured spice level) is not deferred.",
     },
     {
       id: "CRUCIBLE", label: "Deepening / Escalation", fn: "ESCALATION", scene_type: "scene", tempo: "medium",
@@ -210,7 +210,7 @@ const SHORT_FICTION_CLUSTERS = {
     },
     {
       id: "BREAKING_POINT", label: "The Break + Alone Again", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
-      primary_desc: "The relationship shatters — must feel EARNED by the wound established in Chapter 1. Both devastated, differently. Immediately follow with the alone-again aftermath: both processing loss separately, mirroring the opening. This chapter must be genuinely sad. Do not rush to the realization. Sit in the grief.",
+      primary_desc: "The protagonist has made a choice with serious consequences. The relationship shatters — must feel EARNED by the wound established in Chapter 1. Both devastated, differently. This chapter must spend meaningful time in the emotional fallout of that choice before any forward momentum resumes. The character should not recover quickly. The reader should feel the weight of what was lost or done. Resolution should not begin in this chapter — it belongs entirely to grief, guilt, or reckoning. Do not rush to the realization. Sit in the grief.",
     },
     {
       id: "RESOLUTION", label: "Realization + Reunion", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
@@ -238,7 +238,7 @@ const SHORT_FICTION_CLUSTERS = {
     },
     {
       id: "BREAKING_POINT", label: "Darkest Hour", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
-      primary_desc: "Rock bottom. The protagonist has been betrayed or outmaneuvered. The case seems unwinnable. This chapter is short but the human cost must register — grief, fear, the weight of failure. Then: a small detail clicks into place. A desperate plan using information the reader already has. End with the protagonist moving toward final confrontation.",
+      primary_desc: "The protagonist has made a choice with serious consequences. This chapter must spend meaningful time in the emotional fallout before any forward momentum resumes. The character should not recover quickly. Rock bottom. The protagonist has been betrayed or outmaneuvered. The case seems unwinnable. The human cost must register — grief, fear, the weight of failure. Resolution should not begin in this chapter — it belongs entirely to grief, guilt, or reckoning. Only at the very end: a small detail clicks into place. A desperate plan using information the reader already has.",
     },
     {
       id: "RESOLUTION", label: "The Confrontation + Aftermath", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
@@ -266,7 +266,7 @@ const SHORT_FICTION_CLUSTERS = {
     },
     {
       id: "BREAKING_POINT", label: "The Resurrection", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
-      primary_desc: "The highest-stakes test. The old self must die for the new self to live. The hero is stripped of all help and must act from their transformed self alone. This is the final battle of identity, not just plot. End with victory — but at a meaningful cost.",
+      primary_desc: "The protagonist has made a choice with serious consequences. This chapter must spend meaningful time in the emotional fallout of that choice before any forward momentum resumes. The character should not recover quickly. The reader should feel the weight of what was lost or done. Then: the highest-stakes test. The old self must die for the new self to live. The hero is stripped of all help and must act from their transformed self alone. This is the final battle of identity, not just plot. End with victory — but at a meaningful cost.",
     },
     {
       id: "RESOLUTION", label: "Return with the Elixir", fn: "RESOLUTION", scene_type: "sequel", tempo: "slow",

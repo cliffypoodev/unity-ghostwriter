@@ -1373,6 +1373,28 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     systemPrompt += _beatSysBlock(chapterBeat);
     }
 
+    // FIX 2 — Erotica genre: inject explicit content permission for every chapter
+    const genreStr = ((projectSpec?.genre || '') + ' ' + (projectSpec?.subgenre || '')).toLowerCase();
+    if (/erotica|erotic romance|bdsm|erotic/.test(genreStr)) {
+      systemPrompt += `\n\n=== EROTICA CONTENT DIRECTIVE (ALL CHAPTERS) ===
+This chapter is part of an adult erotica work. Explicit sexual content is required and expected. Do not fade to black or cut away from intimate scenes. Write physical and sexual content directly and specifically, using the alien/creature physiology established in the story bible to create distinctive sensory detail. Vague or euphemistic treatment of sex scenes is a failure of this genre.
+=== END EROTICA DIRECTIVE ===`;
+    }
+
+    // FIX 7 — BDSM/power exchange consent framing
+    if (/bdsm|power exchange|dominance|domination|submission|dom\/sub|d\/s/.test(genreStr)) {
+      systemPrompt += `\n\n=== BDSM/POWER EXCHANGE CONSENT FRAMING ===
+Power exchange scenes must establish the dynamic as consensual or the narrative must explicitly acknowledge and process any non-consensual escalation. Physical acts of dominance (restraint, strikes, coercion) that occur without established consent framing must be followed by character reflection that acknowledges what occurred. Do not present unexamined abuse as romantic without narrative acknowledgment.
+=== END CONSENT FRAMING ===`;
+    }
+
+    // FIX 4 — Character motivation consistency (all chapters after chapter 1)
+    if (chapterIndex > 0) {
+      systemPrompt += `\n\n=== CHARACTER MOTIVATION CONSISTENCY ===
+Before writing this chapter, review the character motivations established in the story bible and all previous chapters. Each character's core motivation must remain consistent or change only through clearly written in-story events. A character who was established as seductive and in control in chapter 1 cannot suddenly become a wounded idealist in chapter 4 without a bridging scene that shows that shift occurring. Flag any chapter where a character's behavior contradicts their established motivation without narrative justification.
+=== END MOTIVATION CONSISTENCY ===`;
+    }
+
     // ── PART A — Build conversation-style messages array ─────────────────────
 
     const messages = [{ role: 'system', content: systemPrompt }];
@@ -1422,6 +1444,11 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const nextEscalation = Math.min(6, parseInt(currentEscalation) + 1);
     const crossChapterPhrases = [...projectBannedPhrases];
     for (const pc of allChapters.slice(0, chapterIndex)) { if (pc.distinctive_phrases) { try { const p = JSON.parse(pc.distinctive_phrases); if (Array.isArray(p)) crossChapterPhrases.push(...p); } catch {} } }
+    // FIX 5 — Genre-specific banned phrases for erotica/romance
+    const eroticaGenreStr = ((projectSpec?.genre || '') + ' ' + (projectSpec?.subgenre || '')).toLowerCase();
+    if (/erotica|erotic|romance/.test(eroticaGenreStr)) {
+      crossChapterPhrases.push('liquid grace', 'fluid grace', 'predatory grace', 'with a grace', 'faded to black', 'he couldn\'t name', 'something else entirely');
+    }
     const uniqueCrossChapterPhrases = [...new Set(crossChapterPhrases)].slice(-50).sort();
 
     const ticMap = {}, bannedTicsByChar = {};
