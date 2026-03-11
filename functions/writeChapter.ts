@@ -1242,6 +1242,8 @@ ${buildCharacterConsistencyBlock(storyBible)}
 
 ${buildCanonicalBackstoryBlock(storyBible)}
 
+${buildFiredBeatsBlock(allChapters, chapterIndex)}
+
 WORLDBUILDING:
 ${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
 
@@ -1288,6 +1290,9 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       // Canonical backstory lock (nonfiction path)
       const nfBackstoryBlock = buildCanonicalBackstoryBlock(storyBible);
       if (nfBackstoryBlock) { systemPrompt += `\n\n${nfBackstoryBlock}`; }
+      // Fired beats (nonfiction path — rare but consistent)
+      const nfFiredBeatsBlock = buildFiredBeatsBlock(allChapters, chapterIndex);
+      if (nfFiredBeatsBlock) { systemPrompt += `\n\n${nfFiredBeatsBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
       systemPrompt = buildAuthorModeBlock(projectSpec);
@@ -1332,6 +1337,12 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
     const backstoryBlock = buildCanonicalBackstoryBlock(storyBible);
     if (backstoryBlock) {
       systemPrompt += `\n\n${backstoryBlock}`;
+    }
+
+    // Fired beats — prevent romance beat duplication
+    const firedBeatsBlock = buildFiredBeatsBlock(allChapters, chapterIndex);
+    if (firedBeatsBlock) {
+      systemPrompt += `\n\n${firedBeatsBlock}`;
     }
 
     // PART B — transition instructions
