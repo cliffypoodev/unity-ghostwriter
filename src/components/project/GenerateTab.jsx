@@ -1046,15 +1046,24 @@ export default function GenerateTab({ projectId, onProceed }) {
   }
 
   if (generating) {
+    const isStep2 = generationProgress.includes('2/2') || generationProgress.includes('Resuming');
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Generating your book outline…</p>
           {generationProgress && (
             <p className="text-sm text-indigo-600 mt-2 font-medium">{generationProgress}</p>
           )}
-          <p className="text-sm text-slate-400 mt-1">This may take a few minutes for longer books</p>
+          <div className="flex items-center gap-2 mt-4 justify-center">
+            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-500" : "bg-indigo-400 animate-pulse")} />
+            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-400 animate-pulse" : "bg-slate-200")} />
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
+            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Structure</span>
+            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Detail</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-3">Usually completes in under 2 minutes</p>
         </div>
       </div>
     );
