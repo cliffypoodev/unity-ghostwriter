@@ -1522,17 +1522,22 @@ Begin immediately with Chapter ${chapter.chapter_number}'s prose. No preamble.
 ${structuralBlock}
 ${_beatUsrBlock(chapterBeat)}`;
     } else if (isNonfiction) {
-      currentChapterRequest = _buildNonfictionUserMessage(
-        chapter.chapter_number,
-        { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary },
-        totalChapters,
-        TARGET_WORDS
-      );
+      // Web search research pre-pass for chapter-level factual grounding
+      let chResBlock = '';
+      try {
+        const stag = chapterSubjectsLog ? chapterSubjectsLog.split('\n').find(l => l.startsWith(`Ch ${chapter.chapter_number}:`))?.replace(/^Ch \d+:\s*/, '') : null;
+        console.log(`NF Ch ${chapter.chapter_number}: web search research...`);
+        const rr = await base44.functions.invoke('researchNonfictionTopic', { topic: projectSpec?.topic, subject: stag || chapter.summary || chapter.title, genre: projectSpec?.genre, subgenre: projectSpec?.subgenre, scope: `Chapter ${chapter.chapter_number}: ${chapter.title}` });
+        const cr = rr.data || rr;
+        if (cr?.facts?.length > 0) {
+          console.log(`Ch ${chapter.chapter_number} research: ${cr.facts.length} facts`);
+          chResBlock = `\n=== CHAPTER RESEARCH (verified via web search) ===\n${cr.contextSummary || ''}\n\nVerified Facts:\n${cr.facts.map(f => '- ' + f).join('\n')}${cr.timeline?.length ? '\nTimeline:\n' + cr.timeline.map(t => '- ' + t.date + ': ' + t.event).join('\n') : ''}${cr.keyFigures?.length ? '\nKey Figures:\n' + cr.keyFigures.map(f => '- ' + f.name + ': ' + f.role).join('\n') : ''}\n\nUse these verified facts as your factual spine. If you reference something not in this list, flag it with [VERIFY].\n=== END CHAPTER RESEARCH ===\n\n`;
+        }
+      } catch (re) { console.warn(`Ch ${chapter.chapter_number} research failed:`, re.message); }
+      currentChapterRequest = chResBlock + _buildNonfictionUserMessage(chapter.chapter_number, { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary }, totalChapters, TARGET_WORDS);
       currentChapterRequest += structuralBlock;
       if (chapterBeat) { currentChapterRequest += `\n\n${_beatUsrBlock(chapterBeat)}`; }
-      if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') {
-        currentChapterRequest = `REMINDER: This is NONFICTION. Do not invent characters or write fictional scenes. Write as an authoritative nonfiction author using research, evidence, and direct reader address. Every claim should reference real research or verifiable information.\n\n` + currentChapterRequest;
-      }
+      if (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') { currentChapterRequest = `REMINDER: This is NONFICTION. Do not invent characters or write fictional scenes. Write as an authoritative nonfiction author using research, evidence, and direct reader address. Every claim should reference real research or verifiable information.\n\n` + currentChapterRequest; }
     } else {
       // ── LEGACY FICTION PATH (no scenes) ──────────────────────────────────
       const openingType = getOpeningType(chapter.chapter_number);
