@@ -1280,7 +1280,12 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}
 === CLIFFHANGER RESOLUTION (MANDATORY) ===
 Check the previous chapter's final scene. If it ended on an unresolved physical action — a strike, a fall, a confrontation, a moment of impact — this chapter must open by showing the outcome of that action directly. Do not skip to aftermath. Do not open with the character already safe, already victorious, or already in recovery without showing how they got there. The reader watched the moment of danger. They are owed the resolution.
 If the protagonist is a non-combatant facing a trained fighter, they must win or survive through their established skills — intelligence, technical knowledge, exploiting the environment, or surprising their opponent with something unexpected. They must not win through sudden combat ability they have never demonstrated. Show the method. Do not summarize it.
-=== END CLIFFHANGER RESOLUTION ===`;
+=== END CLIFFHANGER RESOLUTION ===
+
+${isLastChapter ? `=== FINAL CHAPTER — RESOLUTION MANDATE (NON-NEGOTIABLE) ===
+This is the final chapter. Its job is to close every open emotional thread and leave the reader with a sense of completion. Do not introduce new threats, new antagonists, new mysteries, or sequel hooks in the final scene or final paragraphs. A last-line threat that implies danger is coming — anonymous messages, ominous sounds, new enemies revealed — is a resolution failure, not a satisfying ending.
+The final image of this book should reflect the emotional truth of the protagonist's transformation. They came into this story lacking something. Show, in concrete sensory detail, that they now have it. End on that.
+=== END FINAL CHAPTER MANDATE ===` : ''}`;
       if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
       systemPrompt += getEroticaOverride(projectSpec);
       systemPrompt += _beatSysBlock(chapterBeat);
