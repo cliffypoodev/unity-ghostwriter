@@ -357,6 +357,26 @@ ${entries.join('\n')}
 === END CAPABILITIES ===`;
 }
 
+// Build allegiance shift block — detects characters whose role changed and injects acknowledgment
+function buildAllegianceShiftBlock(storyBible, outlineData, chapterNumber) {
+  const chars = storyBible?.characters, chs = outlineData?.chapters;
+  if (!chars?.length || !chs?.length) return '';
+  const ANTAG = ['antagonist','villain','enemy','adversary'], ALLY = ['ally','allied','neutral','supporting','friend','partner'];
+  const roleHistory = {};
+  for (const c of chars) { if (c.name && c.role) { const r = c.role.toLowerCase(); if (ANTAG.some(t => r.includes(t))) roleHistory[c.name] = { role: 'antagonist', ch: 0 }; else if (ALLY.some(t => r.includes(t))) roleHistory[c.name] = { role: 'ally', ch: 0 }; } }
+  for (const ch of chs) {
+    const num = ch.number || ch.chapter_number; if (num >= chapterNumber) break;
+    const txt = ((ch.summary||'') + ' ' + (ch.prompt||'')).toLowerCase();
+    for (const c of chars) { if (!c.name || !txt.includes(c.name.toLowerCase())) continue; const ni = txt.indexOf(c.name.toLowerCase()); const ctx = txt.slice(Math.max(0,ni-80), Math.min(txt.length,ni+c.name.length+80)); if (ANTAG.some(t=>ctx.includes(t))) roleHistory[c.name]={role:'antagonist',ch:num}; else if (ALLY.some(t=>ctx.includes(t))) roleHistory[c.name]={role:'ally',ch:num}; }
+  }
+  const cur = chs.find(ch => (ch.number||ch.chapter_number) === chapterNumber); if (!cur) return '';
+  const curTxt = ((cur.summary||'')+ ' '+(cur.prompt||'')).toLowerCase();
+  const shifted = [];
+  for (const c of chars) { if (!c.name || !curTxt.includes(c.name.toLowerCase())) continue; const prev = roleHistory[c.name]; if (!prev) continue; const ni = curTxt.indexOf(c.name.toLowerCase()); const ctx = curTxt.slice(Math.max(0,ni-80), Math.min(curTxt.length,ni+c.name.length+80)); const nowAlly = ALLY.some(t=>ctx.includes(t)), nowAntag = ANTAG.some(t=>ctx.includes(t)); if (prev.role==='antagonist'&&nowAlly) shifted.push({name:c.name,from:'antagonist',to:'ally',since:prev.ch}); else if (prev.role==='ally'&&nowAntag) shifted.push({name:c.name,from:'ally',to:'antagonist',since:prev.ch}); }
+  if (!shifted.length) return '';
+  return `=== ALLEGIANCE SHIFT DETECTED — MUST ACKNOWLEDGE ON-PAGE ===\nThis character's role has changed since their last appearance. The chapter must explicitly acknowledge this shift through action, dialogue, or internal reaction from the POV character. The reader should not be expected to accept the change without witnessing its cause or consequence.\n\n${shifted.map(s=>`- ${s.name}: was ${s.from} (ch ${s.since||'bible'}), now ${s.to}`).join('\n')}\n=== END ALLEGIANCE SHIFT ===`;
+}
+
 // Build canonical backstory block from story bible — injected as read-only into every chapter
 function buildCanonicalBackstoryBlock(storyBible) {
   const characters = storyBible?.characters;
