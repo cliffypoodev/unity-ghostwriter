@@ -329,20 +329,16 @@ ${firedBeats.join('\n')}
 === END FIRED BEATS ===`;
 }
 
-// Build character capabilities block — prevents characters from exceeding their established competency
+// Build character capabilities block — prevents characters from exceeding established competency
 function buildCapabilitiesBlock(storyBible) {
-  const characters = storyBible?.characters;
-  if (!characters || !Array.isArray(characters) || characters.length === 0) return '';
-  const entries = characters.filter(c => c.capabilities_under_pressure).map(c => {
-    const cap = c.capabilities_under_pressure;
-    return `- ${c.name}: Combat: ${cap.combat_training || 'None'}. Weapons: ${cap.weapons_experience || 'None'}. Under threat: ${cap.violence_response || 'Will freeze or flee'}. Lethal force: ${cap.lethal_force || 'Cannot kill without severe psychological consequence'}.`;
+  const chars = storyBible?.characters;
+  if (!chars?.length) return '';
+  const entries = chars.filter(c => c.capabilities_under_pressure).map(c => {
+    const p = c.capabilities_under_pressure;
+    return `- ${c.name}: Combat=${p.combat_training||'None'}, Weapons=${p.weapons_experience||'None'}, Threat=${p.violence_response||'Freeze/flee'}, Lethal=${p.lethal_force||'Cannot kill without severe consequence'}`;
   });
-  if (entries.length === 0) return '';
-  return `=== CHARACTER CAPABILITIES UNDER PRESSURE (MANDATORY — NEVER EXCEED) ===
-A character cannot perform actions beyond their established capability level. A marine biologist with no combat training cannot efficiently kill trained security operatives. A corporate executive cannot suddenly display tactical awareness they have never demonstrated. If the plot requires a character to act beyond their established capabilities, the scene must acknowledge this explicitly — they fail, they freeze, they get help, or they pay a cost.
-
-${entries.join('\n')}
-=== END CAPABILITIES ===`;
+  if (!entries.length) return '';
+  return `=== CHARACTER CAPABILITIES (NEVER EXCEED) ===\nIf the plot requires a character to act beyond capabilities, the scene must show failure, freezing, help, or cost.\n${entries.join('\n')}\n=== END CAPABILITIES ===`;
 }
 
 // Build allegiance shift block — detects characters whose role changed and injects acknowledgment
