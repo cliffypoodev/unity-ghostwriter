@@ -593,88 +593,94 @@ export default function GenerateTab({ projectId, onProceed }) {
   const handleGenerateOutline = async () => {
     setGenerating(true);
     generatingRef.current = true;
-    setGenerationProgress("Starting generation…");
+    setGenerationProgress("Step 1/2 — Building structure…");
     setGenerateError("");
 
     try {
-      // Kick off async generation — returns immediately
-      const response = await base44.functions.invoke('generateOutline', { project_id: projectId }, { timeout: 30000 });
-      if (response.status !== 200) {
-        setGenerateError(response.data?.error || 'Failed to start generation');
+      // ── STEP 1: Shell (fast — titles + summaries) ──
+      const shellRes = await base44.functions.invoke('generateOutlineShell', { project_id: projectId }, { timeout: 60000 });
+      if (shellRes.status !== 200) {
+        setGenerateError(shellRes.data?.error || 'Failed to generate shell');
         setGenerating(false);
         setGenerationProgress("");
         return;
       }
 
-      // Poll the Outline entity status until complete or error
-      let pollCount = 0;
-      const startedAt = Date.now();
-      const messages = [
-        "Generating story bible & metadata…",
-        "Building chapter outlines…",
-        "Writing chapter prompts…",
-        "Finalizing outline…",
-        "Almost there…",
-      ];
+      const shellStatus = shellRes.data?.status;
+      if (shellStatus === 'partial') {
+        // Shell timed out — save what we have, let user resume
+        await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+        await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+        setGenerating(false);
+        setGenerationProgress("");
+        setGenerateError("Structure was partially generated. Click 'Resume Detail' to continue.");
+        return;
+      }
 
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        try {
-          const outlineList = await base44.entities.Outline.filter({ project_id: projectId });
-          const latestOutline = outlineList[0];
+      // Shell complete — refresh chapters list, then start detail
+      await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
 
-          if (!latestOutline) return;
+      setGenerationProgress("Step 2/2 — Filling in detail…");
 
-          if (latestOutline.status === 'complete') {
-            clearInterval(pollInterval);
-            generatingRef.current = false;
-            await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
-            await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
-            await queryClient.invalidateQueries({ queryKey: ["projects"] });
-            setGenerating(false);
-            setGenerationProgress("");
-          } else if (latestOutline.status === 'error') {
-            clearInterval(pollInterval);
-            generatingRef.current = false;
-            setGenerateError(latestOutline.error_message || 'Generation failed');
-            setGenerating(false);
-            setGenerationProgress("");
-          } else {
-            // Still generating — show elapsed time + rotating message
-            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-            const mins = Math.floor(elapsed / 60);
-            const secs = elapsed % 60;
-            const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-            setGenerationProgress(`${messages[pollCount % messages.length]} (${timeStr})`);
-          }
-        } catch (e) {
-          console.warn('Poll error:', e.message);
-        }
-      }, 3000);
+      // ── STEP 2: Detail (story bible, prompts, beats) ──
+      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 60000 });
 
-      // Safety timeout after 12 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (generatingRef.current) {
-          generatingRef.current = false;
-          setGenerateError('Generation is taking too long. Please check back or retry.');
-          setGenerating(false);
-          setGenerationProgress("");
-        }
-      }, 12 * 60 * 1000);
+      const detailStatus = detailRes.data?.status;
+      
+      await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+      generatingRef.current = false;
+      setGenerating(false);
+      setGenerationProgress("");
+
+      if (detailStatus === 'partial') {
+        setGenerateError("Outline partially detailed — some chapters may lack prompts. Click 'Resume Detail' to complete.");
+      }
 
     } catch (err) {
       console.error('generateOutline error:', err);
       generatingRef.current = false;
       
-      // CHANGE 5 FIX: User-friendly rate limit error with countdown
       if (err.message?.includes('rate limit') || err.message?.includes('Rate limit')) {
-        setGenerateError('AI rate limit reached. Your outline is large — please wait 60 seconds and click Retry Generation.');
+        setGenerateError('AI rate limit reached — please wait 60 seconds and click Retry.');
         setRetryCountdown(60);
       } else {
         setGenerateError(err.message || 'Failed to generate outline');
       }
       
+      setGenerating(false);
+      setGenerationProgress("");
+    }
+  };
+
+  const handleResumeDetail = async () => {
+    setGenerating(true);
+    generatingRef.current = true;
+    setGenerationProgress("Resuming — Filling in detail…");
+    setGenerateError("");
+
+    try {
+      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 60000 });
+      
+      await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+      generatingRef.current = false;
+      setGenerating(false);
+      setGenerationProgress("");
+
+      if (detailRes.data?.status === 'partial') {
+        setGenerateError("Still partially detailed. You can retry or proceed with what's available.");
+      }
+    } catch (err) {
+      console.error('resumeDetail error:', err);
+      generatingRef.current = false;
+      setGenerateError(err.message || 'Failed to resume detail generation');
       setGenerating(false);
       setGenerationProgress("");
     }
