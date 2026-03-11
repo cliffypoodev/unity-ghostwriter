@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// This function is now a lightweight kickoff — it resets pending chapters
-// and returns the list of chapters that need writing.
-// The FRONTEND drives sequential writeChapter calls one at a time.
+// Fire-and-forget dispatcher: identifies chapters needing writing,
+// dispatches writeChapter for each one via non-awaited async calls,
+// and returns immediately. The frontend polls chapter status individually.
 
 Deno.serve(async (req) => {
   try {
@@ -29,33 +29,53 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No chapters found' }, { status: 400 });
     }
 
-    // Find chapters that need writing (not yet generated)
-    const toWrite = chapters.filter(c => c.status !== 'generated');
+    // Find chapters that need writing (pending or error)
+    const toWrite = chapters.filter(c => c.status === 'pending' || c.status === 'error');
 
     if (toWrite.length === 0) {
       return Response.json({
         success: true,
-        toWrite: [],
-        message: 'All chapters already written',
+        dispatched: 0,
+        message: 'All chapters already written or in progress',
       });
     }
 
-    // Reset any stuck "generating" or "error" chapters back to pending
+    // Reset any error chapters back to pending before dispatching
     for (const ch of toWrite) {
-      if (ch.status === 'generating' || ch.status === 'error') {
+      if (ch.status === 'error') {
         await base44.entities.Chapter.update(ch.id, { status: 'pending' });
       }
     }
 
-    // Return the list — frontend will drive sequential writeChapter calls
+    // Fire-and-forget: dispatch writeChapter for each chapter with staggered timing.
+    // These calls are NOT awaited — the function returns immediately after dispatching.
+    let dispatchCount = 0;
+    for (const ch of toWrite) {
+      const delay = dispatchCount * 10000; // 10-second stagger between dispatches
+      
+      // Use setTimeout for non-blocking staggered dispatch
+      setTimeout(() => {
+        base44.functions.invoke('writeChapter', {
+          project_id: projectId,
+          chapter_id: ch.id,
+        }).catch(err => {
+          console.error(`Dispatch error for chapter ${ch.chapter_number}:`, err.message);
+        });
+      }, delay);
+
+      dispatchCount++;
+    }
+
+    // Return immediately — all dispatches are fire-and-forget
     return Response.json({
       success: true,
-      toWrite: toWrite.map(c => ({
+      dispatched: dispatchCount,
+      chapters: toWrite.map(c => ({
         id: c.id,
         chapter_number: c.chapter_number,
         title: c.title,
       })),
-      message: `${toWrite.length} chapters ready for writing`,
+      message: `${dispatchCount} chapter(s) dispatched for writing with 10s stagger`,
     });
   } catch (error) {
     console.error('writeAllChapters error:', error);
