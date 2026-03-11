@@ -496,6 +496,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   }, []);
   const [generationProgress, setGenerationProgress] = useState("");
   const [streamingChapterId, setStreamingChapterId] = useState(null);
+  const [activeChapterIds, setActiveChapterIds] = useState(new Set()); // tracks chapters being written (polling)
   const [streamingContent, setStreamingContent] = useState({});
   const [chapterProgress, setChapterProgress] = useState({});
   const [generatingAllScenes, setGeneratingAllScenes] = useState(false);
