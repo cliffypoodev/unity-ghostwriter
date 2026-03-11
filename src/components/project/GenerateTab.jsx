@@ -708,6 +708,9 @@ export default function GenerateTab({ projectId, onProceed }) {
      if (response.data?.async) {
        setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
        let pollCount = 0;
+       let singleLastUpdated = null;
+       let singleStuckCount = 0;
+       let singleRetries = 0;
        const pollInterval = setInterval(async () => {
          pollCount++;
          try {
@@ -737,6 +740,29 @@ export default function GenerateTab({ projectId, onProceed }) {
              clearInterval(pollInterval);
              setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Error during generation" }));
+           } else if (updatedChapter?.status === 'generating') {
+             // Stuck detection for single chapter writes
+             const curUpdated = updatedChapter.updated_date;
+             if (singleLastUpdated && curUpdated === singleLastUpdated) {
+               singleStuckCount++;
+             } else {
+               singleStuckCount = 0;
+               singleLastUpdated = curUpdated;
+             }
+             
+             if (singleStuckCount >= 90 && singleRetries < 2) {
+               // 3 minutes with no update — retry
+               singleRetries++;
+               singleStuckCount = 0;
+               setChapterProgress(prev => ({ ...prev, [chapter.id]: `Stalled — retrying (attempt ${singleRetries})...` }));
+               await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
+               await new Promise(r => setTimeout(r, 2000));
+               await base44.functions.invoke('writeChapter', { project_id: projectId, chapter_id: chapter.id });
+               singleLastUpdated = null;
+             } else {
+               const messages = ["Generating prose…", "Running quality scan…", "Building state document…", "Applying corrections…", "Finalizing chapter…"];
+               setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[Math.floor(pollCount / 15) % messages.length] }));
+             }
            } else {
              const messages = ["Writing section 1 of 3...", "Writing section 2 of 3...", "Writing section 3 of 3..."];
              setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[pollCount % messages.length] }));
