@@ -155,6 +155,127 @@ const BEAT_SHEET_TEMPLATES = {
   },
 };
 
+// ── SHORT FICTION BEAT CLUSTERS ──────────────────────────────────────────────
+// Used when chapter_count is 5-10 and book_type is fiction.
+// Replaces positional beat mapping with 5 guaranteed structural clusters.
+// CRUCIBLE is the elastic middle — it absorbs all extra chapters.
+
+const SHORT_FICTION_CLUSTERS = {
+  "save-the-cat": [
+    {
+      id: "IGNITION", label: "Opening Image + Catalyst", fn: "DISRUPTION", scene_type: "scene", tempo: "medium",
+      primary_desc: "Establish the protagonist's world AND deliver the inciting incident in the same chapter. Open with a vivid image of their normal life (flaw visible, stakes established), then end the chapter with the catalyst — the event they CANNOT ignore. Do not separate these into two chapters. The inciting incident must land before the chapter ends.",
+    },
+    {
+      id: "COMMITMENT", label: "Break Into Two", fn: "COMMITMENT", scene_type: "scene", tempo: "fast",
+      primary_desc: "The protagonist debates briefly (no more than 1-2 pages of resistance) then makes an ACTIVE CHOICE to enter the new world. This is a decision, not something that happens TO them. The B-story relationship should be introduced or acknowledged here. End the chapter with the protagonist fully committed — no going back.",
+    },
+    {
+      id: "CRUCIBLE", label: "Fun & Games / Escalation", fn: "PROMISE_OF_PREMISE", scene_type: "scene", tempo: "fast",
+      primary_desc: "Deliver the PROMISE OF THE PREMISE — this is why the reader bought the book. Erotica = intimacy. Thriller = danger. Romance = chemistry. Pack the genre's core pleasure into this chapter. End with a midpoint reversal: false victory or false defeat that changes everything.",
+      expansion_desc: [
+        "Deliver the PROMISE OF THE PREMISE — the genre's core pleasure, full throttle. End with something that raises the stakes significantly.",
+        "Escalate from the previous chapter. Allies waver. The protagonist's flaw causes a real problem. The antagonist closes in. Something irreversible happens.",
+        "The midpoint REVERSAL. New information reframes everything believed so far. False victory (things look great but are about to collapse) or false defeat (things look terrible but the real threat is revealed). This is the hinge of the story.",
+        "Bad guys close in. External pressure + internal failure compound. The protagonist is losing on multiple fronts. Build toward inevitable crisis.",
+      ],
+    },
+    {
+      id: "BREAKING_POINT", label: "All Is Lost + Dark Night", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
+      primary_desc: "The lowest point. Something irreversible — death, betrayal, total failure. The protagonist is worse off than at the start of the book. Immediately follow with the dark night of the soul: grief, anger, denial. No new characters. No new plot. Let the devastation register fully before any hint of recovery. This chapter MUST be slow.",
+    },
+    {
+      id: "RESOLUTION", label: "Finale + Final Image", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
+      primary_desc: "The protagonist understands the theme (the 'break into three' realization can be a single beat at the chapter's opening) then immediately executes the climax. All threads converge. The protagonist acts DIFFERENTLY than they would have in Chapter 1 — prove the change. End with a final image that mirrors the opening: same location or situation, transformed meaning. Bittersweet or triumphant, but earned.",
+    },
+  ],
+  "romance-arc": [
+    {
+      id: "IGNITION", label: "Separate Worlds + The Meeting", fn: "DISRUPTION", scene_type: "scene", tempo: "medium",
+      primary_desc: "Establish both leads in a single chapter — what each is missing, their emotional wounds, their reason to resist love. Then deliver the meeting: FRICTION, not instant chemistry. Physical awareness is noted but not acted on. End the chapter with both leads thrown together by circumstance, neither happy about it.",
+    },
+    {
+      id: "COMMITMENT", label: "First Surrender", fn: "PROMISE_OF_PREMISE", scene_type: "scene", tempo: "fast",
+      primary_desc: "Forced proximity breaks down one wall. Genuine vulnerability or first real physical intimacy (calibrated to spice level). For erotica: first intimate scene — do not defer it. The leads acknowledge something is happening, even if they won't say it aloud. End with one of them pulling back — the commitment is real but also terrifying.",
+    },
+    {
+      id: "CRUCIBLE", label: "Deepening / Escalation", fn: "ESCALATION", scene_type: "scene", tempo: "medium",
+      primary_desc: "Relationship deepens through shared experience. Intimacy escalates (calibrated to spice level). End with the midpoint shift — the relationship fundamentally changes nature; both acknowledge this is no longer casual.",
+      expansion_desc: [
+        "Relationship deepens through shared experience. Chemistry builds. Intimacy escalates (calibrated to spice level). Something small and perfect happens between them.",
+        "Complications arrive. External pressure or a secret threatens what's growing. Intimacy and tension compound. End with the midpoint shift — they acknowledge this is no longer casual.",
+        "Stakes escalate. A secret or external force threatens everything. Their emotional wounds are directly triggered by each other. Intimacy and emotional danger at peak simultaneously.",
+        "Everything is about to break. One last perfect moment before the fall. Both know something is wrong. The reader can feel the collapse coming.",
+      ],
+    },
+    {
+      id: "BREAKING_POINT", label: "The Break + Alone Again", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
+      primary_desc: "The relationship shatters — must feel EARNED by the wound established in Chapter 1. Both devastated, differently. Immediately follow with the alone-again aftermath: both processing loss separately, mirroring the opening. This chapter must be genuinely sad. Do not rush to the realization. Sit in the grief.",
+    },
+    {
+      id: "RESOLUTION", label: "Realization + Reunion", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
+      primary_desc: "The realization (one or both characters understand their wound and what they must change) can be compressed to 2-3 paragraphs at the chapter's opening. Then: the grand gesture or reunion. A vulnerable act that proves genuine change. For erotica: reunion intimacy carries full emotional weight — this is the emotional and physical payoff simultaneously. End on warmth: the new normal, happily ever after earned.",
+    },
+  ],
+  "thriller-tension": [
+    {
+      id: "IGNITION", label: "Normal World + The Disturbance", fn: "DISRUPTION", scene_type: "scene", tempo: "fast",
+      primary_desc: "Establish competence and routine (plant 2-3 details that will matter later) then immediately deliver the disturbance — a body, a disappearance, a message. The clock starts ticking. The chapter ends with the protagonist committed to investigating. Do not linger in setup — the disturbance must arrive in the first third of this chapter.",
+    },
+    {
+      id: "COMMITMENT", label: "Investigation Begins", fn: "PROMISE_OF_PREMISE", scene_type: "scene", tempo: "medium",
+      primary_desc: "Early clues and red herrings. The protagonist is now visible to the antagonist. A key ally or complication is introduced. End with a breakthrough that raises the personal stakes — this isn't just a case anymore.",
+    },
+    {
+      id: "CRUCIBLE", label: "The Trail / Escalation", fn: "ESCALATION", scene_type: "scene", tempo: "fast",
+      primary_desc: "The investigation heats up and the midpoint revelation arrives: everything believed is wrong. A major twist reframes the entire case. The antagonist counterattacks — someone close is threatened. End with a racing clock: a deadline has emerged.",
+      expansion_desc: [
+        "The trail heats up. Breakthrough at a cost — protagonist now fully exposed to the antagonist.",
+        "The midpoint REVELATION. Everything believed is wrong. New information reframes the entire case.",
+        "The antagonist counterattacks. Someone close is threatened or hurt. The stakes become personal.",
+        "Racing clock. A deadline has emerged. Desperate moves. One step ahead, two steps behind.",
+      ],
+    },
+    {
+      id: "BREAKING_POINT", label: "Darkest Hour", fn: "CRISIS", scene_type: "sequel", tempo: "slow",
+      primary_desc: "Rock bottom. The protagonist has been betrayed or outmaneuvered. The case seems unwinnable. This chapter is short but the human cost must register — grief, fear, the weight of failure. Then: a small detail clicks into place. A desperate plan using information the reader already has. End with the protagonist moving toward final confrontation.",
+    },
+    {
+      id: "RESOLUTION", label: "The Confrontation + Aftermath", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
+      primary_desc: "Final confrontation. The plan goes sideways — victory requires sacrifice or cleverness the protagonist didn't know they had. The planted details from Chapter 1 pay off. End with aftermath: cost of victory. Something was saved, something was lost. Bittersweet. The world is not the same.",
+    },
+  ],
+  "heros-journey": [
+    {
+      id: "IGNITION", label: "Ordinary World + Call to Adventure", fn: "DISRUPTION", scene_type: "scene", tempo: "medium",
+      primary_desc: "Establish the hero in a mundane environment — longing for something more, the flaw visible. Introduce the mentor briefly (or plant their presence). Deliver the call to adventure: a challenge or quest the hero cannot ignore. Show brief resistance (refusal of the call) — sympathetic, not cowardly. End with the hero crossing the threshold: deliberate choice, point of no return.",
+    },
+    {
+      id: "COMMITMENT", label: "Tests, Allies, Enemies", fn: "PROMISE_OF_PREMISE", scene_type: "scene", tempo: "fast",
+      primary_desc: "The hero faces early challenges in the new world. Deliver the genre promise — adventure, magic, wonder, danger. Key allies and enemies are established. End with the approach to the inmost cave: the hero is closing in on the central danger, stakes crystallized.",
+    },
+    {
+      id: "CRUCIBLE", label: "The Ordeal / Road Back", fn: "REVERSAL", scene_type: "scene", tempo: "fast",
+      primary_desc: "The Ordeal: the hero's greatest challenge. Death and rebirth — deepest fear confronted. The hero gains the prize but at a cost. Show the cost before the celebration. End with new complications: the journey home is fraught, the antagonist pursues.",
+      expansion_desc: [
+        "Approach to inmost cave. Tension builds. The hero prepares for the central challenge.",
+        "The ORDEAL. Greatest challenge. Death and rebirth. Deepest fear confronted. Hero changed by surviving.",
+        "The Reward. Hero gains the prize. Celebration premature — show the cost and the pursuit beginning.",
+        "The Road Back. Journey home is fraught. New complications. Antagonist closes in. Hero must use what they've learned.",
+      ],
+    },
+    {
+      id: "BREAKING_POINT", label: "The Resurrection", fn: "CLIMAX", scene_type: "scene", tempo: "fast",
+      primary_desc: "The highest-stakes test. The old self must die for the new self to live. The hero is stripped of all help and must act from their transformed self alone. This is the final battle of identity, not just plot. End with victory — but at a meaningful cost.",
+    },
+    {
+      id: "RESOLUTION", label: "Return with the Elixir", fn: "RESOLUTION", scene_type: "sequel", tempo: "slow",
+      primary_desc: "The hero returns transformed. Mirror the opening: same location or situation, entirely different meaning. The elixir — what the hero brings back — benefits the community or world. End on the resonant final image of a changed person in a changed world.",
+    },
+  ],
+};
+// ── END SHORT FICTION CLUSTERS ────────────────────────────────────────────────
+
 function autoDetectTemplate(genre, bookType) {
   const g = (genre || '').toLowerCase();
   if (bookType === 'nonfiction') {
