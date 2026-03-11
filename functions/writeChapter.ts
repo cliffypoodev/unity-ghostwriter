@@ -144,6 +144,7 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 
 const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Return ONLY the prose of the chapter/scene. No preamble. No commentary.
+- Do not begin this chapter with a sentence that summarizes what is about to happen or comments on the significance of the moment. Do not use "Nothing would change," "Everything was about to change," "This was the moment," "Little did she know," "What happened next would," or any structural variant. Begin with a concrete sensory detail, action, or piece of dialogue.
 - Do NOT include a chapter title, chapter number, or any heading at the top of your output. The chapter title is handled by the application — start immediately with the first sentence of prose.
 - Do NOT include scene headers, scene numbers, or scene titles (e.g. "## SCENE 1" or "SCENE 1: Title"). The ONLY structural marker between scenes is a single line containing just: * * *
 - Do not start with "Here is..." or "Sure, here's..." or "I'd be happy to..."
@@ -725,6 +726,13 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
     endingPatterns: [
       "he was ready to", "she was ready to", "he was no longer", "she was no longer", "he was not just", "she was not just",
       "journey was just beginning", "journey had just begun", "whatever lay ahead", "whatever lies ahead", "knew that"
+    ],
+    openingBleed: [
+      "nothing would change", "nothing was going to change", "nothing would ever change",
+      "everything was about to change", "everything would change", "everything changed in that moment",
+      "this was the moment", "this was the moment that", "this was the moment when",
+      "little did she know", "little did he know", "little did they know",
+      "what happened next would", "what happened next changed", "what came next would"
     ]
   };
 
