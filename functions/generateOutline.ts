@@ -511,6 +511,9 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
 
     const subgenreBlock = spec.subgenre ? `\nSubgenre: ${spec.subgenre}\nAll chapters must be relevant to the subgenre. Do not generate chapters that fall outside the subgenre focus.` : '';
 
+    // Build research block from web search pre-pass (if available)
+    const researchBlock = bookResearch ? `\n=== VERIFIED RESEARCH (from live web search) ===\nContext: ${bookResearch.contextSummary || ''}\n\nKey Facts:\n${(bookResearch.facts || []).map(f => '- ' + f).join('\n')}\n\nTimeline:\n${(bookResearch.timeline || []).map(t => '- ' + t.date + ': ' + t.event).join('\n')}\n\nKey Figures:\n${(bookResearch.keyFigures || []).map(f => '- ' + f.name + ': ' + f.role).join('\n')}\n\nINSTRUCTION: Ground the chapter outline in these verified facts. Each chapter's summary and prompt should reflect accurate dates, names, and events where relevant. Do not invent events that contradict these facts.\n=== END RESEARCH ===\n` : '';
+
     const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional nonfiction book architect specializing in research compilation and evidence-based narrative structure. You generate structured outlines for nonfiction books. Return only valid JSON. No prose outside the JSON.
 
 This book must contain exactly ${targetChapters} chapters. Generate an outline with exactly ${targetChapters} chapters — no more, no fewer.
