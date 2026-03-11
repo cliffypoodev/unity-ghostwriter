@@ -696,15 +696,24 @@ export default function GenerateTab({ projectId, onProceed }) {
      const response = await base44.functions.invoke('writeChapter', { 
        project_id: projectId, 
        chapter_id: chapter.id 
-     });
+     }, { timeout: 900000 }); // 15 min timeout for full generation
 
      if (response.status !== 200) {
        console.error('writeChapter error:', response.data);
        setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
+       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${response.data?.error || 'Generation failed'}` }));
        return;
      }
 
-     // If async, poll for updates every 2 seconds
+     // If synchronous completion (new behavior) — done immediately
+     if (!response.data?.async) {
+       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
+       setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
+       await refetchChapters();
+       return;
+     }
+
+     // Legacy async path — poll for updates every 2 seconds
      if (response.data?.async) {
        setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
        let pollCount = 0;
