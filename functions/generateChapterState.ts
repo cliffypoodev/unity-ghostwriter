@@ -183,13 +183,11 @@ ${chapterContent}`;
     ? existingStateLog + separator + stateDocument
     : stateDocument;
 
-  // Upload state log as file if it's large, otherwise store inline
-  let stateLogValue = updatedLog;
-  if (updatedLog.length > 25000) {
-    const logFile = new File([updatedLog], `state_log_${project_id}.txt`, { type: 'text/plain' });
-    const uploadResult = await base44.integrations.Core.UploadFile({ file: logFile });
-    if (uploadResult?.file_url) stateLogValue = uploadResult.file_url;
-  }
+  // Always upload state log as file to avoid entity field size limits
+  let stateLogValue;
+  const logFile = new File([updatedLog], `state_log_${project_id}.txt`, { type: 'text/plain' });
+  const uploadResult = await base44.integrations.Core.UploadFile({ file: logFile });
+  stateLogValue = uploadResult?.file_url || updatedLog;
 
   // FIX 3A — Subject extraction for nonfiction duplicate prevention
   let subjectLine = '';
