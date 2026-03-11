@@ -1785,7 +1785,7 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
     let finalContent = fullContent;
 
     let contentValue = finalContent;
-    if (finalContent.length > 30000) {
+    if (finalContent.length > 15000) {
       try {
         const contentFile = new File([finalContent], `chapter_${chapterId}.txt`, { type: 'text/plain' });
         const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile });
