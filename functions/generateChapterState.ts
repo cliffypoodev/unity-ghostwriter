@@ -137,6 +137,10 @@ PLOT THREADS ACTIVATED THIS CHAPTER: [bullet list]
 PLOT THREADS STILL OPEN: [bullet list — carry forward from previous state document plus any new ones, remove any that were resolved]
 PHRASES AND METAPHORS USED THIS CHAPTER: [bullet list of distinctive phrases, metaphors, similes, and literary images — these are permanently banned from reuse in any subsequent chapter]
 RELATIONSHIP STATUS BETWEEN CENTRAL CHARACTERS: [one sentence describing where the central relationship stands at chapter end]
+FIRED_BEATS: [bullet list of romantic/emotional milestones that occurred in THIS chapter. Only include beats that actually happened on-page. Use this exact format for each:
+- BEAT: [beat type] | CHARACTERS: [Character A, Character B] | CHAPTER: ${chapter.chapter_number} | DETAIL: [one-sentence description]
+Beat types to track: first_kiss, first_intimate_scene, first_declaration_of_feelings, emotional_vulnerability_confession, first_physical_contact, jealousy_confrontation, breakup, reconciliation, sacrifice_for_other.
+If no romantic/emotional beats fired this chapter, write: - none]
 ESCALATION STAGE: [1 through 6 — where 1 is lowest tension and 6 is highest. Target range for this chapter: ${escalationTarget.label}]
 FINAL LINE OF CHAPTER: [exact text of the last sentence written]
 OPEN QUESTION CARRIED INTO NEXT CHAPTER: [the specific unresolved threat, question, or discovery the reader is left with]

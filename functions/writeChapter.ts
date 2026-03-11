@@ -320,6 +320,27 @@ async function parseOutlineField(field, fieldUrl) {
   } catch (err) { console.error('Parse field error:', err.message); return null; }
 }
 
+// Build fired beats block from previous state documents — prevents romance beat duplication
+function buildFiredBeatsBlock(allChapters, chapterIndex) {
+  const firedBeats = [];
+  for (let i = 0; i < chapterIndex; i++) {
+    const sd = allChapters[i].state_document;
+    if (!sd) continue;
+    const match = sd.match(/FIRED_BEATS:\s*([\s\S]*?)(?=\n[A-Z_]+:|$)/i);
+    if (!match) continue;
+    const lines = match[1].split('\n').filter(l => l.trim().startsWith('- BEAT:'));
+    firedBeats.push(...lines.map(l => l.trim()));
+  }
+  if (firedBeats.length === 0) return '';
+  return `=== FIRED ROMANCE/EMOTIONAL BEATS (DO NOT REPEAT) ===
+The following emotional and romantic beats have already occurred in this story. Do not repeat them or create parallel versions of them with different characters. A new character cannot fulfill a role that has already been established for another character.
+
+If the outline calls for a beat that has already fired between two characters, redirect that energy into DEVELOPMENT of the existing relationship (deepening, complicating, or testing it) rather than creating a new parallel beat.
+
+${firedBeats.join('\n')}
+=== END FIRED BEATS ===`;
+}
+
 // Build canonical backstory block from story bible — injected as read-only into every chapter
 function buildCanonicalBackstoryBlock(storyBible) {
   const characters = storyBible?.characters;
