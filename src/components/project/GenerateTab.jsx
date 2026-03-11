@@ -1092,6 +1092,11 @@ export default function GenerateTab({ projectId, onProceed }) {
 
       {/* Regenerate outline + One-click write buttons */}
       <div className="flex flex-wrap justify-end gap-2">
+        {isPartial && (
+          <Button size="sm" onClick={handleResumeDetail} disabled={generating} className="bg-amber-600 hover:bg-amber-700 text-white">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Resume Detail Generation
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={handleGenerateOutline} className="text-slate-500">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
         </Button>
