@@ -600,7 +600,7 @@ Return ONLY JSON.`;
 
       const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"
 Genre: ${spec.genre || 'General'}${spec.subgenre ? `\nSubgenre: ${spec.subgenre}\nAll chapters must be relevant to the subgenre "${spec.subgenre}". Do not generate chapters that fall outside the subgenre focus.` : ''}
-This book must contain exactly ${targetChapters} chapters total.${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${prevContext}
+This book must contain exactly ${targetChapters} chapters total.${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${researchBlock}${prevContext}
 
 Each chapter MUST have these fields:
 - number, title, summary (1-2 sentences on the chapter's argument/focus)
