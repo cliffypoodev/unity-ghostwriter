@@ -1868,16 +1868,10 @@ Try instead: mechanical, animal, architectural, textile, botanical, musical, foo
 
     // Meta-response detection
     const first500 = fullContent.slice(0, 500);
-    const META_PATTERNS = [
-      /^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i,
-      /^Here is/i, /^Here are/i, /^As requested/i,
-      /^I'll write/i, /^I'll generate/i, /^I'll create/i,
-      /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i,
-    ];
+    const META_PATTERNS = [/^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i, /^Here is/i, /^Here are/i, /^As requested/i, /^I'll write/i, /^I'll generate/i, /^I'll create/i, /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i];
     if (META_PATTERNS.some(p => p.test(first500))) {
-      qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose. Chapter needs regeneration.');
+      qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose.');
       qualityResult.passed = false;
-      console.warn(`Chapter ${chapter.chapter_number}: Meta-response detected in output!`);
     }
 
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
