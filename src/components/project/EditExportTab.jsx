@@ -559,7 +559,21 @@ async function exportMd(projectId, ds) {
   window.open(URL.createObjectURL(blob), "_blank");
 }
 
-// Server-side DOCX export
+// Server-side DOC export (legacy MHTML format)
+async function exportDoc(projectId, quill, ds) {
+  const { base44: sdk } = await import("@/api/base44Client");
+  const resp = await sdk.functions.invoke("exportProject", {
+    projectId,
+    format: "doc",
+    html: quill.root.innerHTML,
+    settings: ds,
+  });
+  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
+  const blob = new Blob([text], { type: "application/msword" });
+  download(blob, `${ds.bookTitle || "book"}.doc`);
+}
+
+// Server-side DOCX export (proper Open XML)
 async function exportDocx(projectId, quill, ds) {
   const { base44: sdk } = await import("@/api/base44Client");
   const resp = await sdk.functions.invoke("exportProject", {
@@ -568,9 +582,9 @@ async function exportDocx(projectId, quill, ds) {
     html: quill.root.innerHTML,
     settings: ds,
   });
-  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
-  const blob = new Blob([text], { type: "application/msword" });
-  download(blob, `${ds.bookTitle || "book"}.doc`);
+  // Response is binary ArrayBuffer
+  const blob = new Blob([resp.data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  download(blob, `${ds.bookTitle || "book"}.docx`);
 }
 
 // Print/PDF — opens styled window and triggers print dialog
