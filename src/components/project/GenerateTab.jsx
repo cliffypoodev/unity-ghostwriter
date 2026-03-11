@@ -955,78 +955,63 @@ export default function GenerateTab({ projectId, onProceed }) {
 
         // Poll only if async (legacy fallback) and not already completed
         if (response.data?.async && !chapterSuccess) {
-        let pollCount = 0;
-        const maxPolls = 600; // 20 minutes at 2s intervals
-        let done = false;
-        let lastUpdatedDate = null;
-        let stuckCount = 0;
-        const STUCK_THRESHOLD = 90; // polls (90 × 2s = 3 minutes with no update_date change)
-        let retryAttempts = 0;
-        const MAX_RETRIES = 2;
+          let pollCount = 0;
+          const maxPolls = 600;
+          let done = false;
+          let lastUpdatedDate = null;
+          let stuckCount = 0;
+          const STUCK_THRESHOLD = 90;
+          let retryAttempts = 0;
+          const MAX_RETRIES = 2;
 
-        while (!done && pollCount < maxPolls) {
-          if (writeAllAbortRef.current) { isWriting = false; break; }
+          while (!done && pollCount < maxPolls) {
+            if (writeAllAbortRef.current) { isWriting = false; break; }
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            pollCount++;
+            const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+            const updatedChapter = updated.find(c => c.id === chapter.id);
 
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          pollCount++;
-
-          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-          const updatedChapter = updated.find(c => c.id === chapter.id);
-
-          if (updatedChapter?.status === 'generated') {
-            let finalContent = updatedChapter.content || '';
-            if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
-              try { finalContent = await (await fetch(finalContent)).text(); } catch {}
+            if (updatedChapter?.status === 'generated') {
+              let finalContent = updatedChapter.content || '';
+              if (finalContent.startsWith('http://') || finalContent.startsWith('https://')) {
+                try { finalContent = await (await fetch(finalContent)).text(); } catch (e) { /* ignore */ }
+              }
+              const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
+              chapterWordsCount = finalWords;
+              totalWordsWritten += finalWords;
+              successes++;
+              done = true;
+              setWriteAllProgress(prev => ({
+                ...prev,
+                chapterWords: chapterWordsCount,
+                wordsWritten: totalWordsWritten,
+                successes,
+              }));
+            } else if (updatedChapter?.status === 'error') {
+              throw new Error('Chapter generation failed on server');
+            } else if (updatedChapter?.status === 'generating') {
+              const currentUpdated = updatedChapter.updated_date;
+              if (lastUpdatedDate && currentUpdated === lastUpdatedDate) {
+                stuckCount++;
+              } else {
+                stuckCount = 0;
+                lastUpdatedDate = currentUpdated;
+              }
+              if (stuckCount >= STUCK_THRESHOLD && retryAttempts < MAX_RETRIES) {
+                retryAttempts++;
+                stuckCount = 0;
+                setWriteAllProgress(prev => ({ ...prev, error: `Chapter ${chapter.chapter_number} stalled — retrying (attempt ${retryAttempts})...` }));
+                await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
+                await new Promise(r => setTimeout(r, 2000));
+                await base44.functions.invoke('writeChapter', { project_id: projectId, chapter_id: chapter.id }, { timeout: 900000 });
+                lastUpdatedDate = null;
+              }
             }
-            const finalWords = finalContent ? finalContent.split(/\s+/).filter(Boolean).length : 0;
-            chapterWordsCount = finalWords;
-            totalWordsWritten += finalWords;
-            successes++;
-            done = true;
-            setWriteAllProgress(prev => ({
-              ...prev,
-              chapterWords: chapterWordsCount,
-              wordsWritten: totalWordsWritten,
-              successes,
-            }));
-          } else if (updatedChapter?.status === 'error') {
-            throw new Error('Chapter generation failed on server');
-          } else if (updatedChapter?.status === 'generating') {
-            // Detect stuck chapters — if updated_date hasn't changed in 3 minutes, retry
-            const currentUpdated = updatedChapter.updated_date;
-            if (lastUpdatedDate && currentUpdated === lastUpdatedDate) {
-              stuckCount++;
-            } else {
-              stuckCount = 0;
-              lastUpdatedDate = currentUpdated;
-            }
-
-            if (stuckCount >= STUCK_THRESHOLD && retryAttempts < MAX_RETRIES) {
-              retryAttempts++;
-              stuckCount = 0;
-              console.warn(`Chapter ${chapter.chapter_number} appears stuck (no update for 3 min), retrying (attempt ${retryAttempts})...`);
-              setWriteAllProgress(prev => ({ ...prev, error: `Chapter ${chapter.chapter_number} stalled — retrying (attempt ${retryAttempts})...` }));
-              
-              // Reset to pending and re-invoke
-              await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
-              await new Promise(r => setTimeout(r, 2000));
-              await base44.functions.invoke('writeChapter', {
-                project_id: projectId,
-                chapter_id: chapter.id,
-              }, { timeout: 60000 });
-              lastUpdatedDate = null;
-            }
-          } else if (updatedChapter?.status === 'pending' && pollCount > 10) {
-            // Chapter reverted to pending (e.g. by stuck detection) but hasn't been picked up
-            // Give it more time — the retry invoke should handle it
           }
-          // else still generating — keep polling
+          if (!done && isWriting) {
+            throw new Error('Generation timeout after 20 minutes');
+          }
         }
-
-        if (!done && isWriting) {
-          throw new Error('Generation timeout after 20 minutes');
-        }
-        } // end async polling block
       } catch (err) {
         const errorMsg = err.message || 'Unknown error';
         console.error(`Chapter ${chapter.chapter_number} error:`, errorMsg);
