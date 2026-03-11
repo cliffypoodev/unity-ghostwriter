@@ -392,6 +392,33 @@ If a character uses she/her pronouns, use she/her in EVERY chapter. No exception
 === END CHARACTER CONSISTENCY ===`;
 }
 
+// FIX 9 — Unified canonical state document: aggregates all state fields with mandatory read instruction
+function buildUnifiedStateDocument(storyBible, outlineData, allChapters, chapterIndex, scopeLock) {
+  const s = [], chars = storyBible?.characters || [];
+  // 1. backstories
+  const bs = chars.filter(c=>c.character_backstory).map(c=>`- ${c.name}: ${c.character_backstory.formative_event||'N/A'} (${c.character_backstory.location||'N/A'}). Result: ${c.character_backstory.emotional_consequence||'N/A'}`);
+  if (bs.length) s.push(`CHARACTER_BACKSTORIES (canonical—locked):\n${bs.join('\n')}`);
+  // 2. capabilities
+  const cp = chars.filter(c=>c.capabilities_under_pressure).map(c=>{const p=c.capabilities_under_pressure;return `- ${c.name}: Combat=${p.combat_training||'None'}, Weapons=${p.weapons_experience||'None'}, Threat=${p.violence_response||'Freeze'}, Lethal=${p.lethal_force||'Cannot'}`;});
+  if (cp.length) s.push(`CHARACTER_CAPABILITIES:\n${cp.join('\n')}`);
+  // 3. fired beats
+  const fb = [];
+  for (let i=0;i<chapterIndex;i++){const sd=allChapters[i].state_document;if(!sd)continue;const m=sd.match(/FIRED_BEATS:\s*([\s\S]*?)(?=\n[A-Z_]+:|$)/i);if(m)fb.push(...m[1].split('\n').filter(l=>l.trim().startsWith('- BEAT:')).map(l=>l.trim()));}
+  if (fb.length) s.push(`FIRED_BEATS (do not repeat):\n${fb.join('\n')}`);
+  // 4. allegiances
+  const al = chars.map(c=>`- ${c.name}: ${c.role||'unknown'}`);
+  if (al.length) s.push(`CHARACTER_ALLEGIANCES:\n${al.join('\n')}`);
+  // 5. relationships + 6. plot threads — from last state doc
+  let lsd = null; for (let i=chapterIndex-1;i>=0;i--){if(allChapters[i].state_document){lsd=allChapters[i].state_document;break;}}
+  const rm=lsd?.match(/RELATIONSHIP STATUS[^:]*:\s*(.+)/i); if(rm) s.push(`ESTABLISHED_RELATIONSHIPS:\n- ${rm[1].trim()}`);
+  const tm=lsd?.match(/PLOT THREADS STILL OPEN:\s*([\s\S]*?)(?=\n[A-Z_]+[^a-z]|$)/i);
+  if(tm){const tl=tm[1].split('\n').filter(l=>l.trim().startsWith('-')).map(l=>l.trim());if(tl.length)s.push(`ACTIVE_PLOT_THREADS:\n${tl.join('\n')}`);}
+  // 7. scope statement
+  if (scopeLock?.throughline) s.push(`SCOPE_STATEMENT: ${scopeLock.throughline}`);
+  if (!s.length) return '';
+  return `=== UNIFIED CANONICAL STATE DOCUMENT ===\nBefore writing a single word of this chapter, read the entire state document below. Every character detail, relationship status, and plot thread listed here is canonical. Your chapter must be consistent with all of it. If the scene you are about to write would contradict anything in this state document, stop and rewrite the scene so it does not.\n\n${s.join('\n\n')}\n=== END UNIFIED STATE DOCUMENT ===`;
+}
+
 // FIX 8 — Character registry block: prevents new character conflicts
 function buildCharacterRegistryBlock(storyBible) {
   const chars = storyBible?.characters;
