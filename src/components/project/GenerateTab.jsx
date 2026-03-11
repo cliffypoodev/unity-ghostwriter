@@ -275,7 +275,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, streamingContent, isSt
 
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
-  const status = isStreaming ? "generating" : chapter.status;
+  const status = isWriting ? "generating" : chapter.status;
   const sc = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
   const handleCopy = () => {
