@@ -471,22 +471,22 @@ function extractDistinctivePhrases(text) {
 // PART 1 — Extract and normalize physical tics per character (16 families)
 function extractPhysicalTics(text) {
   const TIC_PATTERNS = [
-    { canonical: 'chest tightened', rx: /\b(chest|ribcage)\s+(tighten\w*|constrict\w*|compress\w*|squeez\w*)\b|tightn?\w*\s+in\s+(his|her|their|the)\s+chest\b/gi },
-    { canonical: 'jaw tightened', rx: /\bjaw\s+(tightened|clenched?|clenching|set|locked?)\b/gi },
-    { canonical: 'throat tightened', rx: /\b(throat|airway)\s+(tightened?|clenched?|constricted?)\b/gi },
-    { canonical: 'stomach twisted', rx: /\b(stomach|gut|belly)\s+(twisted?|dropped?|flipped?|knotted?|clenched?)\b/gi },
-    { canonical: 'fists clenched', rx: /\b(fist|fists|hand|hands)\s+(clenched?|curled? into fists?|balled? into fists?)\b/gi },
-    { canonical: 'fingers tightened', rx: /\b(fingers?|grip|hold|grasp)\s+(tightened?|clenched?|curled?|digging? into|gripped?|whitened?)\b/gi },
-    { canonical: 'breath caught', rx: /\b(breath|breathing)\s+(caught|catching|hitched?|stuttered?|stopped?)\b|stopped? breathing|forgot to breathe/gi },
-    { canonical: 'pulse quickened', rx: /\b(pulse|heartbeat)\s+(quickened?|raced?|throbbed?|hammered?|spiked?)\b/gi },
-    { canonical: 'heart raced', rx: /\b(heart|heartbeat)\s+(raced?|pounded?|hammered?|thudded?|thundered?|slammed?|stuttered?)\b/gi },
-    { canonical: 'shiver down spine', rx: /\b(shiver|chill)\w*\s+(down|up|ran|coursed|through)\s+(his|her|their|the)\s+(spine|back)\b/gi },
-    { canonical: 'jolt through body', rx: /\bjolt\w*\s+(through|of|ran|shot)\b|(shock|bolt)\s+(through|ran|shot)\s+(him|her|them|his|her|their|the)\b/gi },
-    { canonical: 'skin prickled', rx: /\bskin\s+(prickled?|tingled?|crawled?)\b|goosebumps?|gooseflesh/gi },
-    { canonical: 'flush crept', rx: /\bflush\w*\s+(crept?|spread|rose)\b|heat\s+(crept?|spread|rose|bloomed?)\s+(up|across|into|to)\b|color\s+(crept?|rose|flooded?)\s+(up|across)\b/gi },
-    { canonical: 'mouth went dry', rx: /\bmouth\s+(went|was|grew)\s+dry\b|dry\s+mouth|swallowed? against dryness/gi },
-    { canonical: 'knees went weak', rx: /\b(knees?|legs?)\s+(went|was|grew)\s+(weak|soft|unsteady|shaky)\b|(knees?|legs?)\s+(buckled?|wobbled?|trembled?|gave way)\b/gi },
-    { canonical: 'blood ran cold', rx: /\b(blood|color)\s+(ran|went|turned)\s+(cold|ice|white|pale)\b|blood\s+(drained|left|drained away)\b/gi },
+    { canonical: 'chest tightened', rx: /\b(chest|ribcage)\s+(tighten\w*|constrict\w*|squeez\w*)\b/gi },
+    { canonical: 'jaw tightened', rx: /\bjaw\s+(tightened|clenched?|set|locked?)\b/gi },
+    { canonical: 'throat tightened', rx: /\bthroat\s+(tightened?|clenched?|constricted?)\b/gi },
+    { canonical: 'stomach twisted', rx: /\b(stomach|gut)\s+(twisted?|dropped?|knotted?|clenched?)\b/gi },
+    { canonical: 'fists clenched', rx: /\b(fist|fists|hands?)\s+(clenched?|curled? into fists?|balled?)\b/gi },
+    { canonical: 'fingers tightened', rx: /\b(fingers?|grip)\s+(tightened?|clenched?|digging?|gripped?)\b/gi },
+    { canonical: 'breath caught', rx: /\bbreath\w*\s+(caught|hitched?|stuttered?|stopped?)\b|forgot to breathe/gi },
+    { canonical: 'pulse quickened', rx: /\bpulse\s+(quickened?|raced?|throbbed?|hammered?)\b/gi },
+    { canonical: 'heart raced', rx: /\bheart\w*\s+(raced?|pounded?|hammered?|thudded?|thundered?)\b/gi },
+    { canonical: 'shiver down spine', rx: /\b(shiver|chill)\w*\s+(down|up|ran|through)\s+\w+\s+(spine|back)\b/gi },
+    { canonical: 'jolt through body', rx: /\bjolt\w*\s+(through|of|ran|shot)\b/gi },
+    { canonical: 'skin prickled', rx: /\bskin\s+(prickled?|tingled?|crawled?)\b|goosebumps?/gi },
+    { canonical: 'flush crept', rx: /\bflush\w*\s+(crept?|spread|rose)\b|heat\s+(crept?|spread|rose)\s+(up|across|into)\b/gi },
+    { canonical: 'mouth went dry', rx: /\bmouth\s+(went|was|grew)\s+dry\b|dry\s+mouth/gi },
+    { canonical: 'knees went weak', rx: /\b(knees?|legs?)\s+(went|grew)\s+(weak|shaky)\b|(knees?|legs?)\s+(buckled?|wobbled?)\b/gi },
+    { canonical: 'blood ran cold', rx: /\bblood\s+(ran|went|turned)\s+(cold|ice|pale)\b|blood\s+drained\b/gi },
   ];
 
   const ticsByChar = {};
