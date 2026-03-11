@@ -244,6 +244,115 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── DOCX Export (proper Open XML) ──────────────────────────────────────────
+    if (format === 'docx') {
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } = await import('npm:docx@9.0.2');
+      const { html: editorHtml, settings: ds } = body;
+      const docTitle = ds?.bookTitle || title;
+      const author = ds?.authorName || '';
+      const subtitle = ds?.subtitle || '';
+
+      // Parse editor HTML into paragraphs
+      function parseHtmlToParagraphs(html) {
+        if (!html) return [];
+        // Split by block-level tags
+        const blocks = html
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '|||BREAK|||')
+          .replace(/<\/h1>/gi, '|||H1END|||')
+          .replace(/<\/h2>/gi, '|||H2END|||')
+          .replace(/<\/h3>/gi, '|||H3END|||')
+          .replace(/<\/h4>/gi, '|||H4END|||')
+          .replace(/<\/li>/gi, '|||BREAK|||')
+          .replace(/<hr\s*\/?>/gi, '|||BREAK|||')
+          .replace(/<div[^>]*style="page-break[^"]*"[^>]*><\/div>/gi, '|||PAGEBREAK|||');
+
+        const segments = blocks.split(/\|\|\|(\w+)\|\|\|/).filter(Boolean);
+        const result = [];
+        let i = 0;
+        while (i < segments.length) {
+          const text = segments[i].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim();
+          const nextMarker = segments[i + 1] || '';
+
+          if (nextMarker === 'PAGEBREAK') {
+            result.push({ type: 'pagebreak' });
+            i += 2;
+            continue;
+          }
+
+          if (!text) { i += 2; continue; }
+
+          if (nextMarker === 'H1END') {
+            result.push({ type: 'h1', text });
+          } else if (nextMarker === 'H2END') {
+            result.push({ type: 'h2', text });
+          } else if (nextMarker === 'H3END') {
+            result.push({ type: 'h3', text });
+          } else if (nextMarker === 'H4END') {
+            result.push({ type: 'h4', text });
+          } else if (nextMarker === 'BREAK') {
+            result.push({ type: 'p', text });
+          } else {
+            // Plain text without end marker
+            result.push({ type: 'p', text });
+            i += 1;
+            continue;
+          }
+          i += 2;
+        }
+        return result;
+      }
+
+      const parsed = parseHtmlToParagraphs(editorHtml || '');
+      const children = [];
+
+      // Title page
+      if (docTitle) {
+        children.push(new Paragraph({ text: docTitle, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
+      }
+      if (subtitle) {
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: subtitle, italics: true, size: 28, color: '64748b' })] }));
+      }
+      if (author) {
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: `by ${author}`, italics: true, size: 24 })] }));
+      }
+      if (docTitle || author) {
+        children.push(new Paragraph({ children: [new PageBreak()] }));
+      }
+
+      // Content
+      for (const block of parsed) {
+        if (block.type === 'pagebreak') {
+          children.push(new Paragraph({ children: [new PageBreak()] }));
+        } else if (block.type === 'h1') {
+          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
+        } else if (block.type === 'h2') {
+          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 150 } }));
+        } else if (block.type === 'h3') {
+          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_3, spacing: { before: 200, after: 100 } }));
+        } else if (block.type === 'h4') {
+          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_4, spacing: { before: 200, after: 100 } }));
+        } else {
+          children.push(new Paragraph({ spacing: { after: 160, line: 360 }, children: [new TextRun({ text: block.text, size: 24 })] }));
+        }
+      }
+
+      const doc = new Document({
+        creator: author || 'Unity Ghostwriter',
+        title: docTitle,
+        sections: [{ children }],
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+
+      return new Response(buffer, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'Content-Disposition': `attachment; filename="${docTitle.replace(/[^a-z0-9]/gi, '_')}.docx"`,
+        },
+      });
+    }
+
     return Response.json({ error: 'Unknown format' }, { status: 400 });
 
   } catch (err) {
