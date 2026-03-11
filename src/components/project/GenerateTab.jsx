@@ -680,136 +680,79 @@ export default function GenerateTab({ projectId, onProceed }) {
     }
   };
 
+  // Shared helper: fire writeChapter and poll until chapter reaches generated/error status.
+  // Returns "generated" | "error" | "timeout"
+  const writeAndPollChapter = async (chapterId, chapterNumber, onProgress) => {
+    // Fire the writeChapter request — don't await it fully since it may timeout from browser
+    const invokePromise = base44.functions.invoke('writeChapter', {
+      project_id: projectId,
+      chapter_id: chapterId,
+    }, { timeout: 600000 }).catch(err => {
+      // Browser timeout is expected — the backend continues running
+      console.log(`writeChapter HTTP returned/timed out for ch ${chapterNumber}:`, err?.message || 'ok');
+    });
+
+    // Poll chapter status until done
+    const startedAt = Date.now();
+    const maxWaitMs = 10 * 60 * 1000; // 10 min max per chapter
+    const progressMessages = ["Generating prose…", "Writing chapter content…", "Building narrative…", "Crafting scenes…", "Finalizing chapter…"];
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      await new Promise(r => setTimeout(r, 3000));
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      const msgIdx = Math.floor(elapsed / 20) % progressMessages.length;
+
+      const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+      const ch = updatedChapters.find(c => c.id === chapterId);
+
+      if (ch?.status === 'generated') {
+        if (onProgress) onProgress(`Complete — ${ch.word_count || 0} words (${timeStr})`);
+        return "generated";
+      }
+      if (ch?.status === 'error') {
+        if (onProgress) onProgress(`Error during generation`);
+        return "error";
+      }
+      if (onProgress) onProgress(`${progressMessages[msgIdx]} (${timeStr})`);
+    }
+
+    // Timeout — check one last time
+    const finalCheck = await base44.entities.Chapter.filter({ project_id: projectId });
+    const finalCh = finalCheck.find(c => c.id === chapterId);
+    if (finalCh?.status === 'generated') return "generated";
+    if (finalCh?.status === 'error') return "error";
+    return "timeout";
+  };
+
   const handleWriteChapter = async (chapter) => {
-   setStreamingChapterId(chapter.id);
-   setActiveChapterIds(prev => new Set([...prev, chapter.id]));
-   setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
+    setStreamingChapterId(chapter.id);
+    setActiveChapterIds(prev => new Set([...prev, chapter.id]));
+    setChapterProgress(prev => ({ ...prev, [chapter.id]: "Starting generation…" }));
 
-   // Update status optimistically
-   queryClient.setQueryData(["chapters", projectId], old =>
-     (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
-   );
+    // Update status optimistically
+    queryClient.setQueryData(["chapters", projectId], old =>
+      (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
+    );
 
-   try {
-     console.log('Starting write for chapter:', chapter.id);
+    try {
+      const result = await writeAndPollChapter(chapter.id, chapter.chapter_number, (msg) => {
+        setChapterProgress(prev => ({ ...prev, [chapter.id]: msg }));
+      });
 
-     const response = await base44.functions.invoke('writeChapter', { 
-       project_id: projectId, 
-       chapter_id: chapter.id 
-     }, { timeout: 900000 }); // 15 min timeout for full generation
-
-     if (response.status !== 200) {
-       console.error('writeChapter error:', response.data);
-       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${response.data?.error || 'Generation failed'}` }));
-       return;
-     }
-
-     // If synchronous completion (new behavior) — done immediately
-     if (!response.data?.async) {
-       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-       setChapterProgress(prev => ({ ...prev, [chapter.id]: "Complete" }));
-       await refetchChapters();
-       return;
-     }
-
-     // Legacy async path — poll for updates every 2 seconds
-     if (response.data?.async) {
-       setChapterProgress(prev => ({ ...prev, [chapter.id]: "Writing section 1 of 3..." }));
-       let pollCount = 0;
-       let singleLastUpdated = null;
-       let singleStuckCount = 0;
-       let singleRetries = 0;
-       const pollInterval = setInterval(async () => {
-         pollCount++;
-         try {
-           const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
-           const updatedChapter = updatedChapters.find(c => c.id === chapter.id);
-
-           if (updatedChapter?.status === 'generated') {
-             clearInterval(pollInterval);
-             setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-             setStreamingContent(prev => ({ ...prev, [chapter.id]: updatedChapter.content || "" }));
-
-             let qualityMsg = "Complete";
-             if (updatedChapter.quality_scan) {
-               try {
-                 const quality = JSON.parse(updatedChapter.quality_scan);
-                 if (quality.passed) {
-                   qualityMsg = `Complete — Quality check passed (${updatedChapter.word_count || 0} words)`;
-                 } else {
-                   qualityMsg = `Complete — WARNING: ${quality.banned_phrase_total} banned phrases remain`;
-                   console.warn(`Chapter ${chapter.chapter_number} quality warnings:`, quality.warnings);
-                 }
-               } catch (e) { /* ignore parse errors */ }
-             }
-             setChapterProgress(prev => ({ ...prev, [chapter.id]: qualityMsg }));
-             await refetchChapters();
-           } else if (updatedChapter?.status === 'error') {
-             clearInterval(pollInterval);
-             setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-             setChapterProgress(prev => ({ ...prev, [chapter.id]: "Error during generation" }));
-           } else if (updatedChapter?.status === 'generating') {
-             // Stuck detection for single chapter writes
-             const curUpdated = updatedChapter.updated_date;
-             if (singleLastUpdated && curUpdated === singleLastUpdated) {
-               singleStuckCount++;
-             } else {
-               singleStuckCount = 0;
-               singleLastUpdated = curUpdated;
-             }
-             
-             if (singleStuckCount >= 90 && singleRetries < 2) {
-               // 3 minutes with no update — retry
-               singleRetries++;
-               singleStuckCount = 0;
-               setChapterProgress(prev => ({ ...prev, [chapter.id]: `Stalled — retrying (attempt ${singleRetries})...` }));
-               await base44.entities.Chapter.update(chapter.id, { status: 'pending' });
-               await new Promise(r => setTimeout(r, 2000));
-               await base44.functions.invoke('writeChapter', { project_id: projectId, chapter_id: chapter.id });
-               singleLastUpdated = null;
-             } else {
-               const messages = ["Generating prose…", "Running quality scan…", "Building state document…", "Applying corrections…", "Finalizing chapter…"];
-               setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[Math.floor(pollCount / 15) % messages.length] }));
-             }
-           } else {
-             const messages = ["Writing section 1 of 3...", "Writing section 2 of 3...", "Writing section 3 of 3..."];
-             setChapterProgress(prev => ({ ...prev, [chapter.id]: messages[pollCount % messages.length] }));
-           }
-         } catch (err) {
-           console.warn('Poll error:', err.message);
-         }
-       }, 2000);
-
-       // Stop polling after 20 minutes
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          base44.entities.Chapter.filter({ project_id: projectId }).then(chs => {
-            const ch = chs.find(c => c.id === chapter.id);
-            setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-            if (ch?.status === 'generated') {
-              setStreamingContent(prev => ({ ...prev, [chapter.id]: ch.content || "" }));
-              setChapterProgress(prev => ({ ...prev, [chapter.id]: `Complete (${ch.word_count || 0} words)` }));
-              refetchChapters();
-            } else {
-              setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
-            }
-          }).catch(() => {
-            setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-            setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
-          });
-        }, 20 * 60 * 1000);
-     } else {
-       // Synchronous response — done immediately
-       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-     }
-   } catch (err) {
-     console.error('writeChapter error:', err.message);
-     setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
-     setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
-   } finally {
-     setStreamingChapterId(null);
-   }
+      if (result === "timeout") {
+        setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
+      }
+      await refetchChapters();
+    } catch (err) {
+      console.error('writeChapter error:', err.message);
+      setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
+    } finally {
+      setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
+      setStreamingChapterId(null);
+    }
   };
 
   const TARGET_WORDS_PER_CHAPTER = {
