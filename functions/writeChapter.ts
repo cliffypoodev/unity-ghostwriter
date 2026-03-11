@@ -506,12 +506,12 @@ function extractPhysicalTics(text) {
 }
 // PART 2 — Extract metaphor cluster usage (6 families)
 const METAPHOR_CLUSTER_WORDS = {
-  'FIRE': ['burn', 'burns', 'burned', 'burning', 'flame', 'flames', 'flaming', 'ignite', 'ignited', 'igniting', 'blaze', 'blazed', 'blazing', 'scorch', 'scorched', 'scorching', 'ember', 'embers', 'ash', 'ashes', 'smoke', 'smoked', 'smoking', 'kindle', 'kindled', 'kindling', 'spark', 'sparks', 'sparked', 'sparking', 'inferno', 'fire', 'fires', 'smolder', 'smoldered', 'smoldering', 'sear', 'seared', 'searing'],
-  'WATER': ['drown', 'drowns', 'drowned', 'drowning', 'flood', 'flooded', 'flooding', 'wave', 'waves', 'current', 'currents', 'tide', 'tides', 'submerge', 'submerged', 'submerging', 'surface', 'surfaced', 'surfacing', 'depth', 'depths', 'pour', 'poured', 'pouring', 'overflow', 'overflowed', 'overflowing', 'undertow', 'undercurrent'],
-  'DARKNESS': ['shadow', 'shadows', 'shadowed', 'shadowy', 'dark', 'darker', 'darkened', 'darkening', 'darkness', 'dim', 'dimmed', 'dimming', 'eclipse', 'eclipsed', 'void', 'abyss', 'night', 'blackness', 'gloom', 'gloomy', 'murk', 'murky'],
-  'CHAOS': ['chaos', 'chaotic', 'storm', 'storms', 'storming', 'stormy', 'whirlwind', 'tempest', 'spiral', 'spiraled', 'spiraling', 'unravel', 'unraveled', 'unraveling', 'shatter', 'shattered', 'shattering', 'crack', 'cracked', 'cracking', 'fracture', 'fractured', 'fracturing', 'rupture', 'ruptured', 'rupturing'],
-  'EDGE': ['edge', 'edges', 'cliff', 'cliffs', 'precipice', 'brink', 'freefall', 'plunge', 'plunged', 'plunging', 'dive', 'dived', 'diving', 'vertigo', 'abyss', 'chasm'],
-  'ENCLOSURE': ['cage', 'caged', 'cages', 'trap', 'trapped', 'trapping', 'lock', 'locked', 'locking', 'seal', 'sealed', 'sealing', 'confine', 'confined', 'confining', 'corner', 'cornered', 'cornering', 'pin', 'pinned', 'pinning', 'press', 'pressed', 'pressing', 'close', 'closed', 'closing', 'enclose', 'enclosed'],
+'FIRE': ['burn','burns','burned','burning','flame','flames','ignite','ignited','blaze','blazed','blazing','scorch','scorched','ember','embers','ash','smoke','kindle','kindled','spark','sparks','sparked','inferno','fire','fires','smolder','smoldered','sear','seared','searing'],
+'WATER': ['drown','drowns','drowned','drowning','flood','flooded','wave','waves','current','currents','tide','tides','submerge','submerged','depth','depths','pour','poured','overflow','undertow','undercurrent'],
+'DARKNESS': ['shadow','shadows','shadowed','shadowy','dark','darker','darkened','darkness','dim','dimmed','eclipse','eclipsed','void','abyss','night','blackness','gloom','murk','murky'],
+'CHAOS': ['chaos','chaotic','storm','storms','whirlwind','tempest','spiral','spiraled','spiraling','unravel','unraveled','shatter','shattered','crack','cracked','fracture','fractured','rupture','ruptured'],
+'EDGE': ['edge','edges','cliff','cliffs','precipice','brink','freefall','plunge','plunged','dive','dived','vertigo','abyss','chasm'],
+'ENCLOSURE': ['cage','caged','trap','trapped','lock','locked','seal','sealed','confine','confined','corner','cornered','pin','pinned','press','pressed','enclose','enclosed'],
 };
 
 function extractMetaphorClusters(text) {
