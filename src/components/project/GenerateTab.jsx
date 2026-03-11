@@ -1134,6 +1134,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                 onRewrite={handleWriteChapter}
                 streamingContent={streamingContent[chapter.id] || ""}
                 isStreaming={streamingChapterId === chapter.id}
+                isWriting={activeChapterIds.has(chapter.id)}
                 chapterProgress={chapterProgress[chapter.id] || null}
                 onScenesUpdated={refetchChapters}
                 beatData={beatData}
