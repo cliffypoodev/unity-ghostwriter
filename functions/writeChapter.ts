@@ -1391,6 +1391,12 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
       systemPrompt += `\n- The next chapter is titled: '${nextChapter.title}' — end in a way that makes the reader want to continue.`;
     }
 
+    // FIX 1 — Cliffhanger resolution rule
+    systemPrompt += `\n\n=== CLIFFHANGER RESOLUTION (MANDATORY) ===
+Check the previous chapter's final scene. If it ended on an unresolved physical action — a strike, a fall, a confrontation, a moment of impact — this chapter must open by showing the outcome of that action directly. Do not skip to aftermath. Do not open with the character already safe, already victorious, or already in recovery without showing how they got there. The reader watched the moment of danger. They are owed the resolution.
+If the protagonist is a non-combatant facing a trained fighter, they must win or survive through their established skills — intelligence, technical knowledge, exploiting the environment, or surprising their opponent with something unexpected. They must not win through sudden combat ability they have never demonstrated. Show the method. Do not summarize it.
+=== END CLIFFHANGER RESOLUTION ===`;
+
     // Voice, genre delivery, plot gate
     systemPrompt += `\n\n=== CHARACTER VOICE ENFORCEMENT ===\nMatch voice profiles: vocabulary, sentence pattern, verbal tics, "never says", physical communication. Identify speaker without tags.\n=== END ===\n=== GENRE DELIVERY ===\nActual scenes not dialogue about themes. >50% dialogue in PROMISE_OF_PREMISE = failure.\n=== END ===\n=== PLOT GATE ===\nONE-WAY DOOR: Something permanently different at end. Feelings alone ≠ advancement.\n=== END ===`;
     systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION OF THESE RULES IS A FAILURE:
