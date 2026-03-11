@@ -543,12 +543,15 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   // If the outline query picks up completion via auto-refetch, stop the spinner
   useEffect(() => {
-    if (generating && outline?.status === 'complete') {
-      generatingRef.current = false;
-      setGenerating(false);
-      setGenerationProgress("");
-      queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    if (generating && (outline?.status === 'complete' || outline?.status === 'shell_complete')) {
+      // Don't stop spinner for shell_complete — detail phase follows
+      if (outline?.status === 'complete') {
+        generatingRef.current = false;
+        setGenerating(false);
+        setGenerationProgress("");
+        queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
+      }
     } else if (generating && outline?.status === 'error') {
       generatingRef.current = false;
       setGenerating(false);
