@@ -1979,15 +1979,14 @@ Deno.serve(async (req) => {
 
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
     const modelKey = spec?.ai_model || 'claude-sonnet';
-    // Await generation directly — keeps Deno worker alive for the full duration
-    try {
-      await generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey);
-      return Response.json({ text: '', success: true, async: false, message: 'Chapter generation complete' });
-    } catch (genErr) {
-      console.error('Generation failed:', genErr.message);
-      await base44.entities.Chapter.update(chapter_id, { status: 'error' }).catch(() => {});
-      return Response.json({ error: genErr.message }, { status: 500 });
-    }
+    // Start generation in background — return immediately so the frontend can poll
+    // The Deno worker will continue running the promise in the background
+    generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey)
+      .catch(async (genErr) => {
+        console.error('Background generation failed:', genErr.message);
+        try { await base44.entities.Chapter.update(chapter_id, { status: 'error' }); } catch {}
+      });
+    return Response.json({ success: true, async: true, message: 'Chapter generation started' });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
