@@ -1484,12 +1484,14 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     systemPrompt += _beatSysBlock(chapterBeat);
     }
 
-    // FIX 2 — Erotica genre: inject explicit content permission for every chapter
+    // FIX 2 + FIX 3 — Erotica genre: explicit content + alien physiology rule
     const genreStr = ((projectSpec?.genre || '') + ' ' + (projectSpec?.subgenre || '')).toLowerCase();
     if (/erotica|erotic romance|bdsm|erotic/.test(genreStr)) {
-      systemPrompt += `\n\n=== EROTICA CONTENT DIRECTIVE (ALL CHAPTERS) ===
-This chapter is part of an adult erotica work. Explicit sexual content is required and expected. Do not fade to black or cut away from intimate scenes. Write physical and sexual content directly and specifically, using the alien/creature physiology established in the story bible to create distinctive sensory detail. Vague or euphemistic treatment of sex scenes is a failure of this genre.
-=== END EROTICA DIRECTIVE ===`;
+      systemPrompt += `\n\n=== EROTICA CONTENT DIRECTIVE ===\nExplicit sexual content is required. Do not fade to black or cut away. Write physical content directly and specifically. Vague or euphemistic treatment is a genre failure.\n=== END EROTICA DIRECTIVE ===`;
+      const _nhKw = /alien|creature|dragon|vampire|werewolf|fae|demon|shifter|monster|serpent|reptil|hybrid|non.?human|xeno|orc|naga|lamia|symbiote|mer(man|maid|folk)/i;
+      if (storyBible?.characters?.some(c => _nhKw.test((c.description||'')+' '+(c.role||'')))) {
+        systemPrompt += `\n\n=== NON-HUMAN PHYSIOLOGY IN INTIMATE SCENES (MANDATORY) ===\nThe non-human character's alien physiology is not background detail — it is the primary source of sensory distinction in every intimate scene. What makes this scene irreplaceable is the specific biology of this creature.\nBefore writing any intimate scene, identify at least four established physical traits of the non-human character from the story bible. These must appear as active sensory elements — felt, tasted, heard, or experienced by the human protagonist in ways impossible with a human partner.\nIf scales: describe texture, temperature, movement against skin as a recurring thread. If forked tongue: specific action. If temperature differs: felt and named. If multiple heartbeats: felt at close contact. If bioluminescence: describe light on human skin.\nVague sensation language — "electricity," "lightning through his nervous system," "waves of heat" — is a placeholder. Replace every vague sensation with a specific physical source tied to the non-human's established biology. The reader should finish understanding something about this creature's body they could not learn any other way.\n=== END NON-HUMAN PHYSIOLOGY ===`;
+      }
     }
 
     // FIX 7 — BDSM/power exchange consent framing
