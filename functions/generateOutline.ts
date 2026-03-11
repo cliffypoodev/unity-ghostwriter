@@ -909,6 +909,12 @@ PROTAGONIST AGENCY — MANDATORY:
 - The protagonist must CAUSE at least some of the plot events, not merely react to what others do or offer.
 - At least once in the book, the protagonist must refuse something, lose something, or sacrifice something. A character who always says yes to every invitation is not a protagonist — they are a passenger.
 
+ALLEGIANCE SHIFT VALIDATION — MANDATORY:
+- If any character is tagged as "antagonist" or "villain" in the story bible or in any chapter's summary/prompt, and that character later appears as an "ally", "neutral", or "supporting" role, the outline MUST contain an explicit BRIDGE CHAPTER or BRIDGE SCENE between those two states.
+- The bridge must show the INCITING EVENT that caused the shift: a betrayal revealed, a shared enemy forcing cooperation, a confession, a sacrifice, or a debt repaid.
+- An allegiance shift without a bridge chapter is a structural violation. The reader must witness the cause of the change, not be told about it after the fact.
+- Review the outline before outputting: for each named character, trace their role across all chapters. If their role changes from antagonist/villain to ally/neutral (or vice versa), verify that a bridge exists. If not, insert one.
+
 === WORLDBUILDING SPECIFICITY RULES ===
 
 The story bible MUST include a "world_rules" section with:
