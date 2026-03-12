@@ -1361,6 +1361,24 @@ export default function GenerateTab({ projectId, onProceed }) {
         onStop={stopWriteAll}
         targetLength={targetLength}
       />
+
+      {/* Regenerate Outline Confirmation */}
+      <AlertDialog open={regenOutlineConfirm} onOpenChange={setRegenOutlineConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate Outline?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will erase all written chapters and generate a completely new outline. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { setRegenOutlineConfirm(false); handleGenerateOutline(); }}>
+              Erase Chapters & Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
