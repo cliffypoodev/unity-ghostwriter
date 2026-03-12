@@ -150,6 +150,7 @@ function FloatingChat({ projectId, form }) {
             )}
             <div ref={chatBottomRef} />
           </div>
+          )}
 
           {mode === "chat" && (
           <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
