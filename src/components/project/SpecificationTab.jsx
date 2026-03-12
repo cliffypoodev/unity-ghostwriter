@@ -120,52 +120,51 @@ function FloatingChat({ projectId, form }) {
               />
             </div>
           ) : (
-          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: 0 }}>
-            {messages.length === 0 && !isChatting && (
-              <div className="flex items-center justify-center h-full py-8">
-                <div className="text-center text-slate-400">
-                  <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Ask me anything about your book concept!</p>
-                  <p className="text-xs mt-1 text-slate-300">Genre suggestions, plot ideas, and more.</p>
-                </div>
-              </div>
-            )}
-            {messages.map(msg => (
-              <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2 text-sm", msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-800")}>
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-            {isChatting && (
-              <div className="flex justify-start">
-                <div className="bg-slate-100 rounded-2xl px-4 py-3">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            <>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: 0 }}>
+                {messages.length === 0 && !isChatting && (
+                  <div className="flex items-center justify-center h-full py-8">
+                    <div className="text-center text-slate-400">
+                      <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Ask me anything about your book concept!</p>
+                      <p className="text-xs mt-1 text-slate-300">Genre suggestions, plot ideas, and more.</p>
+                    </div>
                   </div>
-                </div>
+                )}
+                {messages.map(msg => (
+                  <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+                    <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2 text-sm", msg.role === "user" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-800")}>
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+                {isChatting && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-100 rounded-2xl px-4 py-3">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatBottomRef} />
               </div>
-            )}
-            <div ref={chatBottomRef} />
-          </div>
-          )}
-
-          {mode === "chat" && (
-          <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
-            <Input
-              placeholder="Ask about your book idea..."
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              disabled={isChatting}
-              className="flex-1 text-sm"
-            />
-            <Button onClick={sendMessage} disabled={!chatInput.trim() || isChatting} size="icon" style={{ background: "#7c3aed", border: "none", flexShrink: 0 }} className="hover:opacity-90">
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+              <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
+                <Input
+                  placeholder="Ask about your book idea..."
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  disabled={isChatting}
+                  className="flex-1 text-sm"
+                />
+                <Button onClick={sendMessage} disabled={!chatInput.trim() || isChatting} size="icon" style={{ background: "#7c3aed", border: "none", flexShrink: 0 }} className="hover:opacity-90">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}
