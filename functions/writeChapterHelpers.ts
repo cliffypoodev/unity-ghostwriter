@@ -1,3 +1,6 @@
+// Model Resolver — each pipeline stage uses its dedicated model
+export function resolveModel(callType, spec) { const H={outline:'gemini-pro',beat_sheet:'gemini-pro',post_gen_rewrite:'claude-sonnet',consistency_check:'claude-sonnet',style_rewrite:'claude-sonnet',character_interview:'claude-sonnet',metadata_generation:'claude-sonnet',sfw_handoff_check:'claude-sonnet',cover_prompt:'claude-sonnet',keyword_generation:'claude-sonnet',kdp_description:'claude-sonnet'}; if(H[callType])return H[callType]; if(callType==='explicit_scene'&&spec?.openrouter_model)return 'openrouter'; if(callType==='sfw_prose')return spec?.ai_model||'claude-sonnet'; console.warn(`resolveModel: unknown callType "${callType}" — defaulting to claude-sonnet`); return 'claude-sonnet'; }
+
 export const MODEL_MAP = {
   "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
   "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514",   defaultTemp: 0.72, maxTokensLimit: null },
