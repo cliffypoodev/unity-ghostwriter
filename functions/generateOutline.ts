@@ -1077,6 +1077,7 @@ No other fields. No prose outside the JSON array.`;
       let text = '';
       for (let attempt = 0; attempt < 3; attempt++) {
         const retryNote = attempt > 0 ? '\n\nREMINDER: Return ONLY the valid JSON array with ALL required fields. Each prompt must be 300+ words. No refusals, no commentary.' : '';
+        // callType: outline (chapter batch generation)
         text = await callAIWithMessages(modelKey, [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: chunkPrompt + retryNote },
