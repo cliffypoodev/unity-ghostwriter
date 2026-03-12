@@ -849,7 +849,13 @@ export default function GenerateTab({ projectId, onProceed }) {
     return "timeout";
   };
 
+  const interiorityMissing = needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData);
+
   const handleWriteChapter = async (chapter) => {
+    if (interiorityMissing) {
+      toast && toast.error ? toast.error("Complete Protagonist Interiority in Specifications before generating.") : alert("Complete Protagonist Interiority in Specifications before generating.");
+      return;
+    }
     setStreamingChapterId(chapter.id);
     setActiveChapterIds(prev => new Set([...prev, chapter.id]));
     setChapterProgress(prev => ({ ...prev, [chapter.id]: "Starting generation…" }));
