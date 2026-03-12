@@ -612,8 +612,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
             </div>
           )}
 
-          {/* Protagonist Interiority — shown for Erotica genre or spice >= 3 */}
-          {form.book_type === "fiction" && (form.genre?.toLowerCase() === "erotica" || parseInt(form.spice_level) >= 3) && (
+          {/* Protagonist Interiority — shown for all fiction */}
+          {form.book_type === "fiction" && (
             <ProtagonistInterioritySection form={form} onChange={handleChange} />
           )}
 
