@@ -341,7 +341,13 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
   };
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
+    <div className={cn(
+      "border rounded-xl overflow-hidden",
+      chapter.status === "error" ? "border-red-200 bg-red-50/30" :
+      isWriting ? "border-blue-200 bg-blue-50/20" :
+      chapter.status === "generated" ? "border-emerald-200" :
+      "border-slate-200"
+    )}>
       <div
         className="flex items-center gap-3 px-4 py-3 bg-white cursor-pointer hover:bg-slate-50 transition-colors"
         onClick={() => setExpanded(e => !e)}
