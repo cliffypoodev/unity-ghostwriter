@@ -154,6 +154,23 @@ const BANNED_CONSTRUCTIONS_ALL_GENRES = `=== BANNED CONSTRUCTIONS — NEVER USE 
 
 === END BANNED CONSTRUCTIONS ===`;
 
+const REPETITION_GOVERNOR_CAPS = {"warmth":3,"pulse":3,"pulsed":3,"electricity":2,"tension":4,"breath":6,"breathe":6,"breathed":6,"breathing":6,"surrender":3,"surrendered":3,"vulnerable":2,"vulnerability":2,"raw":2,"shattered":1};
+function buildRepetitionGovernorBlock(prevChapters) {
+  let dynCaps = '';
+  if (prevChapters.length > 0) {
+    const last = prevChapters[prevChapters.length - 1]; let txt = last.content || '';
+    if (!txt.startsWith('http') && txt) {
+      const ws = txt.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+      const SKIP = new Set(['that','this','with','from','have','been','were','them','they','their','what','when','where','which','there','here','then','just','more','also','into','some','than','very','much','will','each','only','over','such','back','even','said','like','would','could','should','about','after','before','still','while','first','other','most','those','same','both','made','know','make','take','come','came','took','went','going','something','everything','nothing','anything','through','between','against','around','without','within','during','another','because','chapter','character','looked','turned','asked','walked','stood','thought','pulled','pushed','opened','closed','started','began','continued','enough','already','always','never','really','almost']);
+      const fk = new Set(Object.keys(REPETITION_GOVERNOR_CAPS)), ct = {};
+      for (const w of ws) { if (!SKIP.has(w) && !fk.has(w)) ct[w] = (ct[w]||0)+1; }
+      const top3 = Object.entries(ct).sort((a,b) => b[1]-a[1]).slice(0,3);
+      if (top3.length) dynCaps = `\nDYNAMIC CAPS (overused last chapter → max 2 this chapter): ${top3.map(([w,c]) => `"${w}" (${c}x→max 2)`).join(' | ')}`;
+    }
+  }
+  return `=== REPETITION GOVERNOR — ALL GENRES ===\nFIXED BANS (never use): "sent [x] through [y]" | "waves of" | "washed over" | "threatened to overwhelm" | "couldn't help but" | "suddenly" (as dramatic beat) | "in that moment"\nFREQUENCY CAPS (per chapter): "warmth" ≤3 | "pulse/pulsed" ≤3 | "electricity" ≤2 | "tension" ≤4 | "breath/breathe" ≤6 | "surrender" ≤3 | "vulnerable" ≤2 | "raw" ≤2 | "shattered" ≤1 | Any eye-color descriptor ≤2 | Any movement descriptor (e.g. "fluid") ≤2 | Any skin/texture descriptor ≤3\nWhen you hit a cap, rewrite from a different angle — do NOT swap in a synonym.${dynCaps}\n=== END REPETITION GOVERNOR ===`;
+}
+
 const QUALITY_UPGRADES = `INTERIORITY RULE: Internal monologue must not exceed two consecutive sentences before returning to action, dialogue, or sensory detail. If a character thinks or feels something, show the next thing they DO as a result.
 DIALOGUE SUBTEXT RULE: Every exchange of more than two lines must contain subtext — characters saying something other than what they mean. Direct on-the-nose dialogue is only permitted once per chapter at a moment of emotional climax. If both characters are saying exactly what they mean, rewrite it before outputting.
 SCENE ENDING RULE: The final paragraph of each scene must end on an image, action, or line of dialogue — never on an emotional summary or thematic statement. Do not explain what the scene meant. End on something concrete.
