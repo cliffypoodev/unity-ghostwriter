@@ -67,6 +67,10 @@ VOICE: ${beatCore}.
     p += `\n\nGENRE: Spice ${spiceLevel}. This chapter MUST contain intimate content. No fade-to-black.`;
     p += `\n\nBANNED CONSTRUCTION — NEVER USE:\nThe phrase pattern "[verb] sent [noun/sensation] [direction] [body part or system]" is strictly forbidden.\nExamples of what NOT to write:\n- "sent electricity crackling through his arm"\n- "sent shockwaves through his nervous system"\n- "sent sparks racing up his spine"\n- "sent ripples through his consciousness"\n- "sent heat flooding through her"\nInstead, describe the sensation directly and specifically. Make it concrete and unique to this moment.\nBAD: "The touch sent electricity crackling up Marcus's arm."\nGOOD: "His arm tingled where Zephyr's finger had been — not like static shock, more like the moment before a storm breaks."\nEvery sensation must be earned individually. Do not use templates.`;
     p += `\n\nREPETITION BUDGET — ENFORCE PER CHAPTER:\n"amber eyes": max 2 | "silver blood": max 2 | "predatory"/"predator": max 2 | "crystalline": max 1 | "harmonics"/"resonat-": max 2 | "alien": max 3 | "scaled"/"scales": max 3 | "possessive": max 1 | "bond"/"bonded": max 6 | "nervous system": max 1\nIf a phrase hits its budget, rewrite the moment from a different sensory angle — do not swap in a synonym.`;
+    if (spec?.protagonist_core_wound || spec?.protagonist_self_belief || spec?.protagonist_secret_desire) {
+      const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', pp = spec.protagonist_life_purpose || 'not specified';
+      p += `\n\nPROTAGONIST INTERIOR CONTEXT:\nBefore this story, the protagonist believed their life was for: ${pp}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond offers that they could never ask for: ${d}\n≥1 scene beat per chapter must connect plot to wound, belief, or desire through action/subtext — never stated outright.`;
+    }
   }
   return p;
 }
