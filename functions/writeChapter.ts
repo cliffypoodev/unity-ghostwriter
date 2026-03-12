@@ -541,6 +541,26 @@ function buildProtagonistInteriorityBlock(spec) {
   const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', p = spec.protagonist_life_purpose || 'not specified';
   return `\n\n=== PROTAGONIST INTERIOR CONTEXT ===\nBefore this story, the protagonist believed their life was for: ${p}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond/relationship offers that they could never ask for: ${d}\nRULE: ≥1 scene beat per chapter must connect plot to one of these three layers (wound, belief, desire) through action, dialogue subtext, or physical reaction — never stated outright.\n=== END PROTAGONIST INTERIOR CONTEXT ===`;
 }
+function buildEmotionalAccumulationBlock(spec, chapterNumber) {
+  if (!isEroticaGenre(spec)) return '';
+  return `\n\n=== EMOTIONAL ACCUMULATION — MANDATORY ===
+The protagonist cannot process every escalation with the same emotional response.
+Each major event (first contact, physical intimacy, species reveal, bonding, conflict, recognition) must leave a visible mark on the protagonist's psychology.
+
+Before writing this chapter, answer internally: "What is the protagonist carrying INTO Chapter ${chapterNumber} that they weren't carrying before?"
+
+This must appear as a concrete BEHAVIOR SHIFT, not a stated feeling:
+BAD: "Marcus felt overwhelmed by everything that had happened."
+GOOD: "He caught himself checking the door twice before sitting down — a new habit he hadn't had yesterday."
+
+By Chapter ${chapterNumber}, the protagonist must be visibly different from who they were at the start of Chapter 1. Show it through:
+- Changed behavior (new habits, avoidances, compulsions)
+- Altered speech patterns (shorter sentences under stress, new vocabulary absorbed from the other character)
+- Shifted perception (noticing things they would have missed before — temperatures, sounds, spatial awareness)
+
+Do NOT reset the protagonist to baseline between chapters. Emotional weight accumulates. What broke them in Chapter 2 should still be carried in Chapter ${chapterNumber}, even if they've adapted to it.
+=== END EMOTIONAL ACCUMULATION ===`;
+}
 function getEroticaOverride(spec) {
   if (!isEroticaGenre(spec)) return '';
   const sub = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase();
