@@ -18,12 +18,7 @@ import ChapterStatusDot from "./ChapterStatusDot";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG = {
-  pending:    { label: "Pending",    className: "bg-slate-100 text-slate-600" },
-  generating: { label: "Generating", className: "bg-yellow-100 text-yellow-700" },
-  generated:  { label: "Generated",  className: "bg-emerald-100 text-emerald-700" },
-  error:      { label: "Error",      className: "bg-red-100 text-red-600" },
-};
+// Status dots now handled by ChapterStatusDot component
 
 const ROLE_COLORS = {
   protagonist: "bg-indigo-100 text-indigo-700",
