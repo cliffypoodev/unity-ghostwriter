@@ -1172,6 +1172,13 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     const prevOutlineEntry = prevChapter ? (outlineChapters.find(c => (c.chapter_number || c.number) === prevChapter.chapter_number) || {}) : null;
     const scopeLock = outlineData?.scope_lock || null;
 
+    // ── EXPLICIT TAG VERIFICATION (erotica projects) ──
+    if (isEroticaGenre(projectSpec) && outlineData?.chapters) {
+      const olStr = JSON.stringify(outlineData.chapters);
+      if (!/\[EXPLICIT\]/i.test(olStr)) { console.warn(`EXPLICIT TAG WARNING: Erotica project "${projectId}" has no [EXPLICIT] tags in beat sheet. Content model routing may not activate for explicit scenes.`); }
+      else { const tc = (olStr.match(/\[EXPLICIT\]/gi) || []).length; if (tc < 2) console.warn(`EXPLICIT TAG WARNING: Only ${tc} [EXPLICIT] tag(s) across ${outlineData.chapters.length} chapters — consider adding more.`); }
+    }
+
     const TARGET_WORDS = 1600;
 
     // callAI wrapper using conversation messages array
