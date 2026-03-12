@@ -93,6 +93,7 @@ async function safeParseJSON(text, modelKey) {
     console.warn('safeParseJSON first attempt failed:', e1.message, '— attempting AI repair...');
   }
   try {
+    // callType: beat_sheet (JSON repair — uses same model as parent call)
     const repaired = await callAI(
       modelKey,
       'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
