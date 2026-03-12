@@ -715,7 +715,7 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "pulse quickened", "pulse raced", "pulse thrummed", "breath hitched", "breath caught", "breath quickened", "breathing quickened",
       "swallowed hard", "throat dry", "throat tight", "shiver down his spine", "shiver up his spine", "shiver ran through", "shiver coursed",
       "a thrill coursed through", "a jolt of", "a surge of", "cheeks flushed", "heat rose to his cheeks", "flush crept into",
-      "couldn't tear himself away", "couldn't look away", "knees weak", "legs trembled",
+      "couldn't tear himself away", "couldn't look away", "couldn't help but", "knees weak", "legs trembled",
       "a rush of adrenaline", "a rush of heat", "a rush of desire", "a rush of excitement", "a rush of emotion", "a rush of warmth",
       "a flicker of", "a spark of", "a flash of heat", "a flash of desire", "a flash of anger", "a flash of fear",
       "igniting a fire", "ignited a fire", "igniting a flame", "ignited a flame", "igniting a spark", "ignited a spark", "igniting a hunger", "ignited a hunger",
@@ -741,7 +741,7 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "charged and electric", "charged with tension", "charged with anticipation", "charged with possibility", "charged with meaning"
     ],
     narrationClichés: [
-      "in that moment", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back",
+      "in that moment", "suddenly", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back",
       "teetering on the edge", "on the precipice", "on the brink", "standing at the edge", "double-edged sword", "ready to embrace",
       "ready to confront", "ready to face whatever", "a mix of", "a mixture of", "a blend of", "a cocktail of", "he felt alive",
       "she felt alive", "feeling alive", "more than mere", "more than just", "the world around him faded", "the world outside faded",
@@ -818,8 +818,9 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
 
   const allBannedFound = [...physicalMatches, ...atmosphereMatches, ...narrationMatches, ...dialogueMatches, ...showDontTellMatches, ...endingMatches, ...openingBleedMatches];
 
-  // REPETITION BUDGET CHECK — alien romance high-frequency phrases
+  // REPETITION BUDGET CHECK — alien romance + governor frequency caps
   const _repBudget = [["amber eyes",2],["silver blood",2],["predatory",2],["predator",2],["crystalline",1],["harmonics",2],["resonat",2],["alien",3],["scaled",3],["scales",3],["possessive",1],["bond",6],["bonded",6],["nervous system",1]];
+  for (const [w, mx] of Object.entries(REPETITION_GOVERNOR_CAPS)) _repBudget.push([w, mx]);
   const _repOver = [];
   for (const [phrase, max] of _repBudget) {
     const rx = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\w*\\b`, 'gi');
@@ -1306,6 +1307,8 @@ ${QUALITY_UPGRADES}
 
 ${BANNED_CONSTRUCTIONS_ALL_GENRES}
 
+${buildRepetitionGovernorBlock(allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated'))}
+
 === CLIFFHANGER RESOLUTION (MANDATORY) ===
 Check the previous chapter's final scene. If it ended on an unresolved physical action — a strike, a fall, a confrontation, a moment of impact — this chapter must open by showing the outcome of that action directly. Do not skip to aftermath. Do not open with the character already safe, already victorious, or already in recovery without showing how they got there. The reader watched the moment of danger. They are owed the resolution.
 If the protagonist is a non-combatant facing a trained fighter, they must win or survive through their established skills — intelligence, technical knowledge, exploiting the environment, or surprising their opponent with something unexpected. They must not win through sudden combat ability they have never demonstrated. Show the method. Do not summarize it.
@@ -1466,6 +1469,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
     systemPrompt += `\n\n${QUALITY_UPGRADES}`;
     systemPrompt += `\n\n${BANNED_CONSTRUCTIONS_ALL_GENRES}`;
+    systemPrompt += `\n\n${buildRepetitionGovernorBlock(allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated'))}`;
 
     systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
