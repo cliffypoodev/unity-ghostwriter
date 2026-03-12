@@ -1105,7 +1105,7 @@ Write ~${target_words} words. Begin immediately with prose — no preamble.`;
 }
 
 // PART B — AUTO-REWRITE FUNCTION
-async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey, modelKey = 'claude-sonnet') {
+async function rewriteWithCorrections(chapterText, violations, chapterNumber, openaiKey, modelKey = 'claude-sonnet') { modelKey = resolveModel('post_gen_rewrite');
   const hasNfViolation = violations.some(v => v.startsWith('FICTIONAL NARRATIVE'));
   if (hasNfViolation) {
     const nfSystemPrompt = `You are a nonfiction editor. This chapter contains fictional narrative elements that must be removed and replaced with proper nonfiction content.\n\nRULES:\n1. Remove all invented fictional characters (anyone with a name who is not a real public figure).\n2. Replace fictional scenes and "She felt/He realized..." narration with: research citations, real expert quotes, authorial analysis, or "Consider the person who..." constructions.\n3. Replace invented dialogue with quoted real research, expert statements, or authorial voice.\n4. Preserve any factual content, real names, statistics, or research references.\n5. The rewritten chapter must sound like Gladwell/Brown/Clear — not a novel.\n6. Return ONLY the corrected chapter prose. No commentary.`;
