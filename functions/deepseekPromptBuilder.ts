@@ -69,7 +69,16 @@ BANNED CONSTRUCTIONS (ALL GENRES — violation = rejection):
 A. "[subject] sent [sensation] [direction] [body part]" — e.g. "sent electricity through his arm", "sent shivers down her spine". Describe the sensation directly instead.
 B. "waves of [sensation]" — e.g. "waves of pleasure", "waves of emotion". Name the specific sensation. The body is not abstract.
 C. "[noun] washed over [pronoun]" — e.g. "relief washed over her". What specifically happened in the body? Where? How fast?
-D. "[emotion] threatened to overwhelm" — e.g. "emotions that threatened to overwhelm him". Show the overwhelm through behavior or fragmented thought — don't announce it.`;
+D. "[emotion] threatened to overwhelm" — e.g. "emotions that threatened to overwhelm him". Show the overwhelm through behavior or fragmented thought — don't announce it.
+E. "couldn't help but [verb]" — banned entirely. Show the compulsion through action.
+F. "suddenly" — banned as dramatic beat. Name what changed and why, not that it was sudden.
+G. "in that moment" — banned entirely.
+
+FREQUENCY CAPS (per chapter):
+"warmth" max 3 | "pulse/pulsed" max 3 | "electricity" max 2 | "tension" max 4 | "breath/breathe" max 6
+"surrender" max 3 | "vulnerable" max 2 | "raw" max 2 | "shattered" max 1
+Any single eye-color descriptor max 2 | Any movement descriptor (e.g. "fluid") max 2
+When you hit a cap, rewrite the moment from a different sensory angle — do NOT swap in a synonym.`;
 
   if (isErotica) {
     p += `\n\nGENRE: Spice ${spiceLevel}. This chapter MUST contain intimate content. No fade-to-black.`;
