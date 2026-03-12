@@ -775,7 +775,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     // Poll chapter status until done
     const startedAt = Date.now();
     const maxWaitMs = 7 * 60 * 1000; // 7 min max per chapter (Deno CPU limit is ~5 min)
-    const progressMessages = ["Generating prose…", "Writing chapter content…", "Building narrative…", "Crafting scenes…", "Finalizing chapter…"];
+    const progressMessages = ["Writing chapter prose…", "Building narrative…", "Crafting scenes…", "Running continuity check…", "Updating story bible…"];
     let lastUpdatedAt = null; // Track when the chapter record was last modified
 
     while (Date.now() - startedAt < maxWaitMs) {
