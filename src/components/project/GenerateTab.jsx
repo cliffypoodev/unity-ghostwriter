@@ -531,6 +531,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const writeAllAbortRef = useRef(false);
   const generatingRef = useRef(false);
   const [targetLength, setTargetLength] = useState("medium");
+  const [resumingFromChapter, setResumingFromChapter] = useState(null);
 
   const { data: specifications = [] } = useQuery({
     queryKey: ["specification", projectId],
