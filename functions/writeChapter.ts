@@ -1339,7 +1339,7 @@ The final image of this book should reflect the emotional truth of the protagoni
 === END FINAL CHAPTER MANDATE ===` : ''}`;
       if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
       systemPrompt += getEroticaOverride(projectSpec);
-      systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
+      systemPrompt += buildProtagonistInteriorityBlock(projectSpec, projectInteriority);
       systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
       systemPrompt += buildResolutionTextureBlock(chapterIndex, totalChapters, chapterBeat);
       systemPrompt += _beatSysBlock(chapterBeat);
@@ -1504,7 +1504,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     // PART D — Conditional intimate scene rules (legacy fiction path)
     if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
     systemPrompt += getEroticaOverride(projectSpec);
-    systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
+    systemPrompt += buildProtagonistInteriorityBlock(projectSpec, projectInteriority);
     systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
     systemPrompt += _beatSysBlock(chapterBeat);
     }
@@ -1514,7 +1514,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     if (/erotica|erotic romance|bdsm|erotic/.test(genreStr)) {
       systemPrompt += `\n\n=== EROTICA CONTENT DIRECTIVE ===\nExplicit sexual content is required. Do not fade to black or cut away. Write physical content directly and specifically. Vague or euphemistic treatment is a genre failure.\nDo not summarize the sexual climax in a single sentence and jump to aftermath. The scene is not complete until the physical and emotional peak has been written in full. "She commanded him to let go and he did" is not a sex scene — it is a description of a sex scene. Write the scene itself.\n=== END EROTICA DIRECTIVE ===`;
       systemPrompt += `\n\n=== REPETITION BUDGET — ENFORCE PER CHAPTER ===\nThe following phrases are high-frequency AI defaults that drain impact on reuse. Each has a maximum allowed count PER CHAPTER. Exceed it and the prose fails.\n"amber eyes": max 2 | "silver blood": max 2 | "predatory"/"predator": max 2 | "crystalline": max 1 | "harmonics"/"resonat-": max 2 | "alien": max 3 | "scaled"/"scales": max 3 | "possessive": max 1 | "bond"/"bonded": max 6 | "nervous system": max 1\nIf a phrase has hit its budget in the current chapter, find a specific alternative. Do not simply swap in a synonym — rewrite the moment from a different sensory angle.\n=== END REPETITION BUDGET ===`;
-      systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
+      systemPrompt += buildProtagonistInteriorityBlock(projectSpec, projectInteriority);
       systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
       const _nhKw = /alien|creature|dragon|vampire|werewolf|fae|demon|shifter|monster|serpent|reptil|hybrid|non.?human|xeno|orc|naga|lamia|symbiote|mer(man|maid|folk)/i;
       if (storyBible?.characters?.some(c => _nhKw.test((c.description||'')+' '+(c.role||'')))) {
