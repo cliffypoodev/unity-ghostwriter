@@ -15,6 +15,10 @@ import SpecSettingsSummary from "./SpecSettingsSummary";
 import SceneSection from "./SceneSection";
 import BeatBadge from "./BeatBadge";
 import ChapterStatusDot from "./ChapterStatusDot";
+import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
+import RewriteInVoiceModal from "./RewriteInVoiceModal";
+import ProjectWordCount from "./ProjectWordCount";
+import { AlertTriangle } from "lucide-react";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -252,7 +256,7 @@ function useResolvedContent(rawContent) {
   return isUrl ? (fetched || "") : (rawContent || "");
 }
 
-function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingContent, isStreaming, isWriting, chapterProgress, onScenesUpdated, beatData, isResuming }) {
+function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingContent, isStreaming, isWriting, chapterProgress, onScenesUpdated, beatData, isResuming, project }) {
   const [expanded, setExpanded] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [promptValue, setPromptValue] = useState(chapter.prompt || "");
@@ -260,7 +264,17 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
   const [writeConfirm, setWriteConfirm] = useState(false);
   const [generatingScenesThenWrite, setGeneratingScenesThenWrite] = useState(false);
   const [rewriting, setRewriting] = useState(false);
+  const [showRewriteModal, setShowRewriteModal] = useState(false);
   const queryClient = useQueryClient();
+
+  // Check for unresolved consistency flags
+  let hasFlags = false;
+  try {
+    if (chapter.consistency_flags) {
+      const flags = JSON.parse(chapter.consistency_flags);
+      hasFlags = flags.some(f => !f.dismissed);
+    }
+  } catch {}
 
   const isFiction = spec?.book_type !== 'nonfiction';
   function safeParseCh(str) {
@@ -367,7 +381,12 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
             )}
             {chapter.word_count > 0 && (
-              <span className="text-xs text-slate-400">{chapter.word_count.toLocaleString()} words</span>
+              <span className="text-xs text-slate-400">~{chapter.word_count.toLocaleString()} words</span>
+            )}
+            {hasFlags && (
+              <span className="text-amber-500" title="Continuity flags detected">
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </span>
             )}
           </div>
         </div>
@@ -378,15 +397,25 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
             </Button>
           )}
           {chapter.status === "generated" && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-2.5 border-amber-300 text-amber-700 hover:bg-amber-50"
-              disabled={isWriting || generatingScenesThenWrite || rewriting}
-              onClick={(e) => { e.stopPropagation(); handleRewrite(); }}
-            >
-              {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs px-2.5 border-violet-300 text-violet-700 hover:bg-violet-50"
+                onClick={(e) => { e.stopPropagation(); setShowRewriteModal(true); }}
+              >
+                <Pencil className="w-3 h-3 mr-1" />Voice
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs px-2.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+                disabled={isWriting || generatingScenesThenWrite || rewriting}
+                onClick={(e) => { e.stopPropagation(); handleRewrite(); }}
+              >
+                {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
+              </Button>
+            </>
           )}
           {(chapter.status === "error" || chapter.status === "pending") && chapter.chapter_number > 1 && onResume && (
             <Button
@@ -438,6 +467,8 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
             try { const qs = JSON.parse(chapter.quality_scan); if (qs.error) return <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2"><span className="font-semibold">Error:</span> {qs.error}</div>; } catch {}
             return null;
           })()}
+          {/* Consistency flags banner */}
+          <ConsistencyFlagsBanner chapter={chapter} />
           {chapter.summary && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Summary</p>
@@ -478,6 +509,15 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
           )}
         </div>
       )}
+
+      {/* Rewrite in My Voice modal */}
+      <RewriteInVoiceModal
+        isOpen={showRewriteModal}
+        onClose={() => setShowRewriteModal(false)}
+        chapter={chapter}
+        spec={spec}
+        project={project}
+      />
     </div>
   );
 }
