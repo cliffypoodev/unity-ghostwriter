@@ -210,6 +210,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     protagonist_core_wound: "",
     protagonist_self_belief: "",
     protagonist_secret_desire: "",
+    protagonist_behavioral_tells: "",
   });
   const [extracting, setExtracting] = useState(false);
   const [developingIdea, setDevelopingIdea] = useState(false);
@@ -248,6 +249,22 @@ export default function SpecificationTab({ projectId, onProceed }) {
     mutationFn: async () => {
       const payload = { ...form };
       ["id", "created_date", "updated_date", "created_by"].forEach(k => delete payload[k]);
+      
+      // Persist protagonist interiority on the Project entity for cross-phase access
+      const interiority = {
+        core_wound: form.protagonist_core_wound || "",
+        self_belief: form.protagonist_self_belief || "",
+        secret_desire: form.protagonist_secret_desire || "",
+        behavioral_tells: form.protagonist_behavioral_tells || "",
+        life_purpose: form.protagonist_life_purpose || "",
+      };
+      const hasInteriority = Object.values(interiority).some(v => v.trim());
+      if (hasInteriority) {
+        base44.entities.Project.update(projectId, {
+          protagonist_interiority: JSON.stringify(interiority),
+        }).catch(err => console.warn("Failed to persist interiority on project:", err.message));
+      }
+      
       if (spec) return base44.entities.Specification.update(spec.id, payload);
       return base44.entities.Specification.create(payload);
     },
