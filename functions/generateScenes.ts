@@ -130,14 +130,8 @@ function getSceneCount(targetLength) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    // Support both user-initiated and service-role calls (from generateAllScenes)
-    let user = null;
-    try { user = await base44.auth.me(); } catch {}
-    if (!user) {
-      // Check if called via service role (asServiceRole.functions.invoke)
-      const isServiceRole = await base44.auth.isAuthenticated();
-      if (!isServiceRole) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { projectId, chapterNumber } = await req.json();
     if (!projectId || chapterNumber == null) {
