@@ -577,6 +577,14 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [targetLength, setTargetLength] = useState("medium");
   const [resumingFromChapter, setResumingFromChapter] = useState(null);
 
+  const { data: projectData } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: async () => {
+      const ps = await base44.entities.Project.filter({ id: projectId });
+      return ps[0];
+    },
+  });
+
   const { data: specifications = [] } = useQuery({
     queryKey: ["specification", projectId],
     queryFn: () => base44.entities.Specification.filter({ project_id: projectId }),
@@ -1254,15 +1262,9 @@ export default function GenerateTab({ projectId, onProceed }) {
       {/* Settings summary */}
       <SpecSettingsSummary spec={spec} />
 
-      {/* Progress bar */}
+      {/* Progress + Word Count */}
       {totalCount > 0 && (
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-slate-600 font-medium">Progress: {generatedCount} / {totalCount} chapters generated</span>
-            <span className="text-slate-400">{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
+        <ProjectWordCount chapters={chapters} targetLength={spec?.target_length || "medium"} />
       )}
 
       {/* Book Metadata */}
@@ -1339,6 +1341,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                 key={chapter.id}
                 chapter={chapter}
                 spec={spec}
+                project={projectData}
                 onWrite={handleWriteChapter}
                 onRewrite={handleWriteChapter}
                 onResume={handleResumeFromChapter}
