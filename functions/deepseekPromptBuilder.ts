@@ -63,6 +63,8 @@ VOICE: ${beatCore}.
 
 9. PLOT: Something must change irreversibly — decision, revelation, relationship altered, line crossed.
 
+RESOLUTION TEXTURE: No scene of acceptance, recognition, victory, or belonging should be unanimous. At least one element must contain friction — a withheld approval, a condition, an unpaid cost, or a dissenting environmental detail. This is texture, not conflict. One complicating beat per resolution scene, minimum.
+
 10. WORD COUNT: ${TARGET_WORDS} words (${minWords}-${maxWords}).
 
 BANNED CONSTRUCTIONS (ALL GENRES — violation = rejection):
