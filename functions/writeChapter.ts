@@ -1791,74 +1791,21 @@ ${_beatUsrBlock(chapterBeat)}`;
 
     const wordCount = fullContent.trim().split(/\s+/).length;
 
-    // ── PART E — Post-generation validation with up to 2 regeneration attempts ──
-
-    async function runValidationChecks(content, bannedTicsByChar, bannedClusterNames, isErotic) {
-      const checks = [];
-
-      // CHECK 1 — TIC REPETITION in new chapter
-      if (Object.keys(bannedTicsByChar).length > 0) {
-        const newTics = extractPhysicalTics(content);
-        const ticFailures = [];
-        for (const [char, ticCounts] of Object.entries(newTics)) {
-          if (bannedTicsByChar[char]) {
-            const banned = bannedTicsByChar[char].map(x => x.tic);
-            for (const tic of Object.keys(ticCounts)) {
-              if (banned.includes(tic)) ticFailures.push(`"${tic}" for ${char}`);
-            }
-          }
-        }
-        if (ticFailures.length > 0) checks.push(`TIC REPETITION: ${ticFailures.join('; ')}`);
+    // ── PRE-OUTPUT COMPLIANCE GATE — up to 3 regeneration attempts ──
+    { let compAttempt = 0; const MAX_CA = 3;
+      let compV = await enforceProseCompliance(fullContent, chapter.chapter_number, projectId, allChapters, chapterIndex);
+      while (compV.length > 0 && compAttempt < MAX_CA) { compAttempt++;
+        console.warn(`Ch ${chapter.chapter_number} compliance attempt ${compAttempt}/${MAX_CA}: ${compV.length} violations`, compV.map(v=>`${v.type}:${v.label}(${v.count})`));
+        const brief = compV.map(v => { if(v.type==='absolute_ban') return `BANNED CONSTRUCTION: "${v.label}" appears ${v.count}x. Strictly forbidden. Rewrite all instances using direct, specific physical description.`; if(v.type==='frequency_cap') return `FREQUENCY VIOLATION: "${v.label}" appears ${v.count}x (max ${v.max}). Remove/replace ${v.excess} instance(s). Do not swap synonyms — rewrite from different sensory angle.`; if(v.type==='dynamic_cap') return `PREV-CHAPTER REPETITION: ${v.label} (${v.count} uses). Cap at 2 max to prevent cross-chapter monotony.`; return `${v.type}: ${v.label}`; }).join('\n\n');
+        const retryMsgs = [...messages]; const li = retryMsgs.length - 1;
+        retryMsgs[li] = { role:'user', content:`REVISION REQUIRED BEFORE OUTPUT:\n\n${brief}\n\nApply all corrections above, then write the chapter fresh:\n\n${messages[messages.length-1].content}` };
+        try { const rd = await callAIConversation(retryMsgs, 8192);
+          if(rd&&rd.trim().length>200&&!isRefusal(rd)){ let cl=rd.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm,'').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi,'').replace(/\n{3,}/g,'\n\n').trim();
+            const nv=await enforceProseCompliance(cl,chapter.chapter_number,projectId,allChapters,chapterIndex);
+            if(nv.length<compV.length){console.log(`Compliance retry ${compAttempt}: ${compV.length}→${nv.length}`);fullContent=cl;compV=nv;}else{console.warn(`Compliance retry ${compAttempt} no improvement`);break;} }else{console.warn(`Compliance retry ${compAttempt} refusal/empty`);break;}
+        } catch(e){console.warn(`Compliance retry ${compAttempt} failed:`,e.message);break;}
       }
-
-      // CHECK 2 — METAPHOR CLUSTER overuse in new chapter
-      if (bannedClusterNames.length > 0) {
-        const newClusters = extractMetaphorClusters(content);
-        const clusterFails = [];
-        for (const cluster of bannedClusterNames) {
-          if ((newClusters[cluster]?.count || 0) > 1) clusterFails.push(`${cluster} (${newClusters[cluster].count} uses)`);
-        }
-        if (clusterFails.length > 0) checks.push(`METAPHOR CLUSTER OVERUSE: ${clusterFails.join('; ')}`);
-      }
-
-      // CHECK 3 — BANNED DIALOGUE PATTERNS
-      const dialogueBanned = [
-        /\bare you afraid\b/gi, /\bwhat if i want\b/gi, /\blet go\b/gi,
-        /\bstop hiding\b/gi, /\bdo you want to find out\b/gi,
-        /\bare you sure you can handle\b/gi, /\bthen why are you still here\b/gi,
-      ];
-      let dialogueHits = 0;
-      for (const rx of dialogueBanned) {
-        const m = content.match(rx);
-        if (m) dialogueHits += m.length;
-      }
-      if (dialogueHits > 1) checks.push(`BANNED DIALOGUE PATTERNS: ${dialogueHits} instances of telegraphed/explicit attraction dialogue`);
-
-      // CHECK 4 — INTIMATE SCENE LENGTH (erotica only)
-      if (isErotic) {
-        const intimateStart = /\b(kiss\w*|kiss\w*\s+\w+|their (lips|mouths?)|lips (met|touched|press\w*))\b/i.exec(content);
-        if (intimateStart) {
-          const afterContact = content.slice(intimateStart.index);
-          const paragraphs = afterContact.split(/\n\n+/);
-          const firstInterrupt = paragraphs.findIndex((p, i) => i > 0 && /\b(pulled? (away|back)|stepped? back|interrupted?|phone|knock\w*|door (open\w*|burst\w*))\b/i.test(p));
-          if (firstInterrupt !== -1 && firstInterrupt < 4) {
-            checks.push(`INTIMATE SCENE TOO SHORT: only ${firstInterrupt} paragraph(s) before pullback (minimum 4 required)`);
-          }
-        }
-      }
-
-      return checks;
-    }
-
-    const bannedClusterNames = flaggedClusters;
-    const isErotic = isIntimateGenre(projectSpec);
-
-    // ── PRE-OUTPUT COMPLIANCE GATE — silent auto-regeneration ──
-    const compViolations = await enforceProseCompliance(fullContent, chapter.chapter_number, projectId, allChapters, chapterIndex);
-    if (compViolations.length > 0) {
-      console.warn(`Ch ${chapter.chapter_number} compliance: ${compViolations.length} violations`, compViolations.map(v=>`${v.type}:${v.label}(${v.count})`));
-      const vSum = compViolations.map(v => v.type==='absolute_ban'?`BAN:"${v.label}" ${v.count}x — remove ALL`:v.type==='frequency_cap'?`CAP:"${v.label}" ${v.count}x(max ${v.max}) — reduce`:`DYN:${v.label} ${v.count}x(max ${v.max})`).join('\n');
-      try { const rwModel = resolveModel('post_gen_rewrite'); const fixed = await callAI(rwModel,`You are a prose editor. Fix ONLY the listed violations. Do NOT rewrite other text. Return corrected chapter only.`,`Fix:\n${vSum}\n\n---\n${fullContent}\n---\nReturn corrected prose only.`,{maxTokens:8192,temperature:0.4}); if(fixed&&fixed.trim().length>200&&!isRefusal(fixed)){const rc=await enforceProseCompliance(fixed,chapter.chapter_number,projectId,allChapters,chapterIndex);if(rc.length<compViolations.length){console.log(`Compliance fix: ${compViolations.length}→${rc.length}`);fullContent=fixed.includes('```')?fixed.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,''):fixed;}else{console.warn('Compliance fix no improvement — keeping original');}} } catch(e){console.warn('Compliance rewrite failed:',e.message);}
+      if(compV.length>0) console.warn(`Ch ${chapter.chapter_number} final: ${compV.length} unresolved after ${compAttempt} attempts`);
     }
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
