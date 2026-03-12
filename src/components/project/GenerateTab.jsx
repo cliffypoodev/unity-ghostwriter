@@ -10,6 +10,11 @@ import {
   Pencil, BookOpen, Users, Globe, ArrowRight, Check, Zap, LayoutGrid, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import WriteAllChaptersModal from "./WriteAllChaptersModal";
 import SpecSettingsSummary from "./SpecSettingsSummary";
 import SceneSection from "./SceneSection";
