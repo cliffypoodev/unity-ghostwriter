@@ -1432,51 +1432,18 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
 
     // Voice, genre delivery, plot gate
     systemPrompt += `\n\n=== CHARACTER VOICE ENFORCEMENT ===\nMatch voice profiles: vocabulary, sentence pattern, verbal tics, "never says", physical communication. Identify speaker without tags.\n=== END ===\n=== GENRE DELIVERY ===\nActual scenes not dialogue about themes. >50% dialogue in PROMISE_OF_PREMISE = failure.\n=== END ===\n=== PLOT GATE ===\nONE-WAY DOOR: Something permanently different at end. Feelings alone ≠ advancement.\n=== END ===`;
-    systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION OF THESE RULES IS A FAILURE:
-
-    1. BANNED PHRASE LIST — Do NOT use any of these overused phrases:
-    - "heart pounding" / "heart racing" / "pulse quickened" (use MAX once per chapter, find alternatives: chest tightened, blood thrummed, stomach dropped)
-    - "intoxicating" (BANNED entirely — find specific sensory descriptions instead)
-    - "shadows danced" / "shadows shifted" / "shadows twisted" (use MAX once per chapter)
-    - "whispers echoed" / "whispers slithered" / "whispers wrapped around" (use MAX once per chapter)
-    - "the darkness enveloped" / "darkness pressed" / "darkness wrapped" (use MAX once per chapter)
-    - "a thrill coursed through" / "a shiver ran down" (use MAX once per chapter)
-    - "he couldn't tear himself away"
-    - "the weight of" (the unknown, the decision, etc.)
-    - "in that moment"
-    - "the air thickened/crackled/grew heavy"
-    - "just the beginning"
-
-    2. CHAPTER OPENING RULE: Each chapter MUST open with a completely different technique:
-    - Chapter 1: Action or sensory detail (NOT atmosphere)
-    - Chapter 2: Dialogue mid-conversation
-    - Chapter 3: Internal thought or memory
-    - Chapter 4: Time/place stamp with concrete physical action
-    - Chapter 5: A single striking image or metaphor
-    NEVER open two chapters the same way. NEVER open with atmosphere/darkness/shadows.
-
-    3. DIALOGUE RULE: Characters must NOT repeat the same conversational dynamic. If the previous chapter had Character A saying 'trust me' and Character B hesitating, the NEXT chapter must show a DIFFERENT power dynamic. Characters must evolve between chapters — they cannot have the same argument twice.
-
-    4. PLOT PROGRESSION RULE: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. Walking into a room is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.
-
-    5. DIALOGUE MUST NOT BE 'TENNIS' (critical anti-pattern):
-      The #1 failure mode is dialogue that becomes a back-and-forth of rhetorical questions and philosophical volleys.
-      BANNED PATTERN: Character A asks provocative question → Character B counters with another question → A raises stakes → B matches → repeat for 20 exchanges.
-      Example of BANNED dialogue tennis: 'Isn't desire dangerous?' / 'Or is it thrilling?' / 'Perhaps both.' / 'Then what do you want?' / 'What do YOU want?' / 'Maybe I want to find out.' / 'Then let's see where this leads.'
-      INSTEAD: Dialogue must have ASYMMETRY. One character leads, the other deflects. Someone changes the subject. Someone lies. Someone says something accidentally revealing. Conversations have interruptions, non-sequiturs, silences, and subtext. People rarely answer the question they were asked.
-      MAX 3 consecutive dialogue exchanges before a PARAGRAPH OF ACTION, DESCRIPTION, OR INTERNAL THOUGHT breaks the rhythm.
-
-    6. SENSORY SPECIFICITY RULE: Replace vague atmospheric descriptions with CONCRETE sensory details. NOT 'the air smelled different' but 'copper and burnt sage stung his nostrils.' NOT 'the room felt charged' but 'static lifted the hair on his forearms.' Every sense (sight, sound, smell, touch, taste) must appear at least once per chapter with SPECIFIC details.
-
-    7. EROTICA CONTENT RULE: If the book is tagged as Erotica or Steamy Romance, chapters must contain ACTUAL intimate content appropriate to the heat level selected. Atmospheric tension and hand-touching do NOT satisfy a 'Full Intensity' rating. Escalate physical intimacy progressively across chapters. Be explicit and character-driven — not purple prose, not fade-to-black.
-
-    8. SHOW DON'T TELL: Replace internal monologue about feelings with physical reactions and actions. NOT 'Alex felt afraid' but show the fear through behavior, body language, and sensory experience.
-
-    9. CHARACTER VOICE DIFFERENTIATION: Every named character MUST have a distinct speech pattern. Characters must NEVER sound interchangeable. Vocabulary level (academic vs casual vs street vs formal), sentence length tendency (terse vs verbose), speech habits (interrupts, trails off, asks questions, makes declarations) — all must vary. In dialogue, a reader should be able to identify the speaker WITHOUT dialogue tags.
-
-    10. ANTI-REPETITION: Track every metaphor and simile. Do NOT reuse the same comparison twice in one chapter. Track every physical reaction. Do NOT use the same bodily response (heart, breath, spine, stomach, pulse) more than twice per chapter. Track dialogue patterns — vary between statements, questions, commands, interruptions.
-
-    11. PLOT PROGRESSION: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.`;
+    systemPrompt += `\n\nSTRICT ANTI-REPETITION RULES — VIOLATION = FAILURE:
+1. BANNED: "heart pounding/racing", "pulse quickened", "intoxicating" (BANNED entirely), "shadows danced/shifted/twisted", "whispers echoed/slithered", "darkness enveloped/pressed", "a thrill coursed through", "he couldn't tear himself away", "the weight of", "in that moment", "air thickened/crackled", "just the beginning". Max 1 per chapter if variant used.
+2. OPENINGS: Rotate — action/sensory, dialogue, thought/memory, time+action, striking image. Never repeat same technique. Never open with atmosphere/shadows.
+3. DIALOGUE EVOLUTION: Characters cannot repeat the same dynamic chapter-to-chapter. Power must shift.
+4. PLOT: ≥1 irreversible event per chapter. Atmosphere alone ≠ plot.
+5. NO DIALOGUE TENNIS: Max 3 exchanges before action/description/thought breaks rhythm. No Q→Q→Q volleys. Asymmetry required.
+6. SENSORY: Concrete details — specific smells, textures, temperatures. Every sense ≥1x per chapter.
+7. EROTICA CONTENT: If tagged erotica, explicit content required at configured level. No fade-to-black at Spice ≥3.
+8. SHOW DON'T TELL: Physical reactions + actions over named emotions.
+9. CHARACTER VOICES: Distinct speech patterns per character. Identifiable without tags.
+10. ANTI-REPETITION: No duplicate metaphors/similes in one chapter. No bodily response >2x per chapter.
+11. PLOT GATE: ≥1 concrete irreversible event per chapter.`;
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
     systemPrompt += `\n\n${QUALITY_UPGRADES}`;
