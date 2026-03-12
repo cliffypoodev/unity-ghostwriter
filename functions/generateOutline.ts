@@ -509,6 +509,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
 
   // Call Gemini via Google API
   async function callGemini(systemPrompt, userMessage, maxTokens = 12000) {
+    // callType: outline → nonfiction Gemini path
     const response = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
       {
