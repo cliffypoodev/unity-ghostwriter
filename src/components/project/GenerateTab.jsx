@@ -23,6 +23,7 @@ import ChapterStatusDot from "./ChapterStatusDot";
 import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
 import RewriteInVoiceModal from "./RewriteInVoiceModal";
 import ProjectWordCount from "./ProjectWordCount";
+import ExplicitTagsWarning from "./ExplicitTagsWarning";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
