@@ -1019,14 +1019,13 @@ export default function GenerateTab({ projectId, onProceed }) {
       const info = chapterMap[chId];
       if (ch?.status === 'generated') successes++;
       else if (ch?.status === 'error') failedChapters.push({ number: info.chapter_number, title: info.title, error: 'Generation failed' });
-      else failedChapters.push({ number: info.chapter_number, title: info.title, error: 'Not started (blocked by earlier failure)' });
+      else failedChapters.push({ number: info.chapter_number, title: info.title, error: 'Not completed' });
     }
 
     const elapsed = Date.now() - startTime;
     const mins = Math.floor(elapsed / 60000);
     const secs = Math.floor((elapsed % 60000) / 1000);
 
-    const isPaused = backendResult?.status === 'paused';
     const allSucceeded = failedChapters.length === 0;
 
     setWriteAllProgress(prev => ({
@@ -1035,8 +1034,8 @@ export default function GenerateTab({ projectId, onProceed }) {
       successes,
       failures: failedChapters,
       done: true,
-      paused: isPaused,
-      pausedAt: backendResult?.failed_at || null,
+      paused: false,
+      pausedAt: null,
       elapsed: `${mins}m ${secs}s`,
       wordsWritten: totalWordsWritten,
       chapterWords: 0,
