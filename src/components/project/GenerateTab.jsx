@@ -854,7 +854,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleWriteChapter = async (chapter) => {
     if (interiorityMissing) {
-      toast && toast.error ? toast.error("Complete Protagonist Interiority in Specifications before generating.") : alert("Complete Protagonist Interiority in Specifications before generating.");
+      toast.error("Complete Protagonist Interiority in Specifications before generating.");
       return;
     }
     setStreamingChapterId(chapter.id);
