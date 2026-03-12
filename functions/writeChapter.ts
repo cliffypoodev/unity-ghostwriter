@@ -1477,10 +1477,8 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
 - If the book is tagged as MYSTERY: clues must be planted and discoveries must occur. Each chapter should narrow the possibilities or introduce a complication.
 - If the book is tagged as FANTASY or SCI-FI: the worldbuilding must be shown through action and detail, not exposition dumps. Magic/technology should have rules that matter to the plot.`;
 
-    // PART C — Plot and dialogue subtext rules (legacy fiction path)
-    systemPrompt += `\n\n${PERMANENT_QUALITY_RULES}`;
-    systemPrompt += `\n\n${PLOT_SUBTEXT_RULES}`;
-    systemPrompt += `\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
+    // PART C — Plot, dialogue subtext, permanent quality rules (legacy fiction path)
+    systemPrompt += `\n\n${PERMANENT_QUALITY_RULES}\n\n${PLOT_SUBTEXT_RULES}\n\n${DIALOGUE_SUBTEXT_RULES_CONCISE}`;
 
     // PART D — Conditional intimate scene rules (legacy fiction path)
     if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
