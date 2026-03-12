@@ -14,6 +14,7 @@ const MODEL_MAP = {
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
+  // callType: beat_sheet → scene generation uses spec's model (structural, not prose)
   const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
   const { provider, modelId, defaultTemp } = config;
   const temperature = options.temperature ?? defaultTemp;
