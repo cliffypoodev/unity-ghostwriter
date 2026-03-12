@@ -550,6 +550,7 @@ BANNED: Replacing climax with mystical transformation. Speeches about power/fate
 EXPLICIT STANDARD: Full specificity including the act itself in concrete language. Avoid clinical AND purple prose. Language should feel like the characters.
 SCENE STRUCTURE: 1.Approach(desire+conflict) → 2.First contact(specific,charged) → 3.Escalation(physical+emotional stakes rise) → 4.Peak(written completely) → 5.Aftermath(what changed). Do NOT skip/compress stages 3-4.
 TONE: ${tone}
+REPETITION BUDGET per chapter: "amber eyes" ≤2, "silver blood" ≤2, "predatory"/"predator" ≤2, "crystalline" ≤1, "harmonics"/"resonat-" ≤2, "alien" ≤3, "scaled"/"scales" ≤3, "possessive" ≤1, "bond"/"bonded" ≤6, "nervous system" ≤1. Over budget = rewrite from different sensory angle.
 SUSPENDED: Fade-to-black, cut-away-to-aftermath, emotional-suggestion-only, kissing-and-implied-tension-only rules. All other rules remain active.
 === END EROTICA OVERRIDE ===`;
 }
