@@ -24,6 +24,7 @@ import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
 import RewriteInVoiceModal from "./RewriteInVoiceModal";
 import ProjectWordCount from "./ProjectWordCount";
 import ExplicitTagsWarning from "./ExplicitTagsWarning";
+import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate } from "./InteriorityGateBanner";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
