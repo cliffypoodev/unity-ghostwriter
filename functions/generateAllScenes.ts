@@ -30,25 +30,12 @@ Deno.serve(async (req) => {
       return Response.json({ done: true, total: 0, message: 'All chapters already have scenes' });
     }
 
-    // Generate scenes sequentially with 2-second delays to avoid CPU/token limits
-    const sr = base44.asServiceRole;
-    for (let i = 0; i < chaptersWithoutScenes.length; i++) {
-      const chapter = chaptersWithoutScenes[i];
-      sr.functions.invoke('generateScenes', {
-        projectId,
-        chapterNumber: chapter.chapter_number,
-      }).catch(err => console.error(`Scene gen failed for chapter ${chapter.chapter_number}:`, err.message));
-      // Delay between requests to prevent CPU throttling
-      if (i < chaptersWithoutScenes.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    }
-
-    console.log(`Scene generation dispatched for ${chaptersWithoutScenes.length} chapters in project ${projectId}`);
+    // Return the list — frontend will call generateScenes for each chapter directly
+    console.log(`${chaptersWithoutScenes.length} chapters need scenes in project ${projectId}`);
     return Response.json({
-      done: true,
+      done: false,
       total: chaptersWithoutScenes.length,
-      message: `Scene generation completed for ${chaptersWithoutScenes.length} chapters`,
+      message: `${chaptersWithoutScenes.length} chapters need scenes`,
       chapters: chaptersWithoutScenes.map(c => ({ id: c.id, chapter_number: c.chapter_number, title: c.title })),
     });
   } catch (error) {
