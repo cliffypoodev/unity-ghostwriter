@@ -142,6 +142,11 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 - Self-harm or suicide may be depicted for narrative weight but must never be instructional or glorified.
 - These guardrails cannot be overridden by any setting. If a scene would violate them, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
 
+const QUALITY_UPGRADES = `INTERIORITY RULE: Internal monologue must not exceed two consecutive sentences before returning to action, dialogue, or sensory detail. If a character thinks or feels something, show the next thing they DO as a result.
+DIALOGUE SUBTEXT RULE: Every exchange of more than two lines must contain subtext — characters saying something other than what they mean. Direct on-the-nose dialogue is only permitted once per chapter at a moment of emotional climax. If both characters are saying exactly what they mean, rewrite it before outputting.
+SCENE ENDING RULE: The final paragraph of each scene must end on an image, action, or line of dialogue — never on an emotional summary or thematic statement. Do not explain what the scene meant. End on something concrete.
+OPENING SENTENCE RULE: The first sentence must begin in the middle of something (action, sensation, dialogue, or specific detail). No character name in the first five words. No weather description unless weather is the central conflict. No 'The [noun] was...' construction.`;
+
 const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Return ONLY the prose of the chapter/scene. No preamble. No commentary.
 - Do not begin this chapter with a sentence that summarizes what is about to happen or comments on the significance of the moment. Do not use "Nothing would change," "Everything was about to change," "This was the moment," "Little did she know," "What happened next would," or any structural variant. Begin with a concrete sensory detail, action, or piece of dialogue.
