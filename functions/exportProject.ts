@@ -1,364 +1,200 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Strip HTML tags to plain text
-function htmlToText(html) {
+// Lightweight project exporter — avoids CPU-intensive docx library to stay within Deno Deploy limits.
+// Supports: txt, markdown, doc (MHTML-based Word-compatible format)
+
+function stripHtml(html) {
+  if (!html) return '';
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<li>/gi, '- ')
     .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-// HTML to Markdown
-function htmlToMarkdown(html) {
-  return html
-    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, (_, t) => `# ${htmlToText(t)}\n\n`)
-    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, (_, t) => `## ${htmlToText(t)}\n\n`)
-    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, (_, t) => `### ${htmlToText(t)}\n\n`)
-    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, (_, t) => `#### ${htmlToText(t)}\n\n`)
-    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
-    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-    .replace(/<em[^>]*>(.*?)<\/em>/gi, '_$1_')
-    .replace(/<i[^>]*>(.*?)<\/i>/gi, '_$1_')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+    .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
-// Build TOC markdown with anchors from chapters
-function buildMarkdownToc(chapters) {
-  const sorted = [...chapters].sort((a, b) => a.chapter_number - b.chapter_number);
-  let toc = '## Table of Contents\n\n';
-  sorted.forEach(ch => {
-    const anchor = `chapter-${ch.chapter_number}-${ch.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
-    toc += `- [Chapter ${ch.chapter_number}: ${ch.title}](#${anchor})\n`;
-  });
-  return toc + '\n---\n\n';
+function toMarkdown(html) {
+  if (!html) return '';
+  let md = html;
+  md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
+  md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
+  md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
+  md = md.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
+  md = md.replace(/<strong>(.*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b>(.*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<em>(.*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i>(.*?)<\/i>/gi, '*$1*');
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+  md = md.replace(/<\/p>/gi, '\n\n');
+  md = md.replace(/<li>/gi, '- ');
+  md = md.replace(/<\/li>/gi, '\n');
+  md = md.replace(/<[^>]*>/g, '');
+  md = md.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+  return md.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function resolveContent(content) {
+  if (!content) return '';
+  if (content.startsWith('http://') || content.startsWith('https://')) {
+    const r = await fetch(content);
+    if (!r.ok) return '';
+    const t = await r.text();
+    if (t.trim().startsWith('<') && !t.trim().startsWith('<p') && !t.trim().startsWith('<h')) return '';
+    return t;
+  }
+  return content;
+}
+
+function buildMhtmlDoc(title, chapters, spec, settings) {
+  const bodyFont = settings?.default_body_font || 'Georgia';
+  const headingFont = settings?.default_heading_font || 'Georgia';
+  const fontSize = settings?.default_font_size || '12pt';
+  const lineSpacing = settings?.default_line_spacing || '1.5';
+  const margins = settings?.default_margins || '1in';
+
+  const chaptersHtml = chapters.map(ch => {
+    const content = ch.resolvedContent || '';
+    return `<div style="page-break-before: always;">
+<h1 style="font-family: '${headingFont}', serif; font-size: 18pt; margin-bottom: 0.5em;">Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}</h1>
+<div style="font-family: '${bodyFont}', serif; font-size: ${fontSize}; line-height: ${lineSpacing};">
+${content.includes('<') ? content : content.split('\n\n').map(p => `<p>${p}</p>`).join('\n')}
+</div>
+</div>`;
+  }).join('\n');
+
+  const genre = spec?.genre || '';
+  const audience = spec?.target_audience || '';
+
+  return `MIME-Version: 1.0
+Content-Type: multipart/related; boundary="----=_NextPart_boundary"
+
+------=_NextPart_boundary
+Content-Type: text/html; charset="utf-8"
+
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="utf-8">
+<style>
+@page { margin: ${margins}; }
+body { font-family: '${bodyFont}', serif; font-size: ${fontSize}; line-height: ${lineSpacing}; }
+h1 { font-family: '${headingFont}', serif; page-break-before: always; }
+h1:first-of-type { page-break-before: avoid; }
+p { margin: 0.4em 0; text-indent: 0; }
+</style>
+</head>
+<body>
+<div style="text-align: center; margin-bottom: 2em;">
+<h1 style="font-size: 24pt; page-break-before: avoid;">${title}</h1>
+${genre ? `<p style="font-style: italic; color: #666;">${genre}${audience ? ' — ' + audience : ''}</p>` : ''}
+</div>
+${chaptersHtml}
+</body>
+</html>
+------=_NextPart_boundary--`;
 }
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const base44 = createClientFromRequest(req);
+  const user = await base44.auth.me();
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, format } = body;
+  const { project_id, format, settings } = await req.json();
+  if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
 
-    if (!projectId || !format) {
-      return Response.json({ error: 'projectId and format are required' }, { status: 400 });
-    }
+  const exportFormat = (format || 'txt').toLowerCase();
 
-    // Fetch project data
-    const [projects, chapters, specs] = await Promise.all([
-      base44.entities.Project.filter({ id: projectId }),
-      base44.entities.Chapter.filter({ project_id: projectId }),
-      base44.entities.Specification.filter({ project_id: projectId }),
-    ]);
+  // Load project data
+  const [projects, chapters, specs, appSettingsList] = await Promise.all([
+    base44.entities.Project.filter({ id: project_id }),
+    base44.entities.Chapter.filter({ project_id }, 'chapter_number'),
+    base44.entities.Specification.filter({ project_id }),
+    base44.entities.AppSettings.list(),
+  ]);
 
-    const project = projects[0];
-    if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
+  const project = projects[0];
+  if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
 
-    const sortedChapters = [...chapters].sort((a, b) => a.chapter_number - b.chapter_number);
-    const spec = specs[0];
-    const title = project.name || 'Untitled';
+  const spec = specs[0] || {};
+  const appSettings = appSettingsList[0] || {};
+  const mergedSettings = { ...appSettings, ...settings };
+  const projectTitle = project.name || 'Untitled Project';
 
-    // ── TXT Export ─────────────────────────────────────────────────────────────
-    if (format === 'txt') {
-      let text = `${title}\n${'='.repeat(title.length)}\n\n`;
-      if (spec?.genre || spec?.target_audience) {
-        text += `${[spec.genre, spec.target_audience].filter(Boolean).join(' · ')}\n\n`;
-      }
-      sortedChapters.forEach(ch => {
-        const heading = `Chapter ${ch.chapter_number}: ${ch.title}`;
-        text += `${heading}\n${'-'.repeat(heading.length)}\n\n`;
-        if (ch.content) {
-          text += ch.content.trim() + '\n\n';
-        } else {
-          text += '[Chapter not yet written]\n\n';
-        }
-      });
-
-      return new Response(text, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${title.replace(/[^a-z0-9]/gi, '_')}.txt"`,
-        },
-      });
-    }
-
-    // ── Markdown Export ─────────────────────────────────────────────────────────
-    if (format === 'md') {
-      let md = `# ${title}\n\n`;
-      if (spec?.genre || spec?.target_audience) {
-        md += `_${[spec.genre, spec.target_audience].filter(Boolean).join(' · ')}_\n\n`;
-      }
-      md += buildMarkdownToc(sortedChapters);
-
-      sortedChapters.forEach(ch => {
-        const anchor = `chapter-${ch.chapter_number}-${ch.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
-        md += `## Chapter ${ch.chapter_number}: ${ch.title} {#${anchor}}\n\n`;
-        if (ch.content) {
-          // Convert content to markdown if it contains HTML, else use as-is
-          const isHtml = ch.content.includes('<');
-          md += (isHtml ? htmlToMarkdown(ch.content) : ch.content.trim()) + '\n\n';
-        } else {
-          md += '_[Chapter not yet written]_\n\n';
-        }
-      });
-
-      return new Response(md, {
-        headers: {
-          'Content-Type': 'text/markdown; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${title.replace(/[^a-z0-9]/gi, '_')}.md"`,
-        },
-      });
-    }
-
-    // ── DOC Export (via HTML → MHTML) ──────────────────────────────────────────
-    if (format === 'doc') {
-      const { html: editorHtml, settings: ds } = body;
-
-      const bodyFamily = ds?.bodyFont
-        ? ({
-            "georgia": "Georgia, serif",
-            "times-new-roman": '"Times New Roman", Times, serif',
-            "garamond": 'Garamond, "EB Garamond", serif',
-            "palatino": 'Palatino, "Palatino Linotype", serif',
-            "baskerville": 'Baskerville, "Baskerville Old Face", serif',
-            "arial": "Arial, sans-serif",
-            "helvetica": "Helvetica, Arial, sans-serif",
-            "verdana": "Verdana, Geneva, sans-serif",
-            "trebuchet-ms": '"Trebuchet MS", Helvetica, sans-serif',
-            "calibri": "Calibri, Candara, sans-serif",
-            "courier-new": '"Courier New", Courier, monospace',
-            "consolas": 'Consolas, "Courier New", monospace',
-          }[ds.bodyFont] || "Georgia, serif")
-        : "Georgia, serif";
-
-      const headingFamily = ds?.headingFont
-        ? ({
-            "georgia": "Georgia, serif",
-            "times-new-roman": '"Times New Roman", Times, serif',
-            "garamond": 'Garamond, "EB Garamond", serif',
-            "palatino": 'Palatino, "Palatino Linotype", serif',
-            "baskerville": 'Baskerville, "Baskerville Old Face", serif',
-            "arial": "Arial, sans-serif",
-            "helvetica": "Helvetica, Arial, sans-serif",
-            "verdana": "Verdana, Geneva, sans-serif",
-            "trebuchet-ms": '"Trebuchet MS", Helvetica, sans-serif',
-            "calibri": "Calibri, Candara, sans-serif",
-            "courier-new": '"Courier New", Courier, monospace',
-            "consolas": 'Consolas, "Courier New", monospace',
-          }[ds.headingFont] || "Georgia, serif")
-        : "Georgia, serif";
-
-      const margin = ds?.margins || "1in";
-      const lineH = ds?.lineSpacing || "1.5";
-      const fontSize = ds?.bodyFontSize || "14px";
-
-      const docTitle = ds?.bookTitle || title;
-      const author = ds?.authorName || "";
-      const subtitle = ds?.subtitle || "";
-      const headerText = ds?.headerText || "";
-      const footerText = ds?.footerText || "";
-
-      const style = `
-        body { font-family: ${bodyFamily}; font-size: ${fontSize}; line-height: ${lineH}; color: #1e293b; margin: ${margin}; }
-        h1, h2, h3, h4 { font-family: ${headingFamily}; }
-        h1 { font-size: 28pt; font-weight: 700; text-align: center; margin-bottom: 0.5em; }
-        h2 { font-size: 18pt; font-weight: 600; margin-top: 2em; margin-bottom: 0.5em; }
-        h3 { font-size: 14pt; font-weight: 600; margin-top: 1.5em; }
-        p { margin-bottom: 0.8em; }
-        .title-page { text-align: center; padding-top: 2in; page-break-after: always; }
-        .title-page h1 { font-size: 28pt; font-weight: 700; margin-bottom: 0.3em; }
-        .title-page .subtitle { font-size: 16pt; color: #64748b; margin-bottom: 1em; }
-        .title-page .author { font-size: 14pt; font-style: italic; }
-        .page-header { color: #64748b; font-size: 9pt; border-bottom: 1px solid #e2e8f0; padding-bottom: 4pt; margin-bottom: 16pt; }
-        .page-footer { color: #64748b; font-size: 9pt; border-top: 1px solid #e2e8f0; padding-top: 4pt; margin-top: 16pt; }
-      `;
-
-      let titlePageHtml = '';
-      if (docTitle || author || subtitle) {
-        titlePageHtml = `<div class="title-page">
-          ${docTitle ? `<h1>${docTitle}</h1>` : ''}
-          ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
-          ${author ? `<p class="author">by ${author}</p>` : ''}
-        </div>`;
-      }
-
-      const headerHtml = headerText ? `<div class="page-header">${headerText}</div>` : '';
-      const footerHtml = footerText ? `<div class="page-footer">${footerText}</div>` : '';
-
-      const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-  <meta charset="utf-8">
-  <title>${docTitle}</title>
-  <style>${style}</style>
-  <!--[if gte mso 9]>
-  <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
-  <![endif]-->
-</head>
-<body>
-  ${titlePageHtml}
-  ${headerHtml}
-  ${editorHtml || ''}
-  ${footerHtml}
-</body>
-</html>`;
-
-      const mhtml = [
-        'MIME-Version: 1.0',
-        'Content-Type: multipart/related; boundary="----=_NextPart_01"',
-        '',
-        '------=_NextPart_01',
-        'Content-Location: file:///C:/doc.htm',
-        'Content-Transfer-Encoding: quoted-printable',
-        'Content-Type: text/html; charset="utf-8"',
-        '',
-        fullHtml,
-        '',
-        '------=_NextPart_01--',
-      ].join('\r\n');
-
-      return new Response(mhtml, {
-        headers: {
-          'Content-Type': 'application/msword',
-          'Content-Disposition': `attachment; filename="${docTitle.replace(/[^a-z0-9]/gi, '_')}.doc"`,
-        },
-      });
-    }
-
-    // ── DOCX Export (proper Open XML) ──────────────────────────────────────────
-    if (format === 'docx') {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } = await import('npm:docx@9.0.2');
-      const { html: editorHtml, settings: ds } = body;
-      const docTitle = ds?.bookTitle || title;
-      const author = ds?.authorName || '';
-      const subtitle = ds?.subtitle || '';
-
-      // Parse editor HTML into paragraphs
-      function parseHtmlToParagraphs(html) {
-        if (!html) return [];
-        // Split by block-level tags
-        const blocks = html
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<\/p>/gi, '|||BREAK|||')
-          .replace(/<\/h1>/gi, '|||H1END|||')
-          .replace(/<\/h2>/gi, '|||H2END|||')
-          .replace(/<\/h3>/gi, '|||H3END|||')
-          .replace(/<\/h4>/gi, '|||H4END|||')
-          .replace(/<\/li>/gi, '|||BREAK|||')
-          .replace(/<hr\s*\/?>/gi, '|||BREAK|||')
-          .replace(/<div[^>]*style="page-break[^"]*"[^>]*><\/div>/gi, '|||PAGEBREAK|||');
-
-        const segments = blocks.split(/\|\|\|(\w+)\|\|\|/).filter(Boolean);
-        const result = [];
-        let i = 0;
-        while (i < segments.length) {
-          const text = segments[i].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim();
-          const nextMarker = segments[i + 1] || '';
-
-          if (nextMarker === 'PAGEBREAK') {
-            result.push({ type: 'pagebreak' });
-            i += 2;
-            continue;
-          }
-
-          if (!text) { i += 2; continue; }
-
-          if (nextMarker === 'H1END') {
-            result.push({ type: 'h1', text });
-          } else if (nextMarker === 'H2END') {
-            result.push({ type: 'h2', text });
-          } else if (nextMarker === 'H3END') {
-            result.push({ type: 'h3', text });
-          } else if (nextMarker === 'H4END') {
-            result.push({ type: 'h4', text });
-          } else if (nextMarker === 'BREAK') {
-            result.push({ type: 'p', text });
-          } else {
-            // Plain text without end marker
-            result.push({ type: 'p', text });
-            i += 1;
-            continue;
-          }
-          i += 2;
-        }
-        return result;
-      }
-
-      const parsed = parseHtmlToParagraphs(editorHtml || '');
-      const children = [];
-
-      // Title page
-      if (docTitle) {
-        children.push(new Paragraph({ text: docTitle, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
-      }
-      if (subtitle) {
-        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: subtitle, italics: true, size: 28, color: '64748b' })] }));
-      }
-      if (author) {
-        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: `by ${author}`, italics: true, size: 24 })] }));
-      }
-      if (docTitle || author) {
-        children.push(new Paragraph({ children: [new PageBreak()] }));
-      }
-
-      // Content
-      for (const block of parsed) {
-        if (block.type === 'pagebreak') {
-          children.push(new Paragraph({ children: [new PageBreak()] }));
-        } else if (block.type === 'h1') {
-          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
-        } else if (block.type === 'h2') {
-          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 150 } }));
-        } else if (block.type === 'h3') {
-          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_3, spacing: { before: 200, after: 100 } }));
-        } else if (block.type === 'h4') {
-          children.push(new Paragraph({ text: block.text, heading: HeadingLevel.HEADING_4, spacing: { before: 200, after: 100 } }));
-        } else {
-          children.push(new Paragraph({ spacing: { after: 160, line: 360 }, children: [new TextRun({ text: block.text, size: 24 })] }));
-        }
-      }
-
-      const doc = new Document({
-        creator: author || 'Unity Ghostwriter',
-        title: docTitle,
-        sections: [{ children }],
-      });
-
-      const buffer = await Packer.toBuffer(doc);
-
-      // Encode as base64 and return as JSON to avoid binary corruption through the SDK
-      const uint8 = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < uint8.length; i++) {
-        binary += String.fromCharCode(uint8[i]);
-      }
-      const base64 = btoa(binary);
-
-      return Response.json({ base64, filename: `${docTitle.replace(/[^a-z0-9]/gi, '_')}.docx` });
-    }
-
-    return Response.json({ error: 'Unknown format' }, { status: 400 });
-
-  } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+  // Filter to generated chapters and resolve content
+  const generatedChapters = chapters.filter(c => c.status === 'generated' && c.content);
+  for (const ch of generatedChapters) {
+    ch.resolvedContent = await resolveContent(ch.content);
   }
+
+  // ── TXT Export ──
+  if (exportFormat === 'txt') {
+    let text = `${projectTitle}\n${'='.repeat(projectTitle.length)}\n\n`;
+    if (spec.genre) text += `Genre: ${spec.genre}\n`;
+    if (spec.target_audience) text += `Audience: ${spec.target_audience}\n`;
+    text += '\n---\n\n';
+
+    for (const ch of generatedChapters) {
+      text += `CHAPTER ${ch.chapter_number}: ${ch.title || 'Untitled'}\n\n`;
+      text += stripHtml(ch.resolvedContent) + '\n\n---\n\n';
+    }
+
+    const totalWords = generatedChapters.reduce((sum, ch) => sum + (ch.word_count || 0), 0);
+    text += `\nTotal word count: ~${totalWords}\n`;
+
+    return new Response(text, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.txt"`,
+      },
+    });
+  }
+
+  // ── Markdown Export ──
+  if (exportFormat === 'markdown' || exportFormat === 'md') {
+    let md = `# ${projectTitle}\n\n`;
+    if (spec.genre) md += `*${spec.genre}*\n\n`;
+    if (spec.topic) md += `> ${spec.topic.slice(0, 200)}...\n\n`;
+    md += '---\n\n';
+
+    // Table of contents
+    md += '## Table of Contents\n\n';
+    for (const ch of generatedChapters) {
+      md += `- [Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}](#chapter-${ch.chapter_number})\n`;
+    }
+    md += '\n---\n\n';
+
+    for (const ch of generatedChapters) {
+      md += `## Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'} {#chapter-${ch.chapter_number}}\n\n`;
+      md += toMarkdown(ch.resolvedContent) + '\n\n---\n\n';
+    }
+
+    return new Response(md, {
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.md"`,
+      },
+    });
+  }
+
+  // ── DOC / DOCX Export (MHTML-based — Word-compatible, lightweight) ──
+  if (exportFormat === 'doc' || exportFormat === 'docx') {
+    const mhtml = buildMhtmlDoc(projectTitle, generatedChapters, spec, mergedSettings);
+
+    return new Response(mhtml, {
+      headers: {
+        'Content-Type': 'application/msword',
+        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.doc"`,
+      },
+    });
+  }
+
+  return Response.json({ error: `Unsupported format: ${exportFormat}` }, { status: 400 });
 });
