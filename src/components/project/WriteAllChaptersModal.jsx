@@ -205,10 +205,18 @@ export default function WriteAllChaptersModal({
           {/* Done state */}
           {done && (
             <div className="space-y-3">
-              <div className="text-center py-3 px-4 rounded-xl font-semibold text-green-800 text-base"
-                style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)", border: "1px solid #bbf7d0" }}>
-                All done! {(wordsWritten).toLocaleString()} words in {elapsedTime}
-              </div>
+              {paused ? (
+                <div className="text-center py-3 px-4 rounded-xl font-semibold text-amber-800 text-base"
+                  style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", border: "1px solid #fcd34d" }}>
+                  <AlertTriangle className="w-5 h-5 inline-block mr-2 -mt-0.5" />
+                  Paused at Chapter {pausedAt} — {successes} of {total} written ({(wordsWritten).toLocaleString()} words)
+                </div>
+              ) : (
+                <div className="text-center py-3 px-4 rounded-xl font-semibold text-green-800 text-base"
+                  style={{ background: "linear-gradient(135deg, #f0fdf4, #ecfdf5)", border: "1px solid #bbf7d0" }}>
+                  All done! {(wordsWritten).toLocaleString()} words in {elapsedTime}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-green-50 border border-green-100 rounded-lg p-3 flex items-center gap-2">
