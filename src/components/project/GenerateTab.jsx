@@ -1004,6 +1004,111 @@ export default function GenerateTab({ projectId, onProceed }) {
     writeAllAbortRef.current = true;
   };
 
+  const handleResumeFromChapter = async (chapter) => {
+    setResumingFromChapter(chapter.chapter_number);
+    setWriteAllModalOpen(true);
+    setWriteAllActive(true);
+
+    const toWrite = chapters.filter(c => c.chapter_number >= chapter.chapter_number && c.status !== 'generated');
+    const startTime = Date.now();
+    const tLen = specifications?.[0]?.target_length || "medium";
+    setTargetLength(tLen);
+
+    setWriteAllProgress({
+      current: 0,
+      total: toWrite.length,
+      currentTitle: `Resuming from Ch ${chapter.chapter_number}...`,
+      successes: 0,
+      failures: [],
+      startTime,
+      done: false,
+      wordsWritten: 0,
+      chapterWords: 0,
+      phaseLabel: `Resuming from Chapter ${chapter.chapter_number}`,
+    });
+
+    let backendDone = false;
+    let backendResult = null;
+
+    base44.functions.invoke('resumeFromChapter', {
+      projectId,
+      chapterNumber: chapter.chapter_number,
+    }, { timeout: 900000 })
+      .then(res => { backendDone = true; backendResult = res.data; })
+      .catch(err => { backendDone = true; backendResult = { status: 'error', message: err?.message || 'Backend error' }; });
+
+    const chapterIds = toWrite.map(c => c.id);
+    const chapterMap = Object.fromEntries(toWrite.map(c => [c.id, c]));
+    const progressMessages = ["Rebuilding state…", "Generating prose…", "Writing chapter…", "Building narrative…", "Finalizing…"];
+    const startPollTime = Date.now();
+    const maxPollMs = 15 * 60 * 1000;
+
+    while (!backendDone && Date.now() - startPollTime < maxPollMs) {
+      await new Promise(r => setTimeout(r, 4000));
+      const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+      const totalWords = updatedChapters.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+      let successes = 0;
+      const failures = [];
+      for (const chId of chapterIds) {
+        const ch = updatedChapters.find(c => c.id === chId);
+        if (ch?.status === 'generated') successes++;
+        else if (ch?.status === 'error') failures.push({ number: chapterMap[chId].chapter_number, title: chapterMap[chId].title, error: 'Failed' });
+      }
+      const activeChapter = chapterIds.find(chId => {
+        const ch = updatedChapters.find(c => c.id === chId);
+        return ch?.status !== 'generated' && ch?.status !== 'error';
+      });
+      const activeInfo = activeChapter ? chapterMap[activeChapter] : null;
+      const elapsed = Math.floor((Date.now() - startPollTime) / 1000);
+      const msgIdx = Math.floor(elapsed / 20) % progressMessages.length;
+
+      setWriteAllProgress(prev => ({
+        ...prev,
+        current: successes,
+        successes,
+        failures: [...failures],
+        wordsWritten: totalWords,
+        currentTitle: activeInfo ? `Ch ${activeInfo.chapter_number}: ${progressMessages[msgIdx]}` : failures.length > 0 ? 'Paused — chapter failed' : 'Finishing up…',
+        chapterWords: 0,
+      }));
+    }
+
+    // Final refresh
+    const finalChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+    const totalWords = finalChapters.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+    let successes = 0;
+    const failures = [];
+    for (const chId of chapterIds) {
+      const ch = finalChapters.find(c => c.id === chId);
+      if (ch?.status === 'generated') successes++;
+      else if (ch?.status === 'error') failures.push({ number: chapterMap[chId].chapter_number, title: chapterMap[chId].title, error: 'Failed' });
+      else failures.push({ number: chapterMap[chId].chapter_number, title: chapterMap[chId].title, error: 'Not started (blocked)' });
+    }
+
+    const elapsed = Date.now() - startTime;
+    const mins = Math.floor(elapsed / 60000);
+    const secs = Math.floor((elapsed % 60000) / 1000);
+    const isPaused = backendResult?.status === 'paused';
+
+    setWriteAllProgress(prev => ({
+      ...prev,
+      current: successes,
+      successes,
+      failures,
+      done: true,
+      paused: isPaused,
+      pausedAt: backendResult?.failed_at || null,
+      elapsed: `${mins}m ${secs}s`,
+      wordsWritten: totalWords,
+      chapterWords: 0,
+      error: isPaused ? backendResult.message : failures.length > 0 ? `${failures.length} chapter(s) failed.` : null,
+    }));
+
+    setWriteAllActive(false);
+    setResumingFromChapter(null);
+    await refetchChapters();
+  };
+
   const handleGenerateAllScenes = async () => {
     setGeneratingAllScenes(true);
     setAllScenesProgress("Starting scene generation…");
