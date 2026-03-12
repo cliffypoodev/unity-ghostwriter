@@ -13,7 +13,7 @@ import Settings from './pages/Settings';
 import ImportPrompts from './pages/ImportPrompts';
 
 // Layout
-import Layout from './layout';
+import Layout from '@/layout';
 
 const LayoutWrapper = ({ children }) => (
   <Layout>{children}</Layout>
