@@ -308,7 +308,11 @@ Return ONLY JSON.`;
   } catch (error) {
     console.error('generateOutlineDetail error:', error);
     if (outlineId) {
-      try { await sr.entities.Outline.update(outlineId, { status: 'partial', error_message: error.message }); } catch {}
+      try {
+        const fallbackBase44 = createClientFromRequest(req);
+        const fallbackSr = fallbackBase44.asServiceRole;
+        await fallbackSr.entities.Outline.update(outlineId, { status: 'partial', error_message: error.message });
+      } catch {}
     }
     return Response.json({ error: error.message }, { status: 500 });
   }
