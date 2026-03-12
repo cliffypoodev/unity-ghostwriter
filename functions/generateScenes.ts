@@ -238,6 +238,7 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
 }`;
 
     const maxTokens = (modelKey === 'deepseek-chat' || modelKey === 'deepseek-reasoner') ? 4000 : 8192;
+    // callType: beat_sheet → scene beat generation (structural, not prose)
     const raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
     const scenes = await safeParseJSON(raw, modelKey);
     if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
