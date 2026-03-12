@@ -805,6 +805,16 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
 
   const allBannedFound = [...physicalMatches, ...atmosphereMatches, ...narrationMatches, ...dialogueMatches, ...showDontTellMatches, ...endingMatches, ...openingBleedMatches];
 
+  // REPETITION BUDGET CHECK — alien romance high-frequency phrases
+  const _repBudget = [["amber eyes",2],["silver blood",2],["predatory",2],["predator",2],["crystalline",1],["harmonics",2],["resonat",2],["alien",3],["scaled",3],["scales",3],["possessive",1],["bond",6],["bonded",6],["nervous system",1]];
+  const _repOver = [];
+  for (const [phrase, max] of _repBudget) {
+    const rx = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\w*\\b`, 'gi');
+    const m = lowerText.match(rx); const count = m ? m.length : 0;
+    if (count > max) { _repOver.push(`"${phrase}" ${count}x (max ${max})`); violationCount += count - max; }
+  }
+  if (_repOver.length > 0) violations.push(`REPETITION BUDGET EXCEEDED: ${_repOver.join(', ')}`);
+
   // PART 6 CHECK 1 — Physical tic repetition from previous chapters
   if (previousChapters && previousChapters.length > 0) {
     const prevTicsByChar = {};
