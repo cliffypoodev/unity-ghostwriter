@@ -1159,8 +1159,8 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       return callAI(modelKey, systemMsg, userMsg, { maxTokens });
     }
 
+    let nameRegistry = {};
     // ── Build system prompt ────────────────────────────────────────────────────
-
     const bookType = projectSpec?.book_type || 'fiction';
     const isNonfiction = bookType === 'nonfiction';
 
