@@ -110,13 +110,7 @@ const AUTHOR_VOICES_MAP = { hemingway:"Terse, declarative. Iceberg theory.", kin
 
 const FICTION_ENDING_TYPES = { 1:"Type A: Mid-action cliffhanger — cut mid-action. No summary.", 2:"Type B: Revelation that recontextualizes. End with new info, no reaction.", 3:"Type C: Concrete sensory image — actual thing seen/heard/touched. NOT abstract.", 4:"Type D: Gut-punch dialogue — NO narration after. Quote is last.", 5:"Type E: Quiet mundane action contrasting chapter's intensity." };
 const NONFICTION_ENDING_TYPES = { 1:"Quiet resonant image — single detail carrying emotional weight.", 2:"Reframing sentence — recasts everything in new light.", 3:"Brief poem/aphorism — 2-4 lines compressed wisdom.", 4:"Lingering question — unanswered, inviting reflection.", 5:"Return to opening vignette — circle back, now seen differently." };
-
-function getBeatStyleInstructions(key) {
-  if (!key) return "Not specified";
-  const beat = BEAT_STYLES[key];
-  if (beat) return `${beat.name}\n${beat.instructions}`;
-  return key;
-}
+function getBeatStyleInstructions(key) { if (!key) return "Not specified"; const beat = BEAT_STYLES[key]; return beat ? `${beat.name}\n${beat.instructions}` : key; }
 
 const SPICE_LEVELS = {
   0: { name: "Fade to Black", instructions: "Romantic/Sexual Content Rules:\n- No sexual content of any kind.\n- Romantic tension permitted but must remain fully clothed and non-physical beyond hand-holding, a brief kiss, or an embrace.\n- If a scene approaches intimacy, cut away or skip ahead entirely (fade to black).\n- Focus on emotional connection, dialogue, and longing.\n- No nudity. No suggestive descriptions of bodies in sexual context.\n- Appropriate for all audiences." },
