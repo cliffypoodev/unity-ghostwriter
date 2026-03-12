@@ -1204,9 +1204,9 @@ export default function GenerateTab({ projectId, onProceed }) {
           <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-indigo-500" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Generate Your Book Outline</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Your book starts here</h2>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            Your specifications will be analyzed to create a detailed chapter-by-chapter outline.
+            Generate your outline to begin. The AI will build your chapter structure based on your premise.
           </p>
           {generateError && (
             <div className="mb-4 space-y-3">
