@@ -49,7 +49,7 @@ VOICE: ${beatCore}.
 
 2. OPENING: ${openingType.name}. ${openingType.desc}. BANNED: atmosphere, walking, "The [noun] [verbed]...", "Imagine...".
 
-3. ENDING: ${endingType.name}. ${endingType.desc}. BANNED: "ready to face...", "just the beginning", abstract declarations.
+3. ENDING: ${endingType.name}. ${endingType.desc}. Final paragraph must end on: a physical image, dialogue, concrete action, or sensory detail. BANNED: emotional summaries ("He had finally found peace"), stated realizations, thematic declarations, rhetorical questions, "ready to face...", "just the beginning".
 
 4. DIALOGUE: Max 3 consecutive exchanges before action/description paragraph.
 
