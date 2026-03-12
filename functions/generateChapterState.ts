@@ -14,6 +14,7 @@ function getEscalationTarget(chapterNumber, totalChapters) {
 }
 
 async function callClaude(systemPrompt, userMessage, maxTokens = 4096) {
+  // callType: chapter_state → resolves to Claude Sonnet (or OpenRouter for erotica)
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
