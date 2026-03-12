@@ -57,7 +57,7 @@ VOICE: ${beatCore}.
 
 6. SHOW DON'T TELL: Not "felt [emotion]". Use actions, sensory details, silence.
 
-7. SENSORY: At least 2 specific sensory details per scene, unique to location.
+7. SENSORY: At least 2 specific sensory details per scene, unique to location. SENSATION SPECIFICITY: Every physical sensation must pass this test: "Could this sentence appear in any other book?" If yes, rewrite. Anchor to: a specific body location, a comparison from the character's own history/world, and something different from the last sensation described.
 
 8. CHARACTER VOICES: Each character has distinct speech patterns.
 
