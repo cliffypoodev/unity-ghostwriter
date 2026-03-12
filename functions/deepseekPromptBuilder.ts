@@ -69,7 +69,7 @@ VOICE: ${beatCore}.
     p += `\n\nREPETITION BUDGET — ENFORCE PER CHAPTER:\n"amber eyes": max 2 | "silver blood": max 2 | "predatory"/"predator": max 2 | "crystalline": max 1 | "harmonics"/"resonat-": max 2 | "alien": max 3 | "scaled"/"scales": max 3 | "possessive": max 1 | "bond"/"bonded": max 6 | "nervous system": max 1\nIf a phrase hits its budget, rewrite the moment from a different sensory angle — do not swap in a synonym.`;
     if (spec?.protagonist_core_wound || spec?.protagonist_self_belief || spec?.protagonist_secret_desire) {
       const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', pp = spec.protagonist_life_purpose || 'not specified';
-      p += `\n\nPROTAGONIST INTERIOR CONTEXT:\nBefore this story, the protagonist believed their life was for: ${pp}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond offers that they could never ask for: ${d}\n≥1 scene beat per chapter must connect plot to wound, belief, or desire through action/subtext — never stated outright.`;
+      p += `\n\nPROTAGONIST INTERIOR CONTEXT:\nBefore this story, the protagonist believed their life was for: ${pp}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond offers that they could never ask for: ${d}\n>=1 scene beat per chapter must connect plot to wound, belief, or desire through action/subtext — never stated outright.`;
     }
   }
   return p;
