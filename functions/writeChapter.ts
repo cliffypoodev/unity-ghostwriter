@@ -552,6 +552,7 @@ By Chapter ${chapterNumber}, the protagonist must be visibly different from who 
 Do NOT reset the protagonist to baseline between chapters. Emotional weight accumulates. What broke them in Chapter 2 should still be carried in Chapter ${chapterNumber}, even if they've adapted to it.
 === END EMOTIONAL ACCUMULATION ===`;
 }
+function buildResolutionTextureBlock(ci, tot, cb) { const final25 = ci >= Math.floor(tot * 0.75), resB = cb && /RESOLUTION|CLIMAX|RECOMMITMENT/i.test(cb.beat_function||''); if (!final25 && !resB) return ''; return `\n\n=== RESOLUTION TEXTURE ===\nNo acceptance/victory scene should be unanimous. Include one friction element: withheld approval, a condition, a cost, or a dissenting detail. Texture, not conflict.\n=== END RESOLUTION TEXTURE ===`; }
 function getEroticaOverride(spec) {
   if (!isEroticaGenre(spec)) return '';
   const sub = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase();
