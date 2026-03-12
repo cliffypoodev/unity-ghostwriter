@@ -12,6 +12,7 @@ const MODEL_MAP = {
 };
 
 async function callChat(modelKey, systemPrompt, messages) {
+  // callType: consultant_chat → resolves to Claude Sonnet (uses spec's ai_model for now)
   const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
   const { provider, modelId } = config;
 
