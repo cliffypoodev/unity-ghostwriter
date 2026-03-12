@@ -1014,7 +1014,7 @@ Return ONLY the JSON object.`;
 
     let scopeLock = null;
     try {
-      const scopeText = await callAI(modelKey, systemPrompt, scopeLockPrompt, { maxTokens: 2000 });
+      const scopeText = await callAI(modelKey, systemPrompt, scopeLockPrompt, { maxTokens: 2000 }); // callType: outline (scope lock)
       const scopeMatch = scopeText.match(/\{[\s\S]*\}/);
       scopeLock = await safeParseJSON(scopeMatch ? scopeMatch[0] : scopeText, modelKey);
       console.log('Scope lock generated:', Object.keys(scopeLock));
