@@ -1490,6 +1490,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
     systemPrompt += getEroticaOverride(projectSpec);
     systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
+    systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
     systemPrompt += _beatSysBlock(chapterBeat);
     }
 
