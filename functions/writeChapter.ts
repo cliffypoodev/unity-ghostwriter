@@ -1519,11 +1519,8 @@ Before writing this chapter, review the character motivations established in the
       // State document: compact summary of character positions, open threads, escalation
       const stateDoc = lastPrev.state_document || '';
 
-      // Last 2-3 sentences for prose continuity
       let prevContent = lastPrev.content || '';
-      if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) {
-        try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; }
-      }
+      if (prevContent.startsWith('http://') || prevContent.startsWith('https://')) { try { const r = await fetch(prevContent); prevContent = r.ok ? await r.text() : ''; if (prevContent.startsWith('<')) prevContent = ''; } catch { prevContent = ''; } }
       const lastSentences = prevContent ? prevContent.trim().split(/(?<=[.!?])\s+/).slice(-3).join(' ') : '';
 
       let contextBlock = `PREVIOUS CHAPTER ${lastPrev.chapter_number} ("${lastPrev.title}") CONTEXT:`;
