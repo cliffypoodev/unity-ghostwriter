@@ -971,9 +971,10 @@ Return ONLY the JSON object. No preamble.`;
     const storyBiblePromptText = buildStoryBiblePrompt(spec, truncatedTopic, targetChapters);
 
     // Run metadata + story bible in parallel
+    // callType: outline → all outline-phase AI calls resolve to Gemini
     const [metaText, bibleText] = await Promise.all([
-      callAI(modelKey, systemPrompt, metadataPrompt, { maxTokens: 2000 }),
-      callAI(modelKey, systemPrompt, storyBiblePromptText, { maxTokens: 2000 }),
+      callAI(modelKey, systemPrompt, metadataPrompt, { maxTokens: 2000 }),        // callType: outline (metadata)
+      callAI(modelKey, systemPrompt, storyBiblePromptText, { maxTokens: 2000 }),   // callType: outline (story bible)
     ]);
 
     // Parse metadata
