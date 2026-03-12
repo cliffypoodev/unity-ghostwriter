@@ -536,6 +536,11 @@ function extractMetaphorClusters(text) {
 // PART D — Genre detection helpers
 function isIntimateGenre(spec) { const g = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase(); return /erotica|romance|adult|erotic/.test(g); }
 function isEroticaGenre(spec) { return /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase()); }
+function buildProtagonistInteriorityBlock(spec) {
+  if (!spec?.protagonist_core_wound && !spec?.protagonist_self_belief && !spec?.protagonist_secret_desire) return '';
+  const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', p = spec.protagonist_life_purpose || 'not specified';
+  return `\n\n=== PROTAGONIST INTERIOR CONTEXT ===\nBefore this story, the protagonist believed their life was for: ${p}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond/relationship offers that they could never ask for: ${d}\nRULE: ≥1 scene beat per chapter must connect plot to one of these three layers (wound, belief, desire) through action, dialogue subtext, or physical reaction — never stated outright.\n=== END PROTAGONIST INTERIOR CONTEXT ===`;
+}
 function getEroticaOverride(spec) {
   if (!isEroticaGenre(spec)) return '';
   const sub = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase();
