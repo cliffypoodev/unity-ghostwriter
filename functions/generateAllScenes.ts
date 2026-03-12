@@ -31,9 +31,10 @@ Deno.serve(async (req) => {
     }
 
     // Generate scenes sequentially with 2-second delays to avoid CPU/token limits
+    const sr = base44.asServiceRole;
     for (let i = 0; i < chaptersWithoutScenes.length; i++) {
       const chapter = chaptersWithoutScenes[i];
-      base44.functions.invoke('generateScenes', {
+      sr.functions.invoke('generateScenes', {
         projectId,
         chapterNumber: chapter.chapter_number,
       }).catch(err => console.error(`Scene gen failed for chapter ${chapter.chapter_number}:`, err.message));
