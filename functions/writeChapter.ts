@@ -568,7 +568,7 @@ SCENE STRUCTURE: 1.Approach(desire+conflict) → 2.First contact(specific,charge
 TONE: ${tone}
 REPETITION BUDGET per chapter: "amber eyes" ≤2, "silver blood" ≤2, "predatory"/"predator" ≤2, "crystalline" ≤1, "harmonics"/"resonat-" ≤2, "alien" ≤3, "scaled"/"scales" ≤3, "possessive" ≤1, "bond"/"bonded" ≤6, "nervous system" ≤1. Over budget = rewrite from different sensory angle.
 SUSPENDED: Fade-to-black, cut-away-to-aftermath, emotional-suggestion-only, kissing-and-implied-tension-only rules. All other rules remain active.
-=== END EROTICA OVERRIDE ===`;
+=== END EROTICA OVERRIDE ===\nRESOLUTION TEXTURE: In any scene where recognition, acceptance, or victory occurs — no outcome should be unanimous. At least one character must express doubt, resistance, or a complicating condition, even briefly.`;
 }
 
 // PART 3 — Scan dialogue for banned subtext patterns
