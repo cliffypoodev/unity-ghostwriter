@@ -388,6 +388,17 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
               {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
             </Button>
           )}
+          {(chapter.status === "error" || chapter.status === "pending") && chapter.chapter_number > 1 && onResume && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-2.5 border-emerald-400 text-emerald-700 hover:bg-emerald-50"
+              disabled={isWriting || isResuming}
+              onClick={(e) => { e.stopPropagation(); onResume(chapter); }}
+            >
+              {isResuming ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Resuming…</> : <><ArrowRight className="w-3 h-3 mr-1" />Resume from here</>}
+            </Button>
+          )}
           <Button
             size="sm"
             className={cn("h-7 text-xs px-2.5", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
