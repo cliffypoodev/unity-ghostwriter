@@ -256,11 +256,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    const failedCount = toWrite.length - completedCount + chapters.filter(c => c.status === 'generated').length - completedCount;
+    const actualFailed = toWrite.filter(c => {
+      // Re-check from DB would be ideal but we track completedCount
+      return true; // We'll let the frontend do the final tally from DB
+    });
+
     return Response.json({
-      status: 'complete',
+      status: completedCount === toWrite.length + chapters.filter(c => c.status === 'generated').length - chapters.filter(c => c.status === 'generated').length ? 'complete' : 'complete_with_errors',
       completed: completedCount,
       total: chapters.length,
-      message: `All ${toWrite.length} chapter(s) written successfully`,
+      message: `Finished: ${completedCount} of ${toWrite.length} chapter(s) written`,
     });
   } catch (error) {
     console.error('writeAllChapters error:', error);
