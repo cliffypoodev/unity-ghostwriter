@@ -17,6 +17,7 @@ import AuthorVoiceSelector from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
 import ModelSuggestionPanel from "./ModelSuggestionPanel";
 import CharacterInterviewPanel from "./CharacterInterviewPanel";
+import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
@@ -588,6 +589,11 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Protagonist Interiority — shown for Erotica genre or spice >= 3 */}
+          {form.book_type === "fiction" && (form.genre?.toLowerCase() === "erotica" || parseInt(form.spice_level) >= 3) && (
+            <ProtagonistInterioritySection form={form} onChange={handleChange} />
           )}
 
           {/* Additional Requirements — full width */}
