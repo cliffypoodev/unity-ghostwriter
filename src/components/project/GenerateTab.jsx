@@ -1280,7 +1280,10 @@ export default function GenerateTab({ projectId, onProceed }) {
             <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Resume Detail Generation
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={handleGenerateOutline} className="text-slate-500">
+        <Button variant="outline" size="sm" onClick={() => {
+          const hasWrittenChapters = chapters.some(c => c.status === 'generated');
+          if (hasWrittenChapters) { setRegenOutlineConfirm(true); } else { handleGenerateOutline(); }
+        }} className="text-slate-500">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
         </Button>
         {spec?.book_type !== 'nonfiction' && totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '') && (
