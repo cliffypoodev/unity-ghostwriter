@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // callType: metadata_generation → resolves to Claude Sonnet (via InvokeLLM)
     const response = await base44.integrations.Core.InvokeLLM({
       prompt: `Analyze the following book premise/topic and extract comprehensive structured metadata.
 
