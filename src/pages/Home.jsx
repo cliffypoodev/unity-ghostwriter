@@ -27,13 +27,27 @@ export default function Home() {
     queryFn: () => base44.entities.Project.list("-updated_date"),
   });
 
+  const { data: allSpecs = [] } = useQuery({
+    queryKey: ["all-specs"],
+    queryFn: () => base44.entities.Specification.list(),
+  });
+
   const { data: allChapters = [] } = useQuery({
     queryKey: ["all-chapters"],
     queryFn: () => base44.entities.Chapter.list(),
   });
 
+  const SEED_BANNED_PHRASES = `tapestry\ntapestry of\nshimmered\nshimmering\nunbeknownst\nvisceral\nviscerally\na stark reminder\nit was a reminder that\nin the grand tapestry\nweaving together\nwhispering\nthe weight of\nthe weight of it all\na mix of emotions\nflooded with emotion\nwashed over\nwashed over him\nwashed over her\na wave of\ncascade of\ncascading\nit dawned on\nrealization dawned\ndawned on him\ndawned on her\nsearing\nsearing pain\na chill ran\nshivers ran\na shiver ran down\nsent a shiver\ntapestry of emotions\neyes glistened\neyes shimmered\ncouldn't help but\ncouldn't help but feel\ncouldn't help but notice\ncouldn't help but smile\na testament to\ntestament to their\nit was clear that\nit was evident that\nneedless to say\nin the blink of an eye\nat the end of the day\nat this point in time\nlittle did he know\nlittle did she know\nlittle did they know\nfor a moment\nfor a brief moment\nin that moment\nin this moment\nthe silence was deafening\nthe air was thick\nthe room felt heavy\nheart pounded in his chest\nheart pounded in her chest\nheart hammered\npulse quickened\nbreath caught in\nbreath caught in his\nbreath caught in her\nstomach dropped\nstomach lurched\nthroat tightened\nchest tightened\ntime seemed to stop\ntime stood still\nthe world fell away\nthe world around him\nthe world around her\nall at once\nsuddenly\nsuddenly he\nsuddenly she\nsuddenly they\nas if on cue\na mix of\nswirled\nswirled within\netched in\netched on\nseared into\nburned into his\nburned into her\nthe thought nagged\nnagged at him\nnagged at her\nelectric\nelectricity between\ntension crackled\ncrackled between\na knot formed\nknot in his stomach\nknot in her stomach\ndespite himself\ndespite herself\na part of him\na part of her\nsome part of him\nsome part of her\nthe look on\nthe look in his\nthe look in her\nsomething shifted\nsomething changed\nhe wasn't sure\nshe wasn't sure\nhe couldn't be sure\nshe couldn't be sure\nin the distance\noff in the distance\nloomed in the\nloomed ahead\nacrid\nacrid smell\nacrid taste\nacrid scent\nmetallic taste\nlike a physical blow\nhit him like\nhit her like\nsucker punch\ngut punch\nlike a punch\nthe familiar\nall too familiar\npainfully familiar\npainfully aware\nhyperaware\nhyper-aware`;
+
   const createMutation = useMutation({
-    mutationFn: () => base44.entities.Project.create({ name: "Untitled Project", status: "draft" }),
+    mutationFn: async () => {
+      const project = await base44.entities.Project.create({
+        name: "Untitled Project",
+        status: "draft",
+        banned_phrases_log: JSON.stringify(SEED_BANNED_PHRASES.split('\n').filter(p => p.trim())),
+      });
+      return project;
+    },
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       window.scrollTo(0, 0);
@@ -55,6 +69,25 @@ export default function Home() {
 
   const getChapterCount = (projectId) =>
     allChapters.filter((c) => c.project_id === projectId && c.status === "generated").length;
+
+  const getProjectSpec = (projectId) =>
+    allSpecs.find(s => s.project_id === projectId);
+
+  const BEAT_STYLE_NAMES = {
+    "fast-paced-thriller": "Fast-Paced Thriller", "gritty-cinematic": "Gritty Cinematic",
+    "hollywood-blockbuster": "Hollywood Blockbuster", "slow-burn": "Slow Burn",
+    "clean-romance": "Clean Romance", "faith-infused": "Faith-Infused",
+    "investigative-nonfiction": "Investigative Nonfiction", "reference-educational": "Reference / Educational",
+    "intellectual-psychological": "Intellectual Psychological", "dark-suspense": "Dark Suspense",
+    "satirical": "Satirical", "epic-historical": "Epic Historical",
+    "whimsical-cozy": "Whimsical Cozy", "hard-boiled-noir": "Hard-Boiled Noir",
+    "grandiose-space-opera": "Space Opera", "visceral-horror": "Visceral Horror",
+    "poetic-magical-realism": "Magical Realism", "clinical-procedural": "Clinical Procedural",
+    "hyper-stylized-action": "Hyper-Stylized Action", "nostalgic-coming-of-age": "Coming-of-Age",
+    "cerebral-sci-fi": "Cerebral Sci-Fi", "high-stakes-political": "Political",
+    "surrealist-avant-garde": "Surrealist", "melancholic-literary": "Melancholic Literary",
+    "urban-gritty-fantasy": "Urban Fantasy",
+  };
 
   return (
     <div>
@@ -136,11 +169,21 @@ export default function Home() {
                   <StatusBadge status={project.status} />
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
+                <div className="flex items-center gap-3 text-sm text-slate-500 mb-4 flex-wrap">
                   <span className="flex items-center gap-1.5">
                     <BookOpenText className="w-3.5 h-3.5 text-indigo-400" />
-                    {chapterCount} chapter{chapterCount !== 1 ? "s" : ""} generated
+                    {chapterCount} chapter{chapterCount !== 1 ? "s" : ""}
                   </span>
+                  {(() => {
+                    const sp = getProjectSpec(project.id);
+                    const beatKey = sp?.beat_style || sp?.tone_style;
+                    const beatName = beatKey && BEAT_STYLE_NAMES[beatKey];
+                    return beatName ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">
+                        ● {beatName}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="flex items-center justify-between">
