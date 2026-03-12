@@ -7,7 +7,7 @@ const MODEL_MAP = {
 };
 
 async function callAI(systemPrompt, userMessage) {
-  // Use a fast model for consistency checking
+  // callType: consistency_check → resolves to Claude (Haiku for speed)
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
