@@ -267,12 +267,15 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
       >
         <div className="flex items-center gap-2 text-slate-700 font-semibold">
           <Settings className="w-4 h-4" />
-          AI Model Recommendation
+          Prose Composition Model
         </div>
         <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
 
       <div className="p-4 space-y-4">
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Selects the AI that writes your chapter prose. Outline generation, beat structure, and content routing always use their dedicated engines and are not affected by this setting.
+        </p>
         {/* Recommended Model */}
         <div>
           <ModelCard
