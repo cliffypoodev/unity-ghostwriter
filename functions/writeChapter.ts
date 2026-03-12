@@ -162,58 +162,13 @@ const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 - Never output bullet points, checkmarks (✓ ✗ ☐ ☑), or status indicators. These are NOT prose.
 - If you feel tempted to explain what you wrote or confirm completion — DON'T. Just write the chapter.`;
 
-const PERMANENT_QUALITY_RULES = `=== PERMANENT QUALITY RULES (applied to ALL manuscripts) ===
-
-RULE 1: PRONOUN CONSISTENCY ENFORCEMENT
-- All character pronouns must match established gender throughout the text
-- If a character is introduced as male, use he/him/his in ALL contexts: dialogue, action, interior monologue, narrator perspective
-- If female, use she/her/hers consistently
-- If nonbinary, use they/them/theirs consistently
-- This applies even in stream-of-consciousness passages, when switching POV, and in narrator voice
-- Never allow a pronoun to contradict established character gender
-- If you reference a character by pronoun, verify their gender in the character bible first
-
-RULE 2: NO OVER-NARRATED INTERIORITY
-- Never explain an emotion, realization, or shift that the scene has already dramatized
-- If tension is visible through dialogue, action, or sensory detail, do NOT follow with "and he knew it" or "she was aware of it"
-- Never follow a decisive action with "He'd made a choice" or "This was a turning point" — the action IS the choice
-- Never summarize a subtext the reader can already read — trust the scene
-- Never end a charged moment with an abstract thesis statement
-- If the prose shows it, do not also tell it. Delete the telling.
-
-RULE 3: NEVER SUMMARIZE GENRE-REQUIRED SCENES
-- When a genre promises a specific scene (romance: love scene, thriller: confrontation, horror: scare, erotica: intimacy), WRITE IT FULLY
-- Do NOT skip it with a summary paragraph or fade-to-black
-- Requirements for any scene the genre demands:
-  * Stay in the established POV character's close perspective throughout
-  * Build in stages with clear escalation
-  * Ground in physical sensory detail: texture, temperature, pressure, breath, sound, taste
-  * Maintain established power dynamics and character tensions
-  * Keep thematic echoes without stating them
-  * Use minimal dialogue — only lines that reveal character
-  * Match emotional register to the scene (intensity, tenderness, menace, wonder)
-  * Never use genre clichés or stock phrases ("waves of pleasure," "electric touch," "molten core," "undone," "claimed")
-  * Write with literary precision matching every other scene
-  * Transition naturally when the scene concludes
-  * Target 600-800 words for major genre-required scenes
-
-RULE 4: EARNED FINAL IMAGES ONLY
-- The final image of any chapter must arise organically from the scene's physical reality
-- Never end with an on-the-nose metaphor restating the chapter's theme
-- Do NOT use: striking a match for danger, door closing for finality, rain for sadness
-- Instead, end with a concrete, ordinary detail that carries weight from what preceded it
-- Domesticity and ordinariness are more powerful than poetic imagery when the chapter is already charged
-- Leave the reader sitting in the scene, not reading a metaphor about the scene
-- If the final image could appear on a book cover, it's too on-the-nose — pull back to something smaller and more real
-
-RULE 5: VOCABULARY REPETITION CONTROL
-- Track adjective and adverb usage throughout the manuscript
-- No distinctive modifier should appear more than 4 times in a full manuscript
-- If any adjective or adverb appears more than 4 times, replace excess instances with precise alternatives or restructure to eliminate the modifier
-- Do not use the same replacement word twice
-- Exempt: common function words (the, very, just, still, almost)
-- Watch especially for authorial tics: "specific," "particular," "precise," "deliberate," "careful," "quiet" — enforce variety
-- Run this check before finalizing any chapter output`;
+const PERMANENT_QUALITY_RULES = `=== PERMANENT QUALITY RULES ===
+R1-PRONOUNS: All character pronouns must match established gender in ALL contexts. Verify against character bible. Never contradict.
+R2-NO OVER-NARRATION: Never explain what the scene already showed. If action/dialogue dramatized it, do not follow with "he knew" or "this was a turning point." Trust the scene.
+R3-NEVER SUMMARIZE GENRE SCENES: Write genre-required scenes fully (romance: love scene, erotica: intimacy, thriller: confrontation). Stay in close POV, build in stages, ground in sensory detail (texture/temperature/pressure/breath/sound), maintain power dynamics, no genre clichés ("waves of pleasure," "electric touch," "undone"), target 600-800 words for major scenes.
+R4-EARNED FINALS: End chapters on concrete ordinary detail, not on-the-nose metaphor. No striking-a-match=danger, door-closing=finality, rain=sadness. Smaller and more real.
+R5-VOCABULARY: No distinctive modifier >4x per manuscript. Replace excess with precise alternatives. Watch for tics: "specific," "particular," "precise," "deliberate," "careful," "quiet."
+=== END PERMANENT RULES ===`;
 
 function buildAuthorModeBlock(spec) {
   const beatKey = spec?.beat_style || spec?.tone_style;
