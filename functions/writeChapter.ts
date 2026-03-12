@@ -1546,7 +1546,7 @@ Before writing this chapter, review the character motivations established in the
     // ── CHAPTER STATE DOCUMENT SYSTEM ──
     let chapterStateLog = '', projectBannedPhrases = [], lastStateDoc = null;
     let currentEscalation = '1', lastRelationshipStatus = '', lastOpenQuestion = '';
-    let chapterSubjectsLog = '', nameRegistry = {};
+    let chapterSubjectsLog = '';
     try {
       const prjs = await base44.entities.Project.filter({ id: projectId });
       const prj = prjs[0];
