@@ -26,7 +26,9 @@ const DEEPSEEK_BANNED_PHRASES = `Physical: "heart racing/pounding/hammering", "p
 
 Atmosphere: "intoxicating", "electric/electricity" (for mood), "palpable", "air thickened/crackled/charged/grew heavy", "shadows danced/twisted/swirled/crept", "darkness enveloped/pressed/wrapped", "tendrils of", "the weight of", "siren's call", "like a moth to a flame", "hung/lingered in the air", "thick with tension", "heavy with implication", "charged with possibility", "fraught with"
 
-Narration: "in that moment", "just the beginning", "no turning back", "on the precipice/brink", "double-edged sword", "ready to embrace/confront", "felt alive", "the world faded", "something deeper/unspoken", "unspoken tension/promise", "invisible thread/force/pull"`;
+Narration: "in that moment", "just the beginning", "no turning back", "on the precipice/brink", "double-edged sword", "ready to embrace/confront", "felt alive", "the world faded", "something deeper/unspoken", "unspoken tension/promise", "invisible thread/force/pull"
+
+Banned Constructions (ALL genres): "[subject] sent [sensation] through [body part]" (e.g. "sent electricity through his arm", "sent shivers down her spine"). "waves of [sensation]" (e.g. "waves of pleasure", "waves of emotion"). "[noun] washed over [pronoun]" (e.g. "relief washed over her", "warmth washed over him"). "[emotion] threatened to overwhelm" (e.g. "emotions that threatened to overwhelm him"). Instead: describe the specific sensation directly — what happened in the body, where, how fast, what it felt like.`;
 
 function buildDeepSeekSystemPrompt(chapter, spec, beatStyle, openingType, endingType, TARGET_WORDS) {
   const beatCore = beatStyle?.name || 'Clear prose';
@@ -61,7 +63,13 @@ VOICE: ${beatCore}.
 
 9. PLOT: Something must change irreversibly — decision, revelation, relationship altered, line crossed.
 
-10. WORD COUNT: ${TARGET_WORDS} words (${minWords}-${maxWords}).`;
+10. WORD COUNT: ${TARGET_WORDS} words (${minWords}-${maxWords}).
+
+BANNED CONSTRUCTIONS (ALL GENRES — violation = rejection):
+A. "[subject] sent [sensation] [direction] [body part]" — e.g. "sent electricity through his arm", "sent shivers down her spine". Describe the sensation directly instead.
+B. "waves of [sensation]" — e.g. "waves of pleasure", "waves of emotion". Name the specific sensation. The body is not abstract.
+C. "[noun] washed over [pronoun]" — e.g. "relief washed over her". What specifically happened in the body? Where? How fast?
+D. "[emotion] threatened to overwhelm" — e.g. "emotions that threatened to overwhelm him". Show the overwhelm through behavior or fragmented thought — don't announce it.`;
 
   if (isErotica) {
     p += `\n\nGENRE: Spice ${spiceLevel}. This chapter MUST contain intimate content. No fade-to-black.`;
