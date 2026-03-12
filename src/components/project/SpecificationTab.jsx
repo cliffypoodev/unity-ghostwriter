@@ -456,7 +456,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={null}>None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {currentSubgenres.map(sg => <SelectItem key={sg} value={sg}>{sg}</SelectItem>)}
                     </SelectContent>
                   </Select>
