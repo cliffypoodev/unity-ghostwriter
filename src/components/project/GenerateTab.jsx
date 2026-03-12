@@ -546,7 +546,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const { data: chapters = [], refetch: refetchChapters } = useQuery({
     queryKey: ["chapters", projectId],
     queryFn: () => base44.entities.Chapter.filter({ project_id: projectId }, "chapter_number"),
-    refetchInterval: streamingChapterId ? 2000 : false,
+    refetchInterval: (writeAllActive || resumingFromChapter || streamingChapterId) ? 3000 : false,
   });
 
   const outline = outlines[0];
