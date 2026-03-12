@@ -1329,6 +1329,7 @@ The final image of this book should reflect the emotional truth of the protagoni
       if (isIntimateGenre(projectSpec)) { systemPrompt += `\n\n${INTIMATE_SCENE_RULES}`; }
       systemPrompt += getEroticaOverride(projectSpec);
       systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
+      systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
       systemPrompt += _beatSysBlock(chapterBeat);
     } else if (isNonfiction) {
       systemPrompt = _buildNonfictionSystemPrompt(
