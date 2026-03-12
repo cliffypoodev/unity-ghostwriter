@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 async function callAI(systemPrompt, messages) {
+  // callType: character_interview → resolves to Claude Sonnet
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
