@@ -1747,17 +1747,8 @@ ${_beatUsrBlock(chapterBeat)}`;
     }
 
     if (chapterIndex > 0 && flaggedClusters.length > 0) {
-      const clusterLines = flaggedClusters.map(cluster => {
-        const totalCount = clusterTotals[cluster] || 0;
-        return `${cluster} (${totalCount} uses) — limit to 1 word from this family in this chapter.`;
-      }).join('\n');
-      const clusterInjection = `=== OVERUSED METAPHOR FAMILIES ===
-${clusterLines}
-Try instead: mechanical, animal, architectural, textile, botanical, musical, food/taste, or geometric imagery.
-=== END ===
-
-`;
-      currentChapterRequest = clusterInjection + currentChapterRequest;
+      const clusterLines = flaggedClusters.map(c => `${c} (${clusterTotals[c]||0} uses) — limit 1 per chapter`).join('\n');
+      currentChapterRequest = `=== OVERUSED METAPHOR FAMILIES ===\n${clusterLines}\nTry instead: mechanical, animal, architectural, textile, botanical, musical, food/taste, or geometric imagery.\n=== END ===\n\n` + currentChapterRequest;
     }
 
     //Topic tracking
