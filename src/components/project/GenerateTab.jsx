@@ -580,6 +580,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const generatingRef = useRef(false);
   const [targetLength, setTargetLength] = useState("medium");
   const [resumingFromChapter, setResumingFromChapter] = useState(null);
+  const [regenOutlineConfirm, setRegenOutlineConfirm] = useState(false);
 
   const { data: projectData } = useQuery({
     queryKey: ["project", projectId],
