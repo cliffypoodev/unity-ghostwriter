@@ -512,10 +512,17 @@ function extractMetaphorClusters(text) {
 // PART D — Genre detection helpers
 function isIntimateGenre(spec) { const g = ((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase(); return /erotica|romance|adult|erotic/.test(g); }
 function isEroticaGenre(spec) { return /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase()); }
-function buildProtagonistInteriorityBlock(spec) {
-  if (!spec?.protagonist_core_wound && !spec?.protagonist_self_belief && !spec?.protagonist_secret_desire) return '';
-  const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', p = spec.protagonist_life_purpose || 'not specified';
-  return `\n\n=== PROTAGONIST INTERIOR CONTEXT ===\nBefore this story, the protagonist believed their life was for: ${p}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond/relationship offers that they could never ask for: ${d}\nRULE: ≥1 scene beat per chapter must connect plot to one of these three layers (wound, belief, desire) through action, dialogue subtext, or physical reaction — never stated outright.\n=== END PROTAGONIST INTERIOR CONTEXT ===`;
+function buildProtagonistInteriorityBlock(spec, projectInteriority) {
+  // Prefer persistent Project-level interiority, fall back to Specification fields
+  let pi = null;
+  if (projectInteriority) { try { pi = typeof projectInteriority === 'string' ? JSON.parse(projectInteriority) : projectInteriority; } catch {} }
+  const w = pi?.core_wound || spec?.protagonist_core_wound || '';
+  const b = pi?.self_belief || spec?.protagonist_self_belief || '';
+  const d = pi?.secret_desire || spec?.protagonist_secret_desire || '';
+  const p = pi?.life_purpose || spec?.protagonist_life_purpose || '';
+  const t = pi?.behavioral_tells || spec?.protagonist_behavioral_tells || '';
+  if (!w && !b && !d) return '';
+  return `\n\n=== PROTAGONIST INTERIORITY — INJECT ONCE PER CHAPTER MINIMUM ===\nBefore this story, the protagonist believed their life was for: ${p || 'not specified'}.\nCore wound: ${w || 'not specified'}\nHidden self-belief: ${b || 'not specified'}\nSecret desire: ${d || 'not specified'}${t ? `\nBehavioral tells: ${t}` : ''}\n\nOne scene beat per chapter must connect the plot event to one of these layers.\nShow it through behavior or observation — never through stated emotion.\nIf behavioral tells are listed, at least one must appear per chapter as an unconscious action, not a narrated insight.\n=== END PROTAGONIST INTERIORITY ===`;
 }
 function buildEmotionalAccumulationBlock(spec, chapterNumber) {
   if (chapterNumber <= 1) return '';
