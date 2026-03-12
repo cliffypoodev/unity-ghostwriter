@@ -26,7 +26,7 @@ ${form.topic}
 GENRE: ${form.genre || 'Erotica'}
 SUBGENRE: ${form.subgenre || ''}
 
-Answer these four questions about the HUMAN protagonist (not the love interest):
+Answer these five questions about the HUMAN protagonist (not the love interest):
 
 1. LIFE PURPOSE: What did the protagonist believe their life was FOR before this story started? (Their identity, their role, what gave them meaning)
 
@@ -36,6 +36,8 @@ Answer these four questions about the HUMAN protagonist (not the love interest):
 
 4. SECRET DESIRE: What does the supernatural/alien/fantasy element (or the love interest) offer them that the human world never could? (The forbidden need)
 
+5. BEHAVIORAL TELLS: What observable behaviors reveal this interiority without stating it? (e.g. defers decisions, keeps exits available, can't make eye contact during intimacy, fidgets when cornered)
+
 Be specific, psychologically grounded, and character-driven. Each answer should be 1-3 sentences.`,
         response_json_schema: {
           type: "object",
@@ -43,7 +45,8 @@ Be specific, psychologically grounded, and character-driven. Each answer should 
             life_purpose: { type: "string" },
             core_wound: { type: "string" },
             self_belief: { type: "string" },
-            secret_desire: { type: "string" }
+            secret_desire: { type: "string" },
+            behavioral_tells: { type: "string" }
           }
         }
       });
@@ -52,6 +55,7 @@ Be specific, psychologically grounded, and character-driven. Each answer should 
       if (result.core_wound) onChange("protagonist_core_wound", result.core_wound);
       if (result.self_belief) onChange("protagonist_self_belief", result.self_belief);
       if (result.secret_desire) onChange("protagonist_secret_desire", result.secret_desire);
+      if (result.behavioral_tells) onChange("protagonist_behavioral_tells", result.behavioral_tells);
       toast.success("Protagonist interiority inferred from premise");
     } catch (err) {
       console.error("Infer interiority error:", err);
@@ -62,7 +66,8 @@ Be specific, psychologically grounded, and character-driven. Each answer should 
   };
 
   const hasAny = form.protagonist_life_purpose || form.protagonist_core_wound || 
-                 form.protagonist_self_belief || form.protagonist_secret_desire;
+                 form.protagonist_self_belief || form.protagonist_secret_desire ||
+                 form.protagonist_behavioral_tells;
 
   return (
     <Card className="border-rose-200 bg-rose-50/30">
@@ -141,6 +146,19 @@ Be specific, psychologically grounded, and character-driven. Each answer should 
             placeholder="What the bond/relationship offers that the human world never could..."
             value={form.protagonist_secret_desire || ""}
             onChange={e => onChange("protagonist_secret_desire", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs font-medium text-slate-700">
+            5. Behavioral Tells — observable patterns that reveal interiority without stating it
+          </Label>
+          <Textarea
+            className="mt-1 text-sm"
+            rows={2}
+            placeholder="e.g. Defers decisions, keeps exits available, can't commit, fidgets when cornered..."
+            value={form.protagonist_behavioral_tells || ""}
+            onChange={e => onChange("protagonist_behavioral_tells", e.target.value)}
           />
         </div>
       </CardContent>
