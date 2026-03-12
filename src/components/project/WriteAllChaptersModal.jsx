@@ -42,6 +42,8 @@ export default function WriteAllChaptersModal({
     chapterWords = 0,
     error = null,
     phaseLabel = null,
+    paused = false,
+    pausedAt = null,
   } = progress;
 
   const targetChapterWords = TARGET_WORDS_PER_CHAPTER[targetLength] || 3750;
