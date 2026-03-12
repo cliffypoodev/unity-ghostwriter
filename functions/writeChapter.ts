@@ -1742,16 +1742,8 @@ ${_beatUsrBlock(chapterBeat)}`;
     }
 
     if (chapterIndex > 0 && Object.keys(bannedTicsByChar).length > 0) {
-      const ticLines = Object.entries(bannedTicsByChar).map(([char, banned]) =>
-        `${char}: ${banned.map(b => b.tic).join(', ')}`
-      ).join('\n');
-      const ticInjection = `=== BANNED PHYSICAL REACTIONS ===
-${ticLines}
-INSTEAD USE: stillness, grip pressure on objects, posture changes, swallowing difficulty, temperature sensations, specific muscle tension, vocal quality changes, involuntary fidgeting, breathing through action, eye movement.
-=== END ===
-
-`;
-      currentChapterRequest = ticInjection + currentChapterRequest;
+      const ticLines = Object.entries(bannedTicsByChar).map(([char, banned]) => `${char}: ${banned.map(b => b.tic).join(', ')}`).join('\n');
+      currentChapterRequest = `=== BANNED PHYSICAL REACTIONS ===\n${ticLines}\nINSTEAD USE: stillness, grip pressure, posture changes, swallowing difficulty, temperature, specific muscle tension, vocal quality, involuntary fidgeting, breathing through action, eye movement.\n=== END ===\n\n` + currentChapterRequest;
     }
 
     if (chapterIndex > 0 && flaggedClusters.length > 0) {
