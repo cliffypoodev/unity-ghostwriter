@@ -1197,6 +1197,13 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
 
     let nameRegistry = {};
+    // ── Load persistent protagonist interiority from Project entity ──
+    let projectInteriority = null;
+    try {
+      const prjs = await base44.entities.Project.filter({ id: projectId });
+      if (prjs[0]?.protagonist_interiority) projectInteriority = prjs[0].protagonist_interiority;
+    } catch (e) { console.warn('Interiority load:', e.message); }
+
     // ── Build system prompt ────────────────────────────────────────────────────
     const bookType = projectSpec?.book_type || 'fiction';
     const isNonfiction = bookType === 'nonfiction';
