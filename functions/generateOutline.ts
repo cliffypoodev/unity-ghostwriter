@@ -16,6 +16,7 @@ const MODEL_MAP = {
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
+  // callType: outline → all generateOutline AI calls resolve to Gemini Pro
   const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
