@@ -526,20 +526,25 @@ function buildProtagonistInteriorityBlock(spec) {
   return `\n\n=== PROTAGONIST INTERIOR CONTEXT ===\nBefore this story, the protagonist believed their life was for: ${p}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond/relationship offers that they could never ask for: ${d}\nRULE: ≥1 scene beat per chapter must connect plot to one of these three layers (wound, belief, desire) through action, dialogue subtext, or physical reaction — never stated outright.\n=== END PROTAGONIST INTERIOR CONTEXT ===`;
 }
 function buildEmotionalAccumulationBlock(spec, chapterNumber) {
-  if (!isEroticaGenre(spec)) return '';
-  return `\n\n=== EMOTIONAL ACCUMULATION — MANDATORY ===
-The protagonist cannot process every escalation with the same emotional response.
-Each major event (first contact, physical intimacy, species reveal, bonding, conflict, recognition) must leave a visible mark on the protagonist's psychology.
+  if (chapterNumber <= 1) return '';
+  return `\n\n=== EMOTIONAL ACCUMULATION — MANDATORY (ALL GENRES) ===
+Before writing this chapter, complete this internal check silently (do NOT output it):
 
-Before writing this chapter, answer internally: "What is the protagonist carrying INTO Chapter ${chapterNumber} that they weren't carrying before?"
+ACCUMULATION CHECK:
+1. What has the protagonist lost, gained, or broken since the story began?
+2. What do they now do habitually that they didn't do in Chapter 1? (A new behavior, not a stated feeling)
+3. What do they now notice that they didn't notice before?
 
-This must appear as a concrete BEHAVIOR SHIFT, not a stated feeling:
-BAD: "Marcus felt overwhelmed by everything that had happened."
-GOOD: "He caught himself checking the door twice before sitting down — a new habit he hadn't had yesterday."
+The answers must appear somewhere in this chapter — not as stated emotion, but as BEHAVIOR, OBSERVATION, or DIALOGUE.
+
+BAD: "Marcus felt like a different person than the one who'd arrived in Ogden."
+GOOD: "He left the curtains open now. Hadn't thought about it until he was already in bed, the moonlight painting the floor the way it had that first night. He used to close them."
+
+MINIMUM: One behavioral shift per chapter. It does not need to be dramatic. Small is better.
 
 By Chapter ${chapterNumber}, the protagonist must be visibly different from who they were at the start of Chapter 1. Show it through:
 - Changed behavior (new habits, avoidances, compulsions)
-- Altered speech patterns (shorter sentences under stress, new vocabulary absorbed from the other character)
+- Altered speech patterns (shorter sentences under stress, new vocabulary absorbed from another character)
 - Shifted perception (noticing things they would have missed before — temperatures, sounds, spatial awareness)
 
 Do NOT reset the protagonist to baseline between chapters. Emotional weight accumulates. What broke them in Chapter 2 should still be carried in Chapter ${chapterNumber}, even if they've adapted to it.
