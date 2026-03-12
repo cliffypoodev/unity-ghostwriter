@@ -71,6 +71,7 @@ VOICE: ${beatCore}.
       const w = spec.protagonist_core_wound || 'not specified', b = spec.protagonist_self_belief || 'not specified', d = spec.protagonist_secret_desire || 'not specified', pp = spec.protagonist_life_purpose || 'not specified';
       p += `\n\nPROTAGONIST INTERIOR CONTEXT:\nBefore this story, the protagonist believed their life was for: ${pp}.\nCore wound: ${w}\nHidden self-belief: ${b}\nWhat the bond offers that they could never ask for: ${d}\n>=1 scene beat per chapter must connect plot to wound, belief, or desire through action/subtext — never stated outright.`;
     }
+    p += `\n\nEMOTIONAL ACCUMULATION — MANDATORY:\nThe protagonist cannot process every escalation with the same emotional response. Each major event must leave a visible mark on the protagonist's psychology.\nBefore writing: "What is the protagonist carrying INTO Chapter ${chapter.chapter_number} that they weren't carrying before?"\nShow as concrete BEHAVIOR SHIFT, not stated feeling.\nBAD: "Marcus felt overwhelmed by everything that had happened."\nGOOD: "He caught himself checking the door twice before sitting down — a new habit he hadn't had yesterday."\nChanged behavior, altered speech patterns, shifted perception. Do NOT reset protagonist to baseline between chapters.`;
   }
   return p;
 }
