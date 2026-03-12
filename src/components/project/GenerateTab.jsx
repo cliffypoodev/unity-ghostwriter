@@ -1039,11 +1039,9 @@ export default function GenerateTab({ projectId, onProceed }) {
       elapsed: `${mins}m ${secs}s`,
       wordsWritten: totalWordsWritten,
       chapterWords: 0,
-      error: isPaused
-        ? backendResult.message
-        : failedChapters.length > 0
-          ? `${failedChapters.length} chapter(s) failed. See details below.`
-          : null,
+      error: failedChapters.length > 0
+        ? `${failedChapters.length} chapter(s) failed. You can regenerate them individually.`
+        : null,
     }));
 
     setWriteAllActive(false);
