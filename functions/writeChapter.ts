@@ -1974,7 +1974,7 @@ Deno.serve(async (req) => {
     try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
 
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
-    const modelKey = spec?.ai_model || 'claude-sonnet';
+    const modelKey = resolveModel('sfw_prose', spec);
     // Await generation synchronously — keeps the Deno worker alive for the full duration.
     // This function should be called server-to-server (from writeAllChapters) to avoid browser timeouts.
     // The frontend polls chapter status independently.
