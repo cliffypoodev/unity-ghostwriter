@@ -226,6 +226,7 @@ Return only this one line. No other text.
 Chapter text:
 ${chapterContent.slice(0, 6000)}`;
 
+      // callType: chapter_state (subject extraction — same routing as main state call)
       if (isEroticaGenre(spec)) {
         subjectLine = await callOpenRouter(subjectSystemPrompt, subjectUserMessage, spec.openrouter_model, 256);
       } else {
