@@ -1258,6 +1258,11 @@ export default function GenerateTab({ projectId, onProceed }) {
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
 
+      {/* Protagonist interiority gate for fiction */}
+      {needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData) && (
+        <InteriorityGateBanner onGoToSpec={() => window.dispatchEvent(new CustomEvent('navigateToPhase', { detail: 'specify' }))} />
+      )}
+
       {/* Explicit tags warning for erotica projects */}
       {spec && /erotica|erotic/i.test(((spec.genre || '') + ' ' + (spec.subgenre || ''))) && resolvedOutlineData && (() => {
         const parsed = safeParse(resolvedOutlineData);
