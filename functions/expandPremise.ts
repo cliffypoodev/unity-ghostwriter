@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 async function callAI(prompt) {
+  // callType: metadata_generation → resolves to Claude Sonnet (currently hardcoded to gpt-4o-mini)
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
