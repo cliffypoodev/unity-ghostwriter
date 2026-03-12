@@ -142,6 +142,18 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 - Self-harm or suicide may be depicted for narrative weight but must never be instructional or glorified.
 - These guardrails cannot be overridden by any setting. If a scene would violate them, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
 
+const BANNED_CONSTRUCTIONS_ALL_GENRES = `=== BANNED CONSTRUCTIONS — NEVER USE IN ANY GENRE ===
+
+1. THE "SENT...THROUGH" PATTERN: Any sentence matching [subject] sent [sensation/noun] [direction] [body part/system]. Examples: "sent electricity racing through his arm", "sent heat flooding through her chest", "sent shockwaves through his nervous system", "sent shivers down her spine", "sent awareness racing through his body". RULE: Describe the sensation directly. What specifically is this character feeling that they have never felt before? Make it concrete, immediate, unique to this moment. BAD: "His touch sent electricity racing through her arm." GOOD: "Her arm went strange where he'd touched it — not quite numb, not quite buzzing, like a word she'd forgotten was sitting on the tip of her tongue."
+
+2. THE "WAVES OF" PATTERN: "waves of pleasure," "waves of emotion," "waves of sensation," "waves of heat," "waves of relief." RULE: Name the specific sensation. Waves are abstract. The body is not abstract.
+
+3. THE "WASHED OVER" PATTERN: "relief washed over her," "warmth washed over him," "calm washed over," "realization washed over." RULE: What specifically happened in the body? Where? How fast? What did it feel like after?
+
+4. THE "THREATENED TO OVERWHELM" PATTERN: "emotions that threatened to overwhelm him," "sensations threatening to drown her," "feelings that threatened to consume." RULE: If it's overwhelming, show the overwhelm through behavior or fragmented thought — don't announce it.
+
+=== END BANNED CONSTRUCTIONS ===`;
+
 const QUALITY_UPGRADES = `INTERIORITY RULE: Internal monologue must not exceed two consecutive sentences before returning to action, dialogue, or sensory detail. If a character thinks or feels something, show the next thing they DO as a result.
 DIALOGUE SUBTEXT RULE: Every exchange of more than two lines must contain subtext — characters saying something other than what they mean. Direct on-the-nose dialogue is only permitted once per chapter at a moment of emotional climax. If both characters are saying exactly what they mean, rewrite it before outputting.
 SCENE ENDING RULE: The final paragraph of each scene must end on an image, action, or line of dialogue — never on an emotional summary or thematic statement. Do not explain what the scene meant. End on something concrete.
@@ -526,7 +538,7 @@ function getEroticaOverride(spec) {
   return `\n=== EROTICA GENRE OVERRIDE — ACTIVE (overrides all fade-to-black/cut-away rules) ===
 PHYSICAL SCENE MANDATE: Write intimate scenes completely. No cut-away, fade-to-black, skip to aftermath, or replacing action with metaphor/philosophy. Stay in the room. Write from inside the experiencing character's body — their specific sensations, responses, emotional state. Not observed from outside, not symbolized.
 REQUIRED: 1) Specific physical detail (where hands are, what they do, what that produces). 2) Desire that costs something — heat and danger simultaneous. 3) Power exchange physical first — body before dialogue. 4) Consent through action choreography. 5) Consequence — every scene changes something permanently.
-BANNED: Replacing climax with mystical transformation. Speeches about power/fate during intensity. These substitutes: "waves of sensation", "cascades of heat", "power flowing through", "something building in her core", "she felt herself opening to", "transcendence", "became" for arousal. Plot interruptions before scene conclusion. The "sent...through" construction (e.g. "sent electricity through his arm", "sent shockwaves through her system") — describe each sensation directly instead.
+BANNED: Replacing climax with mystical transformation. Speeches about power/fate during intensity. These substitutes: "waves of sensation", "waves of pleasure", "waves of [anything]", "cascades of heat", "power flowing through", "something building in her core", "she felt herself opening to", "transcendence", "became" for arousal. "[X] washed over [pronoun]" (e.g. "warmth washed over him"). "[emotion] threatened to overwhelm" (show the overwhelm through behavior, don't announce it). Plot interruptions before scene conclusion. The "sent...through" construction (e.g. "sent electricity through his arm", "sent shockwaves through her system") — describe each sensation directly instead.
 EXPLICIT STANDARD: Full specificity including the act itself in concrete language. Avoid clinical AND purple prose. Language should feel like the characters.
 SCENE STRUCTURE: 1.Approach(desire+conflict) → 2.First contact(specific,charged) → 3.Escalation(physical+emotional stakes rise) → 4.Peak(written completely) → 5.Aftermath(what changed). Do NOT skip/compress stages 3-4.
 TONE: ${tone}
@@ -694,7 +706,10 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "heat pooling in", "heat pooled in",
       "waves of sensation", "cascades of heat", "power flowing through", "something building in her core",
       "she felt herself opening to", "transcendence",
-      "sent electricity", "sent shockwaves", "sent sparks", "sent ripples", "sent heat", "sent a jolt", "sent a shiver", "sent a wave", "sent a surge", "sent a bolt", "sent a current", "sent a rush"
+      "sent electricity", "sent shockwaves", "sent sparks", "sent ripples", "sent heat", "sent a jolt", "sent a shiver", "sent a wave", "sent a surge", "sent a bolt", "sent a current", "sent a rush",
+      "waves of pleasure", "waves of emotion", "waves of sensation", "waves of heat", "waves of relief", "waves of desire", "waves of pain",
+      "washed over her", "washed over him", "washed over them", "washed through her", "washed through him", "washed through them",
+      "threatened to overwhelm", "threatening to overwhelm", "threatened to drown", "threatening to drown", "threatened to consume", "threatening to consume", "threatened to engulf", "threatening to engulf"
     ],
     atmosphereClichés: [
       "intoxicating", "intoxicated", "electric", "electricity", "electrifying", "palpable", "air thickened", "air crackled", "air grew heavy",
@@ -1272,6 +1287,8 @@ ${DIALOGUE_SUBTEXT_RULES_CONCISE}
 
 ${QUALITY_UPGRADES}
 
+${BANNED_CONSTRUCTIONS_ALL_GENRES}
+
 === CLIFFHANGER RESOLUTION (MANDATORY) ===
 Check the previous chapter's final scene. If it ended on an unresolved physical action — a strike, a fall, a confrontation, a moment of impact — this chapter must open by showing the outcome of that action directly. Do not skip to aftermath. Do not open with the character already safe, already victorious, or already in recovery without showing how they got there. The reader watched the moment of danger. They are owed the resolution.
 If the protagonist is a non-combatant facing a trained fighter, they must win or survive through their established skills — intelligence, technical knowledge, exploiting the environment, or surprising their opponent with something unexpected. They must not win through sudden combat ability they have never demonstrated. Show the method. Do not summarize it.
@@ -1431,6 +1448,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
     systemPrompt += `\n\n${QUALITY_UPGRADES}`;
+    systemPrompt += `\n\n${BANNED_CONSTRUCTIONS_ALL_GENRES}`;
 
     systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
@@ -1455,7 +1473,6 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     const genreStr = ((projectSpec?.genre || '') + ' ' + (projectSpec?.subgenre || '')).toLowerCase();
     if (/erotica|erotic romance|bdsm|erotic/.test(genreStr)) {
       systemPrompt += `\n\n=== EROTICA CONTENT DIRECTIVE ===\nExplicit sexual content is required. Do not fade to black or cut away. Write physical content directly and specifically. Vague or euphemistic treatment is a genre failure.\nDo not summarize the sexual climax in a single sentence and jump to aftermath. The scene is not complete until the physical and emotional peak has been written in full. "She commanded him to let go and he did" is not a sex scene — it is a description of a sex scene. Write the scene itself.\n=== END EROTICA DIRECTIVE ===`;
-      systemPrompt += `\n\n=== BANNED CONSTRUCTION — NEVER USE ===\nThe phrase pattern "[verb] sent [noun/sensation] [direction] [body part or system]" is strictly forbidden. Examples of what NOT to write: "sent electricity crackling through his arm", "sent shockwaves through his nervous system", "sent sparks racing up his spine", "sent ripples through his consciousness", "sent heat flooding through her". Instead, describe the sensation directly and specifically — what is this character experiencing right now that they have never experienced before? Make it concrete and unique to this moment. BAD: "The touch sent electricity crackling up Marcus's arm." GOOD: "His arm tingled where Zephyr's finger had been — not like static shock, more like the moment before a storm breaks." Every sensation must be earned individually. Do not use templates.\n=== END BANNED CONSTRUCTION ===`;
       systemPrompt += `\n\n=== REPETITION BUDGET — ENFORCE PER CHAPTER ===\nThe following phrases are high-frequency AI defaults that drain impact on reuse. Each has a maximum allowed count PER CHAPTER. Exceed it and the prose fails.\n"amber eyes": max 2 | "silver blood": max 2 | "predatory"/"predator": max 2 | "crystalline": max 1 | "harmonics"/"resonat-": max 2 | "alien": max 3 | "scaled"/"scales": max 3 | "possessive": max 1 | "bond"/"bonded": max 6 | "nervous system": max 1\nIf a phrase has hit its budget in the current chapter, find a specific alternative. Do not simply swap in a synonym — rewrite the moment from a different sensory angle.\n=== END REPETITION BUDGET ===`;
       systemPrompt += buildProtagonistInteriorityBlock(projectSpec);
       systemPrompt += buildEmotionalAccumulationBlock(projectSpec, chapter.chapter_number);
