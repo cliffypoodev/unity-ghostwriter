@@ -106,6 +106,13 @@ export default function ProjectDetail() {
     });
   }, [projectId]);
 
+  // Listen for navigateToPhase events from child components
+  useEffect(() => {
+    const handler = (e) => { if (e.detail && PHASE_ORDER.includes(e.detail)) setActivePhase(e.detail); };
+    window.addEventListener('navigateToPhase', handler);
+    return () => window.removeEventListener('navigateToPhase', handler);
+  }, []);
+
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
