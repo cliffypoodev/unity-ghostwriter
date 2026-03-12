@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search, X, Lightbulb } from "lucide-react";
+import { Save, Loader2, Send, ArrowRight, BookOpen, MessageSquare, Wand2, Search, X, Lightbulb, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
@@ -16,6 +16,7 @@ import PromptCatalogBrowser from "./PromptCatalogBrowser";
 import AuthorVoiceSelector from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
 import ModelSuggestionPanel from "./ModelSuggestionPanel";
+import CharacterInterviewPanel from "./CharacterInterviewPanel";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
@@ -41,6 +42,7 @@ function FloatingChat({ projectId, form }) {
   const [chatInput, setChatInput] = useState("");
   const [isChatting, setIsChatting] = useState(false);
   const [pulsing, setPulsing] = useState(true);
+  const [mode, setMode] = useState("chat"); // "chat" or "interview"
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
@@ -92,14 +94,32 @@ function FloatingChat({ projectId, form }) {
         <div className="chat-popup-enter" style={{ position: "fixed", bottom: "84px", right: "20px", width: "380px", maxWidth: "calc(100vw - 32px)", maxHeight: "500px", background: "white", borderRadius: "16px", boxShadow: "0 8px 30px rgba(0,0,0,0.15)", zIndex: 1000, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ background: "#7c3aed", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-white" />
-              <span className="text-white font-semibold text-sm">AI Book Consultant</span>
+              {mode === "interview" ? <UserCircle className="w-4 h-4 text-white" /> : <MessageSquare className="w-4 h-4 text-white" />}
+              <span className="text-white font-semibold text-sm">{mode === "interview" ? "Character Interview" : "AI Book Consultant"}</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMode(mode === "chat" ? "interview" : "chat")}
+                className="text-white/80 hover:text-white transition-colors text-xs px-2 py-0.5 rounded-full border border-white/30 hover:border-white/60"
+              >
+                {mode === "chat" ? "Interview →" : "← Chat"}
+              </button>
+              <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
+          {mode === "interview" ? (
+            <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
+              <CharacterInterviewPanel
+                projectId={projectId}
+                premise={form.topic}
+                genre={form.genre}
+                onBack={() => setMode("chat")}
+              />
+            </div>
+          ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: 0 }}>
             {messages.length === 0 && !isChatting && (
               <div className="flex items-center justify-center h-full py-8">
@@ -131,6 +151,7 @@ function FloatingChat({ projectId, form }) {
             <div ref={chatBottomRef} />
           </div>
 
+          {mode === "chat" && (
           <div style={{ padding: "12px", borderTop: "1px solid #f1f5f9", flexShrink: 0, display: "flex", gap: "8px" }}>
             <Input
               placeholder="Ask about your book idea..."
@@ -144,6 +165,7 @@ function FloatingChat({ projectId, form }) {
               <Send className="w-4 h-4" />
             </Button>
           </div>
+          )}
         </div>
       )}
 
