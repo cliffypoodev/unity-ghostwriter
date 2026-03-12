@@ -5,19 +5,13 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import Layout from '@/layout';
 
 // Page imports
 import Home from './pages/Home';
 import ProjectDetail from './pages/ProjectDetail';
 import Settings from './pages/Settings';
 import ImportPrompts from './pages/ImportPrompts';
-
-// Layout
-import Layout from '@/layout';
-
-const LayoutWrapper = ({ children }) => (
-  <Layout>{children}</Layout>
-);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -40,14 +34,16 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/Home" replace />} />
-      <Route path="/Home" element={<LayoutWrapper><Home /></LayoutWrapper>} />
-      <Route path="/ProjectDetail" element={<LayoutWrapper><ProjectDetail /></LayoutWrapper>} />
-      <Route path="/Settings" element={<LayoutWrapper><Settings /></LayoutWrapper>} />
-      <Route path="/ImportPrompts" element={<LayoutWrapper><ImportPrompts /></LayoutWrapper>} />
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Navigate to="/Home" replace />} />
+        <Route path="/Home" element={<Home />} />
+        <Route path="/ProjectDetail" element={<ProjectDetail />} />
+        <Route path="/Settings" element={<Settings />} />
+        <Route path="/ImportPrompts" element={<ImportPrompts />} />
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Layout>
   );
 };
 
