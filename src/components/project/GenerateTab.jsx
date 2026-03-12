@@ -434,6 +434,10 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
           {chapterProgress && (
             <div className="text-xs text-indigo-600 font-medium">{chapterProgress}</div>
           )}
+          {chapter.status === "error" && chapter.quality_scan && (() => {
+            try { const qs = JSON.parse(chapter.quality_scan); if (qs.error) return <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2"><span className="font-semibold">Error:</span> {qs.error}</div>; } catch {}
+            return null;
+          })()}
           {chapter.summary && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Summary</p>
