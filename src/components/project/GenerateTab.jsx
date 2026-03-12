@@ -10,6 +10,7 @@ import {
   Pencil, BookOpen, Users, Globe, ArrowRight, Check, Zap, LayoutGrid, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -891,6 +892,10 @@ export default function GenerateTab({ projectId, onProceed }) {
   };
 
   const handleWriteAllChapters = async () => {
+    if (interiorityMissing) {
+      toast.error("Complete Protagonist Interiority in Specifications before generating.");
+      return;
+    }
     // Filter chapters that don't have content yet (not generated)
     const toWrite = chapters.filter(c => c.status !== 'generated');
     
