@@ -7,6 +7,7 @@ const MODEL_MAP = {
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
+  // callType: outline → all outline detail calls resolve to Gemini
   const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-pro"];
   const temperature = options.temperature ?? config.defaultTemp;
   const maxTokens = options.maxTokens ?? 8192;
