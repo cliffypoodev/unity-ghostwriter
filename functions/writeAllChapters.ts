@@ -224,22 +224,14 @@ Deno.serve(async (req) => {
       }
 
       if (!success) {
-        // Mark as error and halt the entire queue
+        // Mark as error but CONTINUE to next chapter instead of halting
         await base44.entities.Chapter.update(ch.id, {
           status: 'error',
-          quality_scan: JSON.stringify({ halted: true, error: lastError }),
+          quality_scan: JSON.stringify({ halted: false, error: lastError }),
         });
 
-        console.error(`[writeAll] HALTING at chapter ${ch.chapter_number} after 2 attempts`);
-
-        return Response.json({
-          status: 'paused',
-          completed: completedCount,
-          failed_at: ch.chapter_number,
-          failed_chapter_id: ch.id,
-          error: lastError,
-          message: `Chapter ${ch.chapter_number} failed after retry. Resolve before continuing.`,
-        });
+        console.warn(`[writeAll] Chapter ${ch.chapter_number} failed after 2 attempts — skipping to next chapter`);
+        continue;
       }
 
       // Chapter succeeded — generate state document for continuity
