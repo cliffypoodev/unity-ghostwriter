@@ -181,7 +181,8 @@ Deno.serve(async (req) => {
       prevChapterTail = content.trim().slice(-200);
     }
 
-    const modelKey = spec?.ai_model || 'claude-sonnet';
+    // callType: beat_sheet → scene generation is structural, always uses Gemini (never user's prose model)
+    const modelKey = 'gemini-pro';
     const characters = storyBible?.characters || [];
     const world = storyBible?.world || storyBible?.settings;
     const rules = storyBible?.rules;

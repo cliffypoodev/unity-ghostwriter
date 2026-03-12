@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
       base44.entities.Specification.filter({ project_id }),
     ]);
 
-    // Determine model from spec
-    const modelKey = specRecords[0]?.ai_model || spec?.ai_model || 'claude-sonnet';
+    // callType: consultant_chat → always resolves to Claude Sonnet (never user's prose model)
+    const modelKey = 'claude-sonnet';
 
     // Build source files context
     const sourceFilesContext = sourceFiles.length > 0
