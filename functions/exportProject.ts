@@ -345,12 +345,15 @@ Deno.serve(async (req) => {
 
       const buffer = await Packer.toBuffer(doc);
 
-      return new Response(buffer, {
-        headers: {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'Content-Disposition': `attachment; filename="${docTitle.replace(/[^a-z0-9]/gi, '_')}.docx"`,
-        },
-      });
+      // Encode as base64 and return as JSON to avoid binary corruption through the SDK
+      const uint8 = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < uint8.length; i++) {
+        binary += String.fromCharCode(uint8[i]);
+      }
+      const base64 = btoa(binary);
+
+      return Response.json({ base64, filename: `${docTitle.replace(/[^a-z0-9]/gi, '_')}.docx` });
     }
 
     return Response.json({ error: 'Unknown format' }, { status: 400 });
