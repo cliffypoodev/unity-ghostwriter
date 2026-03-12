@@ -1853,11 +1853,13 @@ ${_beatUsrBlock(chapterBeat)}`;
     const bannedClusterNames = flaggedClusters;
     const isErotic = isIntimateGenre(projectSpec);
 
-    // SKIP validation regeneration to stay within Deno worker time limits.
-    // Quality scan still runs below for logging purposes.
-
-    // Run quality scan for LOGGING ONLY — no auto-rewrite passes to stay within Deno worker time limits.
-    // The quality scan results are saved on the chapter for later review.
+    // ── PRE-OUTPUT COMPLIANCE GATE — silent auto-regeneration ──
+    const compViolations = await enforceProseCompliance(fullContent, chapter.chapter_number, projectId, allChapters, chapterIndex);
+    if (compViolations.length > 0) {
+      console.warn(`Ch ${chapter.chapter_number} compliance: ${compViolations.length} violations`, compViolations.map(v=>`${v.type}:${v.label}(${v.count})`));
+      const vSum = compViolations.map(v => v.type==='absolute_ban'?`BAN:"${v.label}" ${v.count}x — remove ALL`:v.type==='frequency_cap'?`CAP:"${v.label}" ${v.count}x(max ${v.max}) — reduce`:`DYN:${v.label} ${v.count}x(max ${v.max})`).join('\n');
+      try { const rwModel = resolveModel('post_gen_rewrite'); const fixed = await callAI(rwModel,`You are a prose editor. Fix ONLY the listed violations. Do NOT rewrite other text. Return corrected chapter only.`,`Fix:\n${vSum}\n\n---\n${fullContent}\n---\nReturn corrected prose only.`,{maxTokens:8192,temperature:0.4}); if(fixed&&fixed.trim().length>200&&!isRefusal(fixed)){const rc=await enforceProseCompliance(fixed,chapter.chapter_number,projectId,allChapters,chapterIndex);if(rc.length<compViolations.length){console.log(`Compliance fix: ${compViolations.length}→${rc.length}`);fullContent=fixed.includes('```')?fixed.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,''):fixed;}else{console.warn('Compliance fix no improvement — keeping original');}} } catch(e){console.warn('Compliance rewrite failed:',e.message);}
+    }
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
 
     // Meta-response detection
