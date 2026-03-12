@@ -237,7 +237,9 @@ export default function WriteAllChaptersModal({
 
               {failures?.length > 0 && (
                 <div className="bg-red-50 border border-red-100 rounded-lg p-3 max-h-40 overflow-y-auto">
-                  <p className="text-xs font-semibold text-red-800 mb-1.5">Failed chapters ({failures.length}):</p>
+                  <p className="text-xs font-semibold text-red-800 mb-1.5">
+                    {paused ? "Blocked chapters:" : `Failed chapters (${failures.length}):`}
+                  </p>
                   <ul className="space-y-1">
                     {failures.map((f, idx) => (
                       <li key={idx} className="text-xs text-red-700">
@@ -245,7 +247,11 @@ export default function WriteAllChaptersModal({
                       </li>
                     ))}
                   </ul>
-                  <p className="text-xs text-red-600 mt-2">You can regenerate failed chapters individually after closing this dialog.</p>
+                  <p className="text-xs text-red-600 mt-2">
+                    {paused
+                      ? "Fix the failed chapter, then click 'Write All' again to resume from where it stopped."
+                      : "You can regenerate failed chapters individually after closing this dialog."}
+                  </p>
                 </div>
               )}
             </div>
