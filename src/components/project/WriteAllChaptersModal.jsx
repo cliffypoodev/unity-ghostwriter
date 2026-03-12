@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight, AlertTriangle } from "lucide-react";
 import ChapterProgressCard from "./ChapterProgressCard";
 
 const TARGET_WORDS_PER_CHAPTER = {
