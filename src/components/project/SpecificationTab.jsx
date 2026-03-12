@@ -206,6 +206,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
     author_voice: "basic",
     additional_requirements: "",
     enforce_genre_content: true,
+    protagonist_life_purpose: "",
+    protagonist_core_wound: "",
+    protagonist_self_belief: "",
+    protagonist_secret_desire: "",
   });
   const [extracting, setExtracting] = useState(false);
   const [developingIdea, setDevelopingIdea] = useState(false);
