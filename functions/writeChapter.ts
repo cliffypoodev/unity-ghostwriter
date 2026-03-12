@@ -1465,6 +1465,7 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     11. PLOT PROGRESSION: Every chapter must contain at least ONE concrete, irreversible event that changes the characters' situation. Atmospheric tension is NOT a plot event. A discovery, confrontation, betrayal, decision with consequences, or physical action IS a plot event.`;
 
     systemPrompt += `\n\n${OUTPUT_FORMAT_RULES}`;
+    systemPrompt += `\n\n${QUALITY_UPGRADES}`;
 
     systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
