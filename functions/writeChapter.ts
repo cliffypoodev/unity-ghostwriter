@@ -1526,6 +1526,8 @@ Before writing this chapter, review the character motivations established in the
       let contextBlock = `PREVIOUS CHAPTER ${lastPrev.chapter_number} ("${lastPrev.title}") CONTEXT:`;
       if (stateDoc) contextBlock += `\n\nSTATE DOCUMENT:\n${stateDoc}`;
       if (lastSentences) contextBlock += `\n\nLAST SENTENCES:\n${lastSentences}`;
+      // FIX C: Inject previous_chapter_endings rebuilt from actual written prose
+      if (chapter.previous_chapter_endings) { try { const _ends = JSON.parse(chapter.previous_chapter_endings); if (Array.isArray(_ends) && _ends.length > 0) { contextBlock += `\n\n=== PREVIOUS CHAPTER ENDINGS (actual prose — trust over outline) ===`; for (const e of _ends) { contextBlock += `\nCH ${e.chapter_number} ("${e.title}")${e.type === 'full_ending' ? ' [FULL]' : ''}:\n${e.last_paragraph}`; } contextBlock += `\n=== END ENDINGS ===`; } } catch (_) {} }
 
       if (stateDoc || lastSentences) {
         messages.push({ role: 'user', content: contextBlock });
