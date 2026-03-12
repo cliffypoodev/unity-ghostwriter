@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
   Loader2, Sparkles, ChevronDown, ChevronRight, Copy, RefreshCw,
-  Pencil, BookOpen, Users, Globe, ArrowRight, Check, Zap, LayoutGrid
+  Pencil, BookOpen, Users, Globe, ArrowRight, Check, Zap, LayoutGrid, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WriteAllChaptersModal from "./WriteAllChaptersModal";
@@ -18,7 +18,6 @@ import ChapterStatusDot from "./ChapterStatusDot";
 import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
 import RewriteInVoiceModal from "./RewriteInVoiceModal";
 import ProjectWordCount from "./ProjectWordCount";
-import { AlertTriangle } from "lucide-react";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
