@@ -40,6 +40,7 @@ ${genre ? `Genre: ${genre}` : "Determine the best genre fit."}
 Transform this into a tight, pitch-ready premise. Named characters, vivid settings, concrete conflicts.`;
   }
 
+  // callType: metadata_generation → resolves to Claude Sonnet
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
