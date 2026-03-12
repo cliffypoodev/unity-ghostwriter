@@ -1116,7 +1116,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         successes,
         failures: [...failures],
         wordsWritten: totalWords,
-        currentTitle: activeInfo ? `Ch ${activeInfo.chapter_number}: ${progressMessages[msgIdx]}` : failures.length > 0 ? 'Paused — chapter failed' : 'Finishing up…',
+        currentTitle: activeInfo ? `Ch ${activeInfo.chapter_number}: ${progressMessages[msgIdx]}` : 'Finishing up…',
         chapterWords: 0,
       }));
     }
