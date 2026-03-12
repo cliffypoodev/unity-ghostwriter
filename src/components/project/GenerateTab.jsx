@@ -276,8 +276,6 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
 
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
-  const status = isWriting ? "generating" : chapter.status;
-  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
