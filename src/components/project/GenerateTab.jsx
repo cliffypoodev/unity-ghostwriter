@@ -14,6 +14,7 @@ import WriteAllChaptersModal from "./WriteAllChaptersModal";
 import SpecSettingsSummary from "./SpecSettingsSummary";
 import SceneSection from "./SceneSection";
 import BeatBadge from "./BeatBadge";
+import ChapterStatusDot from "./ChapterStatusDot";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
