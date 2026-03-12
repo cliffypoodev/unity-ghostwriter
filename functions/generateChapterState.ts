@@ -36,6 +36,7 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 4096) {
 }
 
 async function callOpenRouter(systemPrompt, userMessage, openrouterModel, maxTokens = 4096) {
+  // callType: chapter_state → erotica genre routes state generation to OpenRouter
   const orKey = Deno.env.get('OPENROUTER_API_KEY');
   if (!orKey) throw new Error('OpenRouter generation failed: OPENROUTER_API_KEY not configured');
   const model = openrouterModel || 'meta-llama/llama-3.1-70b-instruct';
