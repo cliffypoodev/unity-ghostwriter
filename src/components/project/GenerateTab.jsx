@@ -1158,27 +1158,29 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   const handleGenerateAllScenes = async () => {
     setGeneratingAllScenes(true);
-    setAllScenesProgress("Starting scene generation…");
+    setAllScenesProgress("Checking chapters…");
     try {
-      const response = await base44.functions.invoke('generateAllScenes', { projectId });
-      const total = response.data?.total || 0;
-      if (total === 0) {
+      // Find chapters needing scenes
+      const needScenes = chapters.filter(c => {
+        const s = c.scenes?.trim();
+        return !s || s === 'null' || s === '[]';
+      });
+      if (needScenes.length === 0) {
         setAllScenesProgress("All chapters already have scenes.");
         setTimeout(() => setAllScenesProgress(""), 3000);
         return;
       }
-      // Poll until all chapters have scenes
-      let done = 0;
-      let polls = 0;
-      while (done < total && polls < 90) {
-        await new Promise(r => setTimeout(r, 3000));
-        polls++;
-        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-        done = updated.filter(c => {
-          const s = c.scenes?.trim();
-          return s && s !== 'null' && s !== '[]';
-        }).length;
-        setAllScenesProgress(`Generating scenes… ${done} of ${total} chapters done`);
+      // Generate scenes sequentially from frontend (avoids backend-to-backend 403)
+      for (let i = 0; i < needScenes.length; i++) {
+        const ch = needScenes[i];
+        setAllScenesProgress(`Generating scenes… ${i} of ${needScenes.length} done (Ch ${ch.chapter_number}: ${ch.title})`);
+        try {
+          await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
+        } catch (err) {
+          console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
+        }
+        // Brief delay between calls
+        if (i < needScenes.length - 1) await new Promise(r => setTimeout(r, 1000));
       }
       setAllScenesProgress("Scenes ready!");
       await refetchChapters();
