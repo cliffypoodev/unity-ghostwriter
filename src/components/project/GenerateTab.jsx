@@ -359,9 +359,9 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
+            <ChapterStatusDot status={chapter.status} isWriting={isWriting} />
             <span className="font-semibold text-sm text-slate-800 truncate">{chapter.title}</span>
             {beatData?.beat_function && <BeatBadge beatFunction={beatData.beat_function} beatName={beatData.beat_name} />}
-            <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", sc.className)}>{sc.label}</span>
             {hasScenes && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
             )}
