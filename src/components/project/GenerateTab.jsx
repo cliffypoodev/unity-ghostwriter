@@ -1257,6 +1257,21 @@ export default function GenerateTab({ projectId, onProceed }) {
       <OutlineCard outlineData={resolvedOutlineData} />
       <StoryBibleCard storyBible={resolvedStoryBible} />
 
+      {/* Explicit tags warning for erotica projects */}
+      {spec && /erotica|erotic/i.test(((spec.genre || '') + ' ' + (spec.subgenre || ''))) && resolvedOutlineData && (() => {
+        const parsed = safeParse(resolvedOutlineData);
+        if (!parsed) return null;
+        return (
+          <ExplicitTagsWarning
+            outlineData={parsed}
+            outlineRaw={resolvedOutlineData}
+            outline={outline}
+            projectId={projectId}
+            onResolved={() => queryClient.invalidateQueries({ queryKey: ["outline", projectId] })}
+          />
+        );
+      })()}
+
       {/* Partial outline banner */}
       {isPartial && !generating && !generateError && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center justify-between">
