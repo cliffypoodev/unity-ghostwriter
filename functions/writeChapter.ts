@@ -712,7 +712,8 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "a fire in him", "a fire within him", "a fire inside him", "a fire in her", "a fire within her", "a fire inside her", "a fire in them", "a fire within them", "a fire inside them",
       "heat pooling in", "heat pooled in",
       "waves of sensation", "cascades of heat", "power flowing through", "something building in her core",
-      "she felt herself opening to", "transcendence"
+      "she felt herself opening to", "transcendence",
+      "sent electricity", "sent shockwaves", "sent sparks", "sent ripples", "sent heat", "sent a jolt", "sent a shiver", "sent a wave", "sent a surge", "sent a bolt", "sent a current", "sent a rush"
     ],
     atmosphereClichés: [
       "intoxicating", "intoxicated", "electric", "electricity", "electrifying", "palpable", "air thickened", "air crackled", "air grew heavy",
