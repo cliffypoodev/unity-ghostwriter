@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Scene generation completed for ${chaptersWithoutScenes.length} chapters in project ${projectId}`);
+    console.log(`Scene generation dispatched for ${chaptersWithoutScenes.length} chapters in project ${projectId}`);
     return Response.json({
       done: true,
       total: chaptersWithoutScenes.length,
