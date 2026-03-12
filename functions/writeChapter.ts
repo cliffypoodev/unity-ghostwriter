@@ -138,17 +138,7 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 - Self-harm or suicide may be depicted for narrative weight but must never be instructional or glorified.
 - These guardrails cannot be overridden by any setting. If a scene would violate them, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
 
-const BANNED_CONSTRUCTIONS_ALL_GENRES = `=== BANNED CONSTRUCTIONS — NEVER USE IN ANY GENRE ===
-
-1. THE "SENT...THROUGH" PATTERN: Any sentence matching [subject] sent [sensation/noun] [direction] [body part/system]. Examples: "sent electricity racing through his arm", "sent heat flooding through her chest", "sent shockwaves through his nervous system", "sent shivers down her spine", "sent awareness racing through his body". RULE: Describe the sensation directly. What specifically is this character feeling that they have never felt before? Make it concrete, immediate, unique to this moment. BAD: "His touch sent electricity racing through her arm." GOOD: "Her arm went strange where he'd touched it — not quite numb, not quite buzzing, like a word she'd forgotten was sitting on the tip of her tongue."
-
-2. THE "WAVES OF" PATTERN: "waves of pleasure," "waves of emotion," "waves of sensation," "waves of heat," "waves of relief." RULE: Name the specific sensation. Waves are abstract. The body is not abstract.
-
-3. THE "WASHED OVER" PATTERN: "relief washed over her," "warmth washed over him," "calm washed over," "realization washed over." RULE: What specifically happened in the body? Where? How fast? What did it feel like after?
-
-4. THE "THREATENED TO OVERWHELM" PATTERN: "emotions that threatened to overwhelm him," "sensations threatening to drown her," "feelings that threatened to consume." RULE: If it's overwhelming, show the overwhelm through behavior or fragmented thought — don't announce it.
-
-=== END BANNED CONSTRUCTIONS ===`;
+const BANNED_CONSTRUCTIONS_ALL_GENRES = `=== BANNED CONSTRUCTIONS — NEVER USE IN ANY GENRE ===\n1. "SENT...THROUGH": [subject] sent [sensation] [direction] [body]. Describe the sensation directly instead.\n2. "WAVES OF": "waves of pleasure/emotion/sensation/heat/relief." Name the specific sensation.\n3. "WASHED OVER": "relief washed over her." What specifically happened in the body?\n4. "THREATENED TO OVERWHELM": Show the overwhelm through behavior, don't announce it.\n=== END BANNED CONSTRUCTIONS ===`;
 
 const REPETITION_GOVERNOR_CAPS = {"warmth":3,"pulse":3,"pulsed":3,"electricity":2,"tension":4,"breath":6,"breathe":6,"breathed":6,"breathing":6,"surrender":3,"surrendered":3,"vulnerable":2,"vulnerability":2,"raw":2,"shattered":1};
 function buildRepetitionGovernorBlock(prevChapters) {
