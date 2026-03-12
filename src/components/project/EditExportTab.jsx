@@ -582,9 +582,16 @@ async function exportDocx(projectId, quill, ds) {
     html: quill.root.innerHTML,
     settings: ds,
   });
-  // Response is binary ArrayBuffer
-  const blob = new Blob([resp.data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-  download(blob, `${ds.bookTitle || "book"}.docx`);
+  // Response is base64-encoded JSON — decode to binary
+  const base64 = resp.data?.base64;
+  if (!base64) throw new Error("No DOCX data returned");
+  const binaryStr = atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  download(blob, resp.data?.filename || `${ds.bookTitle || "book"}.docx`);
 }
 
 // Print/PDF — opens styled window and triggers print dialog
