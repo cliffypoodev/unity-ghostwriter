@@ -568,9 +568,11 @@ async function exportDocx(projectId, quill, ds) {
     html: quill.root.innerHTML,
     settings: ds,
   });
+  // Check for error response
+  if (resp.data?.error) throw new Error(resp.data.error);
   // Response is base64-encoded JSON — decode to binary
   const base64 = resp.data?.base64;
-  if (!base64) throw new Error("No DOCX data returned");
+  if (!base64) throw new Error("No DOCX data returned from server");
   const binaryStr = atob(base64);
   const bytes = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) {
