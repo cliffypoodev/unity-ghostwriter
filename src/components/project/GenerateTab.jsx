@@ -821,6 +821,11 @@ export default function GenerateTab({ projectId, onProceed }) {
     let httpDone = false;
     let httpError = null;
 
+    // Pre-reset chapter status in DB to prevent polling from picking up stale "error" status
+    try {
+      await base44.entities.Chapter.update(chapterId, { status: "generating" });
+    } catch (e) { console.warn('Failed to reset chapter status before polling:', e.message); }
+
     // Fire the writeChapter request — track when it completes/fails
     base44.functions.invoke('writeChapter', {
       project_id: projectId,
