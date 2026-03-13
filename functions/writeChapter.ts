@@ -1850,7 +1850,8 @@ ${_beatUsrBlock(chapterBeat)}`;
     // ── GEMINI PROSE QUALITY GATE — padding, purple prose, passive voice ──
     if (isGeminiModel(modelKey)) { const _sep2 = useScenePath ? /\*\s*\*\s*\*/ : /\n{3,}|\n\s*---\s*\n|\n\s*\*\s*\*\s*\*\s*\n/;
       const _gParts = fullContent.split(_sep2); let _gV = []; _gParts.forEach((p,i)=>{_gV.push(...verifyGeminiProse(p.trim(),bookType,i+1));});
-      for(let _ga=0;_ga<2&&_gV.length>0;_ga++){console.warn(`Ch ${chapter.chapter_number} Gemini quality ${_ga+1}: ${_gV.length} violations`,_gV.map(v=>v.type));
+      const _gemMaxRetries = chapterIndex >= 20 ? 1 : 2;
+      for(let _ga=0;_ga<_gemMaxRetries&&_gV.length>0;_ga++){console.warn(`Ch ${chapter.chapter_number} Gemini quality ${_ga+1}: ${_gV.length} violations`,_gV.map(v=>v.type));
         const _gi=_gV.map(v=>v.ri).join('\n\n');const _gm=[...messages];_gm[_gm.length-1]={role:'user',content:`GEMINI PROSE QUALITY REVISION:\n\n${_gi}\n\nRewrite the ENTIRE chapter with these issues fixed:\n\n${messages[messages.length-1].content}`};
         try{const _gr=await callAIConversation(_gm,8192);if(_gr&&_gr.trim().length>200&&!isRefusal(_gr)){let _gc=_gr.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm,'').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi,'').replace(/\n{3,}/g,'\n\n').trim();
           const _nv=[];_gc.split(_sep2).forEach((p,i)=>{_nv.push(...verifyGeminiProse(p.trim(),bookType,i+1));});
@@ -1864,7 +1865,8 @@ ${_beatUsrBlock(chapterBeat)}`;
       // NF narrative balance check — flag >40% analytical sentences even if word count passes
       if (isNonfiction && _thin.length === 0) { const _sAll = fullContent.split(/[.!?]+/).filter(s=>s.trim().length>20); const _sAn = _sAll.filter(s=>/\b(therefore|thus|consequently|this shows|this demonstrates|it is clear|this meant|this would|as a result)\b/i.test(s)); const _rat = _sAn.length/(_sAll.length||1); if(_rat>0.4){ console.warn(`Ch ${chapter.chapter_number} NF balance: ${Math.round(_rat*100)}% analytical`); _thin=[{idx:1,wc:wordCount,narrativeBalance:true,ratio:_rat}]; } }
       const _isDS = isDeepseekModel(modelKey);
-      for (let _va=0; _va<2 && _thin.length>0; _va++) {
+      const _volMaxRetries = chapterIndex >= 20 ? 1 : 2;
+      for (let _va=0; _va<_volMaxRetries && _thin.length>0; _va++) {
         const _isGem = isGeminiModel(modelKey);
         const _vb = _thin.map(p=> p.narrativeBalance ? `NARRATIVE BALANCE VIOLATION: ${Math.round(p.ratio*100)}% of sentences are analytical. Convert at least half the analytical paragraphs into scene-level moments — show events happening before explaining significance.` : `INSUFFICIENT LENGTH: Part ${p.idx} is only ${p.wc} words (min 625).\n${_isDS ? 'You have compressed this material. Expand each documented moment into scene before moving to the next.' : _isGem ? 'You padded with qualifying clauses instead of scene. Cut the hedging. Expand each moment with specific sensory detail and human action.' : isNonfiction ? 'Narrative nonfiction requires scene-level inhabitation, not efficient coverage of facts.' : 'You summarized this scene — inhabit it.'}\n- ${isNonfiction ? 'Open with a specific person in a specific moment, weave context into action' : 'At least 3 paragraphs environment+sensory detail, one internal conflict beat'}\n- Do not proceed to next beat until 625 words minimum`).join('\n\n');
         console.warn(`Ch ${chapter.chapter_number} vol ${_va+1}: ${_thin.length} thin`, _thin.map(p=>`P${p.idx}:${p.wc}w`));
