@@ -32,6 +32,7 @@ import {
 import WriteAllChaptersModal from "./WriteAllChaptersModal";
 import SpecSettingsSummary from "./SpecSettingsSummary";
 import SceneSection from "./SceneSection";
+import NonfictionBeatSection from "./NonfictionBeatSection";
 import BeatBadge from "./BeatBadge";
 import ChapterStatusDot from "./ChapterStatusDot";
 import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
