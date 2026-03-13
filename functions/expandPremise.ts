@@ -84,14 +84,19 @@ Return ONLY a valid JSON object — no markdown fences, no backticks, no explana
 INFERENCE RULES:
 - target_audience: infer from genre, subject matter, tone, and demographic signals.
   Example: dark fantasy with adult themes → "Adult Commercial" primary, "Sci-Fi & Fantasy Fans" secondary.
-- author_voice: infer from genre + tone. Return an ID, not a label.
-  Example: investigative nonfiction → "gladwell" or "didion"
-  Example: cozy romance → "rowling" or "austen"
-  Example: hard sci-fi thriller → "leguin" or "mccarthy"
-  Example: horror → "king"
-  Example: literary fiction → "morrison" or "didion"
-  Example: fantasy → "tolkien" or "gaiman"
-  Example: mystery → "chandler" or "christie"
+- author_voice: GENRE-FIRST inference. The author's PRIMARY body of work must match the book's genre. Then use tone to select within that genre. Never assign a literary fiction author to a romance book, even if the romance has literary aspirations. Genre match is mandatory; style match is secondary.
+  ROMANCE: emotional/raw→austen, witty/banter→austen, literary/spare→didion, sweeping→austen, steamy/dark→atwood, clean/faith→rowling
+  THRILLER: psychological→atwood, procedural→christie, fast/action→king, atmospheric→didion
+  LITERARY FICTION: lyrical→morrison, spare/dark→mccarthy, witty→austen, restrained→didion
+  HORROR: any→king
+  FANTASY: epic→tolkien, dark→gaiman, whimsical→rowling, philosophical→leguin
+  SCI-FI: hard→leguin, dystopian→atwood, space opera→tolkien, cerebral→mccarthy
+  MYSTERY: classic→christie, noir→chandler, cozy→rowling
+  NONFICTION: investigative→gladwell, science→sagan, travel/humor→bryson, memoir→didion
+  HISTORICAL: literary→morrison, epic→tolkien, thriller→king
+  SATIRE: any→pratchett or vonnegut
+  MAGICAL REALISM: any→marquez
+  DO NOT assign morrison to a romance novel. DO NOT assign austen to a horror novel.
 - beat_style rules — GENRE-FIRST, TONE-SECOND. Genre determines the category. Tone determines position within that category. Never let tone override genre entirely.
   ROMANCE: default→Slow Burn, dark→Gritty Cinematic, literary→Slow Burn (NOT Melancholic Literary), cozy→Whimsical Cozy, suspense→Dark Suspense, explicit→Slow Burn (spice handles explicitness)
   THRILLER: default→Fast-Paced Thriller, dark→Hard-Boiled Noir, political→High-Stakes Political, tech→Cerebral Sci-Fi, legal→Clinical Procedural, psychological→Intellectual Psychological
