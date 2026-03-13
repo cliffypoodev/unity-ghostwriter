@@ -277,7 +277,7 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(c => (
+              {visibleCategories.map(c => (
                 <SelectItem key={c.name} value={c.name}>
                   {c.name} ({c.count})
                 </SelectItem>
