@@ -1,11 +1,27 @@
+// MODAL ISOLATION RULE:
+// This modal performs a single-purpose AI call via rewriteInVoice backend function.
+// NEVER call from modals: resolveModel, enforceProseCompliance, getTopRepeatedWords,
+// generateChapterWithCompliance, verifyExplicitTags, prepareChapterGeneration.
+
 import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Check, RefreshCw, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader2, Check, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const REWRITE_MODES = [
+  { id: 'voice',       label: 'Author Voice',    desc: 'Rewrite in your style sample' },
+  { id: 'tighten',     label: 'Tighten',         desc: 'Cut 20-30%, sharpen every line' },
+  { id: 'expand',      label: 'Expand',          desc: 'Add depth and texture, +30%' },
+  { id: 'tension',     label: 'Add Tension',     desc: 'Sharpen rhythm and forward pull' },
+  { id: 'dialogue',    label: 'Fix Dialogue',    desc: 'More natural, character-specific' },
+  { id: 'description', label: 'Fix Description', desc: 'Specific sensory detail over generic' },
+  { id: 'emotion',     label: 'Deepen Emotion',  desc: 'Show feeling through behavior' },
+];
 
 export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, project }) {
   const queryClient = useQueryClient();
@@ -16,6 +32,8 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
   const [rewrittenText, setRewrittenText] = useState("");
   const [loading, setLoading] = useState(false);
   const [replacing, setReplacing] = useState(false);
+  const [mode, setMode] = useState('voice');
+  const [error, setError] = useState("");
   const textAreaRef = useRef(null);
 
   useEffect(() => {
@@ -49,20 +67,29 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
   const handleRewrite = async () => {
     if (!selectedText.trim() || !styleSample.trim()) return;
     setLoading(true);
+    setError("");
     try {
       const res = await base44.functions.invoke('rewriteInVoice', {
         selected_text: selectedText,
         style_sample: styleSample,
         genre: spec?.genre || '',
         beat_style: spec?.beat_style || spec?.tone_style || '',
-        chapter_number: chapter?.chapter_number,
-        project_id: project?.id,
+        chapter_number: chapter?.chapter_number || '',
+        project_id: project?.id || '',
         save_as_default: saveAsDefault,
+        mode,
       });
-      setRewrittenText(res.data.rewritten_text);
-      setStep(3);
+      if (res.data?.rewritten_text) {
+        setRewrittenText(res.data.rewritten_text);
+        setStep(3);
+      } else {
+        setError(res.data?.error || 'No rewritten text returned');
+        setStep(1);
+      }
     } catch (err) {
       console.error('Rewrite error:', err);
+      setError(err?.response?.data?.error || err.message || 'Rewrite failed');
+      setStep(1);
     } finally {
       setLoading(false);
     }
@@ -97,6 +124,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
     setStep(1);
     setSelectedText("");
     setRewrittenText("");
+    setError("");
     onClose();
   };
 
@@ -105,7 +133,16 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base">Rewrite in My Voice</DialogTitle>
+          <DialogDescription className="text-xs text-slate-500">
+            Select a passage, choose a rewrite mode, and let AI match your writing style.
+          </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
         {step === 1 && (
           <div className="space-y-4">
@@ -127,6 +164,28 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
                   <p className="text-xs text-slate-700 italic line-clamp-3">{selectedText}</p>
                 </div>
               )}
+            </div>
+
+            {/* Rewrite Mode Selector */}
+            <div>
+              <Label className="text-sm font-medium">Rewrite Mode</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mt-1.5">
+                {REWRITE_MODES.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(m.id)}
+                    className={cn(
+                      "text-left p-2 rounded-md border text-xs transition-colors",
+                      mode === m.id
+                        ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    )}
+                  >
+                    <div className="font-medium">{m.label}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">{m.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -163,6 +222,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
             <p className="text-sm text-slate-600 font-medium">Rewriting in your voice...</p>
+            <p className="text-xs text-slate-400 mt-1">Mode: {REWRITE_MODES.find(m => m.id === mode)?.label || 'Author Voice'}</p>
           </div>
         )}
 
@@ -175,7 +235,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium text-indigo-600">Your Rewrite</Label>
+              <Label className="text-sm font-medium text-indigo-600">Your Rewrite ({REWRITE_MODES.find(m => m.id === mode)?.label})</Label>
               <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-md text-sm text-slate-800 leading-relaxed max-h-48 overflow-y-auto">
                 {rewrittenText}
               </div>
