@@ -136,6 +136,38 @@ function getSceneCount(targetLength) {
   return base + Math.round(Math.random()); // 3-4 for short/medium, 4-5 for long/epic
 }
 
+// ── Phase Continuity: Settings Propagation ──
+const BEAT_STYLES = {
+  "fast-paced-thriller":"Fast-Paced Thriller","gritty-cinematic":"Gritty Cinematic","hollywood-blockbuster":"Hollywood Blockbuster","slow-burn":"Slow Burn","steamy-romance":"Steamy Romance","slow-burn-romance":"Slow Burn Romance","dark-erotica":"Dark Erotica","clean-romance":"Clean Romance","faith-infused":"Faith-Infused Contemporary","investigative-nonfiction":"Investigative Nonfiction","reference-educational":"Reference / Educational","intellectual-psychological":"Intellectual Psychological","dark-suspense":"Dark Suspense","satirical":"Satirical","epic-historical":"Epic Historical","whimsical-cozy":"Whimsical Cozy","hard-boiled-noir":"Hard-Boiled Noir","grandiose-space-opera":"Grandiose Space Opera","visceral-horror":"Visceral Horror","poetic-magical-realism":"Poetic Magical Realism","clinical-procedural":"Clinical Procedural","hyper-stylized-action":"Hyper-Stylized Action","nostalgic-coming-of-age":"Nostalgic Coming-of-Age","cerebral-sci-fi":"Cerebral Sci-Fi","high-stakes-political":"High-Stakes Political","surrealist-avant-garde":"Surrealist Avant-Garde","melancholic-literary":"Melancholic Literary","urban-gritty-fantasy":"Urban Gritty Fantasy",
+};
+const ASP_NAMES={'colleen-hoover':'Colleen Hoover','taylor-jenkins-reid':'Taylor Jenkins Reid','emily-henry':'Emily Henry','sally-rooney':'Sally Rooney','nicholas-sparks':'Nicholas Sparks','penelope-douglas':'Penelope Douglas','francine-rivers':'Francine Rivers','gillian-flynn':'Gillian Flynn','tana-french':'Tana French','james-patterson':'James Patterson','michael-connelly':'Michael Connelly','harlan-coben':'Harlan Coben','lee-child':'Lee Child','toni-morrison':'Toni Morrison','cormac-mccarthy':'Cormac McCarthy','kazuo-ishiguro':'Kazuo Ishiguro','zadie-smith':'Zadie Smith','donna-tartt':'Donna Tartt','agatha-christie':'Agatha Christie','stephen-king':'Stephen King','brandon-sanderson':'Brandon Sanderson','andy-weir':'Andy Weir','ursula-le-guin':'Ursula K. Le Guin','erik-larson':'Erik Larson','david-grann':'David Grann','malcolm-gladwell':'Malcolm Gladwell','jon-krakauer':'Jon Krakauer'};
+const SPICE_NAMES={0:'Fade to Black',1:'Closed Door',2:'Cracked Door',3:'Open Door',4:'Full Intensity'};
+const LANG_NAMES={0:'Clean',1:'Mild',2:'Moderate',3:'Strong',4:'Raw'};
+
+function buildContextHeader(spec) {
+  const beatKey = spec?.beat_style || spec?.tone_style || '';
+  const beatName = BEAT_STYLES[beatKey] || beatKey || 'Not specified';
+  const spice = parseInt(spec?.spice_level) || 0;
+  const lang = parseInt(spec?.language_intensity) || 0;
+  const voiceId = spec?.author_voice || 'basic';
+  const voiceName = ASP_NAMES[voiceId] || (voiceId === 'basic' ? '' : voiceId);
+  return `═══════════════════════════════════════════════
+PROJECT CONTEXT — READ BEFORE GENERATING
+═══════════════════════════════════════════════
+BOOK TYPE:        ${(spec?.book_type || 'fiction').toUpperCase()}
+GENRE:            ${spec?.genre || 'Fiction'}${spec?.subgenre ? ' / ' + spec.subgenre : ''}
+BEAT STYLE:       ${beatName}
+LANGUAGE LEVEL:   ${lang}/4 — ${LANG_NAMES[lang] || 'Clean'}
+${spice > 0 ? `SPICE LEVEL:      ${spice}/4 — ${SPICE_NAMES[spice] || 'Fade to Black'}` : ''}
+${spec?.target_audience ? `AUDIENCE:         ${spec.target_audience}` : ''}
+${voiceName ? `AUTHOR VOICE:     ${voiceName}` : ''}
+
+These settings were configured in Phase 1 and are MANDATORY.
+Every word of output must reflect this genre, beat style,
+and author voice. Do not default to generic prose.
+═══════════════════════════════════════════════`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
