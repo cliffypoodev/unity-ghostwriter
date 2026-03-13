@@ -489,7 +489,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check' }, { status: 400 });
+    // Adapt a prompt for a specific model
+    if (action === 'adapt_prompt') {
+      if (!base_prompt) return Response.json({ error: 'base_prompt required' }, { status: 400 });
+      const adapted = adaptPromptForModel(
+        base_prompt,
+        chapter || {},
+        project || {},
+        model_id || 'claude-sonnet'
+      );
+      return Response.json({
+        model_id: model_id || 'claude-sonnet',
+        original_length: base_prompt.length,
+        adapted_length: adapted.length,
+        adapted_prompt: adapted,
+      });
+    }
+
+    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check, adapt_prompt' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
