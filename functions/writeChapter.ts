@@ -1833,17 +1833,23 @@ ${_beatUsrBlock(chapterBeat)}`;
       console.warn(`Chapter generation attempt ${attempt + 1} returned a refusal, retrying...`);
     }
 
-    // BUG 1 — Strip any scene header or chapter heading artifacts the AI included
-    let _cleaned = fullContent;
-    _cleaned = _cleaned.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-    _cleaned = _cleaned.replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '');
-    _cleaned = _cleaned.replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '');
-    _cleaned = _cleaned.replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '');
-    _cleaned = _cleaned.replace(/\n{3,}/g, '\n\n');
-    fullContent = _cleaned.trim();
-
+    // Strip scene header / chapter heading artifacts
+    fullContent = fullContent.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '').replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '').replace(/\n{3,}/g, '\n\n').trim();
     const wordCount = fullContent.trim().split(/\s+/).length;
-
+    // ── GPT VOLUME VERIFICATION GATE — per-scene 625w minimum, GPT only ──
+    if (isGptModel(modelKey) && useScenePath && parsedScenes.length > 1) {
+      const _vParts = fullContent.split(/\*\s*\*\s*\*/); let _thin = _vParts.map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
+      for (let _va=0; _va<2 && _thin.length>0; _va++) {
+        const _vb = _thin.map(p=>`INSUFFICIENT LENGTH: Part ${p.idx} is only ${p.wc} words. Minimum is 625 words per part.\nYou have summarized this scene rather than inhabiting it. Rewrite it with:\n- At least 3 paragraphs on environment and sensory detail\n- One moment of internal conflict specific to protagonist backstory\n- At least one beat of dialogue with subtext\n- Do not move forward until this part reaches 625 words minimum`).join('\n\n');
+        console.warn(`Ch ${chapter.chapter_number} GPT vol ${_va+1}: ${_thin.length} thin`, _thin.map(p=>`P${p.idx}:${p.wc}w`));
+        const _vm=[...messages]; _vm[_vm.length-1]={role:'user',content:`VOLUME REVISION REQUIRED:\n\n${_vb}\n\nRewrite the ENTIRE chapter with all parts expanded:\n\n${messages[messages.length-1].content}`};
+        try { const _vr=await callAIConversation(_vm,8192); if(_vr&&_vr.trim().length>200&&!isRefusal(_vr)){
+          let _vc=_vr.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm,'').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi,'').replace(/\n{3,}/g,'\n\n').trim();
+          const _nt=_vc.split(/\*\s*\*\s*\*/).map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
+          if(_nt.length<_thin.length){console.log(`GPT vol ${_va+1}: ${_thin.length}→${_nt.length} thin`);fullContent=_vc;_thin=_nt;}else{console.warn(`GPT vol ${_va+1} no improve`);break;}}else break;
+        } catch(ve){console.warn(`GPT vol ${_va+1} err:`,ve.message);break;}
+      } if(_thin.length>0) console.warn(`Ch ${chapter.chapter_number} GPT vol: ${_thin.length} thin parts remain`);
+    }
     // ── PRE-OUTPUT COMPLIANCE GATE — up to 3 regeneration attempts ──
     { let compAttempt = 0; const MAX_CA = 3;
       let compV = await enforceProseCompliance(fullContent, chapter.chapter_number, projectId, allChapters, chapterIndex);
