@@ -391,6 +391,13 @@ export default function ModelSuggestionPanel({ genre, bookType, selectedModel, o
             <div className="flex items-start gap-2">
               <span className="text-green-600 font-bold mt-0.5 shrink-0">✓</span>
               <div>
+                <span className="font-medium text-slate-800">Gemini</span>
+                <span className="text-slate-600"> — Strongest factual accuracy of non-Claude models. Tends toward academic register — enforcement compensates.</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5 shrink-0">✓</span>
+              <div>
                 <span className="font-medium text-slate-800">DeepSeek</span>
                 <span className="text-slate-600"> — Good for research-heavy chapters. Tends to over-analyze — enforcement layer compensates.</span>
               </div>
@@ -410,6 +417,41 @@ export default function ModelSuggestionPanel({ genre, bookType, selectedModel, o
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Gemini prose warning */}
+      {selectedModel === "gemini-pro" && (
+        <div className="mx-4 mb-4 mt-2 rounded-lg border border-purple-300 bg-purple-50 p-4 text-sm">
+          <p className="font-semibold text-purple-800 mb-2">⚠ Gemini Prose Note</p>
+          {bookType === "nonfiction" ? (
+            <>
+              <p className="text-slate-700 mb-1.5 font-medium">Gemini nonfiction strengths:</p>
+              <ul className="text-slate-600 space-y-0.5 mb-2 ml-1">
+                <li>✓ Strongest factual accuracy of non-Claude models</li>
+                <li>✓ Excellent research depth and synthesis</li>
+              </ul>
+              <p className="text-slate-700 mb-1.5 font-medium">Gemini nonfiction risks (enforcement active):</p>
+              <ul className="text-slate-600 space-y-0.5 mb-2 ml-1">
+                <li>✗ Defaults to academic register — bloodless, measured</li>
+                <li>✗ Over-hedges on contested facts, stalling momentum</li>
+                <li>✗ Pads to length with qualifying clauses instead of scene</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-700 mb-1.5 font-medium">Gemini fiction risks (enforcement active):</p>
+              <ul className="text-slate-600 space-y-0.5 mb-2 ml-1">
+                <li>✗ Purple prose — over-describes, reaches for ornate metaphors</li>
+                <li>✗ Emotional inflation — small moments feel too epic</li>
+                <li>✗ Elevated dialogue — characters sound like speeches</li>
+                <li>✗ Pads with descriptive layers rather than advancing story</li>
+              </ul>
+              <p className="text-xs text-purple-700 leading-relaxed mt-2">
+                Enforcement layer actively suppresses these patterns. For best results on literary or character-driven fiction, Claude is recommended.
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
