@@ -688,6 +688,23 @@ export default function GenerateTab({ projectId, onProceed }) {
   const allGenerated = totalCount > 0 && generatedCount === totalCount;
   const progress = totalCount > 0 ? Math.round((generatedCount / totalCount) * 100) : 0;
 
+  // ── Act Detection ──
+  const parsedOutline = safeParse(resolvedOutlineData);
+  const acts = totalCount > 0 ? detectActBoundaries(chapters, parsedOutline) : null;
+
+  // Load act bridge files on mount
+  useEffect(() => {
+    if (!projectId) return;
+    base44.entities.SourceFile.filter({ project_id: projectId }).then(files => {
+      const bridges = {};
+      for (const f of files) {
+        const m = f.filename?.match(/^act_(\d+)_bridge\.txt$/);
+        if (m) bridges[parseInt(m[1])] = true;
+      }
+      setActBridges(bridges);
+    }).catch(() => {});
+  }, [projectId, generatedCount]);
+
   const handleGenerateOutline = async () => {
     setGenerating(true);
     generatingRef.current = true;
