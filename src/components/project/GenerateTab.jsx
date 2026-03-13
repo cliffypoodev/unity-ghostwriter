@@ -1237,6 +1237,9 @@ export default function GenerateTab({ projectId, onProceed }) {
   };
 
   // ── Write Act handler ──
+  // Writes only chapters within a single act (smaller blast radius: 5-8 calls vs 20-25).
+  // On per-chapter failure, continues to the next chapter (doesn't abort the act).
+  // After full completion, prompts user to generate a continuity bridge before moving on.
   const handleWriteAct = async (actNumber) => {
     if (interiorityMissing) {
       toast.error("Complete Protagonist Interiority in Specifications before generating.");
@@ -1245,12 +1248,13 @@ export default function GenerateTab({ projectId, onProceed }) {
     const act = acts?.[`act${actNumber}`];
     if (!act) return;
 
-    // If act > 1, generate bridge doc for previous act first
-    if (actNumber > 1) {
+    // If act > 1, inject continuity bridge context from the previous act
+    // Auto-generate bridge for previous act if it's complete but bridge is missing
+    if (actNumber > 1 && !actBridges[actNumber - 1]) {
       const prevAct = acts[`act${actNumber - 1}`];
       const prevStatus = getActStatus(chapters, acts, actNumber - 1);
-      if (prevStatus === 'complete' && !actBridges[actNumber - 1]) {
-        toast.info(`Generating Act ${actNumber - 1} bridge document…`);
+      if (prevStatus === 'complete') {
+        toast.info(`Generating Act ${actNumber - 1} continuity bridge…`);
         try {
           await base44.functions.invoke('generateActBridge', {
             project_id: projectId,
@@ -1259,10 +1263,10 @@ export default function GenerateTab({ projectId, onProceed }) {
             act_end: prevAct.end,
           });
           setActBridges(prev => ({ ...prev, [actNumber - 1]: true }));
-          toast.success(`Act ${actNumber - 1} bridge ready`);
+          toast.success(`Act ${actNumber - 1} bridge ready — context will be injected`);
         } catch (err) {
           console.warn('Bridge generation failed:', err.message);
-          toast.error('Bridge generation failed — proceeding without it');
+          toast.error('Bridge generation failed — proceeding without continuity context');
         }
       }
     }
@@ -1302,7 +1306,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       phaseLabel: `Writing Act ${actNumber} (Ch ${act.start}–${act.end})`,
     });
 
-    // Phase 1: Generate scenes for fiction chapters
+    // Phase 1: Generate scenes for fiction chapters that need them
     if (spec?.book_type !== 'nonfiction') {
       const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '');
       if (needScenes.length > 0) {
@@ -1323,13 +1327,14 @@ export default function GenerateTab({ projectId, onProceed }) {
             }
           } catch (err) {
             console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
+            // Don't abort — continue with next chapter's scenes
           }
         }
         await refetchChapters();
       }
     }
 
-    // Phase 2: Sequential chapter writing
+    // Phase 2: Sequential chapter writing within the act
     setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: `Writing Act ${actNumber}` }));
 
     let successes = 0;
@@ -1349,6 +1354,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         wordsWritten: totalWordsWritten,
       }));
 
+      // Write chapter — on failure, log it and continue to next (don't abort the act)
       const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
         setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
       });
@@ -1361,38 +1367,42 @@ export default function GenerateTab({ projectId, onProceed }) {
           .catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
         if (i < toWrite.length - 1) await new Promise(r => setTimeout(r, 3000));
       } else {
+        // Per-chapter failure — record it but keep going
+        console.error(`Act ${actNumber} Ch ${ch.chapter_number} failed: ${result}`);
         failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
       }
 
       setWriteAllProgress(prev => ({ ...prev, current: successes, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
     }
 
-    // Generate bridge doc for this act after completion
-    if (successes === toWrite.length && successes > 0) {
-      try {
-        await base44.functions.invoke('generateActBridge', {
-          project_id: projectId,
-          act_number: actNumber,
-          act_start: act.start,
-          act_end: act.end,
-        });
-        setActBridges(prev => ({ ...prev, [actNumber]: true }));
-      } catch (err) {
-        console.warn('Post-act bridge generation failed:', err.message);
-      }
-    }
+    // Check if act is fully complete after writing
+    const actFullyComplete = failedChapters.length === 0 && successes === toWrite.length && successes > 0;
 
     const elapsed = Date.now() - startTime;
     setWriteAllProgress(prev => ({
       ...prev, current: successes, successes, failures: failedChapters, done: true,
       paused: writeAllAbortRef.current, elapsed: `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s`,
       wordsWritten: totalWordsWritten,
-      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed.` : null,
+      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed. You can retry them individually.` : null,
     }));
 
     setWriteAllActive(false);
     setWritingActNumber(null);
     await refetchChapters();
+
+    // After act completion, prompt user to generate bridge (non-blocking toast)
+    if (actFullyComplete && actNumber < 3) {
+      toast.success(`Act ${actNumber} complete!`, {
+        description: `Generate the continuity bridge before writing Act ${actNumber + 1} for best story consistency.`,
+        duration: 15000,
+        action: {
+          label: `Generate Bridge`,
+          onClick: () => handleGenerateBridge(actNumber),
+        },
+      });
+    } else if (actFullyComplete && actNumber === 3) {
+      toast.success('Act 3 complete — all acts finished!');
+    }
   };
 
   // ── Generate Bridge handler (manual trigger from ActHeader) ──
