@@ -1005,8 +1005,9 @@ function scanNonfictionQuality(text) {
     { rx: /(?:mistakes were made|it was decided|they were seen as)/gi, label: "passive historical voice" }, { rx: /^(?:throughout history|since the dawn of)/gmi, label: "panoramic opening" },
     { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" },
     { rx: /it is worth noting that|it should be mentioned that|one cannot overstate/gi, label: "Gemini hedging filler" },
-    { rx: /a tapestry of/gi, label: "Gemini purple prose" }];
+    { rx: /a tapestry of/gi, label: "Gemini purple prose" },{ rx: /represents more than .{1,30} — it embodies/gi, label: "thesis restatement ending" },{ rx: /would prove essential/gi, label: "hindsight thesis" },{ rx: /the lesson emerging from/gi, label: "thesis restatement" },{ rx: /the broader implications of/gi, label: "thesis restatement" },{ rx: /what we can learn from .{1,30} is/gi, label: "thesis restatement" },{ rx: /\*what burns in/gi, label: "poetry flourish" }];
   for (const { rx, label } of nfBanned) { const matches = text.match(rx); if (matches) { warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`); } }
+  const _nfCaps=[["represents more than",3],["perhaps most significantly",3],["this transformation",4],["this shift",4],["would prove essential",2],["had global implications",2],["the broader implications",2],["demonstrates that",4],["remind us that",3],["in ways that",5]];for(const[p,mx]of _nfCaps){const rx=new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi');const m=text.match(rx);if(m&&m.length>mx)warnings.push(`NF CAP: "${p}" ${m.length}x (max ${mx})`);}
   // DeepSeek-style: consecutive analytical paragraphs (>2 in a row without scene/person)
   const paras = text.split(/\n\n+/);
   let _anRun = 0, _maxAnRun = 0;
