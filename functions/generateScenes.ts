@@ -43,13 +43,22 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   }
 
   if (provider === "google") {
+    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+    if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + Deno.env.get('GOOGLE_AI_API_KEY'),
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey,
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) }
     );
     const data = await response.json();
-    if (!response.ok) throw new Error('Google AI error: ' + (data.error?.message || response.status));
+    if (!response.ok) {
+      console.error('Google AI error response:', JSON.stringify(data));
+      throw new Error('Google AI error: ' + (data.error?.message || `HTTP ${response.status}`));
+    }
+    if (!data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Google AI empty response:', JSON.stringify(data));
+      throw new Error('Google AI returned empty response — possible safety filter or quota issue');
+    }
     return data.candidates[0].content.parts[0].text;
   }
 
