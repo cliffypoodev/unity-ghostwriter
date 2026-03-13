@@ -455,9 +455,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
         ? { selected: rawVoice, reasoning: "" }
         : (rawVoice || {});
 
-      // Valid author_voice IDs from AuthorVoiceSelector
-      const VALID_VOICE_IDS = ["basic","hemingway","austen","morrison","mccarthy","vonnegut","didion","tolkien","rowling","leguin","gaiman","pratchett","chandler","christie","marquez","atwood","king","gladwell","bryson","sagan"];
-      const voiceId = VALID_VOICE_IDS.includes(voiceData.selected) ? voiceData.selected : "basic";
+      // Map author_voice through fuzzy mapper
+      const voiceId = mapToAuthorVoiceOption(voiceData.selected) || "basic";
 
       // Map beat_style through fuzzy mapper
       const beatKey = mapToBeatStyleOption(expanded.beat_style) || "";
