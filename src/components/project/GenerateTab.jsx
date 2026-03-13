@@ -865,7 +865,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       // Only mark as error after a generous grace period (3+ minutes after HTTP error).
       if (httpDone && httpError && ch?.status === 'generating') {
         const is504 = httpError.includes('504') || httpError.includes('Gateway');
-        const gracePeriod = is504 ? 180 : 30; // 3 min grace for 504, 30s for other errors
+        const gracePeriod = is504 ? 420 : 60; // 7 min grace for 504 (nonfiction can take 10+ min), 60s for other errors
         if (elapsed > gracePeriod) {
           console.warn(`Ch ${chapterNumber}: Backend likely crashed (${httpError}, ${elapsed}s elapsed) — marking as error`);
           if (onProgress) onProgress(`Generation timed out — skipping to next chapter`);
