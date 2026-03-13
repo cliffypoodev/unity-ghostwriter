@@ -1,3 +1,34 @@
+// ARCHITECTURAL RULE — DO NOT VIOLATE:
+//
+// Phase 1 (Specification) is ISOLATED from the chapter pipeline.
+// The following systems must NEVER be called from SpecificationTab:
+//
+//   ✗ enforceProseCompliance()
+//   ✗ verifyExplicitTags()
+//   ✗ getTopRepeatedWords()
+//   ✗ verifyGeminiProse()
+//   ✗ verifyGPTVolume()
+//   ✗ verifyNonfictionVolume()
+//   ✗ generateChapterWithCompliance()
+//   ✗ prepareChapterGeneration()
+//   ✗ protagonist_interiority validation gate
+//
+// These systems require chapters, beat sheets, and project data
+// that do not exist at Phase 1. Calling them here will always
+// throw a 500.
+//
+// Phase 1 AI calls use dedicated backend functions:
+//   developIdea, expandPremise, bookConsultantChat, configSubgenres
+// That is the only pattern permitted in this file.
+//
+// PIPELINE PHASE ISOLATION MAP:
+//   Phase 1  SpecificationTab    → developIdea, expandPremise, extractMetadata
+//   Phase 2  OutlineTab          → generateOutline, generateOutlineDetail, beatSheetEngine
+//   Phase 3  GenerateTab         → writeChapter (prose compliance, volume gates, quality gates)
+//   Phase 4  ReviewPolishTab     → consistencyCheck, rewriteInVoice, characterInterview
+//
+// No phase may call a function designated for another phase.
+
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
