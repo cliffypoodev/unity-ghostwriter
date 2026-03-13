@@ -81,41 +81,30 @@ function matchGenre(aiGenre, bookType) {
   return null;
 }
 
-const ALL_VOICE_IDS = ["basic","hemingway","austen","morrison","mccarthy","vonnegut","didion","tolkien","rowling","leguin","gaiman","pratchett","chandler","christie","marquez","atwood","king","gladwell","bryson","sagan"];
+const ALL_VOICE_IDS = ALL_AUTHOR_PROFILES.map(a => a.id);
 
 function mapToAuthorVoiceOption(inferred) {
   const key = inferred?.trim();
   if (!key) return null;
   // Direct ID match
   if (ALL_VOICE_IDS.includes(key)) return key;
-  if (ALL_VOICE_IDS.includes(key.toLowerCase())) return key.toLowerCase();
-  // Label-to-ID fuzzy map for common AI variations
-  const fuzzy = {
-    'ernest hemingway':'hemingway','jane austen':'austen','toni morrison':'morrison',
-    'cormac mccarthy':'mccarthy','kurt vonnegut':'vonnegut','joan didion':'didion',
-    'j.r.r. tolkien':'tolkien','jrr tolkien':'tolkien','j.k. rowling':'rowling','jk rowling':'rowling',
-    'ursula k. le guin':'leguin','ursula le guin':'leguin','neil gaiman':'gaiman',
-    'terry pratchett':'pratchett','raymond chandler':'chandler','agatha christie':'christie',
-    'gabriel garcia marquez':'marquez','gabriel garcía márquez':'marquez',
-    'margaret atwood':'atwood','stephen king':'king','malcolm gladwell':'gladwell',
-    'bill bryson':'bryson','carl sagan':'sagan',
-    'terse':'hemingway','understated':'hemingway','witty':'austen','ironic':'austen',
-    'lyrical':'morrison','poetic':'morrison','sparse':'mccarthy','biblical':'mccarthy',
-    'absurdist':'vonnegut','darkly humorous':'vonnegut','cool':'didion','precise':'didion',
-    'mythic':'tolkien','elevated':'tolkien','accessible':'rowling','whimsical':'rowling',
-    'philosophical':'leguin','genre-blending':'gaiman','satirical':'pratchett','comedic':'pratchett',
-    'hardboiled':'chandler','cynical':'chandler','noir':'chandler',
-    'puzzle':'christie','misdirecting':'christie',
-    'lush':'marquez','sprawling':'marquez','sharp':'atwood','sardonic':'atwood',
-    'conversational':'king','dread':'king','horror':'king',
-    'narrative-driven':'gladwell','counterintuitive':'gladwell',
-    'humorous':'bryson','curious':'bryson','awe-inspiring':'sagan',
-  };
   const lk = key.toLowerCase();
-  if (fuzzy[lk]) return fuzzy[lk];
-  for (const [label, value] of Object.entries(fuzzy)) {
-    if (lk.includes(label) || label.includes(lk)) return value;
-  }
+  if (ALL_VOICE_IDS.includes(lk)) return lk;
+  // Name-to-ID: match against author name field
+  const nameMatch = ALL_AUTHOR_PROFILES.find(a =>
+    a.name.toLowerCase() === lk ||
+    a.name.toLowerCase().includes(lk) ||
+    lk.includes(a.name.toLowerCase().split(' ').pop())
+  );
+  if (nameMatch) return nameMatch.id;
+  // Legacy ID fallback
+  const resolved = resolveAuthorId(key);
+  if (resolved !== 'basic') return resolved;
+  // Fuzzy descriptor match
+  const descMatch = ALL_AUTHOR_PROFILES.find(a =>
+    a.descriptor && a.descriptor.toLowerCase().split(',').some(d => lk.includes(d.trim()))
+  );
+  if (descMatch) return descMatch.id;
   console.warn(`mapToAuthorVoiceOption: no match for "${inferred}"`);
   return null;
 }
