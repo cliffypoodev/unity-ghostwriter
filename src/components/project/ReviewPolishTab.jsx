@@ -1,3 +1,14 @@
+// PIPELINE PHASE ISOLATION — Phase 4 (Review + Polish)
+//
+// Permitted AI calls: InvokeLLM (manuscript analysis, issue fixing, passage rewriting),
+//   consistencyCheck, rewriteInVoice, characterInterview
+//
+// Forbidden: developIdea, expandPremise (Phase 1), generateOutline (Phase 2),
+//            writeChapter, enforceProseCompliance, verifyGeminiProse (Phase 3).
+//
+// This file reads completed chapter content for review but must NOT
+// trigger generation or outline functions.
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
