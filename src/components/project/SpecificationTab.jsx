@@ -538,6 +538,17 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
+  // Inject Phase 1 styles once on mount
+  useEffect(() => {
+    const id = 'phase1-injected-styles';
+    if (!document.getElementById(id)) {
+      const tag = document.createElement('style');
+      tag.id = id;
+      tag.textContent = PHASE1_INJECTED_STYLES;
+      document.head.appendChild(tag);
+    }
+  }, []);
+
   useEffect(() => {
     base44.functions.invoke('configSubgenres', {})
       .then(res => setSubgenresData(res.data || {}))
