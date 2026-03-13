@@ -521,17 +521,20 @@ export default function SpecificationTab({ projectId, onProceed }) {
         const fill = (field, val) => {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
-        // Auto-select genre — match against known genre lists
+        // Auto-select genre — fuzzy match against known genre lists
         if (expanded.genre && !prev.genre) {
-          const allGenres = prev.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
-          const genreLower = expanded.genre.toLowerCase();
-          const matched = allGenres.find(g => g.toLowerCase() === genreLower);
+          const matched = matchGenre(expanded.genre, prev.book_type);
           if (matched) {
             next.genre = matched;
+            next.subgenre = ""; // clear so dependent dropdown reloads
             filled.push("genre");
           }
         }
-        fill("subgenre", expanded.subgenre);
+        // Defer subgenre — it depends on genre being set first and options loading
+        if (expanded.subgenre && (next.genre || prev.genre)) {
+          pendingSubgenreRef.current = expanded.subgenre;
+          // Don't fill("subgenre") — the useEffect will handle it
+        }
         fill("beat_style", beatKey);
         fill("detail_level", expanded.detail_level);
         // Auto-select story structure
