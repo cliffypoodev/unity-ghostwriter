@@ -96,7 +96,7 @@ function mapToBeatStyleOption(inferred) {
   const map = {
     'Fast-Paced Thriller':'fast-paced-thriller','Gritty Cinematic':'gritty-cinematic',
     'Hollywood Blockbuster':'hollywood-blockbuster','Slow Burn':'slow-burn',
-    'Clean Romance':'clean-romance','Faith-Infused Contemporary':'faith-infused-contemporary',
+    'Clean Romance':'clean-romance','Faith-Infused Contemporary':'faith-infused','Faith-Infused':'faith-infused',
     'Investigative / Nonfiction':'investigative-nonfiction','Reference / Educational':'reference-educational',
     'Intellectual Psychological':'intellectual-psychological','Dark Suspense':'dark-suspense',
     'Satirical':'satirical','Epic Historical':'epic-historical','Whimsical Cozy':'whimsical-cozy',
