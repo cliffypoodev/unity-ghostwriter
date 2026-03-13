@@ -410,7 +410,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
             {hasScenes && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
             )}
-            {!isFiction && parsedScenes?.opening_hook && (
+            {hasNfBeatSheet && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600 font-semibold">beat sheet</span>
             )}
             {chapter.word_count > 0 && (
