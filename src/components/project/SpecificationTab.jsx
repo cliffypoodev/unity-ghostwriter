@@ -358,9 +358,26 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const expanded = response.data;
       const filled = [];
 
-      // Extract structured audience/voice with reasoning
-      const audienceData = expanded.target_audience || {};
-      const voiceData = expanded.author_voice || {};
+      // Normalize target_audience — might be string or {selected, secondary, reasoning}
+      const rawAudience = expanded.target_audience;
+      const audienceData = typeof rawAudience === "string"
+        ? { selected: rawAudience, secondary: "", reasoning: "" }
+        : (rawAudience || {});
+      const audienceString = audienceData.selected || "";
+
+      // Normalize author_voice — might be string or {selected, reasoning}
+      const rawVoice = expanded.author_voice;
+      const voiceData = typeof rawVoice === "string"
+        ? { selected: rawVoice, reasoning: "" }
+        : (rawVoice || {});
+
+      // Valid author_voice IDs from AuthorVoiceSelector
+      const VALID_VOICE_IDS = ["basic","hemingway","austen","morrison","mccarthy","vonnegut","didion","tolkien","rowling","leguin","gaiman","pratchett","chandler","christie","marquez","atwood","king","gladwell","bryson","sagan"];
+      const voiceId = VALID_VOICE_IDS.includes(voiceData.selected) ? voiceData.selected : "basic";
+
+      // Valid beat_style keys from BeatStyleSelector
+      const VALID_BEAT_KEYS = ["basic","fast-paced-thriller","hyper-stylized-action","hollywood-blockbuster","visceral-horror","grandiose-space-opera","gritty-cinematic","dark-suspense","hard-boiled-noir","urban-gritty-fantasy","high-stakes-political","epic-historical","intellectual-psychological","cerebral-sci-fi","clinical-procedural","satirical","surrealist-avant-garde","clean-romance","slow-burn","nostalgic-coming-of-age","melancholic-literary","poetic-magical-realism","faith-infused","whimsical-cozy","steamy-romance","slow-burn-romance","dark-erotica","journal-personal","longform-article","formal-report","deep-investigative","historical-account","true-crime-account","memoir-narrative","academic-accessible","investigative-nonfiction","reference-educational"];
+      const beatKey = VALID_BEAT_KEYS.includes(expanded.beat_style) ? expanded.beat_style : "";
 
       setForm(prev => {
         const next = { ...prev };
@@ -370,22 +387,22 @@ export default function SpecificationTab({ projectId, onProceed }) {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
         fill("subgenre", expanded.subgenre);
-        fill("beat_style", expanded.beat_style);
+        fill("beat_style", beatKey);
         fill("detail_level", expanded.detail_level);
         if (expanded.chapter_count && !prev.chapter_count) {
           next.chapter_count = expanded.chapter_count;
           filled.push("chapter_count");
         }
 
-        // Auto-select target_audience (always apply — it's the main feature)
-        if (audienceData.selected) {
-          next.target_audience = audienceData.selected;
+        // Auto-select target_audience — always a string
+        if (audienceString) {
+          next.target_audience = audienceString;
           filled.push("target_audience");
         }
 
-        // Auto-select author_voice (always apply)
-        if (voiceData.selected) {
-          next.author_voice = voiceData.selected;
+        // Auto-select author_voice — always a valid dropdown ID
+        if (voiceId !== "basic" || !prev.author_voice) {
+          next.author_voice = voiceId;
           filled.push("author_voice");
         }
 
