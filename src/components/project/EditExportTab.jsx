@@ -887,60 +887,16 @@ export default function EditExportTab({ projectId }) {
               min-height: 900px;
               max-width: 800px;
               margin: 24px auto;
-              background: transparent;
-              box-shadow: none;
-              border-radius: 0;
-              padding: 0;
+              background: ${docSettings.pageBg};
+              box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+              border-radius: 4px;
+              padding: ${docSettings.margins || "1in"};
               transform-origin: top center;
               transform: scale(${zoom / 100});
               line-height: ${docSettings.lineSpacing};
               font-size: ${docSettings.bodyFontSize};
               font-family: ${FONT_FAMILIES[docSettings.bodyFont] || "Georgia, serif"};
               color: ${docSettings.pageBg === "#1e1e1e" ? "#f1f5f9" : "#1e293b"};
-            }
-            /* Page-like visual sections — each chapter starts on a new "page" */
-            .quill-page-wrapper .ql-editor > * {
-              /* All children get page padding */
-            }
-            .quill-page-wrapper .ql-editor .chapter-page {
-              background: ${docSettings.pageBg};
-              box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
-              border-radius: 4px;
-              padding: ${docSettings.margins || "1in"};
-              margin-bottom: 32px;
-            }
-            /* Fallback: wrap content in page-like container via padding on ql-editor itself
-               and use page-break divs as visual separators */
-            .quill-page-wrapper .ql-editor {
-              padding: ${docSettings.margins || "1in"};
-              padding-top: 0;
-            }
-            .quill-page-wrapper .ql-editor > div[style*="page-break"] {
-              display: block !important;
-              height: 0;
-              margin: 0;
-              padding: 0;
-              border: none;
-              page-break-before: always;
-              position: relative;
-            }
-            /* Create visual page gap after the page-break div */
-            .quill-page-wrapper .ql-editor > div[style*="page-break"]::before {
-              content: '';
-              display: block;
-              height: 48px;
-              background: ${docSettings.pageBg === "#1e1e1e" ? "#0f0f0f" : "#e2e8f0"};
-              margin-left: calc(-1 * ${docSettings.margins || "1in"});
-              margin-right: calc(-1 * ${docSettings.margins || "1in"});
-              border-top: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#333" : "#cbd5e1"};
-              border-bottom: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#333" : "#cbd5e1"};
-              box-shadow: inset 0 4px 8px rgba(0,0,0,0.08), inset 0 -4px 8px rgba(0,0,0,0.08);
-            }
-            /* Page-like background on ql-editor segments between breaks */
-            .quill-page-wrapper .ql-editor {
-              background: ${docSettings.pageBg};
-              box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
-              border-radius: 4px;
             }
             .quill-page-wrapper .ql-editor h1,
             .quill-page-wrapper .ql-editor h2,
