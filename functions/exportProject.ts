@@ -160,93 +160,104 @@ function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
     children: titleChildren,
   });
 
-  // Chapter sections
+  // Chapter sections — each wrapped in try/catch so one bad chapter doesn't kill the export
   for (const ch of generatedChapters) {
-    const plainText = stripHtml(ch.resolvedContent || '');
-    const paragraphs = plainText.split(/\n\n+/).filter(p => p.trim());
-
-    const chChildren = [
-      new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 600, after: 300 },
-        children: [
-          new TextRun({
-            text: `Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}`,
-            font: headingFont,
-            size: 36,
-            bold: true,
-          }),
-        ],
-      }),
-    ];
-
-    for (const p of paragraphs) {
-      // Check for scene breaks (lines that are just "***" or "---" etc.)
-      const trimmed = p.trim();
-      if (/^[\*\-_]{3,}$/.test(trimmed) || trimmed === '* * *') {
-        chChildren.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 200, after: 200 },
-            children: [
-              new TextRun({
-                text: '* * *',
-                font: bodyFont,
-                size: bodySizeHp,
-              }),
-            ],
-          })
-        );
+    try {
+      const rawContent = ch.resolvedContent || '';
+      // Skip chapters with no real content
+      if (!rawContent || rawContent.trim().length < 10) {
+        console.warn(`Chapter ${ch.chapter_number} has no usable content, inserting placeholder`);
+        sections.push({
+          properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+          children: [
+            new Paragraph({
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 600, after: 300 },
+              children: [new TextRun({ text: sanitizeForDocx(`Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}`), font: headingFont, size: 36, bold: true })],
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: '[Chapter content not yet generated]', font: bodyFont, size: bodySizeHp, italics: true, color: '999999' })],
+            }),
+          ],
+        });
         continue;
       }
 
-      // Parse basic inline formatting from the paragraph text
-      const runs = [];
-      // Simple approach: split by common patterns
-      const parts = trimmed.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
-      for (const part of parts) {
-        if (!part) continue;
-        if (part.startsWith('**') && part.endsWith('**')) {
+      const plainText = stripHtml(rawContent);
+      const paragraphs = plainText.split(/\n\n+/).filter(p => p.trim());
+
+      const chChildren = [
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 600, after: 300 },
+          children: [
+            new TextRun({
+              text: sanitizeForDocx(`Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}`),
+              font: headingFont,
+              size: 36,
+              bold: true,
+            }),
+          ],
+        }),
+      ];
+
+      for (const p of paragraphs) {
+        const trimmed = p.trim();
+        if (/^[\*\-_]{3,}$/.test(trimmed) || trimmed === '* * *') {
+          chChildren.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 200, after: 200 },
+              children: [new TextRun({ text: '* * *', font: bodyFont, size: bodySizeHp })],
+            })
+          );
+          continue;
+        }
+
+        const runs = [];
+        const parts = trimmed.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+        for (const part of parts) {
+          if (!part) continue;
+          const safeText = sanitizeForDocx(part.startsWith('**') ? part.slice(2, -2) : part.startsWith('*') ? part.slice(1, -1) : part);
+          if (!safeText) continue;
           runs.push(new TextRun({
-            text: part.slice(2, -2),
+            text: safeText,
             font: bodyFont,
             size: bodySizeHp,
-            bold: true,
+            bold: part.startsWith('**') && part.endsWith('**') ? true : undefined,
+            italics: part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') ? true : undefined,
           }));
-        } else if (part.startsWith('*') && part.endsWith('*')) {
-          runs.push(new TextRun({
-            text: part.slice(1, -1),
-            font: bodyFont,
-            size: bodySizeHp,
-            italics: true,
-          }));
-        } else {
-          runs.push(new TextRun({
-            text: part,
-            font: bodyFont,
-            size: bodySizeHp,
-          }));
+        }
+
+        if (runs.length > 0) {
+          chChildren.push(
+            new Paragraph({
+              spacing: { after: Math.round(bodySize * 8), line: lineSpacingVal },
+              children: runs,
+            })
+          );
         }
       }
 
-      chChildren.push(
-        new Paragraph({
-          spacing: { after: Math.round(bodySize * 8), line: lineSpacingVal },
-          children: runs,
-        })
-      );
+      sections.push({
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children: chChildren,
+      });
+    } catch (chapterErr) {
+      console.error(`DOCX: Chapter ${ch.chapter_number} failed:`, chapterErr.message);
+      sections.push({
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children: [
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            children: [new TextRun({ text: sanitizeForDocx(`Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}`), font: headingFont, size: 36, bold: true })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `[Export error: ${chapterErr.message}]`, font: bodyFont, size: bodySizeHp, italics: true, color: 'CC0000' })],
+          }),
+        ],
+      });
     }
-
-    sections.push({
-      properties: {
-        page: {
-          margin: {
-            top: 1440, right: 1440, bottom: 1440, left: 1440, // 1 inch = 1440 twips
-          },
-        },
-      },
-      children: chChildren,
-    });
   }
 
   return new Document({
