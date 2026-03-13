@@ -83,18 +83,16 @@ Deno.serve(async (req) => {
 
   const characterNames = (storyBible?.characters || []).map(c => c.name).filter(Boolean).join(', ');
 
-  const systemPrompt = `You are a story continuity editor creating a bridge document between acts of a novel. Your bridge document will be injected into the AI's context when generating the next act, so it must be precise, concrete, and structured.
+  const nextAct = act_number + 1;
 
-Return ONLY the bridge document text — no preamble, no commentary.`;
+  const systemPrompt = `You are a continuity editor reviewing completed chapters before the next act of a novel begins. Return ONLY the bridge document text — no preamble, no commentary. Write in present tense. Be specific — no generalizations.`;
 
   const userMessage = `Generate an Act ${act_number} Bridge Document for a ${spec?.genre || 'fiction'} novel.
 
 CHARACTERS: ${characterNames || 'See state documents'}
+GENRE: ${spec?.genre || 'Fiction'} / ${spec?.subgenre || 'N/A'}
 
-GENRE: ${spec?.genre || 'Fiction'}
-SUBGENRE: ${spec?.subgenre || 'N/A'}
-
-ACT ${act_number} CHAPTERS (${actChapters.length} chapters, Ch ${act_start}–${act_end}):
+COMPLETED ACT ${act_number} — CHAPTERS ${act_start} TO ${act_end}:
 
 ${chapterSummaries.map(ch => `--- Chapter ${ch.number}: "${ch.title}" (${ch.word_count} words) ---
 Summary: ${ch.summary}
@@ -102,37 +100,35 @@ ${ch.state_document ? `State: ${ch.state_document.slice(0, 800)}` : ''}
 Ending: ${ch.last_paragraph}
 `).join('\n')}
 
-Generate a structured bridge document with these EXACT sections:
+Generate a concise Act ${act_number} Bridge Document containing:
 
-NARRATIVE POSITION:
-- Where each named character physically is at the end of Act ${act_number}
-- What each character knows and doesn't know
-- Any injuries, emotional states, or altered conditions
+1. CHARACTER STATE — For each named character:
+   - Current location
+   - Physical condition (injuries, fatigue, health)
+   - Emotional state
+   - What they want right now
+   - What they know that others don't
+   - Relationships changed since the story began
 
-RELATIONSHIP MAP:
-- Status of every significant relationship (allies, enemies, romantic, familial)
-- What has changed since the start of Act ${act_number}
-- Unresolved tension between specific characters
+2. UNRESOLVED THREADS — List every plot thread, question, or conflict introduced in Act ${act_number} that has NOT been resolved.
+   Format: [Thread name] — [Status] — [Last seen in Chapter X]
 
-OPEN PLOT THREADS:
-- Every unanswered question or unresolved plot element
-- Mark each as: MUST_RESOLVE (critical) or SHOULD_ADDRESS (important but flexible)
+3. ESTABLISHED FACTS — Details that MUST remain consistent:
+   - Locations described and their established characteristics
+   - Objects introduced and their current whereabouts
+   - Timeline (what day/time is it at act end?)
+   - Rules established (magic systems, technology limits, etc.)
 
-ESCALATION STATUS:
-- Current threat level and what specifically is at stake
-- What has been permanently lost or changed (cannot be undone)
-- What the protagonist believes vs what is actually true
+4. EMOTIONAL TRAJECTORY — One paragraph describing the emotional arc of Act ${act_number} and what emotional state the reader is in as Act ${nextAct} begins.
 
-BANNED CONTENT (for next act):
-- Emotional beats that have already been used (don't repeat)
-- Scene types that have already appeared (vary the approach)
-- Any clichéd phrases or constructions that appeared in this act
+5. ACT ${nextAct} ENTRY POINT — The exact scene situation at the end of Act ${act_number}:
+   - Who is present
+   - Where they are
+   - What just happened
+   - What the immediate next problem is
 
-TONE TRAJECTORY:
-- What emotional register the next act should open with
-- How intensity should shift from here
-
-Keep the bridge document under 1500 words. Be specific — use character names, locations, and concrete plot details. No vague generalizations.`;
+Keep the entire document under 800 words.
+Write in present tense. Be specific — no generalizations.`;
 
   const bridge = await callAI(systemPrompt, userMessage);
 
