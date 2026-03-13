@@ -1572,8 +1572,9 @@ export default function GenerateTab({ projectId, onProceed }) {
                   chapterCount={actChapters.length}
                   generatedCount={actGenerated}
                   onWriteAct={handleWriteAct}
+                  onGenerateBridge={handleGenerateBridge}
                   isWriting={writingActNumber === actNum}
-                  hasBridge={!!actBridges[actNum] || (actNum === 1 && false)}
+                  hasBridge={!!actBridges[actNum]}
                   disabled={!prevComplete || writeAllActive || interiorityMissing}
                 />
                 {actChapters.map(chapter => {
