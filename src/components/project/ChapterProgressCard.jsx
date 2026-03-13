@@ -44,7 +44,7 @@ export default function ChapterProgressCard({ current, currentTitle, chapterWord
         <div className="flex items-center gap-2">
           <span className="wac-pulse" />
           <span className="text-sm font-semibold text-slate-700">
-            Writing Chapter {current + 1}
+            Writing Chapter {chapterNumber || current + 1}
           </span>
         </div>
         <span className="text-xs font-medium text-slate-500">{timeStr}</span>
