@@ -1640,6 +1640,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                   isWriting={writingActNumber === actNum}
                   hasBridge={!!actBridges[actNum]}
                   disabled={!prevComplete || writeAllActive || interiorityMissing}
+                  prevActComplete={prevComplete}
                 />
                 {actChapters.map(chapter => {
                   const olCh = parsedOutline?.chapters?.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
