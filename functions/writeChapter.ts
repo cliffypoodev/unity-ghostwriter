@@ -1303,7 +1303,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
 
       const authorBlock = getAuthorStyleBlock(projectSpec);
 
-      systemPrompt = `You are a novelist writing Chapter ${chapter.chapter_number} of a ${projectSpec?.genre || 'fiction'} novel.
+      systemPrompt = `${buildCtxHeader(projectSpec)}\nYou are a novelist writing Chapter ${chapter.chapter_number} of a ${projectSpec?.genre || 'fiction'} novel.
 
 STYLE: ${beatInstructions}
 
