@@ -998,18 +998,15 @@ function scanNonfictionQuality(text) {
   if (verifyTags > 0) { warnings.push(`UNVERIFIED CLAIMS (${verifyTags}): flagged [VERIFY] for author verification`); }
 
   // Check for nonfiction-specific banned phrases
-  const nfBanned = [
-    { rx: /(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi, label: "emotional melodrama" },
-    { rx: /(?:warmth|sense of peace|wave of calm)\s+(?:spread|washed|flooded)\s+(?:through|over)/gi, label: "inspirational fiction" },
-    { rx: /felt a renewed sense of/gi, label: "inspirational cliche" },
-    { rx: /it was (?:a )?(?:powerful |beautiful |profound )?(?:reminder|testament)/gi, label: "declaration instead of showing" },
-    { rx: /(?:infectious|contagious)\s+(?:laughter|enthusiasm|energy|smile|joy)/gi, label: "cliche 'infectious'" },
-    { rx: /(?:monumental|transformative|life-changing|game-changer|game.changing)/gi, label: "hyperbolic adjective" },
-    { rx: /(?:beacon of hope|ray of light|silver lining)/gi, label: "inspirational cliche" },
-    { rx: /(?:on a journey|navigate this journey|the road ahead|armed with knowledge)/gi, label: "journey metaphor" },
-    { rx: /together,?\s+they\s+(?:would|could|will)\s+(?:build|create|forge)/gi, label: "inspirational fiction" },
-    { rx: /(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi, label: "fictional celebration scene" },
-  ];
+  const nfBanned = [{ rx: /(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi, label: "emotional melodrama" },
+    { rx: /(?:warmth|sense of peace|wave of calm)\s+(?:spread|washed|flooded)\s+(?:through|over)/gi, label: "inspirational fiction" }, { rx: /felt a renewed sense of/gi, label: "inspirational cliche" },
+    { rx: /it was (?:a )?(?:powerful |beautiful |profound )?(?:reminder|testament)/gi, label: "declaration" }, { rx: /(?:infectious|contagious)\s+(?:laughter|enthusiasm|energy|smile|joy)/gi, label: "cliche 'infectious'" },
+    { rx: /(?:monumental|transformative|life-changing|game-changer|game.changing)/gi, label: "hyperbolic adjective" }, { rx: /(?:beacon of hope|ray of light|silver lining)/gi, label: "inspirational cliche" },
+    { rx: /(?:on a journey|navigate this journey|the road ahead|armed with knowledge)/gi, label: "journey metaphor" }, { rx: /together,?\s+they\s+(?:would|could|will)\s+(?:build|create|forge)/gi, label: "inspirational fiction" },
+    { rx: /(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi, label: "fictional celebration" },
+    { rx: /it is important to note that/gi, label: "importance announcement" }, { rx: /this would prove to be/gi, label: "hindsight framing" },
+    { rx: /(?:mistakes were made|it was decided|they were seen as)/gi, label: "passive historical voice" }, { rx: /^(?:throughout history|since the dawn of)/gmi, label: "panoramic opening" },
+    { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" }];
 
   for (const { rx, label } of nfBanned) {
     const matches = text.match(rx);
