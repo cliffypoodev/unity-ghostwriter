@@ -689,12 +689,30 @@ export default function SpecificationTab({ projectId, onProceed }) {
     pendingSubgenreRef.current = null;
   }, [form.genre, currentSubgenres]);
 
+  const [psychOpen, setPsychOpen] = useState(true);
+
+  const sectionIds = ['sec-premise','sec-basics','sec-style','sec-voice','sec-psych','sec-resources'];
+  const [activeSection, setActiveSection] = useState('sec-premise');
+
+  useEffect(() => {
+    const handler = () => {
+      let current = sectionIds[0];
+      sectionIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top < 160) current = id;
+      });
+      setActiveSection(current);
+    };
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
+
   const hl = (field) => highlightedFields[field]
     ? "ring-2 ring-violet-400 ring-offset-1 rounded-md transition-all duration-500"
     : "";
 
   return (
-    <div className="space-y-6">
+    <div className="phase1-wrap">
       <style>{`
         @keyframes field-glow {
           0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
@@ -704,26 +722,56 @@ export default function SpecificationTab({ projectId, onProceed }) {
         .field-highlight { animation: field-glow 1.8s ease-out; }
       `}</style>
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            Project Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      {/* ── LEFT: Section Nav ── */}
+      <nav className="phase1-nav">
+        <div className="phase1-nav-header">ON THIS PAGE</div>
+        {[
+          { id: 'sec-premise',   label: 'Premise'       },
+          { id: 'sec-basics',    label: 'Book Basics'   },
+          { id: 'sec-style',     label: 'Style & Tone'  },
+          { id: 'sec-voice',     label: 'Voice & Model' },
+          { id: 'sec-psych',     label: 'Psychology'    },
+          { id: 'sec-resources', label: 'Resources'     },
+        ].map(({ id, label }) => (
+          <a
+            key={id}
+            className={`phase1-nav-item${activeSection === id ? ' active' : ''}`}
+            href={`#${id}`}
+            onClick={e => {
+              e.preventDefault();
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            <div className="phase1-nav-dot" />
+            {label}
+          </a>
+        ))}
+      </nav>
 
-          {/* Topic / Premise — full width */}
-          <div>
-            <Label className="text-sm font-medium">Topic / Premise</Label>
-            <Textarea
-              className="mt-1.5"
-              rows={3}
-              placeholder="A story about..."
-              value={form.topic}
-              onChange={e => handleChange("topic", e.target.value)}
-            />
-            <div className="flex gap-2 mt-2 flex-wrap">
+      {/* ── RIGHT: Form ── */}
+      <div className="phase1-form">
+
+        {/* ══ SECTION 1 — PREMISE ══ */}
+        <div className="p1-card" id="sec-premise">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background:'#ede9fe', color:'#7c3aed' }}>📝</div>
+            <div>
+              <div className="p1-card-title">Premise</div>
+              <div className="p1-card-subtitle">Your book's core idea and concept</div>
+            </div>
+          </div>
+          <div className="p1-card-body">
+            <div className="p1-field-group">
+              <div className="p1-label">Topic / Premise</div>
+              <Textarea
+                rows={3}
+                placeholder="A story about..."
+                value={form.topic}
+                onChange={e => handleChange("topic", e.target.value)}
+              />
+            </div>
+
+            <div className="p1-premise-actions">
               <Button
                 onClick={handleDevelopIdea}
                 disabled={developingIdea}
@@ -743,6 +791,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 <Search className="w-4 h-4 mr-2" /> Browse Catalog
               </Button>
             </div>
+
             {marketNotes && (
               <div className="mt-3 flex items-start gap-2 rounded-lg px-4 py-3 text-sm" style={{ background: "#f5f3ff", borderLeft: "3px solid #7c3aed" }}>
                 <div className="flex-1 text-slate-700 leading-relaxed">{marketNotes}</div>
@@ -751,94 +800,70 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </button>
               </div>
             )}
+
+            <div className="mt-3">
+              <PromptSuggestions
+                bookType={form.book_type}
+                genre={form.genre}
+                onSelect={handleSelectPrompt}
+                onBrowseAll={() => setShowCatalogBrowser(true)}
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Prompt Catalog Suggestions */}
-          <PromptSuggestions
-            bookType={form.book_type}
-            genre={form.genre}
-            onSelect={handleSelectPrompt}
-            onBrowseAll={() => setShowCatalogBrowser(true)}
-          />
-
-          {/* 2-column grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left column */}
-            <div className="space-y-4">
+        {/* ══ SECTION 2 — BOOK BASICS ══ */}
+        <div className="p1-card" id="sec-basics">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background:'#dbeafe', color:'#1d4ed8' }}>📚</div>
+            <div>
+              <div className="p1-card-title">Book Basics</div>
+              <div className="p1-card-subtitle">Type, genre, audience, and length</div>
+            </div>
+          </div>
+          <div className="p1-card-body">
+            {/* Row 1: Book Type + Genre */}
+            <div className="p1-grid-2 p1-field-group">
               <div className={hl("book_type")}>
-                <Label className="text-sm font-medium">Book Type</Label>
+                <div className="p1-label">Book Type</div>
                 <Select value={form.book_type} onValueChange={v => handleChange("book_type", v)}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="fiction">Fiction</SelectItem>
                     <SelectItem value="nonfiction">Nonfiction</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className={hl("genre")}>
-                <Label className="text-sm font-medium">Genre / Category</Label>
+                <div className="p1-label">Genre / Category</div>
                 <Select value={form.genre} onValueChange={v => handleChange("genre", v)}>
-                  <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select genre..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select genre..." /></SelectTrigger>
                   <SelectContent>
                     {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-
-              {currentSubgenres.length > 0 && (
-                <div className={hl("subgenre")}>
-                  <Label className="text-sm font-medium">Subgenre <span className="text-slate-400 font-normal">(optional)</span></Label>
-                  <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {currentSubgenres.map(sg => <SelectItem key={sg} value={sg}>{sg}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className={hl("target_length")}>
-                <Label className="text-sm font-medium">Target Length</Label>
-                <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TARGET_LENGTHS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Chapter Count <span className="text-slate-400 font-normal">(optional)</span></Label>
-                <Input
-                  className="mt-1.5"
-                  type="number"
-                  min={1}
-                  max={100}
-                  placeholder="e.g. 20"
-                  value={form.chapter_count || ""}
-                  onChange={e => handleChange("chapter_count", e.target.value ? parseInt(e.target.value) : "")}
-                />
-              </div>
-
-              <div className={hl("detail_level")}>
-                <Label className="text-sm font-medium">Detail Level</Label>
-                <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DETAIL_LEVELS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            {/* Right column */}
-            <div className="space-y-4">
+            {/* Subgenre (conditional) */}
+            {currentSubgenres.length > 0 && (
+              <div className={`p1-field-group ${hl("subgenre")}`}>
+                <div className="p1-label">Subgenre <span className="p1-label-opt">(optional)</span></div>
+                <Select value={form.subgenre} onValueChange={v => handleChange("subgenre", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select a subgenre..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {currentSubgenres.map(sg => <SelectItem key={sg} value={sg}>{sg}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Row 2: Target Audience + Story Structure */}
+            <div className="p1-grid-2 p1-field-group">
               <div className={hl("target_audience")}>
-                <Label className="text-sm font-medium">Target Audience</Label>
+                <div className="p1-label">Target Audience</div>
                 <Input
-                  className="mt-1.5"
                   placeholder="e.g. Young adults aged 16–25..."
                   value={form.target_audience}
                   onChange={e => handleChange("target_audience", e.target.value)}
@@ -855,22 +880,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   </div>
                 )}
               </div>
-
-              <div className={hl("beat_style")}>
-                <Label className="text-sm font-medium">Beat Style</Label>
-                <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
-                {autoHints.beat_style?.reasoning && (
-                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
-                    <span className="shrink-0">✦</span>
-                    <span>Auto-selected: {autoHints.beat_style.reasoning}</span>
-                  </p>
-                )}
-              </div>
-
               <div className={hl("beat_sheet_template")}>
-                <Label className="text-sm font-medium">Story Structure</Label>
+                <div className="p1-label">Story Structure</div>
                 <Select value={form.beat_sheet_template || "auto"} onValueChange={v => handleChange("beat_sheet_template", v)}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="auto">Auto-detect (based on genre)</SelectItem>
                     {form.book_type === "fiction" ? (
@@ -892,14 +905,74 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 </Select>
                 <p className="text-xs text-slate-400 mt-1">
                   {form.book_type === "fiction" 
-                    ? "Controls pacing structure — what kind of chapter goes where. Auto picks the best fit for your genre."
-                    : "Controls argument structure — what each chapter's job is. Auto picks the best fit for your genre."}
+                    ? "Controls pacing structure — Auto picks the best fit for your genre."
+                    : "Controls argument structure — Auto picks the best fit for your genre."}
                 </p>
               </div>
+            </div>
 
+            {/* Row 3: Target Length + Chapter Count + Detail Level */}
+            <div className="p1-grid-3 p1-field-group">
+              <div className={hl("target_length")}>
+                <div className="p1-label">Target Length</div>
+                <Select value={form.target_length} onValueChange={v => handleChange("target_length", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TARGET_LENGTHS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <div className="p1-label">Chapter Count <span className="p1-label-opt">(optional)</span></div>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  placeholder="e.g. 20"
+                  value={form.chapter_count || ""}
+                  onChange={e => handleChange("chapter_count", e.target.value ? parseInt(e.target.value) : "")}
+                />
+              </div>
+              <div className={hl("detail_level")}>
+                <div className="p1-label">Detail Level</div>
+                <Select value={form.detail_level} onValueChange={v => handleChange("detail_level", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DETAIL_LEVELS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ══ SECTION 3 — STYLE & TONE ══ */}
+        <div className="p1-card" id="sec-style">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background:'#fce7f3', color:'#be185d' }}>🎭</div>
+            <div>
+              <div className="p1-card-title">Style &amp; Tone</div>
+              <div className="p1-card-subtitle">Beat style, pacing, language intensity, and spice</div>
+            </div>
+          </div>
+          <div className="p1-card-body">
+            {/* Beat Style */}
+            <div className={`p1-field-group ${hl("beat_style")}`}>
+              <div className="p1-label">Beat Style</div>
+              <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
+              {autoHints.beat_style?.reasoning && (
+                <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                  <span className="shrink-0">✦</span>
+                  <span>Auto-selected: {autoHints.beat_style.reasoning}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Spice Level + Language Intensity side by side */}
+            <div className="p1-grid-2 p1-field-group">
               {form.book_type === "fiction" && (
                 <div className={hl("spice_level")}>
-                  <Label className="text-sm font-medium">Spice Level</Label>
+                  <div className="p1-label">Spice Level</div>
                   <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
                   {autoHints.spice_level?.reasoning && (
                     <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
@@ -909,9 +982,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   )}
                 </div>
               )}
-
               <div className={hl("language_intensity")}>
-                <Label className="text-sm font-medium">Language Intensity</Label>
+                <div className="p1-label">Language Intensity</div>
                 <LanguageIntensitySelect value={form.language_intensity} onChange={v => handleChange("language_intensity", v)} />
                 {autoHints.language_intensity?.reasoning && (
                   <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
@@ -920,81 +992,191 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   </p>
                 )}
               </div>
-
-              <div className={hl("author_voice")}>
-                <Label className="text-sm font-medium">Author Voice</Label>
-                <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
-                {autoHints.author_voice?.reasoning && (
-                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
-                    <span className="shrink-0">✦</span>
-                    <span>Auto-selected: {autoHints.author_voice.reasoning}</span>
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <ModelSelector
-                  project={form}
-                  updateProject={(updates) => {
-                    Object.entries(updates).forEach(([k, v]) => handleChange(k, v));
-                  }}
-                />
-              </div>
             </div>
-          </div>
 
-          {/* Genre Content Enforcement (DeepSeek only) */}
-          {form.ai_model?.includes("deepseek") && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="enforce_genre"
-                  checked={form.enforce_genre_content}
-                  onChange={e => handleChange("enforce_genre_content", e.target.checked)}
-                  className="mt-1"
-                />
-                <div>
-                  <label htmlFor="enforce_genre" className="font-medium text-sm text-slate-800 cursor-pointer">Enforce Genre Content Requirements</label>
-                  <p className="text-xs text-slate-600 mt-1">When enabled, DeepSeek will be required to include genre-appropriate content (intimate scenes in erotica/romance). Disable for cleaner content regardless of genre tag.</p>
+            {/* Genre Content Enforcement (DeepSeek only) */}
+            {form.ai_model?.includes("deepseek") && (
+              <div className="p1-field-group rounded-lg bg-blue-50 border border-blue-200 p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="enforce_genre"
+                    checked={form.enforce_genre_content}
+                    onChange={e => handleChange("enforce_genre_content", e.target.checked)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <label htmlFor="enforce_genre" className="font-medium text-sm text-slate-800 cursor-pointer">Enforce Genre Content Requirements</label>
+                    <p className="text-xs text-slate-600 mt-1">When enabled, DeepSeek will be required to include genre-appropriate content. Disable for cleaner content regardless of genre tag.</p>
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* ══ SECTION 4 — VOICE & WRITING MODEL ══ */}
+        <div className="p1-card" id="sec-voice">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background:'#dcfce7', color:'#15803d' }}>🖊</div>
+            <div>
+              <div className="p1-card-title">Voice &amp; Writing Model</div>
+              <div className="p1-card-subtitle">Author style and AI engine selection</div>
             </div>
-          )}
-
-          {/* Protagonist Interiority — shown for all fiction */}
-          {form.book_type === "fiction" && (
-            <ProtagonistInterioritySection form={form} onChange={handleChange} />
-          )}
-
-          {/* Additional Requirements — full width */}
-          <div className={hl("additional_requirements")}>
-            <Label className="text-sm font-medium">Additional Requirements</Label>
-            <Textarea
-              className="mt-1.5"
-              rows={2}
-              placeholder="Any other requirements or notes..."
-              value={form.additional_requirements}
-              onChange={e => handleChange("additional_requirements", e.target.value)}
-            />
           </div>
+          <div className="p1-card-body">
+            <div className={`p1-field-group ${hl("author_voice")}`}>
+              <div className="p1-label">Author Voice</div>
+              <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
+              {autoHints.author_voice?.reasoning && (
+                <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                  <span className="shrink-0">✦</span>
+                  <span>Auto-selected: {autoHints.author_voice.reasoning}</span>
+                </p>
+              )}
+            </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline" className="flex-1">
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Save Specifications
-            </Button>
-            <Button disabled={!canProceed} onClick={onProceed} className="flex-1 bg-indigo-600 hover:bg-indigo-700">
-              Proceed to Outline
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="p1-field-group" style={{ marginBottom: 0 }}>
+              <div className="p1-label">Writing Model</div>
+              <ModelSelector
+                project={form}
+                updateProject={(updates) => {
+                  Object.entries(updates).forEach(([k, v]) => handleChange(k, v));
+                }}
+              />
+            </div>
           </div>
+        </div>
 
-        </CardContent>
-      </Card>
+        {/* ══ SECTION 5 — PROTAGONIST PSYCHOLOGY ══ */}
+        {form.book_type === "fiction" && (
+          <div className="p1-card" id="sec-psych">
+            <div className="p1-card-header">
+              <div className="p1-card-icon" style={{ background:'#fce7f3', color:'#9d174d' }}>🧠</div>
+              <div>
+                <div className="p1-card-title">Protagonist Psychology</div>
+                <div className="p1-card-subtitle">Deep interiority — injected into every chapter prompt</div>
+              </div>
+              <span className="p1-card-badge">Optional</span>
+            </div>
+            <div className="p1-card-body">
+              <p style={{ fontSize:12, color:'#52516a', marginBottom:12, lineHeight:1.5 }}>
+                Define your protagonist's deep interior psychology. At least one scene beat per chapter will connect to one of these layers.
+              </p>
 
-      <SourceFilesCard projectId={projectId} />
+              <div className="p1-psych-controls">
+                <ProtagonistInteriorityInferButton form={form} onChange={handleChange} />
+                <button
+                  className="p1-psych-toggle"
+                  onClick={() => setPsychOpen(o => !o)}
+                >
+                  {psychOpen ? 'Hide fields' : 'Show fields'}
+                  <span className={`p1-psych-arrow${psychOpen ? ' open' : ''}`}>▾</span>
+                </button>
+              </div>
+
+              {psychOpen && (
+                <div className="p1-psych-fields">
+                  <div className="p1-field-group">
+                    <div className="p1-psych-num">1. Before Belief</div>
+                    <div className="p1-label">What did the protagonist believe their life was FOR before this story?</div>
+                    <Textarea
+                      className="text-sm"
+                      rows={2}
+                      placeholder="Their identity, role, what gave them meaning before the story upended everything..."
+                      value={form.protagonist_life_purpose || ""}
+                      onChange={e => handleChange("protagonist_life_purpose", e.target.value)}
+                    />
+                  </div>
+                  <div className="p1-field-group">
+                    <div className="p1-psych-num">2. Core Wound</div>
+                    <div className="p1-label">What failure or loss still defines how they see themselves?</div>
+                    <Textarea
+                      className="text-sm"
+                      rows={2}
+                      placeholder="A specific event or pattern, not vague — the wound that shaped their worldview..."
+                      value={form.protagonist_core_wound || ""}
+                      onChange={e => handleChange("protagonist_core_wound", e.target.value)}
+                    />
+                  </div>
+                  <div className="p1-field-group">
+                    <div className="p1-psych-num">3. Hidden Self-Belief</div>
+                    <div className="p1-label">What do they privately believe is WRONG with them?</div>
+                    <Textarea
+                      className="text-sm"
+                      rows={2}
+                      placeholder="The thing they've never said aloud — their deepest shame or inadequacy..."
+                      value={form.protagonist_self_belief || ""}
+                      onChange={e => handleChange("protagonist_self_belief", e.target.value)}
+                    />
+                  </div>
+                  <div className="p1-field-group">
+                    <div className="p1-psych-num">4. Secret Desire</div>
+                    <div className="p1-label">What does the supernatural/alien/fantasy element offer them?</div>
+                    <Textarea
+                      className="text-sm"
+                      rows={2}
+                      placeholder="What the bond/relationship offers that the human world never could..."
+                      value={form.protagonist_secret_desire || ""}
+                      onChange={e => handleChange("protagonist_secret_desire", e.target.value)}
+                    />
+                  </div>
+                  <div className="p1-field-group" style={{ marginBottom: 0 }}>
+                    <div className="p1-psych-num">5. Behavioral Tells</div>
+                    <div className="p1-label">Observable patterns that reveal interiority without stating it</div>
+                    <Textarea
+                      className="text-sm"
+                      rows={2}
+                      placeholder="e.g. Defers decisions, keeps exits available, can't commit, fidgets when cornered..."
+                      value={form.protagonist_behavioral_tells || ""}
+                      onChange={e => handleChange("protagonist_behavioral_tells", e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ══ SECTION 6 — RESOURCES & NOTES ══ */}
+        <div className="p1-card" id="sec-resources">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background:'#fef3c7', color:'#92400e' }}>📂</div>
+            <div>
+              <div className="p1-card-title">Resources &amp; Notes</div>
+              <div className="p1-card-subtitle">Additional requirements and source files for context</div>
+            </div>
+          </div>
+          <div className="p1-card-body">
+            <div className={`p1-field-group ${hl("additional_requirements")}`}>
+              <div className="p1-label">Additional Requirements</div>
+              <Textarea
+                rows={2}
+                placeholder="Any other requirements or notes..."
+                value={form.additional_requirements}
+                onChange={e => handleChange("additional_requirements", e.target.value)}
+              />
+            </div>
+
+            <div className="p1-field-group" style={{ marginBottom: 0 }}>
+              <SourceFilesCard projectId={projectId} />
+            </div>
+          </div>
+        </div>
+
+        {/* ══ STICKY FOOTER ══ */}
+        <div className="p1-footer">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Specifications
+          </Button>
+          <Button disabled={!canProceed} onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700">
+            Proceed to Outline
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+
+      </div>{/* /phase1-form */}
 
       <PromptCatalogBrowser
         isOpen={showCatalogBrowser}
