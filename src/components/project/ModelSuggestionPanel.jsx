@@ -237,7 +237,7 @@ function ModelRatings({ model }) {
   );
 }
 
-export default function ModelSuggestionPanel({ genre, selectedModel, onSelectModel }) {
+export default function ModelSuggestionPanel({ genre, bookType, selectedModel, onSelectModel }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!genre) {
