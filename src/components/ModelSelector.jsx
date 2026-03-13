@@ -4,7 +4,8 @@
 // Reads project.genre and project.writing_model.
 // Writes project.writing_model and project.budget_mode.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { base44 } from "@/api/base44Client";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DATA — inlined because Base44 does not support a constants/ directory.
