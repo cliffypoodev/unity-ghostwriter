@@ -1869,40 +1869,16 @@ ${_beatUsrBlock(chapterBeat)}`;
       if(compV.length>0) console.warn(`Ch ${chapter.chapter_number} final: ${compV.length} unresolved after ${compAttempt} attempts`);
     }
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
-
-    // Meta-response detection
-    const first500 = fullContent.slice(0, 500);
-    const META_PATTERNS = [/^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i, /^Here is/i, /^Here are/i, /^As requested/i, /^I'll write/i, /^I'll generate/i, /^I'll create/i, /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i];
-    if (META_PATTERNS.some(p => p.test(first500))) {
-      qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose.');
-      qualityResult.passed = false;
-    }
-
+    const first500 = fullContent.slice(0, 500); const META_PATTERNS = [/^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i, /^Here is/i, /^Here are/i, /^As requested/i, /^I'll write/i, /^I'll generate/i, /^I'll create/i, /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i];
+    if (META_PATTERNS.some(p => p.test(first500))) { qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose.'); qualityResult.passed = false; }
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
-
-    let finalContent = fullContent;
-
-    let contentValue = finalContent;
-    if (finalContent.length > 15000) {
-      try {
-        const contentFile = new File([finalContent], `chapter_${chapterId}.txt`, { type: 'text/plain' });
-        const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile });
-        if (uploadResult?.file_url) contentValue = uploadResult.file_url;
-      } catch (uploadErr) {
-        console.warn('File upload failed, storing directly:', uploadErr.message);
-      }
-    }
-
+    let finalContent = fullContent; let contentValue = finalContent;
+    if (finalContent.length > 15000) { try { const contentFile = new File([finalContent], `chapter_${chapterId}.txt`, { type: 'text/plain' }); const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile }); if (uploadResult?.file_url) contentValue = uploadResult.file_url; } catch (uploadErr) { console.warn('File upload failed, storing directly:', uploadErr.message); } }
     const finalWordCount = finalContent.trim().split(/\s+/).length;
-
-    // Extract distinctive phrases locally (no AI call — saves ~30s per chapter)
     const distinctivePhrases = extractDistinctivePhrases(finalContent);
-
-    // PATCH 3 — Update name registry with characters discovered in this chapter
     const updatedRegistry = extractNamedCharacters(finalContent, chapter.chapter_number, nameRegistry);
     await base44.entities.Chapter.update(chapterId, { content: contentValue, status: 'generated', word_count: finalWordCount, generated_at: new Date().toISOString(), quality_scan: JSON.stringify(qualityResult), distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '' });
     try { await base44.entities.Project.update(projectId, { name_registry: JSON.stringify(updatedRegistry) }); } catch (nrErr) { console.warn('Name registry update failed:', nrErr.message); }
-    // PART 1 — Run consistency check asynchronously (non-blocking)
     try { await base44.functions.invoke('consistencyCheck', { project_id: projectId, chapter_id: chapterId, chapter_text: finalContent.slice(0, 6000) }); } catch (ccErr) { console.warn('Consistency check failed (non-blocking):', ccErr.message); }
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
