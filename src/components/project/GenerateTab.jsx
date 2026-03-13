@@ -1226,10 +1226,10 @@ export default function GenerateTab({ projectId, onProceed }) {
     setGeneratingAllScenes(true);
     setAllScenesProgress("Checking chapters…");
     try {
-      // Find chapters needing scenes
+      // Find chapters needing scenes (fiction) or beat sheets (nonfiction)
       const needScenes = chapters.filter(c => {
         const s = c.scenes?.trim();
-        return !s || s === 'null' || s === '[]';
+        return !s || s === 'null' || s === '[]' || s === '{}';
       });
       if (needScenes.length === 0) {
         setAllScenesProgress("All chapters already have scenes.");
