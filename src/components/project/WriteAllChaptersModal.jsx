@@ -49,9 +49,10 @@ export default function WriteAllChaptersModal({
 
   const targetChapterWords = TARGET_WORDS_PER_CHAPTER[targetLength] || 3750;
 
+  const queueIndex = progress.queueIndex ?? current;
   const overallPercent =
     total > 0
-      ? Math.min(((current + Math.min(chapterWords / targetChapterWords, 1)) / total) * 100, 100)
+      ? Math.min(((queueIndex + Math.min(chapterWords / targetChapterWords, 1)) / total) * 100, 100)
       : 0;
 
   const displayPercent = done ? 100 : Math.round(overallPercent);
