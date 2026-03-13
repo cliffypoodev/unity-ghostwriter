@@ -124,7 +124,9 @@ INFERENCE RULES:
       const briefMatch = cleaned.match(/"expanded_brief"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
       return Response.json({
         expanded_brief: briefMatch ? briefMatch[1] : topic,
+        genre: '',
         subgenre: '',
+        beat_sheet_template: 'auto',
         beat_style: { selected: '', reasoning: '' },
         spice_level: { selected: 0, reasoning: '' },
         language_intensity: { selected: 0, reasoning: '' },
@@ -155,7 +157,9 @@ INFERENCE RULES:
 
     return Response.json({
       expanded_brief: parsed.expanded_brief || topic,
+      genre: parsed.genre || '',
       subgenre: parsed.subgenre || '',
+      beat_sheet_template: parsed.beat_sheet_template || 'auto',
       beat_style: {
         selected: String(beatData.selected || ''),
         reasoning: beatData.reasoning || '',
