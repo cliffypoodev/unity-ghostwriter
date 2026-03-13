@@ -349,7 +349,8 @@ html, body {
   flex-shrink: 0;
   transition: background 0.15s;
 }
-.phase1-nav-item.active .phase1-nav-dot { background: #5b50f0; }
+.phase1-nav-item.active .phase1-nav-dot,
+.phase1-nav-item.p1-active .phase1-nav-dot { background: #5b50f0; }
 
 .phase1-form {
   display: flex;
