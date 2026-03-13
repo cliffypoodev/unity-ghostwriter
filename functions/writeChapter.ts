@@ -1565,9 +1565,11 @@ Before writing this chapter, review the character motivations established in the
 === END MOTIVATION CONSISTENCY ===`;
     }
 
-    // ── GPT LENGTH ENFORCEMENT — inject when GPT is the prose model ──
+    // ── MODEL-SPECIFIC PROSE ENFORCEMENT ──
     if (isGptModel(modelKey)) {
       systemPrompt = GPT_LENGTH_ENFORCEMENT + '\n\n' + systemPrompt;
+    } else if (isGeminiModel(modelKey)) {
+      systemPrompt = (isNonfiction ? GEMINI_NF_ENFORCEMENT : GEMINI_FICTION_ENFORCEMENT) + '\n\n' + systemPrompt;
     }
 
     // ── PART A — Build conversation-style messages array ─────────────────────
