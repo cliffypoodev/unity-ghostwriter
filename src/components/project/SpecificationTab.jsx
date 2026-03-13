@@ -53,6 +53,34 @@ import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
 
+// Fuzzy genre matcher — handles AI returning "Sci-Fi" vs dropdown "Science Fiction", etc.
+function matchGenre(aiGenre, bookType) {
+  if (!aiGenre) return null;
+  const genres = bookType === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
+  const lower = aiGenre.trim().toLowerCase();
+  // Exact match (case-insensitive)
+  const exact = genres.find(g => g.toLowerCase() === lower);
+  if (exact) return exact;
+  // Common aliases
+  const ALIASES = {
+    'sci-fi': 'Science Fiction', 'scifi': 'Science Fiction', 'sf': 'Science Fiction',
+    'true crime': 'True Crime', 'truecrime': 'True Crime',
+    'historical fiction': 'Historical Fiction', 'historical': 'Historical Fiction',
+    'literary fiction': 'Literary Fiction', 'literary': 'Literary Fiction',
+    'self-help': 'Self-Help', 'selfhelp': 'Self-Help', 'self help': 'Self-Help',
+    'ya': 'Young Adult', 'young-adult': 'Young Adult',
+    'magical realism': 'Magical Realism', 'magic realism': 'Magical Realism',
+    'bio': 'Biography', 'autobiography': 'Biography',
+    'tech': 'Technology', 'psych': 'Psychology',
+  };
+  if (ALIASES[lower] && genres.includes(ALIASES[lower])) return ALIASES[lower];
+  // Partial/contains match
+  const partial = genres.find(g => lower.includes(g.toLowerCase()) || g.toLowerCase().includes(lower));
+  if (partial) return partial;
+  console.warn(`matchGenre: no match for "${aiGenre}" in`, genres);
+  return null;
+}
+
 const ALL_VOICE_IDS = ["basic","hemingway","austen","morrison","mccarthy","vonnegut","didion","tolkien","rowling","leguin","gaiman","pratchett","chandler","christie","marquez","atwood","king","gladwell","bryson","sagan"];
 
 function mapToAuthorVoiceOption(inferred) {
