@@ -48,6 +48,34 @@ const MODEL_PROFILES = {
     timeoutMs:         60000,
   },
 
+  'gemini-flash': {
+    promptStyle:       'direct',
+    structureCompliance: 'medium',
+    beatAdherence:     'medium',
+    avgWordsPerChapter: 2200,
+    temperatureDefault: 0.72,
+    maxTokens:         4096,
+    requiresExplicitPartLabels: true,
+    requiresWordCountReminder:  true,
+    requiresFormatExample:      false,
+    contextSafeLimit:  900000,        // buffer under 1M
+    timeoutMs:         60000,
+  },
+
+  'gemini-pro': {
+    promptStyle:       'direct',
+    structureCompliance: 'high',
+    beatAdherence:     'high',
+    avgWordsPerChapter: 2600,
+    temperatureDefault: 0.72,
+    maxTokens:         4096,
+    requiresExplicitPartLabels: false,
+    requiresWordCountReminder:  false,
+    requiresFormatExample:      false,
+    contextSafeLimit:  900000,        // buffer under 1M
+    timeoutMs:         90000,
+  },
+
   'gpt-4o': {
     promptStyle:       'direct',
     structureCompliance: 'high',
