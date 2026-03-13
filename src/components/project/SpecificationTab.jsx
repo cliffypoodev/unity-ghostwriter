@@ -745,6 +745,12 @@ export default function SpecificationTab({ projectId, onProceed }) {
               <div className={hl("beat_style")}>
                 <Label className="text-sm font-medium">Beat Style</Label>
                 <BeatStyleSelect value={form.beat_style} onChange={v => handleChange("beat_style", v)} bookType={form.book_type} />
+                {autoHints.beat_style?.reasoning && (
+                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                    <span className="shrink-0">✦</span>
+                    <span>Auto-selected: {autoHints.beat_style.reasoning}</span>
+                  </p>
+                )}
               </div>
 
               <div className={hl("beat_sheet_template")}>
@@ -778,15 +784,27 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               {form.book_type === "fiction" && (
-                <div>
+                <div className={hl("spice_level")}>
                   <Label className="text-sm font-medium">Spice Level</Label>
                   <SpiceLevelSelect value={form.spice_level} onChange={v => handleChange("spice_level", v)} />
+                  {autoHints.spice_level?.reasoning && (
+                    <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                      <span className="shrink-0">✦</span>
+                      <span>Auto-selected: {autoHints.spice_level.reasoning}</span>
+                    </p>
+                  )}
                 </div>
               )}
 
-              <div>
+              <div className={hl("language_intensity")}>
                 <Label className="text-sm font-medium">Language Intensity</Label>
                 <LanguageIntensitySelect value={form.language_intensity} onChange={v => handleChange("language_intensity", v)} />
+                {autoHints.language_intensity?.reasoning && (
+                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                    <span className="shrink-0">✦</span>
+                    <span>Auto-selected: {autoHints.language_intensity.reasoning}</span>
+                  </p>
+                )}
               </div>
 
               <div className={hl("author_voice")}>
