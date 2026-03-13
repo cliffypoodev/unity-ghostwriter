@@ -43,6 +43,7 @@ import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate 
 import { detectActBoundaries, getActChapters, getActStatus } from "./ActDetection";
 import ActHeader from "./ActHeader";
 import ActSplitEditor from "./ActSplitEditor";
+import { healthMonitor } from "../utils/appHealthMonitor";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
