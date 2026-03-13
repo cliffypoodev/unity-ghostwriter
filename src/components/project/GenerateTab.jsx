@@ -714,7 +714,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       setGenerationProgress("Step 2/2 — Filling in detail…");
 
       // ── STEP 2: Detail (story bible, prompts, beats) ──
-      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 60000 });
+      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 120000 });
 
       const detailStatus = detailRes.data?.status;
       
