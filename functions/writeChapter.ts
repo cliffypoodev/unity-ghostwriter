@@ -1131,7 +1131,9 @@ BANNED PHRASES — auto-rejected if used:
 "felt a renewed sense of", "it was a reminder", "it was a testament", "infectious",
 "monumental", "transformative", "life-changing", "on a journey", "navigate this journey",
 "the road ahead", "armed with knowledge", "little did they know", "in that moment",
-"just the beginning", "no turning back", "ready to embrace/face"
+"just the beginning", "no turning back", "ready to embrace/face",
+"X represents more than Y", "would prove essential", "the broader implications",
+"what we can learn from X is", "the lesson emerging from"
 
 Write ~${target_words} words. Begin immediately with prose — no preamble.`;
 }
