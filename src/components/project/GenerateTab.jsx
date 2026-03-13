@@ -753,7 +753,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     setGenerateError("");
 
     try {
-      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 60000 });
+      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 120000 });
       
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
