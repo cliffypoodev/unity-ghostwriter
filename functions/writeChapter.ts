@@ -1007,14 +1007,15 @@ function scanNonfictionQuality(text) {
     { rx: /it is important to note that/gi, label: "importance announcement" }, { rx: /this would prove to be/gi, label: "hindsight framing" },
     { rx: /(?:mistakes were made|it was decided|they were seen as)/gi, label: "passive historical voice" }, { rx: /^(?:throughout history|since the dawn of)/gmi, label: "panoramic opening" },
     { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" }];
-
-  for (const { rx, label } of nfBanned) {
-    const matches = text.match(rx);
-    if (matches) {
-      warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`);
-    }
-  }
-
+  for (const { rx, label } of nfBanned) { const matches = text.match(rx); if (matches) { warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`); } }
+  // DeepSeek-style: consecutive analytical paragraphs (>2 in a row without scene/person)
+  const paras = text.split(/\n\n+/);
+  let _anRun = 0, _maxAnRun = 0;
+  for (const p of paras) { const isAn = /\b(therefore|thus|consequently|this (?:shows|demonstrates|meant|suggests)|as a result|it is (?:clear|evident)|one (?:could|might) argue)\b/i.test(p) && !/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|said|turned|looked|arrived)\b/.test(p); if (isAn) { _anRun++; _maxAnRun = Math.max(_maxAnRun, _anRun); } else _anRun = 0; }
+  if (_maxAnRun > 3) { warnings.push(`CONSECUTIVE ANALYSIS: ${_maxAnRun} analytical paragraphs in a row without returning to scene/character — max 2 before grounding in person-in-moment`); }
+  // Triple restatement detection (same concept stated 3+ ways in close proximity)
+  const sents = text.split(/[.!?]+/).filter(s => s.trim().length > 30);
+  for (let i = 0; i < sents.length - 2; i++) { const a = sents[i].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '), b = sents[i+1].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '), c = sents[i+2].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '); const ab = a.split(' ').filter(w => b.includes(w) && w.length > 4).length, ac = a.split(' ').filter(w => c.includes(w) && w.length > 4).length; if (ab >= 2 && ac >= 2) { warnings.push(`TRIPLE RESTATEMENT near: "${sents[i].trim().slice(0,60)}..." — state once, move forward`); break; } }
   return warnings;
 }
 
