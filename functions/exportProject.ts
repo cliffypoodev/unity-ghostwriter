@@ -62,11 +62,16 @@ function toMarkdown(html) {
 async function resolveContent(content) {
   if (!content) return '';
   if (content.startsWith('http://') || content.startsWith('https://')) {
-    const r = await fetch(content);
-    if (!r.ok) return '';
-    const t = await r.text();
-    if (t.trim().startsWith('<') && !t.trim().startsWith('<p') && !t.trim().startsWith('<h')) return '';
-    return t;
+    try {
+      const r = await fetch(content, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return '';
+      const t = await r.text();
+      if (t.trim().startsWith('<') && !t.trim().startsWith('<p') && !t.trim().startsWith('<h')) return '';
+      return t;
+    } catch (e) {
+      console.error('resolveContent fetch failed:', e.message);
+      return '';
+    }
   }
   return content;
 }
