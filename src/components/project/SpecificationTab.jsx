@@ -160,6 +160,47 @@ function mapToBeatStyleOption(inferred) {
   return null;
 }
 
+// ── Phase 1 Validation — catches cross-domain mismatches before Phase 2 ──
+function validatePhase1Settings(settings) {
+  const issues = [];
+  const { genre, beat_style, author_voice, book_type } = settings;
+
+  const FICTION_ONLY_BEATS = ['visceral-horror','whimsical-cozy','urban-gritty-fantasy','grandiose-space-opera','clean-romance','fast-paced-thriller','gritty-cinematic','dark-suspense','slow-burn','hard-boiled-noir','nostalgic-coming-of-age','steamy-romance','slow-burn-romance','dark-erotica','hyper-stylized-action','cerebral-sci-fi','epic-historical','melancholic-literary','poetic-magical-realism','intellectual-psychological','surrealist-avant-garde','high-stakes-political'];
+  const NF_ONLY_BEATS = ['investigative-nonfiction','reference-educational','deep-investigative','historical-account','true-crime-account','memoir-narrative','academic-accessible','longform-article','journal-personal','formal-report'];
+  const LITERARY_AUTHORS = ['toni-morrison','cormac-mccarthy','kazuo-ishiguro','zadie-smith','donna-tartt','colm-toibin','hilary-mantel'];
+  const FICTION_AUTHORS = ['colleen-hoover','stephen-king','brandon-sanderson','james-patterson','lee-child','joe-abercrombie','robin-hobb','terry-pratchett','agatha-christie','penelope-douglas','shirley-jackson','nk-jemisin'];
+  const NF_AUTHORS = ['erik-larson','david-grann','malcolm-gladwell','jon-krakauer','michelle-mcnamara','robert-kolker','brene-brown','james-clear','ryan-holiday'];
+
+  // 1. Nonfiction + fiction beat style
+  if (book_type === 'nonfiction' && FICTION_ONLY_BEATS.includes(beat_style)) {
+    issues.push({ field: 'beat_style', problem: `${beat_style} is fiction-only`, fix: 'investigative-nonfiction' });
+    settings.beat_style = 'investigative-nonfiction';
+  }
+  // 2. Fiction + nonfiction beat style
+  if (book_type === 'fiction' && NF_ONLY_BEATS.includes(beat_style)) {
+    issues.push({ field: 'beat_style', problem: `${beat_style} is nonfiction-only`, fix: 'auto-detect from genre' });
+    settings.beat_style = '';
+  }
+  // 3. Romance + literary fiction author
+  if (genre?.toLowerCase().includes('romance') && LITERARY_AUTHORS.includes(author_voice)) {
+    issues.push({ field: 'author_voice', problem: `${author_voice} mismatched with romance`, fix: 'colleen-hoover' });
+    settings.author_voice = 'colleen-hoover';
+  }
+  // 4. Nonfiction + fiction-only author
+  if (book_type === 'nonfiction' && FICTION_AUTHORS.includes(author_voice)) {
+    issues.push({ field: 'author_voice', problem: `${author_voice} is fiction-only for nonfiction book`, fix: 'erik-larson' });
+    settings.author_voice = 'erik-larson';
+  }
+  // 5. Fiction + nonfiction-only author
+  if (book_type === 'fiction' && NF_AUTHORS.includes(author_voice)) {
+    issues.push({ field: 'author_voice', problem: `${author_voice} is nonfiction-only for fiction book`, fix: 'basic' });
+    settings.author_voice = 'basic';
+  }
+
+  if (issues.length > 0) console.warn('validatePhase1Settings corrected:', issues);
+  return { settings, issues };
+}
+
 const TARGET_LENGTHS = [
   { value: "short", label: "Short (25K–50K words)" },
   { value: "medium", label: "Medium (50K–100K words)" },
