@@ -46,18 +46,30 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
 
       {/* Bridge status for Acts 2 and 3 */}
       {actNumber > 1 && (
-        <div className={cn("text-xs px-3 py-1.5 rounded-lg border", hasBridge
+        <div className={cn("text-xs px-3 py-1.5 rounded-lg border flex items-center gap-2 flex-wrap", hasBridge
           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
           : prevActComplete
             ? "bg-amber-50 text-amber-700 border-amber-200"
             : "bg-slate-50 text-slate-500 border-slate-200"
         )}>
-          {hasBridge
-            ? `✓ Continuity bridge ready — Act ${actNumber - 1} context loaded`
-            : prevActComplete
-              ? `⚡ Act ${actNumber - 1} complete — generate bridge for better continuity, or start writing`
-              : `⚠ Complete Act ${actNumber - 1} to unlock continuity bridge`
-          }
+          <span className="flex-1">
+            {hasBridge
+              ? `✓ Continuity bridge ready — Act ${actNumber - 1} context loaded`
+              : prevActComplete
+                ? `⚡ Act ${actNumber - 1} complete — generate bridge for better continuity, or start writing`
+                : `⚠ Complete Act ${actNumber - 1} to unlock continuity bridge`
+            }
+          </span>
+          {!hasBridge && prevActComplete && onGenerateBridge && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] px-2.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
+              onClick={() => onGenerateBridge(actNumber - 1)}
+            >
+              <Sparkles className="w-3 h-3 mr-1" /> Generate Bridge
+            </Button>
+          )}
         </div>
       )}
 
