@@ -734,7 +734,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
         ].map(({ id, label }) => (
           <a
             key={id}
-            className={`phase1-nav-item${activeSection === id ? ' active' : ''}`}
+            className={`phase1-nav-item${activeSection === id ? ' p1-active' : ''}`}
             href={`#${id}`}
             onClick={e => {
               e.preventDefault();
