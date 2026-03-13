@@ -628,12 +628,7 @@ function scanDialoguePatterns(text) {
   return results;
 }
 
-const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE:
-1. MIN 4 PARAGRAPHS: Physical/intimate moments must continue for ≥4 paragraphs before any interruption. P1: concrete sensory contact. P2: layer a second sense. P3: emotional interiority during the act. P4: escalation or natural conclusion.
-2. INTERRUPTIONS: Only AFTER 4-paragraph minimum. Must be felt as LOSS with physical aftermath (disorientation, difficulty speaking).
-3. NO SMIRKING: After intimacy, characters are affected — breathless, disoriented, serious — never smug or witty.
-4. PACING: By chapter 3 of erotica, intimacy must progress beyond a single kiss. Honor the genre.
-5. NO CONVENIENT INTERRUPTIONS: No phones ringing, knocks, or sudden obligations to cut away before the minimum.`;
+const INTIMATE_SCENE_RULES = `INTIMATE SCENE RULES — MANDATORY FOR EROTICA/ROMANCE:\n1. MIN 4 PARAGRAPHS: Physical/intimate moments ≥4 paragraphs before interruption. P1: sensory contact. P2: second sense. P3: emotional interiority. P4: escalation/conclusion.\n2. INTERRUPTIONS: Only AFTER 4-paragraph min. Felt as LOSS with physical aftermath.\n3. NO SMIRKING: After intimacy, characters are affected — breathless, disoriented, serious.\n4. PACING: By ch3, intimacy must progress beyond a kiss. Honor the genre.\n5. NO CONVENIENT INTERRUPTIONS: No phones, knocks, or sudden obligations to cut away.`;
 
 const PLOT_SUBTEXT_RULES = `PLOT AND SUBTEXT RULES:
 - When a chapter contains a twist, reversal, or reveal, the dialogue and interiority leading up to it must support MULTIPLE interpretations until the reveal moment.
