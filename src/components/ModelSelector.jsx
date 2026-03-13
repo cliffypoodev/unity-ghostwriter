@@ -77,8 +77,8 @@ export const WRITING_MODELS = {
     isFree: true, badge: 'FREE', note: 'May be slower during high-demand periods',
   },
   'lumimaid': {
-    id: 'lumimaid', label: 'Lumimaid 70B', platform: 'OpenRouter',
-    callHandler: 'openrouter', modelString: 'neversleep/lumimaid-v0.2-70b',
+    id: 'lumimaid', label: 'Lumimaid v0.2 70B', platform: 'OpenRouter',
+    callHandler: 'openrouter', modelString: 'neversleep/llama-3.1-lumimaid-70b',
     description: 'Explicit content enabled · adult fiction',
     costLabel: '$0.20/M', costTier: 'low', qualityScore: 3, qualityColor: '#7c3aed',
     inPer1M: 0.20, outPer1M: 0.20, contextWindow: 32000, supportsExplicit: true,
