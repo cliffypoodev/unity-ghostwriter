@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from "react";
-import { ChevronDown, Check, Settings, Star, AlertTriangle, Zap, CircleDollarSign } from "lucide-react";
-import { cn } from "@/lib/utils";
+// components/ModelSelector.jsx
+// COMPLETE REPLACEMENT — self-contained component.
+// Receives project + updateProject as props.
+// Reads project.genre and project.writing_model.
+// Writes project.writing_model and project.budget_mode.
+
+import { useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WRITING_MODELS — canonical registry for the prose-composition model selector.
-// The `id` values here are what get stored in spec.ai_model and sent to writeChapter.
+// DATA — inlined because Base44 does not support a constants/ directory.
+// Other files can import these exports if needed.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const WRITING_MODELS = {
@@ -85,321 +89,647 @@ export const PROMPT_OVERHEAD_TOKENS = {
   6000: 2600,
 };
 
-// Legacy export so existing pipeline imports still resolve
+// Legacy shim so existing pipeline imports (AI_MODEL_PROFILES, MODEL_GENRE_ROUTING) still resolve.
 export const AI_MODEL_PROFILES = Object.fromEntries(
   Object.values(WRITING_MODELS).map(m => [m.id, {
     id: m.id, name: m.label, provider: m.platform.split(' · ')[0],
     description: m.description, strengths: [],
-    proseQuality: m.qualityScore, tokenCost: m.costTier === 'free' ? 0 : m.costTier === 'low' ? 1 : m.costTier === 'mid' ? 3 : 5,
+    proseQuality: m.qualityScore,
+    tokenCost: m.costTier === 'free' ? 0 : m.costTier === 'low' ? 1 : m.costTier === 'mid' ? 3 : 5,
   }])
 );
 
-export const MODEL_GENRE_ROUTING = {
-  "Literary Fiction":  { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Literary fiction demands sophisticated vocabulary and avoidance of AI-isms.",  styleBeat:"Literary & Lyrical prose with deep thematic exploration" },
-  "Science Fiction":   { primary:"claude-sonnet", alts:["deepseek","gpt-4o"],           reason:"Hard sci-fi needs complex world-building and scientific reasoning.",            styleBeat:"Cerebral, world-building heavy with scientific grounding" },
-  "Fantasy":           { primary:"claude-sonnet", alts:["deepseek","trinity"],          reason:"Epic fantasy requires mythic prose and consistency across complex lore.",        styleBeat:"Mythic & elevated prose with rich world-building" },
-  "Mystery":           { primary:"claude-sonnet", alts:["gpt-4o"],                     reason:"Psychological depth and carefully plotted reveals need strong reasoning.",       styleBeat:"Suspenseful, tightly plotted with strategic misdirection" },
-  "Thriller":          { primary:"claude-sonnet", alts:["gpt-4o","deepseek"],           reason:"Misdirection and carefully plotted reveals need strong reasoning.",              styleBeat:"Suspenseful, tightly plotted with strategic misdirection" },
-  "Romance":           { primary:"claude-sonnet", alts:["gpt-4o","deepseek","trinity"], reason:"Romance benefits from accessible, emotionally engaging prose.",                  styleBeat:"Romantic & passionate with character-driven emotional arcs" },
-  "Horror":            { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Horror requires cosmic dread, existential tension, and dark literary nuance.",   styleBeat:"Cosmic dread, existential horror, scholarly and somber" },
-  "Historical Fiction":{ primary:"claude-sonnet", alts:["deepseek","gpt-4o"],           reason:"Historical fiction demands immersive cinematic prose with factual accuracy.",     styleBeat:"Fluid, immersive, cinematic" },
-  "Adventure":         { primary:"gpt-4o",        alts:["claude-sonnet","deepseek","trinity"], reason:"Adventure thrives on fast pacing and page-turning momentum.",             styleBeat:"Fast-paced, action-oriented with cinematic set pieces" },
-  "Dystopian":         { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Dystopian fiction needs complex social commentary and philosophical depth.",      styleBeat:"Bleak & thought-provoking with layered social commentary" },
-  "Magical Realism":   { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Seamless blending of the mundane and mythic with literary sophistication.",       styleBeat:"Lush, mythic-mundane blend with literary elegance" },
-  "Young Adult":       { primary:"gpt-4o",        alts:["claude-sonnet","trinity"],    reason:"YA needs accessible language and strong genre convention awareness.",             styleBeat:"Accessible, emotionally resonant with coming-of-age themes" },
-  "Crime":             { primary:"claude-sonnet", alts:["gpt-4o","deepseek"],           reason:"Crime fiction needs investigative rigor and atmospheric prose.",                  styleBeat:"Gritty, procedural with atmospheric tension" },
-  "Western":           { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Western fiction needs sparse, evocative prose with moral ambiguity.",             styleBeat:"Spare, evocative, landscape-driven with moral weight" },
-  "Satire":            { primary:"claude-sonnet", alts:["gpt-4o"],                     reason:"Satire demands wit, irony, and sophisticated social commentary.",                 styleBeat:"Sharp, witty with controlled exaggeration" },
-  "Erotica":           { primary:"lumimaid",      alts:["deepseek","trinity"],          reason:"Erotica requires explicit content support and nuanced power dynamics.",           styleBeat:"Character-driven intimacy with psychological depth" },
-  "Self-Help":         { primary:"claude-sonnet", alts:["gpt-4o","deepseek"],           reason:"Self-help needs clear, motivational prose with actionable insights.",             styleBeat:"TED Talk engaging with actionable, motivational tone" },
-  "Business":          { primary:"claude-sonnet", alts:["gpt-4o","deepseek"],           reason:"Business books need authority, case studies, and accessible explanations.",        styleBeat:"Authoritative yet accessible with data-driven narratives" },
-  "Biography":         { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Biography demands literary narrative craft and meticulous factual accuracy.",      styleBeat:"Immersive narrative with deep character portraiture" },
-  "History":           { primary:"claude-sonnet", alts:["deepseek","gpt-4o"],           reason:"History writing needs fluid cinematic prose with strict factual accuracy.",        styleBeat:"Fluid, immersive, cinematic — strictly factual" },
-  "Science":           { primary:"deepseek",      alts:["claude-sonnet","gpt-4o"],      reason:"Science writing requires factual precision and research synthesis.",               styleBeat:"Academic but accessible with awe-inspiring explanations" },
-  "Technology":        { primary:"deepseek",      alts:["claude-sonnet","gpt-4o"],      reason:"Technology books need up-to-date accuracy and clear technical explanations.",      styleBeat:"Clear, technically precise with forward-looking perspective" },
-  "Philosophy":        { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Philosophy demands sophisticated reasoning and abstract concept precision.",       styleBeat:"Cerebral & intellectual with rigorous logical structure" },
-  "Psychology":        { primary:"claude-sonnet", alts:["deepseek","gpt-4o"],           reason:"Psychology needs nuanced human behavior with scientific rigor.",                   styleBeat:"Introspective & insightful with research-backed narratives" },
-  "Health":            { primary:"deepseek",      alts:["claude-sonnet","gpt-4o"],      reason:"Health writing needs strict factual accuracy and evidence-based claims.",          styleBeat:"Evidence-based, warm, and actionable" },
-  "Travel":            { primary:"claude-sonnet", alts:["gpt-4o"],                     reason:"Travel writing needs vivid sensory description and engaging narrative flow.",       styleBeat:"Vivid, sensory-rich with cultural curiosity" },
-  "True Crime":        { primary:"claude-sonnet", alts:["deepseek","gpt-4o"],           reason:"True crime needs investigative rigor and dark atmospheric prose.",                 styleBeat:"Dark & gritty, investigative — strictly factual" },
-  "Memoir":            { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Memoir demands literary craft, emotional vulnerability, and honest self-reflection.", styleBeat:"Intimate, reflective with raw emotional honesty" },
-  "Cooking":           { primary:"claude-sonnet", alts:["gpt-4o"],                     reason:"Cookbook writing needs clear, inviting language.",                                   styleBeat:"Warm, precise, appetite-inducing" },
-  "Education":         { primary:"deepseek",      alts:["claude-sonnet","gpt-4o"],      reason:"Education books need clear instructional design and accessible explanations.",      styleBeat:"Clear, structured, pedagogically sound" },
-  "Politics":          { primary:"claude-sonnet", alts:["deepseek"],                   reason:"Political writing needs balanced analysis and rhetorical precision.",                styleBeat:"Analytical, persuasive with balanced argumentation" },
-};
+export const MODEL_GENRE_ROUTING = {};
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// UI COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── COST CALCULATIONS ────────────────────────────────────────
+
+function wordsToOutputTokens(words) {
+  return Math.round(words * 1.35);
+}
+
+function calcChapterCost(model, chapterWords) {
+  const outTokens = wordsToOutputTokens(chapterWords);
+  const inTokens  = PROMPT_OVERHEAD_TOKENS[chapterWords] || 1400;
+  const inCost    = (inTokens  / 1_000_000) * model.inPer1M;
+  const outCost   = (outTokens / 1_000_000) * model.outPer1M;
+  return {
+    inTokens,
+    outTokens,
+    perChapter: inCost + outCost,
+    fullBook:   (inCost + outCost) * 20,
+  };
+}
+
+function formatCost(n) {
+  if (n === 0)    return '$0.00';
+  if (n < 0.001)  return '<$0.001';
+  if (n < 0.01)   return '$' + n.toFixed(4);
+  if (n < 1)      return '$' + n.toFixed(3);
+  return '$' + n.toFixed(2);
+}
+
+
+// ── STYLE HELPERS ────────────────────────────────────────────
 
 const COST_TIER_STYLES = {
-  free:  { bg: "bg-green-100", text: "text-green-700" },
-  low:   { bg: "bg-blue-100",  text: "text-blue-700"  },
-  mid:   { bg: "bg-amber-100", text: "text-amber-700" },
-  high:  { bg: "bg-red-100",   text: "text-red-700"   },
+  free: { bg: '#dcfce7', color: '#15803d' },
+  low:  { bg: '#dbeafe', color: '#1d4ed8' },
+  mid:  { bg: '#fef3c7', color: '#92400e' },
+  high: { bg: '#fce7f3', color: '#9d174d' },
 };
 
-function QualityDots({ score, color }) {
+const FIT_STYLES = {
+  great: { border: '#bbf7d0', bg: '#f0fdf4', titleColor: '#15803d', icon: '✓' },
+  good:  { border: '#bfdbfe', bg: '#eff6ff', titleColor: '#1d4ed8', icon: '✓' },
+  ok:    { border: '#fde68a', bg: '#fffbeb', titleColor: '#92400e', icon: '⚡' },
+  warn:  { border: '#fecaca', bg: '#fef2f2', titleColor: '#991b1b', icon: '⚠' },
+};
+
+const DOT_COLORS = {
+  green:  '#22c55e',
+  blue:   '#3b82f6',
+  yellow: '#f59e0b',
+  red:    '#ef4444',
+};
+
+
+// ── FIT MATRIX ───────────────────────────────────────────────
+
+const FIT_MATRIX = {
+  'claude-sonnet': {
+    default: { fitClass:'great', title:'Excellent fit for any genre' },
+    thriller:   { fitClass:'great', title:'Excellent fit — full beat enforcement active', rows:[
+      ['green','Full <b>beat style enforcement</b> — Fast-Paced Thriller rules applied'],
+      ['green','<b>Author voice</b> injection supported'],
+      ['green','<b>Anti-pattern enforcement</b> and prose compression active'],
+      ['green','Act bridge <b>continuity injection</b> supported'],
+    ]},
+    romance:    { fitClass:'great', title:'Excellent fit for Romance', rows:[
+      ['green','Clean Romance / Slow Burn beat styles <b>fully applied</b>'],
+      ['green','<b>Closed-door rule</b> strictly enforced'],
+      ['green','Author voice injection supported'],
+      ['green','Act bridge continuity supported'],
+    ]},
+    erotica:    { fitClass:'great', title:'Standard Mode — Claude + Lumimaid hybrid', rows:[
+      ['green','Claude handles <b>structure, prose, and continuity</b>'],
+      ['green','Lumimaid handles all <b>explicit scenes automatically</b>'],
+      ['green','Full beat enforcement on all non-explicit sections'],
+      ['blue', 'Enable <b>Budget Mode</b> below to reduce token cost'],
+    ]},
+    nonfiction: { fitClass:'great', title:'Excellent fit for Nonfiction', rows:[
+      ['green','Investigative beat style <b>fully enforced</b>'],
+      ['green','<b>Fabrication warning</b> detection active'],
+      ['green','<b>Thesis restatement</b> ending enforcer active'],
+      ['green','Composite figure framing check active'],
+    ]},
+    fantasy:    { fitClass:'great', title:'Excellent fit for Fantasy', rows:[
+      ['green','Epic / Urban Gritty beat styles <b>fully applied</b>'],
+      ['green','Author voice injection supported'],
+      ['green','200k context — full act in a single call'],
+      ['green','Act bridge continuity injection supported'],
+    ]},
+  },
+  'claude-haiku': {
+    default: { fitClass:'good', title:'Good fit — lighter on complex beats' },
+    thriller:   { fitClass:'good', title:'Good fit — fast and affordable', rows:[
+      ['blue',  'Beat style applied — <b>some nuance may reduce</b> on complex arcs'],
+      ['blue',  'Author voice injection supported'],
+      ['yellow','Anti-pattern enforcement — lighter prose polish'],
+      ['blue',  'Act bridge continuity supported'],
+    ]},
+    romance:    { fitClass:'good', title:'Good fit for Romance', rows:[
+      ['blue',  'Slow Burn / Clean Romance beat styles applied'],
+      ['blue',  'Closed-door rule enforced'],
+      ['yellow','Emotionally complex scenes may need regeneration'],
+      ['blue',  'Author voice injection supported'],
+    ]},
+    erotica:    { fitClass:'ok', title:'Limited — explicit content not supported on Haiku', rows:[
+      ['red',  '<b>Explicit content NOT supported</b> on Claude Haiku'],
+      ['yellow','Use Lumimaid for explicit scenes'],
+      ['blue',  'Non-explicit chapters work normally'],
+      ['blue',  'Enable Budget Mode below for full Lumimaid routing'],
+    ]},
+    nonfiction: { fitClass:'good', title:'Good fit for Nonfiction at lower cost', rows:[
+      ['blue',  'Investigative beat style applied'],
+      ['blue',  'Fabrication warning detection active'],
+      ['yellow','Long research chapters may need expansion pass'],
+      ['blue',  'Composite figure framing check active'],
+    ]},
+    fantasy:    { fitClass:'good', title:'Good fit — handles world-building well', rows:[
+      ['blue',  'Epic / Urban Gritty beat styles applied'],
+      ['blue',  'Author voice injection supported'],
+      ['yellow','Very long chapters may approach context limits'],
+      ['blue',  'Act bridge continuity supported'],
+    ]},
+  },
+  'gpt-4o': {
+    default: { fitClass:'good', title:'Good fit — strong instruction following' },
+    thriller:   { fitClass:'good', title:'Good fit — strong instruction following', rows:[
+      ['blue',  'Beat style rules applied via context injection'],
+      ['blue',  'Author voice injection supported'],
+      ['yellow','Anti-pattern enforcement — may need extra passes'],
+      ['blue',  'Act bridge continuity supported'],
+    ]},
+    romance:    { fitClass:'good', title:'Good fit for Romance', rows:[
+      ['blue',  'Slow Burn / Clean Romance beat styles applied'],
+      ['blue',  'Closed-door rule enforced'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  'Act bridge supported'],
+    ]},
+    erotica:    { fitClass:'ok', title:'Limited — OpenAI policy blocks explicit content', rows:[
+      ['red',  '<b>Explicit content blocked</b> by OpenAI content policy'],
+      ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
+      ['blue',  'SFW romance and tension chapters work normally'],
+      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+    ]},
+    nonfiction: { fitClass:'good', title:'Good fit for Nonfiction', rows:[
+      ['blue',  'Investigative beat style applied'],
+      ['blue',  'Fabrication warnings active'],
+      ['yellow','Verify chapter endings for thesis restatements'],
+      ['blue',  'Strong analytical and structured writing output'],
+    ]},
+    fantasy:    { fitClass:'good', title:'Good fit for Fantasy', rows:[
+      ['blue',  'Epic beat styles applied'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  '128k context — handles full act generation'],
+      ['blue',  'Act bridge continuity supported'],
+    ]},
+  },
+  'gpt-4o-mini': {
+    default: { fitClass:'ok', title:'Acceptable — best for simple chapter structures' },
+    thriller:   { fitClass:'ok', title:'Acceptable — lighter beat enforcement', rows:[
+      ['blue',  'Beat style rules applied — lighter enforcement'],
+      ['yellow','Complex multi-beat chapters may lose structure'],
+      ['yellow','Author voice less consistent than larger models'],
+      ['blue',  'Best for <b>high-volume, cost-sensitive</b> manuscripts'],
+    ]},
+    romance:    { fitClass:'ok', title:'Acceptable for lighter Romance', rows:[
+      ['blue',  'Slow Burn / Clean Romance applied'],
+      ['yellow','Emotional depth reduced vs. larger models'],
+      ['blue',  'Closed-door rule enforced'],
+      ['blue',  'Good cost option for short-form romance'],
+    ]},
+    erotica:    { fitClass:'warn', title:'Not supported — OpenAI blocks explicit content', rows:[
+      ['red',  '<b>Explicit content blocked</b> by OpenAI'],
+      ['red',  'Cannot be used for erotica — switch models'],
+      ['yellow','Use Lumimaid, DeepSeek, or Trinity instead'],
+      ['blue',  'Budget Mode routes to Lumimaid automatically'],
+    ]},
+    nonfiction: { fitClass:'ok', title:'Acceptable for lighter Nonfiction', rows:[
+      ['blue',  'Investigative beat style applied'],
+      ['yellow','Longer research chapters may underperform'],
+      ['yellow','Extra ending check recommended'],
+      ['blue',  'Good for Reference / Educational genre'],
+    ]},
+    fantasy:    { fitClass:'ok', title:'Acceptable — lighter context handling', rows:[
+      ['blue',  'Beat styles applied'],
+      ['yellow','Complex world-building may need extra prompting'],
+      ['blue',  'Cost-effective for high chapter-count fantasy'],
+      ['yellow','Watch for continuity drift on long acts'],
+    ]},
+  },
+  'deepseek': {
+    default: { fitClass:'good', title:'Strong fit — excellent instruction following' },
+    thriller:   { fitClass:'good', title:'Strong fit — excellent instruction following', rows:[
+      ['blue',  'Beat style rules applied — <b>strong structural compliance</b>'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  'Anti-pattern enforcement active'],
+      ['blue',  '163k context — full act without truncation'],
+    ]},
+    romance:    { fitClass:'good', title:'Good fit for Romance', rows:[
+      ['blue',  'Slow Burn / Clean Romance beat styles applied'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  'Closed-door rule enforced'],
+      ['blue',  'Strong <b>cost-quality balance</b> for long manuscripts'],
+    ]},
+    erotica:    { fitClass:'great', title:'Strong fit — explicit content supported', rows:[
+      ['green','<b>Explicit content supported</b> via DeepSeek on OpenRouter'],
+      ['green','Full hybrid or single-model routing available'],
+      ['blue', 'Budget Mode routes to Lumimaid if preferred'],
+      ['green','<b>Best cost-quality balance</b> for erotica SFW sections'],
+    ]},
+    nonfiction: { fitClass:'good', title:'Strong fit for Nonfiction', rows:[
+      ['blue',  'Investigative beat style fully applied'],
+      ['blue',  'Fabrication warning detection active'],
+      ['blue',  '163k context handles full research chapters'],
+      ['yellow','Monitor thesis restatement endings — enforcer active'],
+    ]},
+    fantasy:    { fitClass:'good', title:'Strong fit for Fantasy', rows:[
+      ['blue',  'Epic / Urban Gritty beat styles applied'],
+      ['blue',  '<b>163k context</b> — largest window of all options'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  'Act bridge continuity supported'],
+    ]},
+  },
+  'trinity': {
+    default: { fitClass:'good', title:'Good fit — built for creative writing' },
+    thriller:   { fitClass:'good', title:'Good fit — built for creative writing', rows:[
+      ['green','<b>400B model</b> trained specifically for storytelling'],
+      ['blue', 'Beat style rules applied via context injection'],
+      ['blue', 'Author voice injection supported'],
+      ['yellow','Free tier — <b>may be slower</b> during high demand'],
+    ]},
+    romance:    { fitClass:'good', title:'Good fit — strong emotional tone', rows:[
+      ['green','Excellent at <b>emotional tone and character voice</b>'],
+      ['blue', 'Slow Burn / Clean Romance beat styles applied'],
+      ['blue', 'Author voice injection supported'],
+      ['yellow','Free tier — response time may vary'],
+    ]},
+    erotica:    { fitClass:'good', title:'Good fit — explicit content supported', rows:[
+      ['green','<b>Explicit content supported</b> on Trinity via OpenRouter'],
+      ['green','400B creative writing focus — strong tone control'],
+      ['blue', 'Budget Mode routes to Lumimaid if preferred'],
+      ['yellow','Free tier — may be slower during high demand'],
+    ]},
+    nonfiction: { fitClass:'ok', title:'Acceptable — less specialized for nonfiction', rows:[
+      ['blue',  'Investigative beat style applied'],
+      ['yellow','<b>Less specialized</b> for evidence-based research writing'],
+      ['yellow','Monitor fabrication more carefully than Claude/DeepSeek'],
+      ['blue',  'Strong for narrative nonfiction and memoir'],
+    ]},
+    fantasy:    { fitClass:'great', title:'Excellent fit — storytelling is its specialty', rows:[
+      ['green','<b>Exceptional</b> creative writing and worldbuilding'],
+      ['green','Epic / Urban Gritty beat styles applied'],
+      ['blue', 'Author voice injection supported'],
+      ['yellow','Free tier — monitor rate limits on high chapter counts'],
+    ]},
+  },
+  'lumimaid': {
+    default: { fitClass:'ok', title:'Best used for explicit content only' },
+    thriller:   { fitClass:'ok', title:'Limited — not recommended for SFW thriller', rows:[
+      ['yellow','Beat style rules applied — lighter SFW enforcement'],
+      ['red',  '<b>Not recommended</b> for SFW thriller'],
+      ['blue', 'Use Lumimaid for explicit scenes only in hybrid mode'],
+      ['blue', 'Author voice injection supported'],
+    ]},
+    romance:    { fitClass:'ok', title:'Acceptable for spicy romance', rows:[
+      ['blue', 'Explicit content fully supported'],
+      ['yellow','SFW romance sections <b>lighter quality</b> vs Claude'],
+      ['blue', 'Standard hybrid mode recommended'],
+      ['blue', 'Or enable Budget Mode for full Lumimaid routing'],
+    ]},
+    erotica:    { fitClass:'great', title:'Excellent — primary use case for Lumimaid', rows:[
+      ['green','Explicit content <b>fully supported and optimized</b>'],
+      ['green','Lowest cost per token — ideal for high-volume erotica'],
+      ['blue', 'Beat style rules applied to all SFW sections'],
+      ['green','Enable <b>Budget Mode</b> below to route full manuscript here'],
+    ]},
+    nonfiction: { fitClass:'warn', title:'Not recommended for Nonfiction', rows:[
+      ['red', '<b>Not optimized</b> for research or evidence-based writing'],
+      ['red', 'Fabrication risk <b>significantly higher</b> than other models'],
+      ['red', 'Switch to Claude, DeepSeek, or GPT-4o for nonfiction'],
+      ['red', 'Do not generate nonfiction chapters with this model'],
+    ]},
+    fantasy:    { fitClass:'ok', title:'Acceptable for dark/adult fantasy only', rows:[
+      ['blue', 'Explicit content supported for adult fantasy'],
+      ['yellow','SFW world-building lighter quality than Claude/DeepSeek'],
+      ['yellow','Beat style enforcement less consistent'],
+      ['blue', 'Consider hybrid: Claude for SFW, Lumimaid for explicit'],
+    ]},
+  },
+};
+
+
+// ── SUB-COMPONENTS ───────────────────────────────────────────
+
+function QualityPips({ score, color }) {
   return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div
-          key={i}
-          className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: i < score ? color : '#e2e8f0' }}
-        />
+    <div style={{ display:'flex', gap:2 }}>
+      {[1,2,3,4,5].map(i => (
+        <div key={i} style={{
+          width:6, height:6, borderRadius:2,
+          background: i <= score ? color : '#e5e7eb',
+        }} />
       ))}
     </div>
   );
 }
 
-function ModelRow({ model, selected, onSelect, isRecommended, routing }) {
-  const costStyle = COST_TIER_STYLES[model.costTier] || COST_TIER_STYLES.mid;
-  const platformColor = PLATFORM_COLORS[model.platform] || '#94a3b8';
+function CostBadge({ tier, label }) {
+  const s = COST_TIER_STYLES[tier] || COST_TIER_STYLES.mid;
+  return (
+    <span style={{
+      fontSize:9, fontWeight:800, padding:'2px 7px',
+      borderRadius:10, background:s.bg, color:s.color,
+      flexShrink:0, whiteSpace:'nowrap',
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function FitPanel({ modelId, genre }) {
+  const matrix = FIT_MATRIX[modelId];
+  if (!matrix) return null;
+  const genreKey = genre ? genre.toLowerCase() : null;
+  const data = (genreKey && matrix[genreKey]) || matrix.default;
+  if (!data) return null;
+  const fs = FIT_STYLES[data.fitClass] || FIT_STYLES.good;
 
   return (
-    <button
-      onClick={() => onSelect(model.id)}
-      className={cn(
-        "w-full text-left px-3.5 py-3 rounded-lg border-2 transition-all",
-        selected
-          ? "border-indigo-500 bg-indigo-50/70"
-          : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        {/* Radio circle */}
-        <div className={cn(
-          "w-[18px] h-[18px] rounded-full border-2 shrink-0 flex items-center justify-center",
-          selected ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"
-        )}>
-          {selected && <Check className="w-2.5 h-2.5 text-white" />}
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-slate-900">{model.label}</span>
-            {isRecommended && (
-              <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded leading-none">
-                REC
-              </span>
-            )}
-            {model.isFree && (
-              <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded leading-none">
-                FREE
-              </span>
-            )}
-            {model.adultOnly && (
-              <span className="text-[9px] font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded leading-none">
-                18+
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">{model.description}</p>
-        </div>
-
-        {/* Right: quality + cost */}
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <QualityDots score={model.qualityScore} color={model.qualityColor} />
-          <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded", costStyle.bg, costStyle.text)}>
-            {model.costLabel}
-          </span>
-        </div>
+    <div style={{
+      marginTop:8, borderRadius:10, padding:'10px 12px',
+      border:`1.5px solid ${fs.border}`, background:fs.bg,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
+        <span style={{ fontSize:12 }}>{fs.icon}</span>
+        <span style={{ fontSize:11, fontWeight:700, color:fs.titleColor }}>
+          {data.title}
+        </span>
       </div>
-
-      {/* Expanded detail when selected */}
-      {selected && (
-        <div className="mt-2.5 pt-2.5 border-t border-indigo-200/60 space-y-1.5">
-          {routing?.styleBeat && (
-            <div className="bg-indigo-100/50 border-l-[3px] border-indigo-400 px-2.5 py-1.5 rounded-r">
-              <p className="text-[11px] text-slate-700">
-                <span className="font-semibold">Style:</span> {routing.styleBeat}
-              </p>
-            </div>
-          )}
-          {isRecommended && routing?.reason && (
-            <p className="text-[11px] text-slate-500 italic">{routing.reason}</p>
-          )}
-          <div className="flex items-center gap-3 text-[10px] text-slate-400">
-            <span>{(model.contextWindow / 1000).toFixed(0)}k ctx</span>
-            <span className="flex items-center gap-0.5" style={{ color: platformColor }}>
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: platformColor }} />
-              {model.platform}
-            </span>
-            {model.supportsExplicit && <span className="text-rose-400">explicit ok</span>}
-          </div>
-          {model.note && (
-            <p className="text-[10px] text-amber-600 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> {model.note}
-            </p>
-          )}
-        </div>
-      )}
-    </button>
-  );
-}
-
-function SectionHeader({ platform }) {
-  const color = PLATFORM_COLORS[platform] || '#94a3b8';
-  return (
-    <div className="flex items-center gap-2 mt-3 mb-1.5">
-      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{platform}</span>
-      <div className="flex-1 h-px bg-slate-100" />
-    </div>
-  );
-}
-
-// ── Warnings ─────────────────────────────────────────────────────────────────
-
-function ModelWarnings({ model, bookType }) {
-  if (!model) return null;
-  const warnings = [];
-
-  if (model.id === 'gpt-4o' || model.id === 'gpt-4o-mini') {
-    warnings.push({ key: 'gpt', color: 'border-amber-200 bg-amber-50', text: 'GPT models are SFW only. Not recommended for erotica or explicit content.' });
-  }
-  if (model.adultOnly) {
-    warnings.push({ key: 'adult', color: 'border-rose-200 bg-rose-50', text: 'Adult-only model. Content may not be suitable for all genres.' });
-  }
-  if (model.isFree) {
-    warnings.push({ key: 'free', color: 'border-green-200 bg-green-50', text: 'Free tier — may experience slower speeds during peak hours.' });
-  }
-
-  if (!warnings.length) return null;
-  return (
-    <div className="space-y-1.5 mt-2">
-      {warnings.map(w => (
-        <div key={w.key} className={cn("flex items-start gap-2 rounded-md border px-3 py-2", w.color)}>
-          <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-slate-700">{w.text}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Main ─────────────────────────────────────────────────────────────────────
-
-export default function ModelSelector({ genre, bookType, selectedModel, onSelectModel }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const routing = genre ? (MODEL_GENRE_ROUTING[genre] || null) : null;
-  const recommendedId = routing?.primary || 'claude-sonnet';
-  const altIds = new Set(routing?.alts || []);
-
-  // Group models by platform in PLATFORM_ORDER
-  const sections = useMemo(() => {
-    const groups = {};
-    for (const m of Object.values(WRITING_MODELS)) {
-      (groups[m.platform] ||= []).push(m);
-    }
-    return PLATFORM_ORDER.filter(p => groups[p]).map(p => ({ platform: p, models: groups[p] }));
-  }, []);
-
-  // Recommended + alts shown always; rest shown when expanded
-  const topIds = new Set([recommendedId, ...(routing?.alts || [])]);
-
-  const selectedWritingModel = WRITING_MODELS[selectedModel] || null;
-
-  if (!genre) {
-    return (
-      <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-slate-500">
-        <Settings className="w-4 h-4" />
-        <span className="text-sm">Select a genre to get AI model recommendations</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between transition-colors border-b"
-      >
-        <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
-          <Settings className="w-4 h-4" />
-          Prose Composition Model
-        </div>
-        <div className="flex items-center gap-2">
-          {selectedWritingModel && (
-            <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">{selectedWritingModel.label}</span>
-          )}
-          <ChevronDown className={cn("w-4 h-4 text-slate-500 transition-transform", expanded && "rotate-180")} />
-        </div>
-      </button>
-
-      {/* Body */}
-      <div className="p-3 space-y-1">
-        <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
-          Selects the AI that writes your chapter prose. Outline, beat structure, and content routing use their own engines.
-        </p>
-
-        {/* Recommended + alternates (always visible) */}
-        {WRITING_MODELS[recommendedId] && (
-          <ModelRow
-            model={WRITING_MODELS[recommendedId]}
-            selected={selectedModel === recommendedId}
-            onSelect={onSelectModel}
-            isRecommended
-            routing={routing}
+      {data.rows?.map(([dot, text], i) => (
+        <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:6, marginBottom:4 }}>
+          <div style={{
+            width:5, height:5, borderRadius:'50%',
+            background: DOT_COLORS[dot] || '#6b7280',
+            marginTop:4, flexShrink:0,
+          }} />
+          <span
+            style={{ fontSize:10, color:'#374151', lineHeight:1.4 }}
+            dangerouslySetInnerHTML={{ __html: text }}
           />
-        )}
-        {routing?.alts?.map(altId => {
-          const m = WRITING_MODELS[altId];
-          if (!m || altId === recommendedId) return null;
-          return (
-            <ModelRow
-              key={altId}
-              model={m}
-              selected={selectedModel === altId}
-              onSelect={onSelectModel}
-              routing={routing}
-            />
-          );
-        })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-        {/* All models (expanded) */}
-        {expanded && (
-          <div className="mt-2">
-            {sections.map(({ platform, models }) => {
-              const remaining = models.filter(m => !topIds.has(m.id));
-              if (!remaining.length) return null;
-              return (
-                <div key={platform}>
-                  <SectionHeader platform={platform} />
-                  <div className="space-y-1">
-                    {remaining.map(m => (
-                      <ModelRow
-                        key={m.id}
-                        model={m}
-                        selected={selectedModel === m.id}
-                        onSelect={onSelectModel}
-                        routing={routing}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+function TokenCostEstimator({ model, chapterWords, onWordChange }) {
+  const WORD_OPTIONS = [1500, 2500, 4000, 6000];
+  const costs = calcChapterCost(model, chapterWords);
+  const isFree = model.inPer1M === 0 && model.outPer1M === 0;
+
+  return (
+    <div style={{
+      marginTop:8, borderRadius:10, padding:'10px 12px',
+      border:'1.5px solid #e0e7ff', background:'#fafbff',
+    }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, flexWrap:'wrap', gap:4 }}>
+        <span style={{ fontSize:9, fontWeight:800, color:'#4338ca', letterSpacing:'0.5px' }}>
+          ⬡ EST. TOKEN COST PER CHAPTER
+        </span>
+        <div style={{ display:'flex', gap:3 }}>
+          {WORD_OPTIONS.map(w => (
+            <button
+              key={w}
+              onClick={() => onWordChange(w)}
+              style={{
+                padding:'2px 7px', borderRadius:8,
+                fontSize:9, fontWeight:700, cursor:'pointer',
+                border: w === chapterWords ? '1.5px solid #6366f1' : '1.5px solid #e0e7ff',
+                background: w === chapterWords ? '#6366f1' : '#fff',
+                color: w === chapterWords ? '#fff' : '#6b7280',
+              }}
+            >
+              {w >= 1000 ? (w/1000)+'k' : w}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Footer */}
-      {selectedWritingModel && (
-        <div className="px-4 py-2 bg-indigo-50 border-t border-slate-200 text-xs text-slate-700">
-          Selected: <span className="font-semibold">{selectedWritingModel.label}</span>
-          <span className="text-slate-400 ml-2">· {selectedWritingModel.costLabel}</span>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+        <div style={{ background:'#fff', borderRadius:8, border:'1px solid #e0e7ff', padding:'7px 8px' }}>
+          <div style={{ fontSize:9, color:'#6b7280', marginBottom:2 }}>Input tokens</div>
+          <div style={{ fontSize:14, fontWeight:800, color:'#111827' }}>~{costs.inTokens.toLocaleString()}</div>
+          <div style={{ fontSize:9, color:'#9ca3af', marginTop:1 }}>prompt + beat sheet</div>
+        </div>
+        <div style={{ background:'#fff', borderRadius:8, border:'1px solid #e0e7ff', padding:'7px 8px' }}>
+          <div style={{ fontSize:9, color:'#6b7280', marginBottom:2 }}>Output tokens</div>
+          <div style={{ fontSize:14, fontWeight:800, color:'#111827' }}>~{costs.outTokens.toLocaleString()}</div>
+          <div style={{ fontSize:9, color:'#9ca3af', marginTop:1 }}>chapter text</div>
+        </div>
+        <div style={{ background:'#fff', borderRadius:8, border:'1px solid #e0e7ff', padding:'7px 8px' }}>
+          <div style={{ fontSize:9, color:'#6b7280', marginBottom:2 }}>Per chapter</div>
+          <div style={{ fontSize:14, fontWeight:800, color: isFree ? '#15803d' : '#111827' }}>
+            {isFree ? '$0.00' : formatCost(costs.perChapter)}
+          </div>
+          <div style={{ fontSize:9, color:'#9ca3af', marginTop:1 }}>{isFree ? 'free model ✓' : 'in + out tokens'}</div>
+        </div>
+        <div style={{
+          background:'linear-gradient(135deg,#eef2ff,#f5f3ff)',
+          borderRadius:8, border:'1.5px solid #a5b4fc', padding:'7px 8px',
+        }}>
+          <div style={{ fontSize:9, color:'#6b7280', marginBottom:2 }}>20-chapter book</div>
+          <div style={{ fontSize:14, fontWeight:800, color: isFree ? '#15803d' : '#4338ca' }}>
+            {isFree ? '$0.00' : formatCost(costs.fullBook)}
+          </div>
+          <div style={{ fontSize:9, color:'#9ca3af', marginTop:1 }}>{isFree ? 'no token charges' : 'full manuscript est.'}</div>
+        </div>
+      </div>
+
+      <div style={{
+        marginTop:7, paddingTop:6, borderTop:'1px solid #e0e7ff',
+        fontSize:9, color:'#9ca3af', lineHeight:1.4,
+      }}>
+        {isFree
+          ? `${model.label} is free via OpenRouter. No token charges apply to chapter generation. Beat sheet generation (Gemini) and act bridge calls (Claude) are billed separately.`
+          : `~${costs.inTokens.toLocaleString()} input + ~${costs.outTokens.toLocaleString()} output per chapter. Excludes beat sheet (Gemini) and act bridge (Claude). Each regeneration adds ~${formatCost(costs.perChapter * 0.5)}.`
+        }
+      </div>
+    </div>
+  );
+}
+
+function BudgetToggle({ project, updateProject }) {
+  const on = project.budget_mode || false;
+  return (
+    <div style={{
+      marginTop:8, borderRadius:10, padding:'10px 12px',
+      border:'1.5px solid #fde68a', background:'#fffbeb',
+    }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+          <span style={{ fontSize:15 }}>⚡</span>
+          <div>
+            <div style={{ fontSize:12, fontWeight:700, color:'#92400e' }}>Budget Mode</div>
+            <div style={{ fontSize:10, color:'#a16207', marginTop:1 }}>
+              Route full manuscript to Lumimaid · Save ~90%
+            </div>
+          </div>
+        </div>
+        <label style={{ position:'relative', width:40, height:22, flexShrink:0, cursor:'pointer' }}>
+          <input
+            type="checkbox"
+            style={{ opacity:0, position:'absolute', width:0, height:0 }}
+            checked={on}
+            onChange={e => updateProject({ budget_mode: e.target.checked })}
+          />
+          <div style={{
+            position:'absolute', inset:0, borderRadius:22,
+            background: on ? '#f59e0b' : '#d1d5db',
+            transition:'background 0.2s',
+          }} />
+          <div style={{
+            position:'absolute',
+            width:16, height:16, borderRadius:'50%', background:'#fff',
+            top:3, left: on ? 21 : 3,
+            transition:'left 0.2s', pointerEvents:'none',
+            boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
+          }} />
+        </label>
+      </div>
+      {on && (
+        <div style={{
+          marginTop:7, paddingTop:7, borderTop:'1px solid #fde68a',
+          fontSize:10, color:'#92400e', lineHeight:1.4,
+        }}>
+          ⚠ All chapter generation routed to Lumimaid only.
+          Explicit content fully supported. Prose quality and beat
+          adherence may be reduced vs. Standard Mode.
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── MAIN COMPONENT ───────────────────────────────────────────
+
+export default function ModelSelector({ project, updateProject }) {
+  const [open, setOpen]           = useState(false);
+  const [chapterWords, setWords]  = useState(2500);
+
+  const selectedId = project?.writing_model || 'claude-sonnet';
+  const selected   = WRITING_MODELS[selectedId] || WRITING_MODELS['claude-sonnet'];
+  const genre      = project?.genre || '';
+  const showBudget = genre.toLowerCase() === 'erotica';
+
+  // Group models by platform
+  const groups = {};
+  PLATFORM_ORDER.forEach(p => { groups[p] = []; });
+  Object.values(WRITING_MODELS).forEach(m => {
+    if (groups[m.platform]) groups[m.platform].push(m);
+  });
+
+  function handleSelect(modelId) {
+    updateProject({ writing_model: modelId });
+    setOpen(false);
+  }
+
+  return (
+    <div>
+      {/* Label */}
+      <div style={{
+        fontSize:9, fontWeight:800, color:'#6b7280',
+        letterSpacing:'1px', marginBottom:5,
+      }}>
+        WRITING MODEL
+      </div>
+
+      {/* Trigger */}
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          width:'100%', padding:'10px 12px',
+          borderRadius: open ? '10px 10px 0 0' : 10,
+          border:`1.5px solid ${open ? '#6366f1' : '#e5e7eb'}`,
+          background:'#fff',
+          display:'flex', alignItems:'center', gap:9,
+          cursor:'pointer',
+        }}
+      >
+        <QualityPips score={selected.qualityScore} color={selected.qualityColor} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#111827' }}>{selected.label}</div>
+          <div style={{ fontSize:10, color:'#6b7280' }}>{selected.platform}</div>
+        </div>
+        <CostBadge tier={selected.costTier} label={selected.costLabel} />
+        <span style={{
+          fontSize:9, color:'#9ca3af', flexShrink:0,
+          transform: open ? 'rotate(180deg)' : 'none',
+          transition:'transform 0.2s',
+        }}>▼</span>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          border:'1.5px solid #6366f1', borderTop:'none',
+          borderRadius:'0 0 12px 12px', background:'#fff',
+          overflow:'hidden', boxShadow:'0 8px 20px rgba(0,0,0,0.1)',
+        }}>
+          {PLATFORM_ORDER.map(platform => {
+            const platformModels = groups[platform];
+            if (!platformModels?.length) return null;
+            return (
+              <div key={platform} style={{ borderBottom:'1px solid #f3f4f6' }}>
+                <div style={{
+                  padding:'6px 12px 4px',
+                  background:'#fafafa', borderBottom:'1px solid #f0f0f0',
+                  display:'flex', alignItems:'center', gap:6,
+                  fontSize:9, fontWeight:900, letterSpacing:'1.2px', color:'#9ca3af',
+                }}>
+                  <div style={{
+                    width:6, height:6, borderRadius:'50%',
+                    background: PLATFORM_COLORS[platform] || '#9ca3af',
+                  }} />
+                  {platform.toUpperCase()}
+                </div>
+                {platformModels.map(m => (
+                  <div
+                    key={m.id}
+                    onClick={() => handleSelect(m.id)}
+                    style={{
+                      padding:'8px 12px',
+                      display:'flex', alignItems:'center', gap:8,
+                      cursor:'pointer',
+                      background: m.id === selectedId ? '#eef2ff' : 'transparent',
+                      borderBottom:'1px solid #f9fafb',
+                    }}
+                  >
+                    <QualityPips score={m.qualityScore} color={m.qualityColor} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{
+                        fontSize:12, fontWeight:700, color:'#111827',
+                        display:'flex', alignItems:'center', gap:4,
+                      }}>
+                        {m.label}
+                        {m.recommended && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#ede9fe', color:'#6d28d9' }}>TOP</span>
+                        )}
+                        {m.isFree && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#dcfce7', color:'#15803d' }}>FREE</span>
+                        )}
+                        {m.adultOnly && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#fff1f2', color:'#9f1239' }}>18+</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize:10, color:'#6b7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {m.description}
+                      </div>
+                    </div>
+                    <CostBadge tier={m.costTier} label={m.costLabel} />
+                    {m.id === selectedId && (
+                      <div style={{
+                        width:15, height:15, borderRadius:'50%',
+                        background:'#6366f1', color:'#fff',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:8, flexShrink:0,
+                      }}>✓</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Warnings */}
-      <div className="px-3 pb-3">
-        <ModelWarnings model={selectedWritingModel} bookType={bookType} />
-      </div>
+      {/* Fit panel + cost estimator + budget toggle — only when dropdown is closed */}
+      {!open && (
+        <>
+          <FitPanel modelId={selectedId} genre={genre} />
+          <TokenCostEstimator
+            model={selected}
+            chapterWords={chapterWords}
+            onWordChange={setWords}
+          />
+          {showBudget && (
+            <BudgetToggle project={project} updateProject={updateProject} />
+          )}
+        </>
+      )}
     </div>
   );
 }
