@@ -1556,12 +1556,15 @@ export default function GenerateTab({ projectId, onProceed }) {
         )}
         {totalCount > 0 && generatedCount < totalCount && (
           <Button 
+            variant="outline"
+            size="sm"
             onClick={handleWriteAllChapters} 
             disabled={generating || writeAllActive}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="text-slate-500 border-slate-300"
+            title="Write all chapters sequentially — prefer Write Act buttons for better results"
           >
-            <Zap className="w-4 h-4 mr-2" /> 
-            {writeAllActive ? "Writing..." : `Write All Chapters (${totalCount - generatedCount} remaining)`}
+            <Zap className="w-3.5 h-3.5 mr-1.5" /> 
+            {writeAllActive ? "Writing..." : `Write All (${totalCount - generatedCount} remaining)`}
           </Button>
         )}
       </div>
