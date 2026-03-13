@@ -36,7 +36,7 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
 }
 
 Deno.serve(async (req) => {
-  const DEADLINE = Date.now() + 55000; // 55s timeout guard
+  const DEADLINE = Date.now() + 55000; // 55-second timeout guard
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
