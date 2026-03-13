@@ -1058,28 +1058,32 @@ export default function GenerateTab({ projectId, onProceed }) {
         wordsWritten: totalWordsWritten,
       }));
 
-      // Use existing writeAndPollChapter which handles fire+poll+timeout+crash detection
-      const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-        setWriteAllProgress(prev => ({
-          ...prev,
-          currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
-          chapterNumber: ch.chapter_number,
-        }));
-      });
+      let result;
+      try {
+        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
+          setWriteAllProgress(prev => ({
+            ...prev,
+            currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
+            chapterNumber: ch.chapter_number,
+          }));
+        });
+      } catch (pollErr) {
+        console.error(`WriteAll Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        result = 'error';
+      }
 
       if (result === 'generated') {
         successes++;
-        // Fetch updated word count
-        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-        totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        try {
+          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
 
-        // Generate state document for continuity (fire and forget)
         base44.functions.invoke('generateChapterState', {
           project_id: projectId,
           chapter_id: ch.id,
         }).catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
 
-        // Brief pause between chapters
         if (i < chaptersToWrite.length - 1) {
           await new Promise(r => setTimeout(r, 3000));
         }
@@ -1168,18 +1172,26 @@ export default function GenerateTab({ projectId, onProceed }) {
         wordsWritten: totalWordsWritten,
       }));
 
-      const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-        setWriteAllProgress(prev => ({
-          ...prev,
-          currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
-          chapterNumber: ch.chapter_number,
-        }));
-      });
+      let result;
+      try {
+        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
+          setWriteAllProgress(prev => ({
+            ...prev,
+            currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
+            chapterNumber: ch.chapter_number,
+          }));
+        });
+      } catch (pollErr) {
+        console.error(`Resume Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        result = 'error';
+      }
 
       if (result === 'generated') {
         successes++;
-        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-        totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        try {
+          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
 
         base44.functions.invoke('generateChapterState', {
           project_id: projectId,
