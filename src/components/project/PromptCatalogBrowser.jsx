@@ -310,9 +310,9 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
         </div>
 
         {/* Tags Cloud */}
-        {allTags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {allTags.map(({ tag, count }) => (
+            {visibleTags.map(({ tag, count }) => (
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
