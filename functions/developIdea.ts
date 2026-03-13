@@ -68,7 +68,25 @@ Transform this into a tight, pitch-ready premise. Named characters, vivid settin
 
   // Parse JSON from response, stripping any accidental markdown fences
   const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  const parsed = JSON.parse(cleaned);
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (parseErr) {
+    console.error("JSON parse failed. Raw text:", text);
+    // Attempt to extract fields from malformed output
+    const premiseMatch = cleaned.match(/"developed_premise"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
+    const marketMatch = cleaned.match(/"market_notes"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
+    const typeMatch = cleaned.match(/"book_type"\s*:\s*"(\w+)"/);
+    if (premiseMatch) {
+      parsed = {
+        developed_premise: premiseMatch[1],
+        book_type: typeMatch ? typeMatch[1] : book_type,
+        market_notes: marketMatch ? marketMatch[1] : "",
+      };
+    } else {
+      return Response.json({ error: "Failed to parse AI response" }, { status: 500 });
+    }
+  }
 
   return Response.json({
     developed_premise: parsed.developed_premise,
