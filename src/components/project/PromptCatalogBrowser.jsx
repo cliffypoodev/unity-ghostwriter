@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, X, Eye, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getCategoryType, filterCategoriesByType, filterTagsByType } from "../constants/catalogTaxonomy";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Horror", "Historical Fiction", "Literary Fiction"];
 const NONFICTION_GENRES = ["Biography", "True Crime", "History", "Science", "Self-Help", "Business", "Memoir", "Essay"];
