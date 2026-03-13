@@ -1599,7 +1599,8 @@ Before writing this chapter, review the character motivations established in the
       if (lastSentences) contextBlock += `\n\nLAST SENTENCES:\n${lastSentences}`;
       // FIX C: Inject previous_chapter_endings rebuilt from actual written prose
       if (chapter.previous_chapter_endings) { try { const _ends = JSON.parse(chapter.previous_chapter_endings); if (Array.isArray(_ends) && _ends.length > 0) { contextBlock += `\n\n=== PREVIOUS CHAPTER ENDINGS (actual prose — trust over outline) ===`; for (const e of _ends) { contextBlock += `\nCH ${e.chapter_number} ("${e.title}")${e.type === 'full_ending' ? ' [FULL]' : ''}:\n${e.last_paragraph}`; } contextBlock += `\n=== END ENDINGS ===`; } } catch (_) {} }
-
+      // ACT BRIDGE INJECTION — load act bridge documents for cross-act context
+      try { const _sf = await base44.entities.SourceFile.filter({ project_id: projectId }); for (const bf of _sf.filter(f => /^act_\d+_bridge\.txt$/.test(f.filename)).sort((a,b)=>a.filename.localeCompare(b.filename))) { if (bf.content?.length > 50) { const an = bf.filename.match(/act_(\d+)/)[1]; contextBlock += `\n\n=== ACT ${an} BRIDGE ===\n${bf.content.slice(0, 2000)}\n=== END ACT ${an} BRIDGE ===`; } } } catch(e){ console.warn('Act bridge load:',e.message); }
       if (stateDoc || lastSentences) {
         messages.push({ role: 'user', content: contextBlock });
         messages.push({ role: 'assistant', content: 'Understood. I have the state and ending from the previous chapter. Ready to write the next chapter.' });
