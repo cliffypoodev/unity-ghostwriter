@@ -1905,7 +1905,7 @@ ${_beatUsrBlock(chapterBeat)}`;
     const updatedRegistry = extractNamedCharacters(finalContent, chapter.chapter_number, nameRegistry);
     await base44.entities.Chapter.update(chapterId, { content: contentValue, status: 'generated', word_count: finalWordCount, generated_at: new Date().toISOString(), quality_scan: JSON.stringify(qualityResult), distinctive_phrases: distinctivePhrases.length > 0 ? JSON.stringify(distinctivePhrases) : '' });
     try { await base44.entities.Project.update(projectId, { name_registry: JSON.stringify(updatedRegistry) }); } catch (nrErr) { console.warn('Name registry update failed:', nrErr.message); }
-    try { await base44.functions.invoke('consistencyCheck', { project_id: projectId, chapter_id: chapterId, chapter_text: finalContent.slice(0, 6000) }); } catch (ccErr) { console.warn('Consistency check failed (non-blocking):', ccErr.message); }
+    if (chapterIndex < 20) { try { await base44.functions.invoke('consistencyCheck', { project_id: projectId, chapter_id: chapterId, chapter_text: finalContent.slice(0, 6000) }); } catch (ccErr) { console.warn('Consistency check failed (non-blocking):', ccErr.message); } }
   } catch (err) {
     // ISSUE 2 & 6 FIX: Log all errors and mark chapter with error details
     console.error('Async generation error for chapter', chapterId, ':', err.message);
