@@ -728,6 +728,23 @@ export default function ModelSelector({ project, updateProject }) {
         </div>
       )}
 
+      {/* Health check result */}
+      {!open && healthLoading && (
+        <div style={{ marginTop:5, fontSize:10, padding:'4px 10px', borderRadius:8, background:'#f8fafc', color:'#64748b', border:'1px solid #e2e8f0' }}>
+          Running format compliance check…
+        </div>
+      )}
+      {!open && healthCheck && !healthLoading && (
+        <div style={{
+          marginTop:5, fontSize:10, padding:'4px 10px', borderRadius:8,
+          background: healthCheck.passed ? '#f0fdf4' : '#fef3c7',
+          color: healthCheck.passed ? '#15803d' : '#92400e',
+          border: `1px solid ${healthCheck.passed ? '#bbf7d0' : '#fde68a'}`,
+        }}>
+          {healthCheck.note}{healthCheck.elapsedMs ? ` (${(healthCheck.elapsedMs/1000).toFixed(1)}s)` : ''}
+        </div>
+      )}
+
       {/* Fit panel + cost estimator + budget toggle — only when dropdown is closed */}
       {!open && (
         <>
