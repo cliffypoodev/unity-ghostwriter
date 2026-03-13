@@ -772,7 +772,7 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "charged and electric", "charged with tension", "charged with anticipation", "charged with possibility", "charged with meaning"
     ],
     narrationClichés: [
-      "in that moment", "suddenly", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back",
+      "in that moment", "suddenly", "just the beginning", "just begun", "only the beginning", "only just begun", "no turning back", "no going back", "a tapestry of",
       "teetering on the edge", "on the precipice", "on the brink", "standing at the edge", "double-edged sword", "ready to embrace",
       "ready to confront", "ready to face whatever", "a mix of", "a mixture of", "a blend of", "a cocktail of", "he felt alive",
       "she felt alive", "feeling alive", "more than mere", "more than just", "the world around him faded", "the world outside faded",
