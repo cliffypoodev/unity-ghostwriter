@@ -166,7 +166,7 @@ export default function WriteAllChaptersModal({
           {/* Stats row */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "Chapter", value: `${Math.min(current + (done ? 0 : 1), total)} / ${total}` },
+              { label: "Chapter", value: `${Math.min(queueIndex + (done ? 0 : 1), total)} / ${total}` },
               { label: "Words", value: totalWordsDisplay },
               { label: "Elapsed", value: elapsedTime },
               { label: "Est. Left", value: remainingTime },
