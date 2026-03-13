@@ -1,3 +1,16 @@
+// PIPELINE PHASE ISOLATION — Phase 3 (Chapter Generation)
+//
+// Permitted AI calls: writeChapter, generateScenes, generateAllScenes,
+//   writeAllChapters, generateChapterState, resumeFromChapter
+// Prose quality gates (enforceProseCompliance, verifyGeminiProse, verifyGPTVolume,
+//   verifyNonfictionVolume) run INSIDE writeChapter on the backend — not called from here directly.
+//
+// Forbidden: developIdea, expandPremise, generateOutline (Phase 1/2),
+//            consistencyCheck, rewriteInVoice (Phase 4).
+//
+// This file may read Specification + Outline data for display but must NOT
+// call Phase 1 metadata or Phase 4 review functions.
+
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
