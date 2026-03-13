@@ -346,9 +346,16 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
                         : "text-slate-600 hover:bg-slate-100"
                     )}
                   >
-                    All ({allPrompts.length})
+                    All ({bookTypeFilter === "all"
+                      ? allPrompts.length
+                      : allPrompts.filter(p => {
+                          if (p.book_type) return p.book_type === bookTypeFilter;
+                          const t = getCategoryType(p.category);
+                          return t === bookTypeFilter || t === 'shared';
+                        }).length
+                    })
                   </button>
-                  {categories.map(c => (
+                  {visibleCategories.map(c => (
                     <button
                       key={c.name}
                       onClick={() => { setCategoryFilter(c.name); setPage(1); }}
