@@ -226,10 +226,11 @@ const REFUSAL_INDICATORS = [
   "not appropriate", "i won't be able", "i need to decline"
 ];
 
-// ── GPT Model Detection + Length Enforcement ──
+// ── Model Detection + Length Enforcement ──
 function isGptModel(modelKey) { return /^gpt-/.test(modelKey || ''); }
 function isDeepseekModel(modelKey) { return /^deepseek/.test(modelKey || ''); }
-function isNfLengthModel(mk) { return isGptModel(mk) || isDeepseekModel(mk); }
+function isGeminiModel(modelKey) { return /^gemini/.test(modelKey || ''); }
+function isNfLengthModel(mk) { return isGptModel(mk) || isDeepseekModel(mk) || isGeminiModel(mk); }
 const NF_LENGTH_ENFORCEMENT = `=== NONFICTION LENGTH — NON-NEGOTIABLE ===\nMin 2,500 words/chapter. Min 625 words per part. You are writing NARRATIVE NONFICTION — literary journalism (Erik Larson, David Grann, Jon Krakauer). Every part: cinematic opening placing a real person in a specific moment before context. Named individuals with documented motivations, not anonymous forces. Context woven into action, never in separate exposition. Scene-level specificity: time, location, weather, surroundings. Each part ends with a question the reader needs answered. DO NOT write in summary. DO NOT front-load context. Start in the middle of something happening.\n=== END NF LENGTH ===`;
 const GPT_NF_BANS = `GPT NONFICTION BANS:\n1. Fabricated specificity — never invent stats/quotes/dates/names. Unverifiable → [Insert verified figure here].\n2. "It is important to note that..." — cut entirely.\n3. "This would prove to be..." — hindsight kills tension. Stay in-moment.\n4. Passive voice — "Mistakes were made" → WHO made them?\n5. Thesis restatement endings — close on scene/quote/image, not summary.\n6. "Throughout history..."/"Since the dawn of..." — banned openings. Start specific.`;
 const DS_NF_BANS = `DEEPSEEK NONFICTION BANS:\n1. Triple restatement — state once, move forward.\n2. Over-hedged — "It could be argued"/"One might suggest" → state fact or flag [unverified].\n3. Argument-Evidence-Conclusion structure → scene/character momentum instead.\n4. Max 2 consecutive analytical paragraphs before returning to person-in-moment.\n5. Chapter endings must leave ≥1 thread unresolved.`;
