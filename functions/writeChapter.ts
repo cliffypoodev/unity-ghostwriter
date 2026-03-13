@@ -226,6 +226,32 @@ const REFUSAL_INDICATORS = [
   "not appropriate", "i won't be able", "i need to decline"
 ];
 
+// ── GPT Model Detection + Length Enforcement ──
+function isGptModel(modelKey) { return /^gpt-/.test(modelKey || ''); }
+
+const GPT_LENGTH_ENFORCEMENT = `=== GPT LENGTH REQUIREMENTS — NON-NEGOTIABLE ===
+This chapter must be a minimum of 2,500 words. Each major scene or section must be a minimum of 625 words.
+
+You are NOT summarizing events. You are inhabiting them.
+Every beat in the scene outline requires:
+  - A physical environment established before action begins
+  - At least 3 concrete sensory details per scene (sound, smell, texture, temperature — not just visual)
+  - Interior thought that is SPECIFIC to this character's history, not generic emotional labeling
+  - Dialogue that contains subtext — characters not saying what they actually mean
+
+If you complete a scene beat in under 200 words, you have summarized it. Stop. Rewrite it from the beginning of that beat, this time inhabiting it rather than reporting it.
+
+DO NOT proceed to the next beat until the current one is fully rendered.
+
+PACING ENFORCEMENT:
+- Every location change requires at least one paragraph of environmental grounding before any dialogue or action
+- Every emotional shift requires physical manifestation — body language, changed breathing, altered posture — before or instead of naming the emotion
+- Every conversation longer than 3 exchanges must include at least one paragraph of non-dialogue (action, observation, sensory detail, interiority) between exchanges
+- Scene transitions must include a bridging paragraph — never jump-cut between locations without grounding the reader in the new space
+
+You are a novelist, not a plot summarizer. The reader wants to BE in the room, not be told what happened in it.
+=== END GPT LENGTH REQUIREMENTS ===`;
+
 function isRefusal(text) {
   if (!text || text.trim().length < 50) return true;
   const lower = text.toLowerCase();
