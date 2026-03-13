@@ -375,6 +375,43 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
           </p>
         </div>
       )}
+
+      {/* Nonfiction model guidance */}
+      {bookType === "nonfiction" && (
+        <div className="mx-4 mb-4 mt-2 rounded-lg border border-slate-300 bg-slate-50 p-4 text-sm">
+          <p className="font-semibold text-slate-800 mb-3">Nonfiction Prose Model Guidance</p>
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5 shrink-0">✓</span>
+              <div>
+                <span className="font-medium text-slate-800">Claude</span>
+                <span className="text-slate-600"> — Best overall. Strongest narrative voice and fact-flagging discipline. Minimal risk.</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5 shrink-0">✓</span>
+              <div>
+                <span className="font-medium text-slate-800">DeepSeek</span>
+                <span className="text-slate-600"> — Good for research-heavy chapters. Tends to over-analyze — enforcement layer compensates.</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-amber-500 font-bold mt-0.5 shrink-0">⚠</span>
+              <div>
+                <span className="font-medium text-slate-800">GPT</span>
+                <span className="text-slate-600"> — Workable with enforcement active. Tends toward textbook tone. Requires cinematic opening prompts.</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-red-500 font-bold mt-0.5 shrink-0">✗</span>
+              <div>
+                <span className="font-medium text-slate-800">GPT + Investigative Nonfiction</span>
+                <span className="text-slate-600"> — Not recommended. High fabrication risk on specific facts and figures that enforcement can't fully solve.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
