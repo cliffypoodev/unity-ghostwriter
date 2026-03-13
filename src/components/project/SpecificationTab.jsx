@@ -340,7 +340,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   useEffect(() => {
     base44.functions.invoke('configSubgenres', {})
       .then(res => setSubgenresData(res.data || {}))
-      .catch(err => console.error('Failed to load configs:', err));
+      .catch(err => console.warn('Subgenre config unavailable, using defaults'));
   }, []);
 
   const { data: specs = [] } = useQuery({
@@ -486,9 +486,25 @@ export default function SpecificationTab({ projectId, onProceed }) {
         const fill = (field, val) => {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
+        // Auto-select genre — match against known genre lists
+        if (expanded.genre && !prev.genre) {
+          const allGenres = prev.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
+          const genreLower = expanded.genre.toLowerCase();
+          const matched = allGenres.find(g => g.toLowerCase() === genreLower);
+          if (matched) {
+            next.genre = matched;
+            filled.push("genre");
+          }
+        }
         fill("subgenre", expanded.subgenre);
         fill("beat_style", beatKey);
         fill("detail_level", expanded.detail_level);
+        // Auto-select story structure
+        const VALID_TEMPLATES = ["auto","save-the-cat","romance-arc","thriller-tension","heros-journey","argument-driven","narrative-nonfiction","reference-structured","investigative-nonfiction"];
+        if (expanded.beat_sheet_template && VALID_TEMPLATES.includes(expanded.beat_sheet_template) && (!prev.beat_sheet_template || prev.beat_sheet_template === "auto")) {
+          next.beat_sheet_template = expanded.beat_sheet_template;
+          filled.push("beat_sheet_template");
+        }
         if (expanded.chapter_count && !prev.chapter_count) {
           next.chapter_count = expanded.chapter_count;
           filled.push("chapter_count");
