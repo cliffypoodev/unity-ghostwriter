@@ -458,8 +458,26 @@ export default function SpecificationTab({ projectId, onProceed }) {
       // Map author_voice through fuzzy mapper
       const voiceId = mapToAuthorVoiceOption(voiceData.selected) || "basic";
 
-      // Map beat_style through fuzzy mapper
-      const beatKey = mapToBeatStyleOption(expanded.beat_style) || "";
+      // Normalize beat_style — might be string or {selected, reasoning}
+      const rawBeat = expanded.beat_style;
+      const beatData = typeof rawBeat === "string"
+        ? { selected: rawBeat, reasoning: "" }
+        : (rawBeat || {});
+      const beatKey = mapToBeatStyleOption(beatData.selected) || "";
+
+      // Normalize spice_level — might be number or {selected, reasoning}
+      const rawSpice = expanded.spice_level;
+      const spiceData = typeof rawSpice === "number"
+        ? { selected: rawSpice, reasoning: "" }
+        : (rawSpice || {});
+      const spiceVal = Math.max(0, Math.min(4, parseInt(spiceData.selected) || 0));
+
+      // Normalize language_intensity — might be number or {selected, reasoning}
+      const rawLang = expanded.language_intensity;
+      const langData = typeof rawLang === "number"
+        ? { selected: rawLang, reasoning: "" }
+        : (rawLang || {});
+      const langVal = Math.max(0, Math.min(4, parseInt(langData.selected) || 0));
 
       setForm(prev => {
         const next = { ...prev };
@@ -488,6 +506,18 @@ export default function SpecificationTab({ projectId, onProceed }) {
           filled.push("author_voice");
         }
 
+        // Auto-select spice_level
+        if (spiceVal !== prev.spice_level) {
+          next.spice_level = spiceVal;
+          filled.push("spice_level");
+        }
+
+        // Auto-select language_intensity
+        if (langVal !== prev.language_intensity) {
+          next.language_intensity = langVal;
+          filled.push("language_intensity");
+        }
+
         return next;
       });
 
@@ -498,6 +528,15 @@ export default function SpecificationTab({ projectId, onProceed }) {
       }
       if (voiceData.reasoning) {
         hints.author_voice = { reasoning: voiceData.reasoning };
+      }
+      if (beatData.reasoning) {
+        hints.beat_style = { reasoning: beatData.reasoning };
+      }
+      if (spiceData.reasoning) {
+        hints.spice_level = { reasoning: spiceData.reasoning };
+      }
+      if (langData.reasoning) {
+        hints.language_intensity = { reasoning: langData.reasoning };
       }
       setAutoHints(hints);
 

@@ -123,7 +123,9 @@ INFERENCE RULES:
       return Response.json({
         expanded_brief: briefMatch ? briefMatch[1] : topic,
         subgenre: '',
-        beat_style: '',
+        beat_style: { selected: '', reasoning: '' },
+        spice_level: { selected: 0, reasoning: '' },
+        language_intensity: { selected: 0, reasoning: '' },
         detail_level: 'moderate',
         chapter_count: 20,
         target_audience: { selected: 'Adult General', secondary: '', reasoning: '' },
