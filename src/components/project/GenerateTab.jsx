@@ -1564,41 +1564,41 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   // ── Generate Bridge handler (manual trigger from ActHeader) ──
   const handleGenerateBridge = async (actNumArg) => {
-    console.log("handleGenerateBridge called:", actNumArg);
-    const actNumber = typeof actNumArg === 'object' ? actNumArg?.detail : actNumArg;
-    console.log("handleGenerateBridge resolved actNumber:", actNumber, "acts keys:", acts ? Object.keys(acts) : "null");
-    if (!actNumber || !acts) {
-      console.error("handleGenerateBridge: invalid args", { actNumber, hasActs: !!acts });
-      toast.error("Cannot generate bridge — missing data");
-      return;
-    }
-    const act = acts[`act${actNumber}`];
-    if (!act) {
-      console.error("handleGenerateBridge: No act found for actNumber", actNumber);
-      toast.error(`No act ${actNumber} found`);
-      return;
-    }
-    toast.info(`Generating Act ${actNumber} bridge document…`);
     try {
+      console.log("handleGenerateBridge ENTER:", actNumArg, typeof actNumArg);
+      const actNumber = (typeof actNumArg === 'object' && actNumArg !== null) ? actNumArg?.detail : actNumArg;
+      console.log("actNumber:", actNumber, "projectId:", projectId);
+      console.log("acts:", JSON.stringify(acts ? Object.keys(acts) : null));
+      
+      if (!actNumber || !acts) {
+        console.error("BAIL: missing actNumber or acts");
+        return;
+      }
+      const act = acts[`act${actNumber}`];
+      console.log("act lookup:", `act${actNumber}`, "=>", JSON.stringify(act));
+      if (!act) {
+        console.error("BAIL: no act found");
+        return;
+      }
+      
+      console.log("About to call generateActBridge...");
       const res = await base44.functions.invoke('generateActBridge', {
         project_id: projectId,
         act_number: actNumber,
         act_start: act.start,
         act_end: act.end,
       });
-      console.log("Bridge generation response:", res.status, res.data);
+      console.log("Bridge response:", res.status);
       setActBridges(prev => ({ ...prev, [actNumber]: true }));
-      toast.success(`Act ${actNumber} bridge ready`);
     } catch (err) {
-      console.error('Bridge generation failed:', err);
+      console.error('handleGenerateBridge ERROR:', err, err?.message, err?.stack);
       healthMonitor.report({
         severity: 'warning',
         category: 'pipeline',
-        message: `Act ${actNumber} bridge generation failed`,
-        context: { act: actNumber, issue: 'missing_act_bridge' },
+        message: `Act bridge generation failed`,
+        context: { actNumArg, issue: 'bridge_error' },
         raw: err,
       });
-      toast.error(`Bridge generation failed: ${err.message || 'Unknown error'}`);
     }
   };
 
