@@ -53,6 +53,51 @@ import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
 
+function mapToBeatStyleOption(inferred) {
+  const map = {
+    'Fast-Paced Thriller':'fast-paced-thriller','Gritty Cinematic':'gritty-cinematic',
+    'Hollywood Blockbuster':'hollywood-blockbuster','Slow Burn':'slow-burn',
+    'Clean Romance':'clean-romance','Faith-Infused Contemporary':'faith-infused-contemporary',
+    'Investigative / Nonfiction':'investigative-nonfiction','Reference / Educational':'reference-educational',
+    'Intellectual Psychological':'intellectual-psychological','Dark Suspense':'dark-suspense',
+    'Satirical':'satirical','Epic Historical':'epic-historical','Whimsical Cozy':'whimsical-cozy',
+    'Hard-Boiled Noir':'hard-boiled-noir','Grandiose Space Opera':'grandiose-space-opera',
+    'Visceral Horror':'visceral-horror','Poetic Magical Realism':'poetic-magical-realism',
+    'Clinical Procedural':'clinical-procedural','Hyper-Stylized Action':'hyper-stylized-action',
+    'Nostalgic Coming-of-Age':'nostalgic-coming-of-age','Cerebral Sci-Fi':'cerebral-sci-fi',
+    'High-Stakes Political':'high-stakes-political','Surrealist Avant-Garde':'surrealist-avant-garde',
+    'Melancholic Literary':'melancholic-literary','Urban Gritty Fantasy':'urban-gritty-fantasy',
+    'thriller':'fast-paced-thriller','fast paced':'fast-paced-thriller',
+    'cinematic':'gritty-cinematic','gritty':'gritty-cinematic',
+    'romance':'clean-romance','slow burn':'slow-burn','slow-burn romance':'slow-burn',
+    'horror':'visceral-horror','noir':'hard-boiled-noir','cozy':'whimsical-cozy',
+    'literary':'melancholic-literary','historical':'epic-historical',
+    'sci-fi':'cerebral-sci-fi','science fiction':'cerebral-sci-fi',
+    'space opera':'grandiose-space-opera','investigative':'investigative-nonfiction',
+    'nonfiction':'investigative-nonfiction','educational':'reference-educational',
+    'coming of age':'nostalgic-coming-of-age','coming-of-age':'nostalgic-coming-of-age',
+    'psychological':'intellectual-psychological','suspense':'dark-suspense',
+    'political':'high-stakes-political','action':'hyper-stylized-action',
+    'magical realism':'poetic-magical-realism','urban fantasy':'urban-gritty-fantasy',
+    'procedural':'clinical-procedural','satire':'satirical',
+  };
+  const key = inferred?.trim();
+  if (!key) return null;
+  if (map[key]) return map[key];
+  const lowerKey = key.toLowerCase();
+  for (const [label, value] of Object.entries(map)) {
+    if (label.toLowerCase() === lowerKey) return value;
+  }
+  for (const [label, value] of Object.entries(map)) {
+    if (lowerKey.includes(label.toLowerCase()) || label.toLowerCase().includes(lowerKey)) return value;
+  }
+  // If it's already a valid slug, pass through
+  const VALID_BEAT_KEYS = ["basic","fast-paced-thriller","hyper-stylized-action","hollywood-blockbuster","visceral-horror","grandiose-space-opera","gritty-cinematic","dark-suspense","hard-boiled-noir","urban-gritty-fantasy","high-stakes-political","epic-historical","intellectual-psychological","cerebral-sci-fi","clinical-procedural","satirical","surrealist-avant-garde","clean-romance","slow-burn","nostalgic-coming-of-age","melancholic-literary","poetic-magical-realism","faith-infused","whimsical-cozy","steamy-romance","slow-burn-romance","dark-erotica","journal-personal","longform-article","formal-report","deep-investigative","historical-account","true-crime-account","memoir-narrative","academic-accessible","investigative-nonfiction","reference-educational"];
+  if (VALID_BEAT_KEYS.includes(lowerKey)) return lowerKey;
+  console.warn(`mapToBeatStyleOption: no match for "${inferred}"`);
+  return null;
+}
+
 const TARGET_LENGTHS = [
   { value: "short", label: "Short (25K–50K words)" },
   { value: "medium", label: "Medium (50K–100K words)" },
