@@ -348,8 +348,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const handleAutoExtract = async () => {
     if (!form.topic.trim()) { toast.error("Please enter a topic/premise first"); return; }
     setExtracting(true);
+    setAutoHints({});
     try {
-      // Call expandPremise to get expanded brief + metadata
       const response = await base44.functions.invoke('expandPremise', {
         topic: form.topic,
         book_type: form.book_type,
@@ -358,23 +358,49 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const expanded = response.data;
       const filled = [];
 
+      // Extract structured audience/voice with reasoning
+      const audienceData = expanded.target_audience || {};
+      const voiceData = expanded.author_voice || {};
+
       setForm(prev => {
         const next = { ...prev };
-        
-        // Replace topic with expanded brief
-        next.topic = expanded.expanded_brief;
-        
-        // Fill in metadata fields if not already set
+        next.topic = expanded.expanded_brief || prev.topic;
+
         const fill = (field, val) => {
           if (val && !prev[field]) { next[field] = val; filled.push(field); }
         };
         fill("subgenre", expanded.subgenre);
-        fill("target_audience", expanded.target_audience);
         fill("beat_style", expanded.beat_style);
-        fill("author_voice", expanded.author_voice);
         fill("detail_level", expanded.detail_level);
+        if (expanded.chapter_count && !prev.chapter_count) {
+          next.chapter_count = expanded.chapter_count;
+          filled.push("chapter_count");
+        }
+
+        // Auto-select target_audience (always apply — it's the main feature)
+        if (audienceData.selected) {
+          next.target_audience = audienceData.selected;
+          filled.push("target_audience");
+        }
+
+        // Auto-select author_voice (always apply)
+        if (voiceData.selected) {
+          next.author_voice = voiceData.selected;
+          filled.push("author_voice");
+        }
+
         return next;
       });
+
+      // Set reasoning hints for display beneath fields
+      const hints = {};
+      if (audienceData.reasoning) {
+        hints.target_audience = { reasoning: audienceData.reasoning, secondary: audienceData.secondary || "" };
+      }
+      if (voiceData.reasoning) {
+        hints.author_voice = { reasoning: voiceData.reasoning };
+      }
+      setAutoHints(hints);
 
       if (filled.length > 0) {
         const highlights = {};
@@ -383,7 +409,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
         setTimeout(() => setHighlightedFields({}), 1800);
       }
 
-      toast.success("Premise expanded and settings detected");
+      toast.success("Premise expanded and settings auto-selected");
     } catch (err) {
       console.error('Expand error:', err);
       toast.error("Failed to expand premise");
