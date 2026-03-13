@@ -859,6 +859,7 @@ External stakes must escalate personal stakes — they must never replace them. 
       }
     }
 
+    const scopeLockBlock = isNonfiction ? SCOPE_LOCK_INSTRUCTIONS_NONFICTION : SCOPE_LOCK_INSTRUCTIONS_FICTION;
     const systemPrompt = `${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\n${scopeLockBlock}${shortEroticaConstraint}${thrillerScopeLock}\n\nYou are a professional story architect and book outline generator. Your PRIMARY obligation is to prevent: (1) flat repetition — same tension level recycled, (2) scope bleed — chapters covering same ground under different headings, (3) orphaned threads — elements introduced and never paid off. Return only valid JSON. No prose, no preamble, no commentary outside the JSON.
 
 CHARACTER VOICE DIFFERENTIATION RULES:
