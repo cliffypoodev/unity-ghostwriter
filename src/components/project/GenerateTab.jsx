@@ -505,9 +505,11 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
             </div>
           )}
 
-          {/* Scene section */}
-          {isFiction && (
+          {/* Scene section (fiction) / Beat sheet section (nonfiction) */}
+          {isFiction ? (
             <SceneSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
+          ) : (
+            <NonfictionBeatSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
           )}
 
           <div>
