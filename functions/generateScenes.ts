@@ -296,11 +296,17 @@ Example for an explicit scene: "extra_instructions": "[EXPLICIT] The submission 
 Example for a standard scene: "extra_instructions": ""
 Only tag scenes that require on-page explicit sexual content. Tension, kissing, emotional aftermath = no tag needed.` : '';
 
-    const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.${explicitTaggingInstruction}`;
+    const contextHeader = buildContextHeader(spec);
+    const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.
+
+${contextHeader}${explicitTaggingInstruction}`;
 
     const userMessage = `Genre: ${spec?.genre || 'Fiction'}
 Subgenre: ${spec?.subgenre || 'Not specified'}
 Beat Style: ${spec?.beat_style || spec?.tone_style || 'Not specified'}
+Author Voice: ${spec?.author_voice && spec.author_voice !== 'basic' ? (ASP_NAMES[spec.author_voice] || spec.author_voice) : 'Standard'}
+Spice Level: ${parseInt(spec?.spice_level) || 0}/4 — ${SPICE_NAMES[parseInt(spec?.spice_level) || 0] || 'Fade to Black'}
+Language Intensity: ${parseInt(spec?.language_intensity) || 0}/4 — ${LANG_NAMES[parseInt(spec?.language_intensity) || 0] || 'Clean'}
 
 STORY BIBLE — Characters:
 ${characters.length > 0 ? characters.map(c => `- ${c.name} (${c.role || 'character'}): ${c.description || ''}${c.relationships ? ' | Relationships: ' + c.relationships : ''}`).join('\n') : 'Not specified'}
