@@ -515,6 +515,7 @@ function buildFullHtml(bodyHtml, ds, forPrint = false) {
     h2 { font-size: 1.5em; font-weight: 600; margin-top: 2em; margin-bottom: 0.4em; }
     h3 { font-size: 1.2em; font-weight: 600; margin-top: 1.5em; }
     p { margin-bottom: 0.8em; }
+    hr { page-break-before: always; border: none; height: 0; margin: 0; }
     .page-header { color: #64748b; font-size: 0.8em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4em; margin-bottom: 1.5em; }
     .page-footer { color: #64748b; font-size: 0.8em; border-top: 1px solid #e2e8f0; padding-top: 0.4em; margin-top: 2em; }
     .title-block { margin-bottom: 3em; }
