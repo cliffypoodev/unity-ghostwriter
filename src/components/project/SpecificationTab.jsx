@@ -626,6 +626,23 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const currentSubgenres = form.genre && subgenresData[form.book_type]?.[form.genre]
     ? subgenresData[form.book_type][form.genre] : [];
 
+  // Apply deferred subgenre once genre is set and subgenre options are loaded
+  useEffect(() => {
+    const pending = pendingSubgenreRef.current;
+    if (!pending || !form.genre || currentSubgenres.length === 0) return;
+    const lower = pending.trim().toLowerCase();
+    const matched = currentSubgenres.find(sg => sg.toLowerCase() === lower)
+      || currentSubgenres.find(sg => lower.includes(sg.toLowerCase()) || sg.toLowerCase().includes(lower));
+    if (matched) {
+      setForm(prev => ({ ...prev, subgenre: matched }));
+      setHighlightedFields(prev => ({ ...prev, subgenre: true }));
+      setTimeout(() => setHighlightedFields(prev => { const n = { ...prev }; delete n.subgenre; return n; }), 1800);
+    } else {
+      console.warn(`subgenre: no match for "${pending}" in`, currentSubgenres);
+    }
+    pendingSubgenreRef.current = null;
+  }, [form.genre, currentSubgenres]);
+
   const hl = (field) => highlightedFields[field]
     ? "ring-2 ring-violet-400 ring-offset-1 rounded-md transition-all duration-500"
     : "";
