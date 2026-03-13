@@ -8,7 +8,9 @@ export default function ProtagonistInteriorityInferButton({ form, onChange }) {
   const [inferring, setInferring] = useState(false);
 
   const handleInferFromPremise = async () => {
-    if (!form.topic?.trim()) {
+    const premise = form?.topic?.trim();
+    console.log("InferButton clicked. premise length:", premise?.length || 0);
+    if (!premise) {
       toast.error("Enter a premise first so the AI can infer interiority");
       return;
     }
