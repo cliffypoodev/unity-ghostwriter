@@ -186,6 +186,7 @@ export default function WriteAllChaptersModal({
               targetChapterWords={targetChapterWords}
               startTime={startTime}
               successes={successes}
+              chapterNumber={chapterNumber}
             />
           )}
 
