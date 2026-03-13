@@ -1876,8 +1876,8 @@ ${_beatUsrBlock(chapterBeat)}`;
         } catch(ve){console.warn(`vol ${_va+1} err:`,ve.message);break;}
       } if(_thin.length>0) console.warn(`Ch ${chapter.chapter_number} vol: ${_thin.length} thin parts remain`);
     }
-    // ── PRE-OUTPUT COMPLIANCE GATE — up to 3 regeneration attempts ──
-    { let compAttempt = 0; const MAX_CA = 3;
+    // ── PRE-OUTPUT COMPLIANCE GATE — fewer retries for later chapters to avoid timeout ──
+    { let compAttempt = 0; const MAX_CA = chapterIndex >= 20 ? 1 : (chapterIndex >= 10 ? 2 : 3);
       let compV = await enforceProseCompliance(fullContent, chapter.chapter_number, projectId, allChapters, chapterIndex);
       while (compV.length > 0 && compAttempt < MAX_CA) { compAttempt++;
         console.warn(`Ch ${chapter.chapter_number} compliance attempt ${compAttempt}/${MAX_CA}: ${compV.length} violations`, compV.map(v=>`${v.type}:${v.label}(${v.count})`));
