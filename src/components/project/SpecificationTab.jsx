@@ -654,6 +654,12 @@ export default function SpecificationTab({ projectId, onProceed }) {
               <div className={hl("author_voice")}>
                 <Label className="text-sm font-medium">Author Voice</Label>
                 <AuthorVoiceSelector value={form.author_voice} onValueChange={v => handleChange("author_voice", v)} />
+                {autoHints.author_voice?.reasoning && (
+                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                    <span className="shrink-0">✦</span>
+                    <span>Auto-selected: {autoHints.author_voice.reasoning}</span>
+                  </p>
+                )}
               </div>
 
               <div className={hl("ai_model")}>
