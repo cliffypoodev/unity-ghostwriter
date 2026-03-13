@@ -854,7 +854,9 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (onProgress) onProgress(`Complete — ${ch.word_count || 0} words (${timeStr})`);
         return "generated";
       }
-      if (ch?.status === 'error') {
+      // Ignore "error" status in the first 15 seconds — it could be stale from a previous attempt
+      // (the backend needs a few seconds to receive the request and set status to "generating")
+      if (ch?.status === 'error' && elapsed > 15) {
         if (onProgress) onProgress(`Error during generation`);
         return "error";
       }
