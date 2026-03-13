@@ -49,7 +49,21 @@ Return ONLY a valid JSON object — no markdown fences, no backticks, no explana
   "expanded_brief": "A 500-800 word creative brief with PREMISE, MAIN CHARACTERS (named, with descriptions), SETTING, CENTRAL CONFLICT, PLOT TRAJECTORY, THEMES, KEY SCENES, and TONE. Format as readable prose with clear section headers.",
 
   "subgenre": "specific subgenre or empty string",
-  "beat_style": "one of: fast-paced-thriller, gritty-cinematic, hollywood-blockbuster, slow-burn, dark-suspense, melancholic-literary, whimsical-cozy, epic-historical, satirical, steamy-romance, slow-burn-romance, cerebral-sci-fi, clinical-procedural, visceral-horror, hard-boiled-noir, intellectual-psychological, poetic-magical-realism, journal-personal, longform-article, deep-investigative, memoir-narrative, academic-accessible, reference-educational",
+  "beat_style": {
+    "selected": "single best-fit beat style from: [Fast-Paced Thriller, Gritty Cinematic, Hollywood Blockbuster, Slow Burn, Clean Romance, Faith-Infused Contemporary, Investigative / Nonfiction, Reference / Educational, Intellectual Psychological, Dark Suspense, Satirical, Epic Historical, Whimsical Cozy, Hard-Boiled Noir, Grandiose Space Opera, Visceral Horror, Poetic Magical Realism, Clinical Procedural, Hyper-Stylized Action, Nostalgic Coming-of-Age, Cerebral Sci-Fi, High-Stakes Political, Surrealist Avant-Garde, Melancholic Literary, Urban Gritty Fantasy, Steamy Romance, Slow Burn Romance, Dark Erotica]",
+    "reasoning": "one sentence explaining the match"
+  },
+
+  "spice_level": {
+    "selected": "one of: [0, 1, 2, 3, 4] where 0=Fade to Black, 1=Closed Door, 2=Cracked Door, 3=Open Door, 4=Full Intensity",
+    "reasoning": "one sentence explaining the inference"
+  },
+
+  "language_intensity": {
+    "selected": "one of: [0, 1, 2, 3, 4] where 0=Clean, 1=Mild, 2=Moderate, 3=Strong, 4=Raw",
+    "reasoning": "one sentence explaining the inference"
+  },
+
   "detail_level": "minimal or moderate or comprehensive",
   "chapter_count": 20,
 
@@ -76,6 +90,21 @@ INFERENCE RULES:
   Example: literary fiction → "morrison" or "didion"
   Example: fantasy → "tolkien" or "gaiman"
   Example: mystery → "chandler" or "christie"
+- beat_style rules:
+  Romance + slow build → Slow Burn
+  Romance + explicit content → Steamy Romance or Dark Erotica (spice handles explicitness, not beat)
+  Thriller + action → Fast-Paced Thriller
+  Dark + crime → Hard-Boiled Noir
+  Nonfiction + investigative → Investigative / Nonfiction
+  Fantasy + epic → Grandiose Space Opera or Epic Historical
+  Horror → Visceral Horror
+  Literary fiction → Melancholic Literary
+  Sci-fi + ideas → Cerebral Sci-Fi
+  Cozy/heartwarming → Whimsical Cozy
+- spice_level rules: infer from genre and tone.
+  Romance=1-2, Erotica=3-4, Thriller=0-1, Horror=0-1, Cozy=0, Literary=0-1, Nonfiction=0
+- language_intensity rules: infer from beat style defaults.
+  Thriller=3, Gritty=4, Romance=0, Literary=1, Horror=4, Cozy=0, Noir=3, Nonfiction=0, Sci-Fi=1
 - chapter_count: standard novel 20, short nonfiction 12, epic 30, self-help 10-15
 - The expanded_brief must be rich, detailed prose — not bullet points.
 - Do not invent plot details not present or strongly implied by the premise.`;
@@ -102,10 +131,39 @@ INFERENCE RULES:
       });
     }
 
+    // Normalize beat_style — might be string or object
+    const rawBeat = parsed.beat_style;
+    const beatData = typeof rawBeat === 'string'
+      ? { selected: rawBeat, reasoning: '' }
+      : (rawBeat || { selected: '', reasoning: '' });
+
+    // Normalize spice_level — might be number or object
+    const rawSpice = parsed.spice_level;
+    const spiceData = typeof rawSpice === 'number'
+      ? { selected: rawSpice, reasoning: '' }
+      : (rawSpice || { selected: 0, reasoning: '' });
+
+    // Normalize language_intensity — might be number or object
+    const rawLang = parsed.language_intensity;
+    const langData = typeof rawLang === 'number'
+      ? { selected: rawLang, reasoning: '' }
+      : (rawLang || { selected: 0, reasoning: '' });
+
     return Response.json({
       expanded_brief: parsed.expanded_brief || topic,
       subgenre: parsed.subgenre || '',
-      beat_style: parsed.beat_style || '',
+      beat_style: {
+        selected: String(beatData.selected || ''),
+        reasoning: beatData.reasoning || '',
+      },
+      spice_level: {
+        selected: parseInt(spiceData.selected) || 0,
+        reasoning: spiceData.reasoning || '',
+      },
+      language_intensity: {
+        selected: parseInt(langData.selected) || 0,
+        reasoning: langData.reasoning || '',
+      },
       detail_level: parsed.detail_level || 'moderate',
       chapter_count: parsed.chapter_count || 20,
       target_audience: {
