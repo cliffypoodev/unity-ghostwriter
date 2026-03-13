@@ -225,15 +225,14 @@ export default function ProjectDetail() {
          <PhaseTabs activePhase={activePhase} onPhaseChange={setActivePhase} projectStatus={project.status} />
        </div>
 
-      {/* Phase Content */}
-      <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "")}>
-        {activePhase === "specify" && (
-          <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-            <AppErrorBoundary>
-              <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
-            </AppErrorBoundary>
-          </div>
-        )}
+      {/* Phase Content — Specify has its own card layout, others use shared wrapper */}
+      {activePhase === "specify" && (
+        <AppErrorBoundary>
+          <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
+        </AppErrorBoundary>
+      )}
+      <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "", activePhase === "specify" ? "hidden" : "")}>
+        
         {activePhase === "generate" && (
           <div className="p-3 sm:p-6">
             <AppErrorBoundary>
