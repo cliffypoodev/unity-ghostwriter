@@ -590,6 +590,8 @@ function BudgetToggle({ project, updateProject }) {
 export default function ModelSelector({ project, updateProject }) {
   const [open, setOpen]           = useState(false);
   const [chapterWords, setWords]  = useState(2500);
+  const [healthCheck, setHealthCheck] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(false);
 
   const selectedId = project?.writing_model || 'claude-sonnet';
   const selected   = WRITING_MODELS[selectedId] || WRITING_MODELS['claude-sonnet'];
@@ -606,6 +608,15 @@ export default function ModelSelector({ project, updateProject }) {
   function handleSelect(modelId) {
     updateProject({ writing_model: modelId });
     setOpen(false);
+    setHealthCheck(null);
+    // Run health check for non-Claude models
+    if (!['claude-sonnet', 'claude-haiku'].includes(modelId)) {
+      setHealthLoading(true);
+      base44.functions.invoke('modelHealthCheck', { model_id: modelId })
+        .then(res => { setHealthCheck(res.data || res); })
+        .catch(err => { setHealthCheck({ passed: false, note: err.message }); })
+        .finally(() => setHealthLoading(false));
+    }
   }
 
   return (
