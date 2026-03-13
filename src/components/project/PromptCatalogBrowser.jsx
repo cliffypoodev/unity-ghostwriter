@@ -51,11 +51,17 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
     }
   }, [isOpen, preselectedGenre, preselectedBookType]);
 
-  // Fetch all prompts
-  const { data: allPrompts = [] } = useQuery({
+  // Fetch all prompts — enrich with inferred book_type if missing
+  const { data: rawPrompts = [] } = useQuery({
     queryKey: ["promptCatalog"],
     queryFn: () => base44.entities.PromptCatalog.list(),
   });
+  const allPrompts = useMemo(() => {
+    return rawPrompts.map(p => ({
+      ...p,
+      book_type: p.book_type || getCategoryType(p.category),
+    }));
+  }, [rawPrompts]);
 
   // Reset category when book type changes
   useEffect(() => {
