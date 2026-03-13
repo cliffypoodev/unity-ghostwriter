@@ -1,3 +1,12 @@
+// PIPELINE PHASE ISOLATION — Phase 2 (Outline + Beats)
+//
+// Permitted AI calls: generateOutline, generateOutlineDetail, generateOutlineShell, beatSheetEngine
+// Forbidden: writeChapter, enforceProseCompliance, verifyGeminiProse, consistencyCheck,
+//            rewriteInVoice, characterInterview, or any Phase 3/4 function.
+//
+// This file may read Specification data but must NOT call chapter-generation
+// or review-phase functions. Those require chapter content that does not exist here.
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
