@@ -420,9 +420,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const VALID_VOICE_IDS = ["basic","hemingway","austen","morrison","mccarthy","vonnegut","didion","tolkien","rowling","leguin","gaiman","pratchett","chandler","christie","marquez","atwood","king","gladwell","bryson","sagan"];
       const voiceId = VALID_VOICE_IDS.includes(voiceData.selected) ? voiceData.selected : "basic";
 
-      // Valid beat_style keys from BeatStyleSelector
-      const VALID_BEAT_KEYS = ["basic","fast-paced-thriller","hyper-stylized-action","hollywood-blockbuster","visceral-horror","grandiose-space-opera","gritty-cinematic","dark-suspense","hard-boiled-noir","urban-gritty-fantasy","high-stakes-political","epic-historical","intellectual-psychological","cerebral-sci-fi","clinical-procedural","satirical","surrealist-avant-garde","clean-romance","slow-burn","nostalgic-coming-of-age","melancholic-literary","poetic-magical-realism","faith-infused","whimsical-cozy","steamy-romance","slow-burn-romance","dark-erotica","journal-personal","longform-article","formal-report","deep-investigative","historical-account","true-crime-account","memoir-narrative","academic-accessible","investigative-nonfiction","reference-educational"];
-      const beatKey = VALID_BEAT_KEYS.includes(expanded.beat_style) ? expanded.beat_style : "";
+      // Map beat_style through fuzzy mapper
+      const beatKey = mapToBeatStyleOption(expanded.beat_style) || "";
 
       setForm(prev => {
         const next = { ...prev };
