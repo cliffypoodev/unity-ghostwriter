@@ -44,7 +44,7 @@ import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
 import PromptSuggestions from "./PromptSuggestions";
 import PromptCatalogBrowser from "./PromptCatalogBrowser";
-import AuthorVoiceSelector from "./AuthorVoiceSelector";
+import AuthorVoiceSelector, { ALL_AUTHOR_PROFILES, resolveAuthorId } from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
 import ModelSuggestionPanel from "./ModelSuggestionPanel";
 import CharacterInterviewPanel from "./CharacterInterviewPanel";
