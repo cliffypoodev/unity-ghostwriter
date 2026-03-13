@@ -1405,7 +1405,7 @@ The final image of this book should reflect the emotional truth of the protagoni
       if (nfRegBlock) { systemPrompt += `\n\n${nfRegBlock}`; }
     } else {
       const beatKey = projectSpec?.beat_style || projectSpec?.tone_style;
-      systemPrompt = buildAuthorModeBlock(projectSpec);
+      systemPrompt = buildCtxHeader(projectSpec) + '\n\n' + buildAuthorModeBlock(projectSpec);
       systemPrompt += `\n\n${CONTENT_GUARDRAILS}`;
       systemPrompt += `\n\nGenre: ${projectSpec?.genre || 'fiction'}`;
 
