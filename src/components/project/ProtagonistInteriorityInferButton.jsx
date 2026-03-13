@@ -63,7 +63,7 @@ Be specific, psychologically grounded, and character-driven. Each answer should 
   return (
     <Button
       onClick={handleInferFromPremise}
-      disabled={inferring || !form.topic?.trim()}
+      disabled={inferring}
       variant="outline"
       size="sm"
       className="border-rose-300 text-rose-700 hover:bg-rose-50"
