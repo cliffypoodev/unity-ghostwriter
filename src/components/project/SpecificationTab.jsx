@@ -544,6 +544,17 @@ export default function SpecificationTab({ projectId, onProceed }) {
         : (rawLang || {});
       const langVal = Math.max(0, Math.min(4, parseInt(langData.selected) || 0));
 
+      // ── Validate cross-domain mismatches before applying ──
+      const preValidation = { book_type: form.book_type, genre: matchGenre(expanded.genre, form.book_type) || form.genre, beat_style: beatKey, author_voice: voiceId };
+      const { settings: validated, issues: valIssues } = validatePhase1Settings(preValidation);
+      if (valIssues.length > 0) {
+        const correctedFields = valIssues.map(i => i.field).join(', ');
+        toast.info(`Auto-corrected: ${correctedFields}`, { description: valIssues.map(i => `${i.field}: ${i.problem} → ${i.fix}`).join('; ') });
+      }
+      // Apply corrections back
+      const vBeatKey = validated.beat_style !== beatKey ? validated.beat_style : beatKey;
+      const vVoiceId = validated.author_voice !== voiceId ? validated.author_voice : voiceId;
+
       setForm(prev => {
         const next = { ...prev };
         next.topic = expanded.expanded_brief || prev.topic;
