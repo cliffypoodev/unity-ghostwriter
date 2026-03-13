@@ -923,7 +923,12 @@ export default function GenerateTab({ projectId, onProceed }) {
     setActiveChapterIds(prev => new Set([...prev, chapter.id]));
     setChapterProgress(prev => ({ ...prev, [chapter.id]: "Starting generation…" }));
 
-    // Update status optimistically
+    // Reset chapter status in DB before polling (prevents picking up stale "error" status)
+    try {
+      await base44.entities.Chapter.update(chapter.id, { status: "generating" });
+    } catch (e) { console.warn('Failed to reset chapter status:', e.message); }
+
+    // Update status optimistically in cache
     queryClient.setQueryData(["chapters", projectId], old =>
       (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
     );
