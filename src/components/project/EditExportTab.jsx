@@ -770,6 +770,7 @@ export default function EditExportTab({ projectId }) {
       if (quillRef.current) {
         quillRef.current.clipboard.dangerouslyPasteHTML(html);
         setPlainText(quillRef.current.getText());
+        setTimeout(addPageBreakLabels, 100);
       }
     });
   }, [docSettings.showToc]);
