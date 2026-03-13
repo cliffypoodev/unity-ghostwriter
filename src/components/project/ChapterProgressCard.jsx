@@ -8,7 +8,12 @@ const STAGE_MESSAGES = [
   "Finalizing chapter…",
 ];
 
-export default function ChapterProgressCard({ current, currentTitle, chapterWords, targetChapterWords, startTime, successes }) {
+// DISPLAY RULE: Chapter numbers shown in UI must ALWAYS come from
+// chapter.chapter_number — never from loop index, array position,
+// or queue order. These diverge whenever chapters are skipped,
+// retried, or written out of order.
+
+export default function ChapterProgressCard({ current, currentTitle, chapterWords, targetChapterWords, startTime, successes, chapterNumber }) {
   const [chapterElapsed, setChapterElapsed] = useState(0);
   const [stageIdx, setStageIdx] = useState(0);
 
