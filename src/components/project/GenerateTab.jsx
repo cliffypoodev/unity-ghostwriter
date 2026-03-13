@@ -991,11 +991,12 @@ export default function GenerateTab({ projectId, onProceed }) {
       error: null,
     });
 
-    // ── PHASE 1: Generate scenes for fiction chapters that don't have them ──
-    if (spec?.book_type !== 'nonfiction') {
-      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '');
+    // ── PHASE 1: Generate scenes (fiction) or beat sheets (nonfiction) ──
+    {
+      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}');
       if (needScenes.length > 0) {
-        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: "Phase 1: Generating Scenes", currentTitle: needScenes[0].title }));
+        const isNF = spec?.book_type === 'nonfiction';
+        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: isNF ? "Phase 1: Generating Beat Sheets" : "Phase 1: Generating Scenes", currentTitle: needScenes[0].title }));
         for (let i = 0; i < needScenes.length; i++) {
           if (writeAllAbortRef.current) break;
           const ch = needScenes[i];
