@@ -1982,17 +1982,17 @@ Deno.serve(async (req) => {
 
     await base44.entities.Chapter.update(chapter_id, { status: 'generating' });
     const modelKey = resolveModel('sfw_prose', spec);
-    // Await generation synchronously — keeps the Deno worker alive for the full duration.
-    // This function should be called server-to-server (from writeAllChapters) to avoid browser timeouts.
-    // The frontend polls chapter status independently.
-    try {
-      await generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey);
-      return Response.json({ success: true, message: 'Chapter generation complete' });
-    } catch (genErr) {
-      console.error('Generation failed:', genErr.message);
-      try { await base44.entities.Chapter.update(chapter_id, { status: 'error' }); } catch {}
-      return Response.json({ error: genErr.message }, { status: 500 });
-    }
+    // Fire-and-forget: kick off generation asynchronously so the HTTP response returns immediately.
+    // The frontend polls chapter status independently via writeAndPollChapter.
+    // Using waitUntil-style pattern: the Deno worker stays alive for the promise even after response is sent.
+    const generationPromise = generateChapterAsync(base44, project_id, chapter_id, spec, outline, sourceFiles, appSettings, modelKey)
+      .catch(genErr => {
+        console.error('Async generation failed:', genErr.message);
+        base44.entities.Chapter.update(chapter_id, { status: 'error' }).catch(() => {});
+      });
+
+    // Return immediately — the generation continues in the background
+    return Response.json({ success: true, message: 'Chapter generation started', async: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
