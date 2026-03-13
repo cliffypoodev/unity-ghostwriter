@@ -48,11 +48,15 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
       {actNumber > 1 && (
         <div className={cn("text-xs px-3 py-1.5 rounded-lg border", hasBridge
           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-          : "bg-slate-50 text-slate-500 border-slate-200"
+          : prevActComplete
+            ? "bg-amber-50 text-amber-700 border-amber-200"
+            : "bg-slate-50 text-slate-500 border-slate-200"
         )}>
           {hasBridge
             ? `✓ Continuity bridge ready — Act ${actNumber - 1} context loaded`
-            : `⚠ Complete Act ${actNumber - 1} to unlock continuity bridge`
+            : prevActComplete
+              ? `⚡ Act ${actNumber - 1} complete — generate bridge for better continuity, or start writing`
+              : `⚠ Complete Act ${actNumber - 1} to unlock continuity bridge`
           }
         </div>
       )}
