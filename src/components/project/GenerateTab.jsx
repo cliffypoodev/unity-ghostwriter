@@ -1572,15 +1572,15 @@ export default function GenerateTab({ projectId, onProceed }) {
         }} className="text-slate-500">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
         </Button>
-        {spec?.book_type !== 'nonfiction' && totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '') && (
+        {totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}') && (
           <Button
             onClick={handleGenerateAllScenes}
             disabled={generatingAllScenes || writeAllActive}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className={spec?.book_type === 'nonfiction' ? "bg-teal-600 hover:bg-teal-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
           >
             {generatingAllScenes
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating Scenes…</>
-              : <><LayoutGrid className="w-4 h-4 mr-2" />Generate All Scenes</>}
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{spec?.book_type === 'nonfiction' ? 'Generating Beat Sheets…' : 'Generating Scenes…'}</>
+              : <><LayoutGrid className="w-4 h-4 mr-2" />{spec?.book_type === 'nonfiction' ? 'Generate All Beat Sheets' : 'Generate All Scenes'}</>}
           </Button>
         )}
         {totalCount > 0 && generatedCount < totalCount && (
