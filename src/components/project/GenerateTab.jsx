@@ -41,6 +41,7 @@ import ExplicitTagsWarning from "./ExplicitTagsWarning";
 import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate } from "./InteriorityGateBanner";
 import { detectActBoundaries, getActChapters, getActStatus } from "./ActDetection";
 import ActHeader from "./ActHeader";
+import ActSplitEditor from "./ActSplitEditor";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -606,6 +607,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [regenOutlineConfirm, setRegenOutlineConfirm] = useState(false);
   const [writingActNumber, setWritingActNumber] = useState(null);
   const [actBridges, setActBridges] = useState({});
+  const [customActSplits, setCustomActSplits] = useState(null);
 
   const { data: projectData } = useQuery({
     queryKey: ["project", projectId],
@@ -688,9 +690,14 @@ export default function GenerateTab({ projectId, onProceed }) {
   const allGenerated = totalCount > 0 && generatedCount === totalCount;
   const progress = totalCount > 0 ? Math.round((generatedCount / totalCount) * 100) : 0;
 
-  // ── Act Detection ──
+  // ── Act Detection (auto-detected, overridable by user) ──
   const parsedOutline = safeParse(resolvedOutlineData);
-  const acts = totalCount > 0 ? detectActBoundaries(chapters, parsedOutline) : null;
+  const autoActs = totalCount > 0 ? detectActBoundaries(chapters, parsedOutline) : null;
+  const acts = (autoActs && customActSplits && totalCount > 3) ? {
+    act1: { start: 1, end: customActSplits.act1End, label: 'Act 1 — Establish & Disrupt' },
+    act2: { start: customActSplits.act1End + 1, end: customActSplits.act2End, label: 'Act 2 — Escalate & Break' },
+    act3: { start: customActSplits.act2End + 1, end: totalCount, label: 'Act 3 — Fracture & Resolve' },
+  } : autoActs;
 
   // Load act bridge files on mount
   useEffect(() => {
@@ -1585,7 +1592,10 @@ export default function GenerateTab({ projectId, onProceed }) {
       {/* Chapters — grouped by Act */}
       {chapters.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
+            {acts && <ActSplitEditor acts={acts} totalChapters={totalCount} onSave={setCustomActSplits} />}
+          </div>
           {[1, 2, 3].map(actNum => {
             const act = acts?.[`act${actNum}`];
             if (!act) return null;
