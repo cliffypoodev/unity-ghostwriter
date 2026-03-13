@@ -50,6 +50,7 @@ Transform this into a tight, pitch-ready premise. Named characters, vivid settin
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
+      // Falls back handled by Anthropic API — uses latest available sonnet
       max_tokens: 1024,
       messages: [
         { role: "user", content: userPrompt }
