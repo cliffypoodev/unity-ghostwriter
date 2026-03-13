@@ -1664,7 +1664,10 @@ KEY ACTION (MUST happen): ${scene.key_action}
 Word target: ~${scene.word_target} words
 ${isFirst ? `OPENING STYLE: ${openingType.name} — ${openingType.desc}` : ''}
 ${isLast ? `ENDING STYLE: ${endingType.name} — ${endingType.desc}` : ''}`;
-      }).join('\n\n---\n\n');
+      });
+      const GPT_BEAT_EXPAND = `\n[EXPAND THIS BEAT — DO NOT SUMMARIZE]\nMinimum 600 words for this scene. Begin with the physical environment. Do not move to the next beat until this one contains at least one moment of genuine surprise or complication — something that didn't go exactly as expected.\n`;
+      const sceneJoiner = isGptModel(modelKey) ? `\n\n---\n${GPT_BEAT_EXPAND}\n` : '\n\n---\n\n';
+      const sceneSectionsText = sceneSections.join(sceneJoiner);
 
       currentChapterRequest = `Write Chapter ${chapter.chapter_number}: "${chapter.title}"
 
