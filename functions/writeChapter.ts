@@ -1217,7 +1217,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
 
     const _isNF = (projectSpec?.book_type || 'fiction') === 'nonfiction';
-    const TARGET_WORDS = (isGptModel(modelKey) || (isDeepseekModel(modelKey) && _isNF)) ? 2500 : 1600;
+    const TARGET_WORDS = (isGptModel(modelKey) || (isDeepseekModel(modelKey) && _isNF) || (isGeminiModel(modelKey) && _isNF)) ? 2500 : 1600;
 
     // callAI wrapper using conversation messages array
     async function callAIConversation(messages, maxTokens = 8192) {
