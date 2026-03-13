@@ -440,6 +440,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
               <span className="text-xs text-gray-500">~{chapter.word_count.toLocaleString()} words</span>
             )}
             {(() => { try { const qs = chapter.quality_scan ? JSON.parse(chapter.quality_scan) : null; if (!qs) return null; return (<>
+              {qs.genAttempts > 1 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">{qs.genAttempts} attempts</span>}
               {qs.structural?.needsRetry && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 font-bold border border-red-200" title={`Retry reason: ${qs.structural.retryReason}`}>structure issue</span>}
               {qs.warnings?.length > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 cursor-help" title={qs.warnings.join('\n')}>⚠ {qs.warnings.length} warning{qs.warnings.length > 1 ? 's' : ''}</span>}
             </>); } catch { return null; } })()}
