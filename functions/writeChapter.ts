@@ -1784,13 +1784,7 @@ ${_beatUsrBlock(chapterBeat)}`;
       currentChapterRequest += `\n\n=== SUBJECTS ALREADY COVERED IN PREVIOUS CHAPTERS — DO NOT REPEAT ===\nThe following subjects have already been covered in previous chapters. Do NOT write a chapter that covers the same time period, institution, and location as any entry below. Each chapter must cover a meaningfully distinct subject:\n\n${chapterSubjectsLog.trim()}\n\nIf the assigned chapter outline overlaps with a covered subject, shift the focus to a related but distinct angle, a different geographic region, or a different time period within the same era.\n=== END COVERED SUBJECTS ===`;
     }
 
-    // FIX 4 — Evidence grounding enforcement for Investigative Nonfiction
-    if (isNonfiction) {
-      const beatStyleKey = (projectSpec?.beat_style || projectSpec?.tone_style || '').toLowerCase();
-      if (beatStyleKey.includes('investigative')) {
-        currentChapterRequest += `\n\n=== EVIDENCE GROUNDING REQUIREMENT (Investigative Nonfiction — mandatory) ===\nEvery section of this chapter must be anchored to at least one of:\n- A specific named individual and their documented actions\n- A specific date or date range and a documented event\n- A specific named institution and a verifiable fact about it\n\nDo NOT write paragraphs that describe general historical patterns without grounding them in specific documented cases.\n\nBAD (ungrounded): 'Medieval libraries often faced challenges from political instability and relied on aristocratic patronage.'\n\nGOOD (grounded): 'The library at Jumièges lost its entire collection during a Viking raid in 841, forcing the community to rebuild from memory and borrowed texts.'\n\nIf you cannot ground a claim in a specific documented case, replace the claim with a better-documented example that you can ground specifically. Do not use placeholder statistics or unverified quotes.\n=== END EVIDENCE GROUNDING ===`;
-      }
-    }
+    if (isNonfiction) { const bsk = (projectSpec?.beat_style || projectSpec?.tone_style || '').toLowerCase(); if (bsk.includes('investigative')) { currentChapterRequest += `\n\n=== EVIDENCE GROUNDING (Investigative NF) ===\nEvery section anchored to: a named individual+actions, a date+event, or a named institution+fact. No ungrounded historical patterns. BAD: 'Medieval libraries faced challenges.' GOOD: 'The library at Jumièges lost its collection in an 841 Viking raid.' Unverifiable → [VERIFY].\n=== END ===`; } }
 
     // Banned opening constructions — all chapters + final chapter sequel hooks
     uniqueCrossChapterPhrases.push("nothing fundamental would change","nothing would really change","he told himself nothing had changed","she convinced herself this wouldn't change anything","everything was about to change","nothing could have prepared him for","little did he know","she had convinced herself","he had spent the last");
