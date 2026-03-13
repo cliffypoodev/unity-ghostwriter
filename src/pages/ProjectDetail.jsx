@@ -13,6 +13,8 @@ import SourceFilesTab from "../components/project/SourceFilesTab";
 import EditExportTab from "../components/project/EditExportTab";
 import ReviewPolishTab from "../components/project/ReviewPolishTab";
 import DeleteProjectDialog from "../components/project/DeleteProjectDialog";
+import AppErrorBoundary from "../components/AppErrorBoundary";
+import DiagnosticsPanel from "../components/DiagnosticsPanel";
 import { cn } from "@/lib/utils";
 
 const PHASES = [
@@ -227,21 +229,31 @@ export default function ProjectDetail() {
       <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "")}>
         {activePhase === "specify" && (
           <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-            <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
+            <AppErrorBoundary>
+              <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
+            </AppErrorBoundary>
           </div>
         )}
         {activePhase === "generate" && (
           <div className="p-3 sm:p-6">
-            <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
+            <AppErrorBoundary>
+              <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
+            </AppErrorBoundary>
           </div>
         )}
         {activePhase === "export" && (
-          <EditExportTab projectId={projectId} />
+          <AppErrorBoundary>
+            <EditExportTab projectId={projectId} />
+          </AppErrorBoundary>
         )}
         {activePhase === "review" && (
-          <ReviewPolishTab projectId={projectId} />
+          <AppErrorBoundary>
+            <ReviewPolishTab projectId={projectId} />
+          </AppErrorBoundary>
         )}
       </div>
+
+      <DiagnosticsPanel />
     </div>
   );
 }
