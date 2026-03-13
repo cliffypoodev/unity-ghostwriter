@@ -56,6 +56,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <SonnerToaster position="bottom-right" richColors />
       </QueryClientProvider>
     </AuthProvider>
   )
