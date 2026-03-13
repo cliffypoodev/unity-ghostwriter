@@ -1638,7 +1638,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                   onWriteAct={handleWriteAct}
                   onGenerateBridge={handleGenerateBridge}
                   isWriting={writingActNumber === actNum}
-                  hasBridge={!!actBridges[actNum]}
+                  hasBridge={actNum === 1 ? !!actBridges[1] : !!actBridges[actNum - 1]}
                   disabled={!prevComplete || writeAllActive || interiorityMissing}
                   prevActComplete={prevComplete}
                 />
