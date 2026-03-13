@@ -242,7 +242,14 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
 
     const maxTokens = 8192;
     // callType: beat_sheet → scene beat generation (structural, not prose)
-    const raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+    // Retry with fallback model if primary fails
+    let raw;
+    try {
+      raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+    } catch (primaryErr) {
+      console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with claude-sonnet`);
+      raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+    }
     const scenes = await safeParseJSON(raw, modelKey);
     if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
 
