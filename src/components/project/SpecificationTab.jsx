@@ -310,6 +310,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
       if (field === "genre") { updated.subgenre = ""; }
       return updated;
     });
+    // Clear auto-selection reasoning when user manually changes the field
+    if (autoHints[field]) {
+      setAutoHints(prev => { const next = { ...prev }; delete next[field]; return next; });
+    }
   };
 
   const handleDevelopIdea = async () => {
