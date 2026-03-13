@@ -1078,6 +1078,12 @@ ${transition_instructions}
 
 REMINDER — THIS IS NONFICTION: Write in the author's voice. Use brief vignettes to illustrate, then ANALYZE. The author's interpretive voice is the backbone. Do NOT create fictional characters with dialogue exchanges.
 ${spec.subgenre ? `\nThis is a ${spec.genre || 'nonfiction'} book with subgenre focus: ${spec.subgenre}. All content must remain within this subject area.\n` : ''}
+NONFICTION PROSE RULES — MANDATORY:
+R1-NO THESIS RESTATEMENT AT ENDINGS: Final paragraph must NOT state thesis/moral/lesson. BANNED: "X represents more than Y", "would prove essential", "The lesson emerging", "Perhaps most importantly, X demonstrates", "This shift had global implications", "The broader implications", "What we can learn from X". REQUIRED (use ONE): specific documented detail, unresolved question from record, scene image from primary source, period-accurate speech, concrete reframing fact.
+R2-NO POETRY/VERSE: No poems, haikus, or italicized philosophical verse at chapter endings. Documentary nonfiction only.
+R3-CONSTRUCTION CAPS (per manuscript): "represents more than" ≤3, "perhaps most significantly" ≤3, "this transformation" ≤4, "this shift" ≤4, "would prove essential" ≤2, "had global implications" ≤2, "the broader implications" ≤2, "demonstrates that" ≤4, "remind us that" ≤3, "in ways that" ≤5.
+R4-FABRICATION WARNINGS: Unverifiable specific claims → insert [Verify: source needed]. Composite characters MUST be framed on first appearance.
+
 OUTPUT FORMAT RULES:
 - Return ONLY the prose of the chapter. No preamble. No commentary.
 - Do not start with "Here is..." or any assistant-style opening.
