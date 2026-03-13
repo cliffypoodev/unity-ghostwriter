@@ -827,6 +827,13 @@ export default function GenerateTab({ projectId, onProceed }) {
       console.error('generateOutline error:', err);
       generatingRef.current = false;
       
+      healthMonitor.report({
+        severity: err.message?.includes('rate limit') ? 'warning' : 'error',
+        category: 'pipeline',
+        message: `Outline generation failed: ${err.message}`,
+        context: { projectId },
+        raw: err,
+      });
       if (err.message?.includes('rate limit') || err.message?.includes('Rate limit')) {
         setGenerateError('AI rate limit reached — please wait 60 seconds and click Retry.');
         setRetryCountdown(60);
@@ -999,6 +1006,13 @@ export default function GenerateTab({ projectId, onProceed }) {
       await refetchChapters();
     } catch (err) {
       console.error('writeChapter error:', err.message);
+      healthMonitor.report({
+        severity: err.message === 'timeout' ? 'warning' : 'error',
+        category: 'generation',
+        message: `Chapter generation failed: Ch ${chapter.chapter_number}`,
+        context: { chapterNumber: chapter.chapter_number, chapterId: chapter.id },
+        raw: err,
+      });
       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
     } finally {
       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
@@ -1129,6 +1143,13 @@ export default function GenerateTab({ projectId, onProceed }) {
         });
       } catch (pollErr) {
         console.error(`WriteAll Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        healthMonitor.report({
+          severity: 'error',
+          category: 'generation',
+          message: `WriteAll Ch ${ch.chapter_number} failed: ${pollErr.message}`,
+          context: { chapterNumber: ch.chapter_number },
+          raw: pollErr,
+        });
         result = 'error';
       }
 
@@ -1243,6 +1264,13 @@ export default function GenerateTab({ projectId, onProceed }) {
         });
       } catch (pollErr) {
         console.error(`Resume Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        healthMonitor.report({
+          severity: 'error',
+          category: 'generation',
+          message: `Resume Ch ${ch.chapter_number} failed: ${pollErr.message}`,
+          context: { chapterNumber: ch.chapter_number },
+          raw: pollErr,
+        });
         result = 'error';
       }
 
@@ -1328,6 +1356,13 @@ export default function GenerateTab({ projectId, onProceed }) {
       await refetchChapters();
       setTimeout(() => setAllScenesProgress(""), 3000);
     } catch (err) {
+      healthMonitor.report({
+        severity: 'error',
+        category: 'pipeline',
+        message: `Scene generation failed: ${err.message}`,
+        context: { projectId },
+        raw: err,
+      });
       setAllScenesProgress(`Error: ${err.message}`);
       setTimeout(() => setAllScenesProgress(""), 5000);
     } finally {
