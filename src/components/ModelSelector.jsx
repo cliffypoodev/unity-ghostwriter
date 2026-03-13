@@ -714,14 +714,17 @@ export default function ModelSelector({ project, updateProject }) {
                         display:'flex', alignItems:'center', gap:4,
                       }}>
                         {m.label}
-                        {m.recommended && (
-                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#ede9fe', color:'#6d28d9' }}>TOP</span>
+                        {m.badge === 'TOP' && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#fef3c7', color:'#92400e' }}>TOP</span>
                         )}
-                        {m.isFree && (
-                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#dcfce7', color:'#15803d' }}>FREE</span>
+                        {m.badge === 'FREE' && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#f3f4f6', color:'#374151' }}>FREE</span>
                         )}
-                        {m.adultOnly && (
-                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#fff1f2', color:'#9f1239' }}>18+</span>
+                        {m.badge === 'FAST' && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#dcfce7', color:'#15803d' }}>FAST</span>
+                        )}
+                        {m.badge === '18+' && (
+                          <span style={{ fontSize:8, fontWeight:800, padding:'1px 4px', borderRadius:6, background:'#fce7f3', color:'#9d174d' }}>18+</span>
                         )}
                       </div>
                       <div style={{ fontSize:10, color:'#6b7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
