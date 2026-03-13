@@ -46,7 +46,7 @@ import PromptSuggestions from "./PromptSuggestions";
 import PromptCatalogBrowser from "./PromptCatalogBrowser";
 import AuthorVoiceSelector, { ALL_AUTHOR_PROFILES, resolveAuthorId } from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
-import ModelSuggestionPanel from "./ModelSuggestionPanel";
+import ModelSelector from "../ModelSelector";
 import CharacterInterviewPanel from "./CharacterInterviewPanel";
 import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
 
@@ -931,7 +931,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
 
               <div className={hl("ai_model")}>
-                <ModelSuggestionPanel
+                <ModelSelector
                   genre={form.genre}
                   bookType={form.book_type}
                   selectedModel={form.ai_model}
