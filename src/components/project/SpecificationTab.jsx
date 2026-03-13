@@ -49,6 +49,7 @@ import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./Be
 import ModelSelector from "../ModelSelector";
 import CharacterInterviewPanel from "./CharacterInterviewPanel";
 import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
+import ProtagonistInteriorityInferButton from "./ProtagonistInteriorityInferButton";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
