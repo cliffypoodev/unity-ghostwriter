@@ -241,6 +241,72 @@ const FIT_MATRIX = {
       ['blue',  'Act bridge continuity supported'],
     ]},
   },
+  'gemini-flash': {
+    default: { fitClass:'good', title:'Good fit — ultra-fast with massive context' },
+    thriller:   { fitClass:'good', title:'Good fit — fast iteration', rows:[
+      ['blue',  'Beat style rules applied via context injection'],
+      ['blue',  'Author voice injection supported'],
+      ['green', '<b>1M context</b> — full manuscript in a single call'],
+      ['yellow','May need extra passes for nuanced prose'],
+    ]},
+    romance:    { fitClass:'good', title:'Good fit for Romance', rows:[
+      ['blue',  'Slow Burn / Clean Romance beat styles applied'],
+      ['blue',  'Author voice injection supported'],
+      ['blue',  'Closed-door rule enforced'],
+      ['yellow','Emotionally complex scenes may need refinement'],
+    ]},
+    erotica:    { fitClass:'ok', title:'Limited — explicit content not supported on Gemini', rows:[
+      ['red',  '<b>Explicit content NOT supported</b> on Gemini'],
+      ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
+      ['blue',  'Non-explicit chapters work normally'],
+      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+    ]},
+    nonfiction: { fitClass:'great', title:'Excellent fit for Nonfiction — fast + massive context', rows:[
+      ['green', 'Investigative beat style applied'],
+      ['green', '<b>1M context</b> — full research in a single call'],
+      ['blue',  'Fabrication warning detection active'],
+      ['blue',  'Fastest generation of all models'],
+    ]},
+    fantasy:    { fitClass:'good', title:'Good fit — massive context for world-building', rows:[
+      ['blue',  'Epic / Urban Gritty beat styles applied'],
+      ['green', '<b>1M context</b> — full act generation'],
+      ['blue',  'Author voice injection supported'],
+      ['yellow','Deep prose polish may need refinement'],
+    ]},
+  },
+  'gemini-pro': {
+    default: { fitClass:'great', title:'Excellent fit — top-tier quality with massive context' },
+    thriller:   { fitClass:'great', title:'Excellent fit — strong quality + huge context', rows:[
+      ['green', 'Beat style rules applied — <b>strong structural compliance</b>'],
+      ['green', 'Author voice injection supported'],
+      ['green', '<b>1M context</b> — full manuscript in a single call'],
+      ['green', 'Act bridge continuity injection supported'],
+    ]},
+    romance:    { fitClass:'great', title:'Excellent fit for Romance', rows:[
+      ['green', 'Slow Burn / Clean Romance beat styles <b>fully applied</b>'],
+      ['green', 'Closed-door rule enforced'],
+      ['green', 'Author voice injection supported'],
+      ['green', '1M context handles entire manuscript'],
+    ]},
+    erotica:    { fitClass:'ok', title:'Limited — explicit content not supported on Gemini', rows:[
+      ['red',  '<b>Explicit content NOT supported</b> on Gemini'],
+      ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
+      ['blue',  'Non-explicit chapters work normally'],
+      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+    ]},
+    nonfiction: { fitClass:'great', title:'Excellent fit for Nonfiction', rows:[
+      ['green', 'Investigative beat style <b>fully enforced</b>'],
+      ['green', '<b>1M context</b> handles full research chapters'],
+      ['green', 'Fabrication warning detection active'],
+      ['green', 'Strong analytical and structured writing output'],
+    ]},
+    fantasy:    { fitClass:'great', title:'Excellent fit for Fantasy', rows:[
+      ['green', 'Epic / Urban Gritty beat styles <b>fully applied</b>'],
+      ['green', '<b>1M context</b> — unmatched for world-building'],
+      ['green', 'Author voice injection supported'],
+      ['green', 'Act bridge continuity supported'],
+    ]},
+  },
   'gpt-4o': {
     default: { fitClass:'good', title:'Good fit — strong instruction following' },
     thriller:   { fitClass:'good', title:'Good fit — strong instruction following', rows:[
