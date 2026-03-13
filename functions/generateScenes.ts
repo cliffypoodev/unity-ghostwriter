@@ -155,7 +155,67 @@ Deno.serve(async (req) => {
 
     const spec = specs[0];
     if (spec?.book_type === 'nonfiction') {
-      return Response.json({ scenes: null, skipped: true, reason: 'Scenes not used for nonfiction' });
+      // Generate nonfiction beat sheet instead of fiction scenes
+      const chapter = chapters.find(c => c.chapter_number === Number(chapterNumber));
+      if (!chapter) return Response.json({ error: `Chapter ${chapterNumber} not found` }, { status: 404 });
+
+      const outline = outlines[0];
+      const [outlineData, storyBible] = await Promise.all([
+        parseField(outline?.outline_data, outline?.outline_url),
+        parseField(outline?.story_bible, outline?.story_bible_url),
+      ]);
+      const outlineChapters = outlineData?.chapters || [];
+      const outlineEntry = outlineChapters.find(c => (c.number || c.chapter_number) === Number(chapterNumber)) || {};
+      const totalChapters = chapters.length;
+      const thesis = spec?.topic || '';
+      const genre = spec?.subgenre || spec?.genre || 'nonfiction';
+      const beatStyle = spec?.beat_style || spec?.tone_style || 'Investigative / Nonfiction';
+
+      const nfSystemPrompt = `You are a narrative nonfiction editor building a scene-level beat sheet for a single chapter. Return ONLY valid JSON. No markdown, no backticks, no explanation.`;
+      const nfUserMessage = `BOOK THESIS / THROUGHLINE:
+${thesis}
+
+CHAPTER ${chapterNumber} of ${totalChapters}: "${chapter.title}"
+DESCRIPTION: ${chapter.summary || outlineEntry.summary || 'No description provided'}
+CHAPTER PROMPT: ${chapter.prompt || outlineEntry.prompt || ''}
+BEAT STYLE: ${beatStyle}
+GENRE: ${genre}
+${outlineEntry.beat_function ? `STRUCTURAL ROLE: ${outlineEntry.beat_function} (${outlineEntry.beat_name || ''})` : ''}
+${outlineEntry.beat_scene_type ? `MODE: ${outlineEntry.beat_scene_type}` : ''}
+
+Generate a structured beat sheet for this nonfiction chapter.
+Return ONLY a JSON object with these exact fields:
+
+{
+  "chapter_number": ${chapterNumber},
+  "chapter_title": "${chapter.title}",
+  "opening_hook": "The specific scene, person, or fact that opens this chapter cinematically. Concrete and immediate — not a thesis statement.",
+  "context_block": "What historical, political, social, or geographic background the reader needs before the central evidence. Keep to essential minimum.",
+  "central_evidence": "The primary documented events, records, or facts being reconstructed in this chapter. What actually happened, and to whom.",
+  "human_focus": "Which real person or people carry this chapter emotionally. What were their motivations, decisions, and consequences.",
+  "myth_vs_fact": "Any commonly believed version of these events that is wrong or disputed. Label speculation separately from documented fact.",
+  "complication": "The contradiction, gap in the record, unanswered question, or institutional failure this chapter exposes.",
+  "implication": "What this chapter proves or advances toward the book's central thesis. The 'so what.'",
+  "closing_beat": "The specific unresolved thread, question, or revelation that pulls the reader into the next chapter.",
+  "word_target": 2500,
+  "fabrication_warnings": ["List any claims in the chapter description that cannot be verified from public record"]
+}`;
+
+      const nfModelKey = 'gemini-pro';
+      let nfRaw;
+      try {
+        nfRaw = await callAI(nfModelKey, nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+      } catch (primaryErr) {
+        console.warn(`NF beat primary model failed: ${primaryErr.message} — retrying with claude-sonnet`);
+        nfRaw = await callAI('claude-sonnet', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+      }
+      const nfBeatSheet = await safeParseJSON(nfRaw, nfModelKey);
+
+      // Store in the scenes field (reused for nonfiction beat sheet)
+      await base44.entities.Chapter.update(chapter.id, { scenes: JSON.stringify(nfBeatSheet) });
+
+      console.log(`Generated nonfiction beat sheet for Chapter ${chapterNumber} (model: ${nfModelKey})`);
+      return Response.json({ beatSheet: nfBeatSheet, chapterNumber: Number(chapterNumber), chapterId: chapter.id, nonfiction: true });
     }
 
     const chapter = chapters.find(c => c.chapter_number === Number(chapterNumber));
