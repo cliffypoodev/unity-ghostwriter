@@ -1948,13 +1948,9 @@ Deno.serve(async (req) => {
     }
 
     const appSettings = appSettingsList[0] || {};
-    const allSourceFiles = [...sourceFiles, ...globalSourceFiles];
-
     const chapter = chapters.find(c => c.id === chapter_id);
     if (!chapter) return Response.json({ error: 'Chapter not found' }, { status: 404 });
-
     const rawSpec = specs[0];
-    // Normalize spec — apply safe defaults for new fields, handle legacy tone_style
     const spec = rawSpec ? {
       ...rawSpec,
       beat_style: rawSpec.beat_style || rawSpec.tone_style || "",
