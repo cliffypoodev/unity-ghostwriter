@@ -1520,6 +1520,8 @@ If the protagonist is a non-combatant facing a trained fighter, they must win or
     systemPrompt += `\n\n${BANNED_CONSTRUCTIONS_ALL_GENRES}`;
     systemPrompt += `\n\n${buildRepetitionGovernorBlock(allChapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated'))}`;
 
+    systemPrompt += `\n\n${buildFictionProseRules(projectSpec)}`;
+
     systemPrompt += `\n\nCRITICAL PREMISE ANCHOR: Refer back to the BOOK PREMISE section above. Your chapter must include specific elements from that premise — character names, locations, plot beats, and thematic elements mentioned there. Do NOT write generic scenes that could belong to any book. Every scene must be specific to THIS story and its unique characters, world, and conflicts.`;
 
     systemPrompt += `\n\nGENRE DELIVERY — MATCH THE GENRE TAG:
