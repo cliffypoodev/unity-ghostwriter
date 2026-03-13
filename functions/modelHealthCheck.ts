@@ -41,6 +41,16 @@ async function callAIQuick(modelKey, prompt) {
     if (!r.ok) throw new Error(d.error?.message || r.status);
     return d.choices[0].message.content;
   }
+  if (provider === "google") {
+    const r = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + Deno.env.get('GOOGLE_AI_API_KEY'),
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: 'You are a formatting test assistant.' }] }, generationConfig: { temperature: defaultTemp, maxOutputTokens: maxTokens } }) }
+    );
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error?.message || r.status);
+    return d.candidates[0].content.parts[0].text;
+  }
   if (provider === "deepseek") {
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
