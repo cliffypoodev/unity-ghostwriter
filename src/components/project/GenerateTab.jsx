@@ -1236,6 +1236,165 @@ export default function GenerateTab({ projectId, onProceed }) {
     }
   };
 
+  // ── Write Act handler ──
+  const handleWriteAct = async (actNumber) => {
+    if (interiorityMissing) {
+      toast.error("Complete Protagonist Interiority in Specifications before generating.");
+      return;
+    }
+    const act = acts?.[`act${actNumber}`];
+    if (!act) return;
+
+    // If act > 1, generate bridge doc for previous act first
+    if (actNumber > 1) {
+      const prevAct = acts[`act${actNumber - 1}`];
+      const prevStatus = getActStatus(chapters, acts, actNumber - 1);
+      if (prevStatus === 'complete' && !actBridges[actNumber - 1]) {
+        toast.info(`Generating Act ${actNumber - 1} bridge document…`);
+        try {
+          await base44.functions.invoke('generateActBridge', {
+            project_id: projectId,
+            act_number: actNumber - 1,
+            act_start: prevAct.start,
+            act_end: prevAct.end,
+          });
+          setActBridges(prev => ({ ...prev, [actNumber - 1]: true }));
+          toast.success(`Act ${actNumber - 1} bridge ready`);
+        } catch (err) {
+          console.warn('Bridge generation failed:', err.message);
+          toast.error('Bridge generation failed — proceeding without it');
+        }
+      }
+    }
+
+    const actChapters = getActChapters(chapters, acts, actNumber);
+    const toWrite = actChapters.filter(c => c.status !== 'generated');
+    if (toWrite.length === 0) {
+      toast.info(`Act ${actNumber} is already complete!`);
+      return;
+    }
+
+    // Use the Write All modal for act-based writing
+    const tLen = spec?.target_length || "medium";
+    setTargetLength(tLen);
+    const targetChapterWords = TARGET_WORDS_PER_CHAPTER[tLen];
+
+    writeAllAbortRef.current = false;
+    setWritingActNumber(actNumber);
+    setWriteAllActive(true);
+    setWriteAllModalOpen(true);
+
+    const startTime = Date.now();
+    setWriteAllProgress({
+      current: 0,
+      total: toWrite.length,
+      currentTitle: `Act ${actNumber}: ${toWrite[0]?.title || ""}`,
+      successes: 0,
+      failures: [],
+      startTime,
+      done: false,
+      elapsed: "",
+      wordsWritten: 0,
+      totalWords: toWrite.length * targetChapterWords,
+      chapterWords: 0,
+      targetChapterWords,
+      phase: 2,
+      phaseLabel: `Writing Act ${actNumber} (Ch ${act.start}–${act.end})`,
+    });
+
+    // Phase 1: Generate scenes for fiction chapters
+    if (spec?.book_type !== 'nonfiction') {
+      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '');
+      if (needScenes.length > 0) {
+        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: `Act ${actNumber}: Generating Scenes` }));
+        for (let i = 0; i < needScenes.length; i++) {
+          if (writeAllAbortRef.current) break;
+          const ch = needScenes[i];
+          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: Ch ${ch.chapter_number} (${i + 1}/${needScenes.length})` }));
+          try {
+            await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
+            let polls = 0;
+            while (polls < 45) {
+              await new Promise(r => setTimeout(r, 2000));
+              polls++;
+              const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+              const updCh = updated.find(c => c.id === ch.id);
+              if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') break;
+            }
+          } catch (err) {
+            console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
+          }
+        }
+        await refetchChapters();
+      }
+    }
+
+    // Phase 2: Sequential chapter writing
+    setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: `Writing Act ${actNumber}` }));
+
+    let successes = 0;
+    let totalWordsWritten = 0;
+    const failedChapters = [];
+
+    for (let i = 0; i < toWrite.length; i++) {
+      if (writeAllAbortRef.current) break;
+      const ch = toWrite[i];
+      setWriteAllProgress(prev => ({
+        ...prev,
+        current: successes,
+        successes,
+        failures: [...failedChapters],
+        currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
+        chapterNumber: ch.chapter_number,
+        wordsWritten: totalWordsWritten,
+      }));
+
+      const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
+        setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
+      });
+
+      if (result === 'generated') {
+        successes++;
+        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+        totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        base44.functions.invoke('generateChapterState', { project_id: projectId, chapter_id: ch.id })
+          .catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
+        if (i < toWrite.length - 1) await new Promise(r => setTimeout(r, 3000));
+      } else {
+        failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
+      }
+
+      setWriteAllProgress(prev => ({ ...prev, current: successes, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
+    }
+
+    // Generate bridge doc for this act after completion
+    if (successes === toWrite.length && successes > 0) {
+      try {
+        await base44.functions.invoke('generateActBridge', {
+          project_id: projectId,
+          act_number: actNumber,
+          act_start: act.start,
+          act_end: act.end,
+        });
+        setActBridges(prev => ({ ...prev, [actNumber]: true }));
+      } catch (err) {
+        console.warn('Post-act bridge generation failed:', err.message);
+      }
+    }
+
+    const elapsed = Date.now() - startTime;
+    setWriteAllProgress(prev => ({
+      ...prev, current: successes, successes, failures: failedChapters, done: true,
+      paused: writeAllAbortRef.current, elapsed: `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s`,
+      wordsWritten: totalWordsWritten,
+      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed.` : null,
+    }));
+
+    setWriteAllActive(false);
+    setWritingActNumber(null);
+    await refetchChapters();
+  };
+
   // ── Empty state ──
   if (!hasOutline && !generating) {
     return (
