@@ -296,7 +296,6 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
   const [showRewriteModal, setShowRewriteModal] = useState(false);
   const queryClient = useQueryClient();
 
-  // Check for unresolved consistency flags
   let hasFlags = false;
   try {
     if (chapter.consistency_flags) {
@@ -384,96 +383,129 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
     }
   };
 
+  // Status label + color
+  const statusConfig = {
+    generated: { label: "COMPLETE", color: "text-emerald-600", dot: "bg-emerald-500" },
+    generating: { label: "WRITING…", color: "text-blue-600", dot: "bg-blue-500" },
+    error: { label: "ERROR", color: "text-red-600", dot: "bg-red-500" },
+    pending: { label: "PENDING", color: "text-slate-400", dot: "bg-slate-300" },
+  };
+  const st = statusConfig[isWriting ? "generating" : chapter.status] || statusConfig.pending;
+
   return (
     <div className={cn(
-      "border rounded-xl overflow-hidden",
-      chapter.status === "error" ? "border-red-200 bg-red-50/30" :
-      isWriting ? "border-blue-200 bg-blue-50/20" :
+      "border rounded-xl overflow-hidden bg-white",
+      chapter.status === "error" ? "border-red-200" :
+      isWriting ? "border-blue-200" :
       chapter.status === "generated" ? "border-emerald-200" :
       "border-slate-200"
     )}>
+      {/* ROW 1 — Status bar */}
+      <div className={cn(
+        "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold tracking-wider uppercase",
+        chapter.status === "error" ? "bg-red-50" :
+        isWriting ? "bg-blue-50" :
+        chapter.status === "generated" ? "bg-emerald-50" :
+        "bg-slate-50"
+      )}>
+        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", st.dot, isWriting && "animate-pulse")} />
+        <span className={st.color}>{st.label}</span>
+        {hasFlags && (
+          <span className="text-amber-500 ml-auto" title="Continuity flags detected">
+            <AlertTriangle className="w-3 h-3" />
+          </span>
+        )}
+        {chapterProgress && isWriting && (
+          <span className="ml-auto text-[10px] font-medium text-blue-500 normal-case tracking-normal truncate max-w-[200px]">{chapterProgress}</span>
+        )}
+      </div>
+
+      {/* ROW 2 — Info row (clickable to expand) */}
       <div
-        className="flex items-center gap-3 px-4 py-3 bg-white cursor-pointer hover:bg-slate-50 transition-colors"
+        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50/50 transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
-        <button className="text-slate-400 flex-shrink-0" onClick={e => { e.stopPropagation(); setExpanded(e2 => !e2); }}>
+        <button className="text-slate-400 shrink-0" onClick={e => { e.stopPropagation(); setExpanded(e2 => !e2); }}>
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
-        <span className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center flex-shrink-0">
+        <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">
           {chapter.chapter_number}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <ChapterStatusDot status={chapter.status} isWriting={isWriting} />
-            <span className="font-semibold text-sm text-slate-800 truncate">{chapter.title}</span>
-            {beatData?.beat_function && <BeatBadge beatFunction={beatData.beat_function} beatName={beatData.beat_name} />}
-            {hasScenes && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
-            )}
-            {hasNfBeatSheet && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600 font-semibold">beat sheet</span>
-            )}
+          <span className="font-semibold text-sm text-slate-800 block truncate">{chapter.title}</span>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {chapter.word_count > 0 && (
               <span className="text-xs text-slate-400">~{chapter.word_count.toLocaleString()} words</span>
             )}
-            {hasFlags && (
-              <span className="text-amber-500" title="Continuity flags detected">
-                <AlertTriangle className="w-3.5 h-3.5" />
-              </span>
+            {content && (
+              <button
+                className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-0.5"
+                onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                {copied ? "copied" : "copy"}
+              </button>
             )}
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-          {content && (
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-slate-600" onClick={handleCopy}>
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-            </Button>
+        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+          {beatData?.beat_function && <BeatBadge beatFunction={beatData.beat_function} beatName={beatData.beat_name} />}
+          {hasScenes && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">{parsedScenes.length} scenes</span>
           )}
-          {chapter.status === "generated" && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs px-2.5 border-violet-300 text-violet-700 hover:bg-violet-50"
-                onClick={(e) => { e.stopPropagation(); setShowRewriteModal(true); }}
-              >
-                <Pencil className="w-3 h-3 mr-1" />Voice
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs px-2.5 border-amber-300 text-amber-700 hover:bg-amber-50"
-                disabled={isWriting || generatingScenesThenWrite || rewriting}
-                onClick={(e) => { e.stopPropagation(); handleRewrite(); }}
-              >
-                {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
-              </Button>
-            </>
+          {hasNfBeatSheet && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600 font-semibold">beat sheet</span>
           )}
-          {(chapter.status === "error" || chapter.status === "pending") && chapter.chapter_number > 1 && onResume && (
+        </div>
+      </div>
+
+      {/* ROW 3 — Full-width action buttons */}
+      <div className="flex items-center gap-1.5 px-4 py-2 border-t border-slate-100 bg-slate-50/50">
+        {chapter.status === "generated" && (
+          <>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs px-2.5 border-emerald-400 text-emerald-700 hover:bg-emerald-50"
-              disabled={isWriting || isResuming}
-              onClick={(e) => { e.stopPropagation(); onResume(chapter); }}
+              className="h-7 text-xs px-3 border-violet-200 text-violet-700 hover:bg-violet-50"
+              onClick={() => setShowRewriteModal(true)}
             >
-              {isResuming ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Resuming…</> : <><ArrowRight className="w-3 h-3 mr-1" />Resume from here</>}
+              <Pencil className="w-3 h-3 mr-1" />Voice
             </Button>
-          )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-3 border-amber-200 text-amber-700 hover:bg-amber-50"
+              disabled={isWriting || generatingScenesThenWrite || rewriting}
+              onClick={handleRewrite}
+            >
+              {rewriting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Clearing…</> : <><RefreshCw className="w-3 h-3 mr-1" />Rewrite</>}
+            </Button>
+          </>
+        )}
+        {(chapter.status === "error" || chapter.status === "pending") && chapter.chapter_number > 1 && onResume && (
           <Button
             size="sm"
-            className={cn("h-7 text-xs px-2.5", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
-            disabled={isWriting || generatingScenesThenWrite || rewriting}
-            onClick={handleWriteClick}
+            variant="outline"
+            className="h-7 text-xs px-3 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            disabled={isWriting || isResuming}
+            onClick={() => onResume(chapter)}
           >
-            {generatingScenesThenWrite
-              ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Scenes…</>
-              : isWriting
-                ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Writing…</>
-                : <><RefreshCw className="w-3 h-3 mr-1" />{chapter.status === "generated" ? "Regenerate" : "Write"}</>}
+            {isResuming ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Resuming…</> : <><ArrowRight className="w-3 h-3 mr-1" />Resume from here</>}
           </Button>
-        </div>
+        )}
+        <div className="flex-1" />
+        <Button
+          size="sm"
+          className={cn("h-7 text-xs px-3", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700")}
+          disabled={isWriting || generatingScenesThenWrite || rewriting}
+          onClick={handleWriteClick}
+        >
+          {generatingScenesThenWrite
+            ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Scenes…</>
+            : isWriting
+              ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Writing…</>
+              : <><RefreshCw className="w-3 h-3 mr-1" />{chapter.status === "generated" ? "Regenerate" : "Write"}</>}
+        </Button>
       </div>
 
       {/* Write-without-scenes confirmation */}
@@ -493,14 +525,13 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
 
       {expanded && (
         <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-3">
-          {chapterProgress && (
+          {chapterProgress && !isWriting && (
             <div className="text-xs text-indigo-600 font-medium">{chapterProgress}</div>
           )}
           {chapter.status === "error" && chapter.quality_scan && (() => {
             try { const qs = JSON.parse(chapter.quality_scan); if (qs.error) return <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2"><span className="font-semibold">Error:</span> {qs.error}</div>; } catch {}
             return null;
           })()}
-          {/* Consistency flags banner */}
           <ConsistencyFlagsBanner chapter={chapter} />
           {chapter.summary && (
             <div>
@@ -508,14 +539,11 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
               <p className="text-sm text-slate-700 leading-relaxed">{chapter.summary}</p>
             </div>
           )}
-
-          {/* Scene section (fiction) / Beat sheet section (nonfiction) */}
           {isFiction ? (
             <SceneSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
           ) : (
             <NonfictionBeatSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
           )}
-
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -545,7 +573,6 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
         </div>
       )}
 
-      {/* Rewrite in My Voice modal */}
       <RewriteInVoiceModal
         isOpen={showRewriteModal}
         onClose={() => setShowRewriteModal(false)}
