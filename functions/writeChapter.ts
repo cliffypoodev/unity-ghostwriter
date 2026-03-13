@@ -144,7 +144,7 @@ const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of se
 
 const BANNED_CONSTRUCTIONS_ALL_GENRES = `=== BANNED CONSTRUCTIONS — NEVER USE IN ANY GENRE ===\n1. "SENT...THROUGH": [subject] sent [sensation] [direction] [body]. Describe the sensation directly instead.\n2. "WAVES OF": "waves of pleasure/emotion/sensation/heat/relief." Name the specific sensation.\n3. "WASHED OVER": "relief washed over her." What specifically happened in the body?\n4. "THREATENED TO OVERWHELM": Show the overwhelm through behavior, don't announce it.\n=== END BANNED CONSTRUCTIONS ===`;
 
-const REPETITION_GOVERNOR_CAPS = {"warmth":3,"pulse":3,"pulsed":3,"electricity":2,"tension":4,"breath":6,"breathe":6,"breathed":6,"breathing":6,"surrender":3,"surrendered":3,"vulnerable":2,"vulnerability":2,"raw":2,"shattered":1};
+const REPETITION_GOVERNOR_CAPS = {"warmth":3,"pulse":3,"pulsed":3,"electricity":2,"tension":4,"breath":6,"breathe":6,"breathed":6,"breathing":6,"surrender":3,"surrendered":3,"vulnerable":2,"vulnerability":2,"raw":2,"shattered":1,"profound":1,"surreal":1};
 function buildRepetitionGovernorBlock(prevChapters) {
   let dynCaps = '';
   if (prevChapters.length > 0) {
