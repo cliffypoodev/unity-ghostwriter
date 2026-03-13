@@ -933,16 +933,20 @@ export default function EditExportTab({ projectId }) {
             .quill-page-wrapper .ql-editor ol, .quill-page-wrapper .ql-editor ul { margin-bottom: 1em; padding-left: 1.5em; }
             /* Visual page break separators between chapters */
             .quill-page-wrapper .ql-editor hr {
-              border: none;
-              height: 40px;
-              margin: 0 calc(-1 * ${docSettings.margins || "1in"});
-              padding: 0;
-              background: ${docSettings.pageBg === "#1e1e1e" ? "#111" : "#e2e8f0"};
-              border-top: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"};
-              border-bottom: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"};
+              border: none !important;
+              height: 40px !important;
+              margin: 0 calc(-1 * ${docSettings.margins || "1in"}) !important;
+              padding: 0 !important;
+              background: ${docSettings.pageBg === "#1e1e1e" ? "#111" : "#e2e8f0"} !important;
+              border-top: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"} !important;
+              border-bottom: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"} !important;
               box-shadow: 
                 inset 0 6px 8px -4px rgba(0,0,0,0.12),
-                inset 0 -6px 8px -4px rgba(0,0,0,0.12);
+                inset 0 -6px 8px -4px rgba(0,0,0,0.12) !important;
+              position: relative !important;
+            }
+            .quill-page-wrapper .ql-editor .page-break-label {
+              user-select: none;
             }
           `}</style>
 
