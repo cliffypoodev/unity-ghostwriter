@@ -46,7 +46,7 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
         <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full tracking-wide shrink-0 uppercase", theme.badge)}>
           Act {actNumber}
         </span>
-        <span className="text-[15px] font-semibold text-slate-800 flex-1 min-w-0 truncate">
+        <span className="text-[15px] font-semibold text-slate-800 flex-1 min-w-0 truncate sm:whitespace-nowrap leading-tight" style={{ WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal' }}>
           {act.label}
         </span>
         <span className="text-xs text-slate-500 shrink-0 whitespace-nowrap">

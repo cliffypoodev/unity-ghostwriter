@@ -464,24 +464,25 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
       {/* ROW 3 — Action buttons */}
       <div className={cn(
         "flex gap-2 px-3.5 py-2.5 border-t border-gray-100",
+        isComplete && "flex-wrap",
       )}>
         {isComplete && (
           <>
             <button
-              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap"
+              className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap"
               onClick={() => setShowRewriteModal(true)}
             >
               <Pencil className="w-3.5 h-3.5" />Voice
             </button>
             <button
-              className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap", (isWriting || rewriting) && "opacity-50 cursor-not-allowed")}
+              className={cn("flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap", (isWriting || rewriting) && "opacity-50 cursor-not-allowed")}
               disabled={isWriting || generatingScenesThenWrite || rewriting}
               onClick={handleRewrite}
             >
               {rewriting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Clearing…</> : <><RefreshCw className="w-3.5 h-3.5" />Rewrite</>}
             </button>
             <button
-              className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) && "opacity-50 cursor-not-allowed")}
+              className={cn("flex-1 basis-full sm:basis-0 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) && "opacity-50 cursor-not-allowed")}
               disabled={isWriting || generatingScenesThenWrite || rewriting}
               onClick={handleWriteClick}
             >
