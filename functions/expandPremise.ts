@@ -98,7 +98,7 @@ INFERENCE RULES:
         detail_level: 'moderate',
         chapter_count: 20,
         target_audience: { selected: 'Adult General', secondary: '', reasoning: '' },
-        author_voice: { selected: 'Cinematic & Propulsive', reasoning: '' },
+        author_voice: { selected: 'basic', reasoning: '' },
       });
     }
 
