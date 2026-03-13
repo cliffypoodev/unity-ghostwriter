@@ -1374,6 +1374,7 @@ export default function GenerateTab({ projectId, onProceed }) {
       setWriteAllProgress(prev => ({
         ...prev,
         current: successes,
+        queueIndex: i,
         successes,
         failures: [...failedChapters],
         currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
@@ -1399,7 +1400,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
       }
 
-      setWriteAllProgress(prev => ({ ...prev, current: successes, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
+      setWriteAllProgress(prev => ({ ...prev, current: successes, queueIndex: i + 1, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
     }
 
     // Check if act is fully complete after writing
