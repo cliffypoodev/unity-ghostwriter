@@ -91,7 +91,7 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
               size="sm"
               variant="outline"
               className="h-6 text-[11px] px-2.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onGenerateBridge(actNumber - 1); }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); console.log("Bridge btn clicked (status area), actNumber:", actNumber, "calling with:", actNumber - 1); onGenerateBridge(actNumber - 1); }}
               type="button"
             >
               <Sparkles className="w-3 h-3 mr-1" /> Generate Bridge
