@@ -46,7 +46,7 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
 
       {/* Bridge status for Acts 2 and 3 */}
       {actNumber > 1 && (
-        <div className={cn("text-xs px-3 py-1.5 rounded-lg border flex items-center gap-2 flex-wrap", hasBridge
+        <div className={cn("text-xs px-3 py-1.5 rounded-lg border flex items-center gap-2 flex-wrap relative z-10", hasBridge
           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
           : prevActComplete
             ? "bg-amber-50 text-amber-700 border-amber-200"
