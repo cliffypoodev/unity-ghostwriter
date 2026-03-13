@@ -229,28 +229,20 @@ const REFUSAL_INDICATORS = [
 // ── GPT Model Detection + Length Enforcement ──
 function isGptModel(modelKey) { return /^gpt-/.test(modelKey || ''); }
 
-const GPT_LENGTH_ENFORCEMENT = `=== GPT LENGTH REQUIREMENTS — NON-NEGOTIABLE ===
-This chapter must be a minimum of 2,500 words. Each major scene or section must be a minimum of 625 words.
+const GPT_LENGTH_ENFORCEMENT = `=== GPT PROSE ENFORCEMENT — NON-NEGOTIABLE ===
+LENGTH: Min 2,500 words per chapter. Min 625 words per major scene/section. If a beat completes in under 200 words, you summarized it — rewrite from the start of that beat.
+You are NOT summarizing events. You are inhabiting them. Every beat requires: physical environment before action, 3+ concrete sensory details (sound/smell/texture/temperature), interior thought SPECIFIC to this character, dialogue with subtext. Do NOT proceed to the next beat until the current one is fully rendered.
+PACING: Location changes need environmental grounding before dialogue. Emotional shifts need physical manifestation (body language, breathing, posture). Conversations >3 exchanges need non-dialogue breaks. Scene transitions need bridging paragraphs.
 
-You are NOT summarizing events. You are inhabiting them.
-Every beat in the scene outline requires:
-  - A physical environment established before action begins
-  - At least 3 concrete sensory details per scene (sound, smell, texture, temperature — not just visual)
-  - Interior thought that is SPECIFIC to this character's history, not generic emotional labeling
-  - Dialogue that contains subtext — characters not saying what they actually mean
-
-If you complete a scene beat in under 200 words, you have summarized it. Stop. Rewrite it from the beginning of that beat, this time inhabiting it rather than reporting it.
-
-DO NOT proceed to the next beat until the current one is fully rendered.
-
-PACING ENFORCEMENT:
-- Every location change requires at least one paragraph of environmental grounding before any dialogue or action
-- Every emotional shift requires physical manifestation — body language, changed breathing, altered posture — before or instead of naming the emotion
-- Every conversation longer than 3 exchanges must include at least one paragraph of non-dialogue (action, observation, sensory detail, interiority) between exchanges
-- Scene transitions must include a bridging paragraph — never jump-cut between locations without grounding the reader in the new space
-
-You are a novelist, not a plot summarizer. The reader wants to BE in the room, not be told what happened in it.
-=== END GPT LENGTH REQUIREMENTS ===`;
+GPT-SPECIFIC BANNED CONSTRUCTIONS (your defaults — actively suppress):
+1. "settling over him/her/them" (e.g. "a calm settling over her") — BANNED. Show physical behavior.
+2. Thesis-statement endings — final sentence must NOT explain what the scene meant. BANNED: "He understood now that...", "For the first time, she felt...", "It was a new beginning." Close on image/action/dialogue/sensory detail.
+3. "understanding dawning on" — BANNED. Show comprehension through changed behavior, not announcement.
+4. "a mix of [emotion] and [emotion]" (e.g. "a mix of fear and fascination") — BANNED. Pick ONE feeling, render physically.
+5. "profound"/"deeply profound"/"overwhelmingly profound" — BANNED. Demonstrate through consequence.
+6. "surreal" as emotional descriptor ("surreal peace/calm/clarity") — BANNED. Name the specific physical experience.
+7. Stacked abstract nouns in closings ("a promise of new stories forged under the watchful eyes of the cosmos") — BANNED. End concrete and small, not abstract and grand.
+=== END GPT PROSE ENFORCEMENT ===`;
 
 function isRefusal(text) {
   if (!text || text.trim().length < 50) return true;
