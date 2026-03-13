@@ -1860,7 +1860,13 @@ ${_beatUsrBlock(chapterBeat)}`;
       }
       if(compV.length>0) console.warn(`Ch ${chapter.chapter_number} final: ${compV.length} unresolved after ${compAttempt} attempts`);
     }
+    // ── POST-GEN: Nonfiction ending enforcement + composite figure check ──
+    if (isNonfiction) { fullContent = await enforceNonfictionEnding(fullContent, projectSpec); }
+    const compositeIssues = isNonfiction ? checkCompositeFigureFraming(fullContent, chapter.chapter_number, storyBible) : [];
+    if (compositeIssues.length > 0) console.warn(`Ch ${chapter.chapter_number} composite issues:`, compositeIssues);
+
     let qualityResult = scanChapterQuality(fullContent, chapter.chapter_number, previousChapters, storyBible, projectSpec?.book_type || "fiction", storyBible?.characters || []);
+    if (compositeIssues.length > 0) { qualityResult.warnings.push(...compositeIssues); qualityResult.violation_count += compositeIssues.length; }
     const first500 = fullContent.slice(0, 500); const META_PATTERNS = [/^I appreciate you/i, /^I need to clarify/i, /^I've already completed/i, /^Here is/i, /^Here are/i, /^As requested/i, /^I'll write/i, /^I'll generate/i, /^I'll create/i, /[✓✗☐☑]/, /^All required elements/i, /^Is there a specific element/i];
     if (META_PATTERNS.some(p => p.test(first500))) { qualityResult.warnings.push('CRITICAL: AI output a meta-response instead of prose.'); qualityResult.passed = false; }
     console.log(`Chapter ${chapter.chapter_number} quality scan:`, qualityResult);
