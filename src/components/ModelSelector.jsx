@@ -453,11 +453,11 @@ const FIT_MATRIX = {
       ['blue', 'Standard hybrid mode recommended'],
       ['blue', 'Or enable Budget Mode for full Lumimaid routing'],
     ]},
-    erotica:    { fitClass:'great', title:'Excellent — primary use case for Lumimaid', rows:[
-      ['green','Explicit content <b>fully supported and optimized</b>'],
-      ['green','Lowest cost per token — ideal for high-volume erotica'],
-      ['blue', 'Beat style rules applied to all SFW sections'],
-      ['green','Enable <b>Budget Mode</b> below to route full manuscript here'],
+    erotica:    { fitClass:'good', title:'Explicit content supported — uncensored fine-tune', rows:[
+      ['green','Explicit content <b>fully supported</b> — uncensored fine-tune'],
+      ['blue', 'Best for <b>erotica-focused projects</b> when selected manually'],
+      ['yellow','Lower context window (32k) — <b>shorter chapters recommended</b>'],
+      ['yellow','Provider availability may vary — <b>DeepSeek is more reliable</b>'],
     ]},
     nonfiction: { fitClass:'warn', title:'Not recommended for Nonfiction', rows:[
       ['red', '<b>Not optimized</b> for research or evidence-based writing'],
