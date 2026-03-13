@@ -10,7 +10,7 @@ const ACT_COLORS = {
   3: { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", badge: "bg-rose-100 text-rose-700", progress: "bg-rose-500", btn: "bg-rose-600 hover:bg-rose-700", bridgeBg: "bg-rose-50 text-rose-700 border-rose-200" },
 };
 
-export default function ActHeader({ actNumber, act, status, chapterCount, generatedCount, onWriteAct, onGenerateBridge, isWriting, hasBridge, disabled }) {
+export default function ActHeader({ actNumber, act, status, chapterCount, generatedCount, onWriteAct, onGenerateBridge, isWriting, hasBridge, disabled, prevActComplete }) {
   if (!act) return null;
   const colors = ACT_COLORS[actNumber] || ACT_COLORS[1];
   const progress = chapterCount > 0 ? Math.round((generatedCount / chapterCount) * 100) : 0;
