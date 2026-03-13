@@ -379,8 +379,28 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
             {paginatedPrompts.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-center">
                 <div>
-                  <p className="text-slate-500 font-medium">No prompts found</p>
-                  <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or search</p>
+                  <div className="text-3xl mb-3 opacity-40">🔍</div>
+                  <p className="text-slate-600 font-semibold text-sm">No prompts found</p>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-xs mx-auto">
+                    {searchQuery
+                      ? `No ${bookTypeFilter !== 'all' ? bookTypeFilter : ''} prompts match "${searchQuery}"`
+                      : categoryFilter !== 'all'
+                        ? `No ${bookTypeFilter !== 'all' ? bookTypeFilter : ''} prompts in "${categoryFilter}"`
+                        : bookTypeFilter !== 'all'
+                          ? `No ${bookTypeFilter} prompts available — try switching to ${bookTypeFilter === 'fiction' ? 'Nonfiction' : 'Fiction'}`
+                          : 'Try adjusting your filters or search'
+                    }
+                  </p>
+                  {(searchQuery || categoryFilter !== 'all') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 text-xs"
+                      onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setPage(1); }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
