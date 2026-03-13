@@ -930,12 +930,12 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 )}
               </div>
 
-              <div className={hl("ai_model")}>
+              <div className={hl("writing_model")}>
                 <ModelSelector
-                  genre={form.genre}
-                  bookType={form.book_type}
-                  selectedModel={form.ai_model}
-                  onSelectModel={(id) => handleChange("ai_model", id)}
+                  project={{ genre: form.genre, writing_model: form.writing_model || form.ai_model || 'claude-sonnet', budget_mode: form.budget_mode || false }}
+                  updateProject={(updates) => {
+                    Object.entries(updates).forEach(([k, v]) => handleChange(k, v));
+                  }}
                 />
               </div>
             </div>
