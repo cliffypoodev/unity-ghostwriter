@@ -439,6 +439,10 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
             {chapter.word_count > 0 && (
               <span className="text-xs text-gray-500">~{chapter.word_count.toLocaleString()} words</span>
             )}
+            {(() => { try { const qs = chapter.quality_scan ? JSON.parse(chapter.quality_scan) : null; if (!qs) return null; return (<>
+              {qs.structural?.needsRetry && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 font-bold border border-red-200" title={`Retry reason: ${qs.structural.retryReason}`}>structure issue</span>}
+              {qs.warnings?.length > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 cursor-help" title={qs.warnings.join('\n')}>⚠ {qs.warnings.length} warning{qs.warnings.length > 1 ? 's' : ''}</span>}
+            </>); } catch { return null; } })()}
             {content && (
               <button
                 className="text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-200 transition-colors"
