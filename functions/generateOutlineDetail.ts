@@ -74,7 +74,7 @@ function autoDetectBeatTemplate(genre, bookType) {
 }
 
 Deno.serve(async (req) => {
-  const DEADLINE = Date.now() + 55000; // 55s guard
+  const DEADLINE = Date.now() + 110000; // 110s guard — 25-chapter books need ~5 AI calls
   let outlineId = null;
 
   try {
@@ -214,18 +214,25 @@ ${isNonfiction ? '- argument_advance, threads_activated (array), threads_paid_of
 Return a JSON array with exactly ${chunk.length} objects. No prose outside the array.`;
 
       let text = '';
-      for (let attempt = 0; attempt < 2; attempt++) {
-        text = await callAI(modelKey, detailSystem, detailPrompt, { maxTokens: 8000 });
-        if (!isRefusal(text)) break;
+      let parsed = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          text = await callAI(modelKey, detailSystem, detailPrompt, { maxTokens: 8000 });
+          if (isRefusal(text)) { console.warn(`Detail batch ${chunkNums}: refusal on attempt ${attempt + 1}`); continue; }
+          const jm = text.match(/\[[\s\S]*\]/);
+          parsed = JSON.parse(cleanJSON(jm ? jm[0] : text));
+          if (Array.isArray(parsed) && parsed.length > 0) break;
+          parsed = null;
+        } catch (e) {
+          console.warn(`Detail batch ${chunkNums}: attempt ${attempt + 1} failed:`, e.message);
+          if (attempt < 2) await new Promise(r => setTimeout(r, 2000)); // brief pause before retry
+        }
       }
 
-      try {
-        const jm = text.match(/\[[\s\S]*\]/);
-        const parsed = JSON.parse(cleanJSON(jm ? jm[0] : text));
-        if (Array.isArray(parsed)) allDetailedChapters.push(...parsed);
-      } catch (e) {
-        console.error(`Detail batch parse failed:`, e.message);
-        // Fall back: keep shell chapters for this batch
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        allDetailedChapters.push(...parsed);
+      } else {
+        console.error(`Detail batch ${chunkNums}: all attempts failed, using shell fallback`);
         allDetailedChapters.push(...chunk.map(c => ({ ...c, prompt: c.summary || '' })));
       }
     }
