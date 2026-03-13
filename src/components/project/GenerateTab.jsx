@@ -39,6 +39,8 @@ import RewriteInVoiceModal from "./RewriteInVoiceModal";
 import ProjectWordCount from "./ProjectWordCount";
 import ExplicitTagsWarning from "./ExplicitTagsWarning";
 import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate } from "./InteriorityGateBanner";
+import { detectActBoundaries, getActChapters, getActStatus } from "./ActDetection";
+import ActHeader from "./ActHeader";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
