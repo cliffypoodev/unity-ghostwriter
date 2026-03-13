@@ -368,6 +368,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
   const [autoHints, setAutoHints] = useState({});  // { field: { reasoning, secondary } }
+  const pendingSubgenreRef = useRef(null);  // deferred subgenre from auto-extract
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
