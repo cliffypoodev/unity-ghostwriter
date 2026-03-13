@@ -587,7 +587,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { action, model_id, text, target_words, part_count, base_prompt, chapter, project } = body;
+    const { action, model_id, text, target_words, part_count, base_prompt, chapter, project, act_bridge, chapter_number } = body;
 
     // Default: return all profiles
     if (!action || action === 'profiles') {
