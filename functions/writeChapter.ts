@@ -785,7 +785,11 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
       "invisible thread", "invisible force", "invisible pull", "cutting through the noise like a knife", "cutting through the chatter like a knife", "cutting through the silence like a knife",
       "cutting through the air like a knife", "cutting through the tension like a knife", "a storm brewing within", "a storm raging within", "a tempest brewing within",
       "a fire burning within", "a war churning within", "a storm brewing inside", "the facade slipping", "the facade cracking", "the facade crumbling",
-      "the professional facade slipping", "the professional facade cracking", "eroding like sand", "eroding like stone"
+      "the professional facade slipping", "the professional facade cracking", "eroding like sand", "eroding like stone",
+      "settling over him", "settling over her", "settling over them", "settling over the",
+      "understanding dawning", "understanding dawned",
+      "a mix of fear and", "a mix of awe and", "a mix of grief and", "a mix of hope and", "a mix of excitement and", "a mix of confusion and",
+      "deeply profound", "overwhelmingly profound"
     ],
     dialogueClichés: [
       "control is an illusion", "knowledge is power", "embrace it", "embrace your desires", "embrace the darkness", "let go of your fear",
