@@ -852,15 +852,23 @@ export default function GenerateTab({ projectId, onProceed }) {
         return "error";
       }
 
-      // Detect Deno crash: if HTTP request completed (with error) but chapter is still "generating",
-      // the backend died without updating status. Mark it as error and move on.
-      if (httpDone && httpError && ch?.status === 'generating' && elapsed > 30) {
-        console.warn(`Ch ${chapterNumber}: Backend crashed (${httpError}) — marking as error`);
-        if (onProgress) onProgress(`Backend crashed — skipping to next chapter`);
-        try {
-          await base44.entities.Chapter.update(chapterId, { status: 'error' });
-        } catch (e) { console.warn('Failed to mark crashed chapter:', e.message); }
-        return "error";
+      // Detect Deno crash: if HTTP request completed with error but chapter is still "generating",
+      // the backend may have crashed OR the gateway timed out (504) while the worker continues.
+      // Gateway 504s are common for long-running AI generation (3-5 min) — the worker keeps running.
+      // Only mark as error after a generous grace period (3+ minutes after HTTP error).
+      if (httpDone && httpError && ch?.status === 'generating') {
+        const is504 = httpError.includes('504') || httpError.includes('Gateway');
+        const gracePeriod = is504 ? 180 : 30; // 3 min grace for 504, 30s for other errors
+        if (elapsed > gracePeriod) {
+          console.warn(`Ch ${chapterNumber}: Backend likely crashed (${httpError}, ${elapsed}s elapsed) — marking as error`);
+          if (onProgress) onProgress(`Generation timed out — skipping to next chapter`);
+          try {
+            await base44.entities.Chapter.update(chapterId, { status: 'error' });
+          } catch (e) { console.warn('Failed to mark crashed chapter:', e.message); }
+          return "error";
+        }
+        // Still within grace period — keep polling, worker may still be running
+        if (onProgress) onProgress(`Gateway timeout — worker still running… (${timeStr})`);
       }
 
       // Detect stale "generating": if 4+ minutes have passed and the chapter updated_date
