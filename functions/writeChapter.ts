@@ -278,8 +278,7 @@ function getOpeningType(chapterNumber) {
 }
 
 function getEndingType(chapterNumber) {
-  const index = ((chapterNumber + 1) % 5) + 1;
-  const types = {
+  const index = ((chapterNumber + 1) % 5) + 1; const types = {
     1: { name: "Type A: Mid-action cliffhanger", desc: "interrupt the character mid-action, cut to black. No summary, no reflection." },
     2: { name: "Type B: A revelation that recontextualizes", desc: "the revelation that recontextualizes what the reader just read. End with the new information, no reaction narration." },
     3: { name: "Type C: A concrete, specific sensory image", desc: "an actual thing the character sees/hears/touches. NOT abstract." },
