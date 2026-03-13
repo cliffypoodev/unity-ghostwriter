@@ -591,6 +591,17 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   value={form.target_audience}
                   onChange={e => handleChange("target_audience", e.target.value)}
                 />
+                {autoHints.target_audience?.reasoning && (
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-xs text-violet-600 flex items-start gap-1">
+                      <span className="shrink-0">✦</span>
+                      <span>Auto-selected: {autoHints.target_audience.reasoning}</span>
+                    </p>
+                    {autoHints.target_audience.secondary && (
+                      <p className="text-xs text-slate-400 ml-4">Also consider: {autoHints.target_audience.secondary}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className={hl("beat_style")}>
