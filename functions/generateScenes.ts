@@ -203,7 +203,10 @@ Deno.serve(async (req) => {
       const genre = spec?.subgenre || spec?.genre || 'nonfiction';
       const beatStyle = spec?.beat_style || spec?.tone_style || 'Investigative / Nonfiction';
 
-      const nfSystemPrompt = `You are a narrative nonfiction editor building a scene-level beat sheet for a single chapter. Return ONLY valid JSON. No markdown, no backticks, no explanation.`;
+      const nfContextHeader = buildContextHeader(spec);
+      const nfSystemPrompt = `You are a narrative nonfiction editor building a scene-level beat sheet for a single chapter. Return ONLY valid JSON. No markdown, no backticks, no explanation.
+
+${nfContextHeader}`;
       const nfUserMessage = `BOOK THESIS / THROUGHLINE:
 ${thesis}
 
