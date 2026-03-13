@@ -577,8 +577,53 @@ function validateActTransition(chapterText, actBridge, chapterNumber) {
   return { valid: warnings.length === 0, warnings };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 4 — RETRY ENGINE
+// When validation fails, retry with targeted fixes rather than blind regeneration.
+// buildRetryPrompt builds a model-specific fix prompt based on what went wrong.
+// generateWithRetry wraps callAI with up to MAX_RETRIES attempts.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const MAX_RETRIES = 2;
+
+const RETRY_PREFIXES = {
+  missing_parts: `
+PREVIOUS ATTEMPT FAILED: The output was missing the required 4-part structure.
+You MUST label all 4 parts exactly as "1: [subtitle]", "2: [subtitle]",
+"3: [subtitle]", "4: [subtitle]". Do not skip any parts.
+Start your response with "1:" and nothing else before it.
+
+`,
+  too_short: `
+PREVIOUS ATTEMPT FAILED: The output was too short (under 2,500 words).
+Each of the 4 parts must be at least 625 words. Write fully developed
+scenes — do not summarize. Continue writing until you reach the word target.
+
+`,
+  meta_text: `
+PREVIOUS ATTEMPT FAILED: The output contained author notes or AI commentary.
+Output PROSE ONLY. No notes, no explanations, no self-checks.
+Start immediately with "1: [subtitle]" and write only the story.
+
+`,
+  empty_output: `
+PREVIOUS ATTEMPT RETURNED NOTHING. Please write the chapter as instructed.
+Start immediately with "1: [subtitle]".
+
+`,
+};
+
+function buildRetryPrompt(originalPrompt, validationResult) {
+  const reason = validationResult.retryReason;
+  const prefix = RETRY_PREFIXES[reason] || `
+PREVIOUS ATTEMPT HAD ISSUES. Please follow the format strictly this time.
+
+`;
+  return prefix + originalPrompt;
+}
+
 // ── API ENDPOINT ────────────────────────────────────────────────────────────
-// Exposes profiles, adaptation helpers, and validators for testing/introspection.
+// Exposes profiles, adaptation helpers, validators, and retry prompt builder.
 
 Deno.serve(async (req) => {
   try {
