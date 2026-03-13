@@ -60,7 +60,7 @@ Return ONLY a valid JSON object — no markdown fences, no backticks, no explana
   },
 
   "author_voice": {
-    "selected": "single best-fit label from: [Cinematic & Propulsive, Gritty & Unflinching, Warm & Conversational, Sharp & Witty, Lyrical & Literary, Clinical & Precise, Authoritative & Expert, Intimate & Confessional, Suspenseful & Atmospheric, Bold & Provocative, Gentle & Reassuring, Fast & Punchy]",
+    "selected": "single best-fit ID from: [basic, hemingway, austen, morrison, mccarthy, vonnegut, didion, tolkien, rowling, leguin, gaiman, pratchett, chandler, christie, marquez, atwood, king, gladwell, bryson, sagan]. Map: basic=neutral, hemingway=terse/understated, austen=witty/ironic, morrison=lyrical/poetic, mccarthy=sparse/biblical, vonnegut=absurdist/darkly-humorous, didion=cool/precise, tolkien=mythic/elevated, rowling=accessible/whimsical, leguin=sparse/philosophical, gaiman=mythic/modern, pratchett=satirical/comedic, chandler=hardboiled/cynical, christie=puzzle-box/clean, marquez=lush/sprawling, atwood=sharp/sardonic, king=conversational/dread-building, gladwell=narrative-driven/counterintuitive, bryson=humorous/curious, sagan=awe-inspiring/poetic",
     "reasoning": "one sentence explaining why this voice fits the genre and tone"
   }
 }
