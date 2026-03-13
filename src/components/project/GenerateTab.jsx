@@ -1564,8 +1564,13 @@ export default function GenerateTab({ projectId, onProceed }) {
 
   // ── Generate Bridge handler (manual trigger from ActHeader) ──
   const handleGenerateBridge = async (actNumber) => {
+    console.log("handleGenerateBridge called with actNumber:", actNumber, "acts:", acts ? Object.keys(acts) : "null");
     const act = acts?.[`act${actNumber}`];
-    if (!act) return;
+    if (!act) {
+      console.error("handleGenerateBridge: No act found for actNumber", actNumber);
+      toast.error(`No act ${actNumber} found`);
+      return;
+    }
     toast.info(`Generating Act ${actNumber} bridge document…`);
     try {
       await base44.functions.invoke('generateActBridge', {
