@@ -1018,7 +1018,6 @@ export default function GenerateTab({ projectId, onProceed }) {
         await refetchChapters();
       }
     }
-
     // ── PHASE 2: Sequential chapter writing (frontend-driven to avoid backend timeout) ──
     setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: "Phase 2: Writing Chapters" }));
 
