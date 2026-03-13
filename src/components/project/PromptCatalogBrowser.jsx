@@ -205,17 +205,12 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
     setPage(1);
   };
 
-  const getAvailableGenres = () => {
-    if (bookTypeFilter === "all") {
-      return [...new Set(allPrompts.map(p => p.genre).filter(Boolean))];
-    }
-    return allPrompts
-      .filter(p => p.book_type === bookTypeFilter)
-      .map(p => p.genre)
-      .filter(Boolean);
-  };
-
-  const availableGenres = getAvailableGenres();
+  const availableGenres = useMemo(() => {
+    const source = bookTypeFilter === "all"
+      ? allPrompts
+      : allPrompts.filter(p => p.book_type === bookTypeFilter || p.book_type === 'shared');
+    return [...new Set(source.map(p => p.genre).filter(Boolean))].sort();
+  }, [allPrompts, bookTypeFilter]);
   const isFiltered = bookTypeFilter !== "all" || genreFilter || categoryFilter !== "all" || tagsFilter.length > 0 || searchQuery;
 
   return (
