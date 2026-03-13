@@ -146,7 +146,7 @@ function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
         spacing: { before: 200 },
         children: [
           new TextRun({
-            text: [spec.genre, spec.target_audience].filter(Boolean).join(' · '),
+            text: sanitizeForDocx([spec.genre, spec.target_audience].filter(Boolean).join(' - ')),
             font: bodyFont,
             size: 22,
             color: '888888',
