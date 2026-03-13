@@ -265,10 +265,8 @@ function isRefusal(text) {
   return false;
 }
 
-// Helper functions for opening/ending type rotation
 function getOpeningType(chapterNumber) {
-  const index = ((chapterNumber - 1) % 5) + 1;
-  const types = {
+  const index = ((chapterNumber - 1) % 5) + 1; const types = {
     1: { name: "Mid-action", desc: "the character is already DOING something physical (not walking, not standing, not thinking — actively doing a task)" },
     2: { name: "Dialogue", desc: "open mid-conversation with a spoken line, no attribution tag first" },
     3: { name: "A single concrete sensory detail", desc: "one sense, one sentence, visceral and specific" },
