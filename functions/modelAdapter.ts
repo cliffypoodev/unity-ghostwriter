@@ -439,8 +439,146 @@ function validateOutputStructure(text, modelId, expectedParts) {
   };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 3 — OUTPUT VALIDATOR
+// Runs after every chapter generation. Catches structural failures, meta-text
+// leakage, model refusals, and act transition issues before they reach the user.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── SECTION 3A: FULL CHAPTER VALIDATION ─────────────────────────────────────
+
+const META_PATTERNS = [
+  /self-check completed/i,
+  /author note:/i,
+  /\[note to (editor|writer|user)\]/i,
+  /as an ai/i,
+  /i (cannot|can't|won't) write/i,
+  /this chapter (covers|explores|discusses)/i,
+  /in this chapter, (i|we|the)/i,
+  /chapter summary:/i,
+  /beat sheet (complete|done|finished)/i,
+];
+
+const REFUSAL_PATTERNS = [
+  /i (cannot|can't|won't) (assist|help|write|generate)/i,
+  /this (request|content|topic) (violates|is not|cannot)/i,
+  /content policy/i,
+  /error:/i,
+  /^{"error"/,
+  /rate limit/i,
+];
+
+function validateChapterOutput(rawText, chapter, modelId) {
+  const results = {
+    valid:       true,
+    warnings:    [],
+    errors:      [],
+    metrics:     {},
+    needsRetry:  false,
+    retryReason: null,
+  };
+
+  if (!rawText || rawText.trim().length === 0) {
+    results.valid = false;
+    results.errors.push('Empty output received');
+    results.needsRetry = true;
+    results.retryReason = 'empty_output';
+    return results;
+  }
+
+  const text = rawText.trim();
+  const chapterNum = chapter?.number || chapter?.chapter_number || 0;
+
+  // ── CHECK 1: 4-part structure ──────────────────────────────
+  const part1 = /^1\s*:/m.test(text);
+  const part2 = /^2\s*:/m.test(text);
+  const part3 = /^3\s*:/m.test(text);
+  const part4 = /^4\s*:/m.test(text);
+  const partCount = [part1, part2, part3, part4].filter(Boolean).length;
+  results.metrics.partCount = partCount;
+
+  if (partCount < 4) {
+    results.errors.push(`Missing part labels — found ${partCount}/4 parts`);
+    results.valid = false;
+    results.needsRetry = true;
+    results.retryReason = 'missing_parts';
+  }
+
+  // ── CHECK 2: Word count ────────────────────────────────────
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  results.metrics.wordCount = wordCount;
+
+  if (wordCount < 1800) {
+    results.errors.push(`Chapter too short: ${wordCount} words (minimum 2,500)`);
+    results.valid = false;
+    results.needsRetry = true;
+    results.retryReason = 'too_short';
+  } else if (wordCount < 2200) {
+    results.warnings.push(`Chapter below target: ${wordCount} words (target 2,500+)`);
+  }
+
+  // ── CHECK 3: No meta-text leakage ─────────────────────────
+  const metaFound = META_PATTERNS.find(p => p.test(text));
+  if (metaFound) {
+    results.errors.push('Meta-text found in output (author notes or AI commentary)');
+    results.valid = false;
+    results.needsRetry = true;
+    results.retryReason = 'meta_text';
+  }
+
+  // ── CHECK 4: Chapter header not repeated ───────────────────
+  if (chapterNum > 0) {
+    const chapterHeaderPattern = new RegExp(
+      `chapter\\s+${chapterNum}[^\\n]*\\n`, 'gi'
+    );
+    const headerMatches = text.match(chapterHeaderPattern) || [];
+    if (headerMatches.length > 1) {
+      results.warnings.push('Chapter header appears more than once — should only be in Part 1');
+    }
+  }
+
+  // ── CHECK 5: Not a refusal or error response ──────────────
+  const refusalFound = REFUSAL_PATTERNS.find(p => p.test(text.slice(0, 500)));
+  if (refusalFound) {
+    results.errors.push('Model refused or returned an error response');
+    results.valid = false;
+    results.needsRetry = false; // retrying same model won't help
+    results.retryReason = 'model_refusal';
+  }
+
+  return results;
+}
+
+// ── SECTION 3B: ACT TRANSITION VALIDATION ───────────────────────────────────
+// Validates that a chapter beginning Act 2 or 3 correctly references the
+// prior act's end state.
+
+function validateActTransition(chapterText, actBridge, chapterNumber) {
+  if (!actBridge || !chapterText) return { valid: true, warnings: [] };
+
+  const warnings = [];
+
+  // Extract character names from act bridge (capitalized words near state keywords)
+  const namePattern = /\b([A-Z][a-z]{2,})\b(?=.*(?:location|state|condition|position|status))/g;
+  const bridgeNames = [...actBridge.matchAll(namePattern)].map(m => m[1]);
+
+  // Check at least one character from the bridge appears in the first ~500 words
+  const openingWords = chapterText.slice(0, 3000);
+  const anyNamePresent = bridgeNames.some(name => openingWords.includes(name));
+
+  if (bridgeNames.length > 0 && !anyNamePresent) {
+    warnings.push(
+      `Chapter ${chapterNumber} opening may not reflect prior act state — ` +
+      `none of the tracked characters (${bridgeNames.slice(0, 3).join(', ')}) ` +
+      `appear in the opening section`
+    );
+  }
+
+  return { valid: warnings.length === 0, warnings };
+}
+
 // ── API ENDPOINT ────────────────────────────────────────────────────────────
-// Exposes profiles and adaptation helpers for testing and introspection.
+// Exposes profiles, adaptation helpers, and validators for testing/introspection.
 
 Deno.serve(async (req) => {
   try {
