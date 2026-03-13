@@ -1303,13 +1303,13 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       const world = storyBible?.world || storyBible?.settings;
       const rules = storyBible?.rules;
 
-      const voiceDesc = projectSpec?.author_voice ? (AUTHOR_VOICES_MAP[projectSpec.author_voice] || null) : null;
+      const authorBlock = getAuthorStyleBlock(projectSpec);
 
       systemPrompt = `You are a novelist writing Chapter ${chapter.chapter_number} of a ${projectSpec?.genre || 'fiction'} novel.
 
 STYLE: ${beatInstructions}
 
-${voiceDesc ? `VOICE: ${voiceDesc}` : ''}
+${authorBlock}
 
 ${projectSpec?.topic ? `BOOK PREMISE:\n${projectSpec.topic}` : ''}
 
