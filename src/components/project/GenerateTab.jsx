@@ -42,6 +42,11 @@ import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate 
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// DISPLAY RULE: Chapter numbers shown in UI must ALWAYS come from
+// chapter.chapter_number — never from loop index, array position,
+// or queue order. These diverge whenever chapters are skipped,
+// retried, or written out of order.
+
 // Status dots now handled by ChapterStatusDot component
 
 const ROLE_COLORS = {
