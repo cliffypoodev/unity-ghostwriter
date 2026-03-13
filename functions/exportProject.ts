@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-
-// Lightweight project exporter — avoids CPU-intensive docx library to stay within Deno Deploy limits.
-// Supports: txt, markdown, doc (MHTML-based Word-compatible format)
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak, AlignmentType } from 'npm:docx@9.5.0';
 
 function stripHtml(html) {
   if (!html) return '';
@@ -54,52 +52,182 @@ async function resolveContent(content) {
   return content;
 }
 
-function buildMhtmlDoc(title, chapters, spec, settings) {
-  const bodyFont = settings?.default_body_font || 'Georgia';
-  const headingFont = settings?.default_heading_font || 'Georgia';
-  const fontSize = settings?.default_font_size || '12pt';
-  const lineSpacing = settings?.default_line_spacing || '1.5';
-  const margins = settings?.default_margins || '1in';
+function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
+  const bodyFont = settings?.bodyFont || settings?.default_body_font || 'Georgia';
+  const headingFont = settings?.headingFont || settings?.default_heading_font || 'Georgia';
+  const bodySize = parseInt(settings?.bodyFontSize || settings?.default_font_size || '12', 10) || 12;
+  // docx uses half-points (1pt = 2 half-points)
+  const bodySizeHp = bodySize * 2;
+  const lineSpacing = parseFloat(settings?.lineSpacing || settings?.default_line_spacing || '1.5');
+  // Line spacing in docx is in 240ths of a line
+  const lineSpacingVal = Math.round(lineSpacing * 240);
 
-  const chaptersHtml = chapters.map(ch => {
-    const content = ch.resolvedContent || '';
-    return `<div style="page-break-before: always;">
-<h1 style="font-family: '${headingFont}', serif; font-size: 18pt; margin-bottom: 0.5em;">Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}</h1>
-<div style="font-family: '${bodyFont}', serif; font-size: ${fontSize}; line-height: ${lineSpacing};">
-${content.includes('<') ? content : content.split('\n\n').map(p => `<p>${p}</p>`).join('\n')}
-</div>
-</div>`;
-  }).join('\n');
+  const sections = [];
 
-  const genre = spec?.genre || '';
-  const audience = spec?.target_audience || '';
+  // Title page section
+  const titleChildren = [
+    new Paragraph({ spacing: { before: 4000 } }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: projectTitle,
+          font: headingFont,
+          size: 56,
+          bold: true,
+        }),
+      ],
+    }),
+  ];
 
-  return `MIME-Version: 1.0
-Content-Type: multipart/related; boundary="----=_NextPart_boundary"
+  if (settings?.subtitle) {
+    titleChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200 },
+        children: [
+          new TextRun({
+            text: settings.subtitle,
+            font: headingFont,
+            size: 28,
+            italics: true,
+            color: '666666',
+          }),
+        ],
+      })
+    );
+  }
 
-------=_NextPart_boundary
-Content-Type: text/html; charset="utf-8"
+  if (settings?.authorName) {
+    titleChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 400 },
+        children: [
+          new TextRun({
+            text: settings.authorName,
+            font: bodyFont,
+            size: 28,
+            italics: true,
+          }),
+        ],
+      })
+    );
+  }
 
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head>
-<meta charset="utf-8">
-<style>
-@page { margin: ${margins}; }
-body { font-family: '${bodyFont}', serif; font-size: ${fontSize}; line-height: ${lineSpacing}; }
-h1 { font-family: '${headingFont}', serif; page-break-before: always; }
-h1:first-of-type { page-break-before: avoid; }
-p { margin: 0.4em 0; text-indent: 0; }
-</style>
-</head>
-<body>
-<div style="text-align: center; margin-bottom: 2em;">
-<h1 style="font-size: 24pt; page-break-before: avoid;">${title}</h1>
-${genre ? `<p style="font-style: italic; color: #666;">${genre}${audience ? ' — ' + audience : ''}</p>` : ''}
-</div>
-${chaptersHtml}
-</body>
-</html>
-------=_NextPart_boundary--`;
+  if (spec?.genre) {
+    titleChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200 },
+        children: [
+          new TextRun({
+            text: [spec.genre, spec.target_audience].filter(Boolean).join(' · '),
+            font: bodyFont,
+            size: 22,
+            color: '888888',
+          }),
+        ],
+      })
+    );
+  }
+
+  sections.push({
+    children: titleChildren,
+  });
+
+  // Chapter sections
+  for (const ch of generatedChapters) {
+    const plainText = stripHtml(ch.resolvedContent || '');
+    const paragraphs = plainText.split(/\n\n+/).filter(p => p.trim());
+
+    const chChildren = [
+      new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 600, after: 300 },
+        children: [
+          new TextRun({
+            text: `Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}`,
+            font: headingFont,
+            size: 36,
+            bold: true,
+          }),
+        ],
+      }),
+    ];
+
+    for (const p of paragraphs) {
+      // Check for scene breaks (lines that are just "***" or "---" etc.)
+      const trimmed = p.trim();
+      if (/^[\*\-_]{3,}$/.test(trimmed) || trimmed === '* * *') {
+        chChildren.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 },
+            children: [
+              new TextRun({
+                text: '* * *',
+                font: bodyFont,
+                size: bodySizeHp,
+              }),
+            ],
+          })
+        );
+        continue;
+      }
+
+      // Parse basic inline formatting from the paragraph text
+      const runs = [];
+      // Simple approach: split by common patterns
+      const parts = trimmed.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+      for (const part of parts) {
+        if (!part) continue;
+        if (part.startsWith('**') && part.endsWith('**')) {
+          runs.push(new TextRun({
+            text: part.slice(2, -2),
+            font: bodyFont,
+            size: bodySizeHp,
+            bold: true,
+          }));
+        } else if (part.startsWith('*') && part.endsWith('*')) {
+          runs.push(new TextRun({
+            text: part.slice(1, -1),
+            font: bodyFont,
+            size: bodySizeHp,
+            italics: true,
+          }));
+        } else {
+          runs.push(new TextRun({
+            text: part,
+            font: bodyFont,
+            size: bodySizeHp,
+          }));
+        }
+      }
+
+      chChildren.push(
+        new Paragraph({
+          spacing: { after: Math.round(bodySize * 8), line: lineSpacingVal },
+          children: runs,
+        })
+      );
+    }
+
+    sections.push({
+      properties: {
+        page: {
+          margin: {
+            top: 1440, right: 1440, bottom: 1440, left: 1440, // 1 inch = 1440 twips
+          },
+        },
+      },
+      children: chChildren,
+    });
+  }
+
+  return new Document({
+    sections,
+  });
 }
 
 Deno.serve(async (req) => {
@@ -107,16 +235,17 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { project_id, format, settings } = await req.json();
-  if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
+  const body = await req.json();
+  const { project_id, projectId: altProjectId, format, settings } = body;
+  const pid = project_id || altProjectId;
+  if (!pid) return Response.json({ error: 'project_id required' }, { status: 400 });
 
   const exportFormat = (format || 'txt').toLowerCase();
 
-  // Load project data
   const [projects, chapters, specs, appSettingsList] = await Promise.all([
-    base44.entities.Project.filter({ id: project_id }),
-    base44.entities.Chapter.filter({ project_id }, 'chapter_number'),
-    base44.entities.Specification.filter({ project_id }),
+    base44.entities.Project.filter({ id: pid }),
+    base44.entities.Chapter.filter({ project_id: pid }, 'chapter_number'),
+    base44.entities.Specification.filter({ project_id: pid }),
     base44.entities.AppSettings.list(),
   ]);
 
@@ -128,7 +257,6 @@ Deno.serve(async (req) => {
   const mergedSettings = { ...appSettings, ...settings };
   const projectTitle = project.name || 'Untitled Project';
 
-  // Filter to generated chapters and resolve content
   const generatedChapters = chapters.filter(c => c.status === 'generated' && c.content);
   for (const ch of generatedChapters) {
     ch.resolvedContent = await resolveContent(ch.content);
@@ -164,7 +292,6 @@ Deno.serve(async (req) => {
     if (spec.topic) md += `> ${spec.topic.slice(0, 200)}...\n\n`;
     md += '---\n\n';
 
-    // Table of contents
     md += '## Table of Contents\n\n';
     for (const ch of generatedChapters) {
       md += `- [Chapter ${ch.chapter_number}: ${ch.title || 'Untitled'}](#chapter-${ch.chapter_number})\n`;
@@ -184,15 +311,16 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ── DOC / DOCX Export (MHTML-based — Word-compatible, lightweight) ──
-  if (exportFormat === 'doc' || exportFormat === 'docx') {
-    const mhtml = buildMhtmlDoc(projectTitle, generatedChapters, spec, mergedSettings);
+  // ── DOCX Export (proper Open XML via docx library) ──
+  if (exportFormat === 'docx') {
+    const doc = buildDocxDocument(projectTitle, generatedChapters, spec, mergedSettings);
+    const buffer = await Packer.toBuffer(doc);
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
 
-    return new Response(mhtml, {
-      headers: {
-        'Content-Type': 'application/msword',
-        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.doc"`,
-      },
+    return Response.json({
+      base64,
+      filename: `${safeTitle}.docx`,
     });
   }
 
