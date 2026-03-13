@@ -1116,6 +1116,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         successes,
         failures: [...failedChapters],
         currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
+        chapterNumber: ch.chapter_number,
         chapterWords: 0,
         wordsWritten: totalWordsWritten,
       }));
@@ -1124,6 +1125,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         setWriteAllProgress(prev => ({
           ...prev,
           currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
+          chapterNumber: ch.chapter_number,
         }));
       });
 
