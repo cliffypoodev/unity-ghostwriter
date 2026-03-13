@@ -334,7 +334,8 @@ html, body {
   color: #5b50f0;
   background: #ede9fe;
 }
-.phase1-nav-item.active {
+.phase1-nav-item.active,
+.phase1-nav-item.p1-active {
   color: #5b50f0;
   border-left-color: #5b50f0;
   background: #ede9fe;
