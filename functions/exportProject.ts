@@ -129,7 +129,7 @@ function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
         spacing: { before: 400 },
         children: [
           new TextRun({
-            text: settings.authorName,
+            text: sanitizeForDocx(settings.authorName),
             font: bodyFont,
             size: 28,
             italics: true,
