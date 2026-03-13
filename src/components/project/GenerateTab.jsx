@@ -1383,14 +1383,22 @@ export default function GenerateTab({ projectId, onProceed }) {
       }));
 
       // Write chapter — on failure, log it and continue to next (don't abort the act)
-      const result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-        setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
-      });
+      let result;
+      try {
+        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
+          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
+        });
+      } catch (pollErr) {
+        console.error(`Act ${actNumber} Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        result = 'error';
+      }
 
       if (result === 'generated') {
         successes++;
-        const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-        totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        try {
+          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
+          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
+        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
         base44.functions.invoke('generateChapterState', { project_id: projectId, chapter_id: ch.id })
           .catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
         if (i < toWrite.length - 1) await new Promise(r => setTimeout(r, 3000));
