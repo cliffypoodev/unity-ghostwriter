@@ -78,9 +78,9 @@ const AI_MODEL_PROFILES = {
     id: "gemini-pro",
     name: "Gemini Pro",
     provider: "Google",
-    description: "Strong at research-backed writing and factual accuracy. Ideal for nonfiction and science books.",
+    description: "Strongest factual accuracy of non-Claude models. Best for nonfiction. Fiction prose trends ornate — enforcement layer compensates.",
     strengths: ["Factual accuracy", "Research synthesis", "Data-driven narratives", "Technical precision"],
-    proseQuality: 4,
+    proseQuality: 3,
     tokenCost: 3
   },
   "deepseek-chat": {
