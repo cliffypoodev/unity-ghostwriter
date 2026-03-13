@@ -85,18 +85,20 @@ INFERENCE RULES:
 - target_audience: infer from genre, subject matter, tone, and demographic signals.
   Example: dark fantasy with adult themes → "Adult Commercial" primary, "Sci-Fi & Fantasy Fans" secondary.
 - author_voice: GENRE-FIRST inference. The author's PRIMARY body of work must match the book's genre. Then use tone to select within that genre. Never assign a literary fiction author to a romance book, even if the romance has literary aspirations. Genre match is mandatory; style match is secondary.
-  ROMANCE: emotional/raw→austen, witty/banter→austen, literary/spare→didion, sweeping→austen, steamy/dark→atwood, clean/faith→rowling
-  THRILLER: psychological→atwood, procedural→christie, fast/action→king, atmospheric→didion
-  LITERARY FICTION: lyrical→morrison, spare/dark→mccarthy, witty→austen, restrained→didion
-  HORROR: any→king
-  FANTASY: epic→tolkien, dark→gaiman, whimsical→rowling, philosophical→leguin
-  SCI-FI: hard→leguin, dystopian→atwood, space opera→tolkien, cerebral→mccarthy
-  MYSTERY: classic→christie, noir→chandler, cozy→rowling
-  NONFICTION: investigative→gladwell, science→sagan, travel/humor→bryson, memoir→didion
-  HISTORICAL: literary→morrison, epic→tolkien, thriller→king
-  SATIRE: any→pratchett or vonnegut
-  MAGICAL REALISM: any→marquez
-  DO NOT assign morrison to a romance novel. DO NOT assign austen to a horror novel.
+  ROMANCE: emotional/raw→colleen-hoover, witty/banter→emily-henry, literary/spare→sally-rooney, sweeping/fate→nicholas-sparks, steamy/dark→penelope-douglas, clean/faith→francine-rivers, nonlinear/ensemble→taylor-jenkins-reid
+  THRILLER: psychological/unreliable→gillian-flynn, atmospheric/Irish→tana-french, fast/action→james-patterson, procedural/LA→michael-connelly, suburban/secrets→harlan-coben, tactical/minimal→lee-child
+  LITERARY FICTION: lyrical/nonlinear→toni-morrison, sparse/biblical→cormac-mccarthy, restrained/memory→kazuo-ishiguro, witty/social→zadie-smith, lush/classical→donna-tartt
+  MYSTERY: classic/puzzle→agatha-christie, atmospheric/village→louise-penny, nonlinear/witty→kate-atkinson
+  HORROR: character/dread→stephen-king, domestic/ambiguous→shirley-jackson, literary/anxious→paul-tremblay
+  FANTASY: systems/epic→brandon-sanderson, radical/Afrofuturism→nk-jemisin, grimdark/subversive→joe-abercrombie, emotional/suffering→robin-hobb, satirical/warm→terry-pratchett, morally-grey→ve-schwab
+  SCI-FI: technical/humor→andy-weir, anthropological/philosophical→ursula-le-guin, paranoid/identity→philip-k-dick, cyberpunk/fragmented→william-gibson
+  NONFICTION: dual-narrative/archival→erik-larson, investigative/mystery→david-grann, counterintuitive/anecdotal→malcolm-gladwell, adventure/urgent→jon-krakauer
+  TRUE CRIME: literary/obsessive→michelle-mcnamara, victim-centered→robert-kolker
+  HISTORICAL: close-third/power→hilary-mantel, epic/architectural→ken-follett, restrained/Irish→colm-toibin
+  YOUNG ADULT: philosophical/witty→john-green, heist/dark-fantasy→leigh-bardugo, warm/fandom→rainbow-rowell
+  SELF-HELP: vulnerable/research→brene-brown, systematic/practical→james-clear, Stoic/historical→ryan-holiday
+  CRITICAL: toni-morrison, cormac-mccarthy, kazuo-ishiguro, zadie-smith, donna-tartt are ONLY for Literary Fiction. Never assign them to Romance, Thriller, Fantasy, or any other genre.
+  CRITICAL: colleen-hoover, emily-henry, sally-rooney, nicholas-sparks, penelope-douglas, francine-rivers, taylor-jenkins-reid are ONLY for Romance. Never assign them to Literary Fiction or other genres.
 - beat_style rules — GENRE-FIRST, TONE-SECOND. Follow this EXACT order:
   STEP 1: Identify the PRIMARY genre. This is mandatory.
   STEP 2: Map genre to default beat style using this matrix:
