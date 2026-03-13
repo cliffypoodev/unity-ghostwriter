@@ -354,6 +354,27 @@ export default function ModelSuggestionPanel({ genre, selectedModel, onSelectMod
           Selected: <span className="font-semibold">{AI_MODEL_PROFILES[selectedModel]?.name || "Unknown"}</span>
         </div>
       )}
+
+      {/* GPT SFW-only warning */}
+      {selectedModel && (selectedModel.startsWith("gpt-")) && (
+        <div className="mx-4 mb-4 mt-2 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+          <p className="font-semibold text-amber-800 mb-2">⚠ GPT Note — SFW Projects Only</p>
+          <p className="text-slate-700 mb-1.5 font-medium">GPT works best for:</p>
+          <ul className="text-slate-600 space-y-0.5 mb-2 ml-1">
+            <li>✓ SFW fiction and nonfiction</li>
+            <li>✓ Clean romance, thriller, literary genres</li>
+            <li>✓ Projects where content policy is a priority</li>
+          </ul>
+          <p className="text-slate-700 mb-1.5 font-medium">GPT is not recommended for:</p>
+          <ul className="text-slate-600 space-y-0.5 mb-2 ml-1">
+            <li>✗ Erotica genre (content ceiling applies)</li>
+            <li>✗ Projects requiring explicit scene generation</li>
+          </ul>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            For Erotica projects, Claude + Lumimaid hybrid is required for full pipeline functionality.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
