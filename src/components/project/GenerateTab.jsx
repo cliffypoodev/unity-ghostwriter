@@ -959,7 +959,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         for (let i = 0; i < needScenes.length; i++) {
           if (writeAllAbortRef.current) break;
           const ch = needScenes[i];
-          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: ${ch.title} (${i + 1}/${needScenes.length})` }));
+          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: Ch ${ch.chapter_number} — ${ch.title} (${i + 1}/${needScenes.length})` }));
           try {
             await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
             let polls = 0;
