@@ -718,7 +718,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check, adapt_prompt, validate_chapter, validate_act_transition, validate_full' }, { status: 400 });
+    // Section 4: Build a retry prompt based on validation failure
+    if (action === 'build_retry_prompt') {
+      if (!base_prompt) return Response.json({ error: 'base_prompt required' }, { status: 400 });
+      const { validation_result } = body;
+      if (!validation_result) return Response.json({ error: 'validation_result required' }, { status: 400 });
+      const retryPrompt = buildRetryPrompt(base_prompt, validation_result);
+      const adapted = adaptPromptForModel(retryPrompt, chapter || {}, project || {}, model_id || 'claude-sonnet');
+      return Response.json({
+        model_id: model_id || 'claude-sonnet',
+        retry_reason: validation_result.retryReason,
+        adapted_prompt: adapted,
+      });
+    }
+
+    // Section 5: Full pipeline — adapt prompt, then validate output, return combined result
+    if (action === 'pipeline_validate') {
+      if (!text) return Response.json({ error: 'text required' }, { status: 400 });
+      const chapterResult = validateChapterOutput(text, chapter || { number: chapter_number || 0 }, model_id || 'claude-sonnet');
+      const actResult = validateActTransition(text, act_bridge || '', chapter_number || 0);
+      if (actResult.warnings.length > 0) {
+        chapterResult.warnings.push(...actResult.warnings);
+      }
+      // Add retry prompt if validation failed and retry is possible
+      let retryPrompt = null;
+      if (!chapterResult.valid && chapterResult.needsRetry && base_prompt) {
+        const retryBase = buildRetryPrompt(base_prompt, chapterResult);
+        retryPrompt = adaptPromptForModel(retryBase, chapter || {}, project || {}, model_id || 'claude-sonnet');
+      }
+      return Response.json({
+        ...chapterResult,
+        actTransition: actResult,
+        retryPrompt,
+      });
+    }
+
+    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check, adapt_prompt, validate_chapter, validate_act_transition, validate_full, build_retry_prompt, pipeline_validate' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
