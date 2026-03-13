@@ -1848,6 +1848,16 @@ ${_beatUsrBlock(chapterBeat)}`;
     // Strip scene header / chapter heading artifacts
     fullContent = fullContent.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '').replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '').replace(/\n{3,}/g, '\n\n').trim();
     const wordCount = fullContent.trim().split(/\s+/).length;
+    // ── GEMINI PROSE QUALITY GATE — padding, purple prose, passive voice ──
+    if (isGeminiModel(modelKey)) { const _sep2 = useScenePath ? /\*\s*\*\s*\*/ : /\n{3,}|\n\s*---\s*\n|\n\s*\*\s*\*\s*\*\s*\n/;
+      const _gParts = fullContent.split(_sep2); let _gV = []; _gParts.forEach((p,i)=>{_gV.push(...verifyGeminiProse(p.trim(),bookType,i+1));});
+      for(let _ga=0;_ga<2&&_gV.length>0;_ga++){console.warn(`Ch ${chapter.chapter_number} Gemini quality ${_ga+1}: ${_gV.length} violations`,_gV.map(v=>v.type));
+        const _gi=_gV.map(v=>v.ri).join('\n\n');const _gm=[...messages];_gm[_gm.length-1]={role:'user',content:`GEMINI PROSE QUALITY REVISION:\n\n${_gi}\n\nRewrite the ENTIRE chapter with these issues fixed:\n\n${messages[messages.length-1].content}`};
+        try{const _gr=await callAIConversation(_gm,8192);if(_gr&&_gr.trim().length>200&&!isRefusal(_gr)){let _gc=_gr.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm,'').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi,'').replace(/\n{3,}/g,'\n\n').trim();
+          const _nv=[];_gc.split(_sep2).forEach((p,i)=>{_nv.push(...verifyGeminiProse(p.trim(),bookType,i+1));});
+          if(_nv.length<_gV.length){console.log(`Gemini quality ${_ga+1}: ${_gV.length}→${_nv.length}`);fullContent=_gc;_gV=_nv;}else{console.warn(`Gemini quality ${_ga+1} no improve`);break;}}else break;}catch(e){console.warn(`Gemini quality ${_ga+1} err:`,e.message);break;}}
+      if(_gV.length>0) console.warn(`Ch ${chapter.chapter_number} Gemini: ${_gV.length} quality issues remain`);
+    }
     // ── VOLUME VERIFICATION GATE — per-part 625w min (GPT fiction scenes + GPT/DS nonfiction) ──
     const _volApplies = (isGptModel(modelKey) && useScenePath && parsedScenes.length > 1) || (isNonfiction && isNfLengthModel(modelKey));
     if (_volApplies) { const _sep = useScenePath ? /\*\s*\*\s*\*/ : /\n{3,}|\n\s*---\s*\n|\n\s*\*\s*\*\s*\*\s*\n/;
