@@ -596,8 +596,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
         }
 
         // Auto-select author_voice — always a valid dropdown ID
-        if (voiceId !== "basic" || !prev.author_voice) {
-          next.author_voice = voiceId;
+        if (vVoiceId !== "basic" || !prev.author_voice) {
+          next.author_voice = vVoiceId;
           filled.push("author_voice");
         }
 
