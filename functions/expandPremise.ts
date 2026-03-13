@@ -49,7 +49,7 @@ Return ONLY a valid JSON object — no markdown fences, no backticks, no explana
   "expanded_brief": "A 500-800 word creative brief with PREMISE, MAIN CHARACTERS (named, with descriptions), SETTING, CENTRAL CONFLICT, PLOT TRAJECTORY, THEMES, KEY SCENES, and TONE. Format as readable prose with clear section headers.",
 
   "subgenre": "specific subgenre or empty string",
-  "beat_style": "one of: fast-paced-thriller, gritty-cinematic, hollywood-blockbuster, slow-burn, literary-drama, cozy-warmth, epic-sweep, dark-atmospheric, satirical-sharp, romantic-tension",
+  "beat_style": "one of: fast-paced-thriller, gritty-cinematic, hollywood-blockbuster, slow-burn, dark-suspense, melancholic-literary, whimsical-cozy, epic-historical, satirical, steamy-romance, slow-burn-romance, cerebral-sci-fi, clinical-procedural, visceral-horror, hard-boiled-noir, intellectual-psychological, poetic-magical-realism, journal-personal, longform-article, deep-investigative, memoir-narrative, academic-accessible, reference-educational",
   "detail_level": "minimal or moderate or comprehensive",
   "chapter_count": 20,
 
