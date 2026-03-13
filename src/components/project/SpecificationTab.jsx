@@ -249,6 +249,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [highlightedFields, setHighlightedFields] = useState({});
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
+  const [autoHints, setAutoHints] = useState({});  // { field: { reasoning, secondary } }
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
