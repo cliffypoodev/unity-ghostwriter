@@ -935,83 +935,49 @@ function scanChapterQuality(text, chapterNumber, previousChapters = [], storyBib
   return { chapter_number: chapterNumber, violation_count: violationCount, banned_phrase_total: allBannedFound.length, warnings: violations, passed: violations.length === 0 };
 }
 
+// ── NONFICTION ENDING ENFORCEMENT — rewrites thesis-restatement/verse endings via AI ──
+async function enforceNonfictionEnding(text, projectSpec) {
+  try { const paras = text.trim().split(/\n\n+/); if (paras.length < 2) return text;
+    const last = paras[paras.length-1]||'', prev = paras[paras.length-2]||'';
+    const bans = [/represents more than/i,/demonstrates that/i,/remind us that/i,/the lesson (emerging|here|from)/i,/perhaps most (importantly|significantly)/i,/the broader implications/i,/had global implications/i,/would prove essential/i,/knowledge.{0,20}(like|as).{0,30}(water|light|fire|seed)/i,/this (transformation|shift|change) (would|has|had)/i,/what (we can learn|emerges|this shows)/i,/\bthus\b.{0,50}(represents|demonstrates|shows|illustrates)/i];
+    const hasV = bans.some(p => p.test(last) || p.test(prev)); const hasVerse = /^\*.+\*$/m.test(last);
+    if (!hasV && !hasVerse) return text;
+    const genre = projectSpec?.genre||'nonfiction', bs = getBeatStyleInstructions(projectSpec?.beat_style||projectSpec?.tone_style||'').split('\n')[0];
+    const prob = hasVerse ? 'Ends with italicized poetry/verse — not documentary nonfiction' : 'Ends with thesis restatement — tells reader what to conclude';
+    const fp = `You are a nonfiction editor. Rewrite the final 2-3 sentences ONLY.\n\nBOOK: ${genre} | ${bs}\n\nCURRENT ENDING (VIOLATING):\n${last}\n\nPROBLEM: ${prob}\n\nRequirements: end on specific documented detail, concrete image, or unresolved question. No thesis, no morals, no verse. Match investigative nonfiction style.\n\nReturn only replacement sentences. No preamble.`;
+    console.log(`NF ending enforcement: ${hasVerse?'verse':'thesis'} detected`);
+    const fix = await callAI(resolveModel('consistency_check'), fp, fp, { maxTokens: 512, temperature: 0.4 });
+    if (fix?.trim().length > 20 && !isRefusal(fix)) { paras[paras.length-1] = fix.trim(); console.log('NF ending: fixed'); return paras.join('\n\n'); }
+    return text;
+  } catch (e) { console.warn('enforceNonfictionEnding:', e.message); return text; }
+}
+// ── COMPOSITE FIGURE FRAMING CHECK — ensures composite characters are disclosed ──
+function checkCompositeFigureFraming(text, chNum, storyBible) {
+  const triggers = []; const chars = storyBible?.characters || [];
+  for (const c of chars) { if (/composite|amalgam|representative|drawn from|reconstructed/i.test((c.description||'')+' '+(c.role||''))) triggers.push(c.name); }
+  for (const n of ['Brother Benedict','Shao Hong']) { if (!triggers.includes(n)) triggers.push(n); }
+  const issues = [];
+  for (const name of triggers) { if (!text.includes(name)) continue; if (!/composite|represents|drawn from|based on records|reconstructed from/i.test(text)) { issues.push(`COMPOSITE UNFRAMED: "${name}" in Ch ${chNum} — add disclosure on first mention`); } }
+  return issues;
+}
 // NONFICTION QUALITY SCANNER — detects fiction-trap patterns
 function scanNonfictionQuality(text) {
   const warnings = [];
-
-  // Check for excessive dialogue (fiction trap)
   const dialogueChunks = text.match(/[""]([^""]{5,})[""]|'([^']{5,})'/g) || [];
-  const totalDialogueWords = dialogueChunks.reduce((sum, chunk) => sum + chunk.split(/\s+/).length, 0);
-  const totalWords = text.split(/\s+/).length;
-  if (totalWords > 0) {
-    const dialogueRatio = totalDialogueWords / totalWords;
-    if (dialogueRatio > 0.20) {
-      warnings.push(
-        `FICTION TRAP: ${(dialogueRatio * 100).toFixed(0)}% of chapter is dialogue ` +
-        `(${totalDialogueWords} words). Nonfiction should be max 20% dialogue. ` +
-        `Replace extended dialogue scenes with authorial voice and analysis.`
-      );
-    }
-  }
-
-  // Check for long dialogue runs (5+ consecutive dialogue lines)
-  const lines = text.split('\n');
-  let dialogueRun = 0;
-  let maxRun = 0;
-  for (const line of lines) {
-    const stripped = line.trim();
-    if (stripped && (stripped.startsWith('"') || stripped.startsWith('"') || stripped.startsWith("'"))) {
-      dialogueRun++;
-      maxRun = Math.max(maxRun, dialogueRun);
-    } else if (stripped) {
-      dialogueRun = 0;
-    }
-  }
-  if (maxRun >= 5) {
-    warnings.push(
-      `FICTION TRAP: Found ${maxRun} consecutive dialogue lines. ` +
-      `Nonfiction should not have extended fictional dialogue exchanges.`
-    );
-  }
-
-  // Fiction-trap: invented character + past-tense action (e.g. "Laura sat at her kitchen table")
-  const fictCharMatches = (text.match(/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|felt|thought|smiled|sighed|cried|realized|wondered|looked|opened|entered|left|turned|knew|decided|held|reached)\b/g) || [])
-    .filter(m => !['January','February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','America','Europe','Asia','Congress','Harvard','Stanford','Oxford','Google','Apple','Amazon'].some(w => m.startsWith(w)));
-  if (fictCharMatches.length >= 3) {
-    warnings.push(`FICTIONAL NARRATIVE: Invented character+action pattern (${fictCharMatches.length}x, e.g. "${fictCharMatches[0]}") — remove fictional characters, replace with research and analysis`);
-  }
-  // Fiction-trap: internal monologue / fictional third-person narration
-  const imCount = (text.match(/\b(?:she felt|he felt|they felt|she wondered|he wondered|she realized|he realized|her heart|his heart|she thought|he thought)\b/gi) || []).length;
-  if (imCount >= 2) { warnings.push(`FICTIONAL NARRATIVE: Fictional internal monologue detected (${imCount} instances) — replace with authorial voice`); }
-  // Fiction-trap: excessive dialogue lines (>5 in nonfiction)
-  const nfDialogueCount = (text.match(/[""][^""]{5,}[""]/g) || []).length;
-  if (nfDialogueCount > 5) { warnings.push(`FICTIONAL NARRATIVE: ${nfDialogueCount} dialogue lines in nonfiction (max 5) — replace with research citations`); }
-  // [VERIFY] tags from web search research integration
-  const verifyTags = (text.match(/\[VERIFY\]/g) || []).length;
-  if (verifyTags > 0) { warnings.push(`UNVERIFIED CLAIMS (${verifyTags}): flagged [VERIFY] for author verification`); }
-
-  // Check for nonfiction-specific banned phrases
-  const nfBanned = [{ rx: /(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi, label: "emotional melodrama" },
-    { rx: /(?:warmth|sense of peace|wave of calm)\s+(?:spread|washed|flooded)\s+(?:through|over)/gi, label: "inspirational fiction" }, { rx: /felt a renewed sense of/gi, label: "inspirational cliche" },
-    { rx: /it was (?:a )?(?:powerful |beautiful |profound )?(?:reminder|testament)/gi, label: "declaration" }, { rx: /(?:infectious|contagious)\s+(?:laughter|enthusiasm|energy|smile|joy)/gi, label: "cliche 'infectious'" },
-    { rx: /(?:monumental|transformative|life-changing|game-changer|game.changing)/gi, label: "hyperbolic adjective" }, { rx: /(?:beacon of hope|ray of light|silver lining)/gi, label: "inspirational cliche" },
-    { rx: /(?:on a journey|navigate this journey|the road ahead|armed with knowledge)/gi, label: "journey metaphor" }, { rx: /together,?\s+they\s+(?:would|could|will)\s+(?:build|create|forge)/gi, label: "inspirational fiction" },
-    { rx: /(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi, label: "fictional celebration" },
-    { rx: /it is important to note that/gi, label: "importance announcement" }, { rx: /this would prove to be/gi, label: "hindsight framing" },
-    { rx: /(?:mistakes were made|it was decided|they were seen as)/gi, label: "passive historical voice" }, { rx: /^(?:throughout history|since the dawn of)/gmi, label: "panoramic opening" },
-    { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" },
-    { rx: /it is worth noting that|it should be mentioned that|one cannot overstate/gi, label: "Gemini hedging filler" },
-    { rx: /a tapestry of/gi, label: "Gemini purple prose" },{ rx: /represents more than .{1,30} — it embodies/gi, label: "thesis restatement ending" },{ rx: /would prove essential/gi, label: "hindsight thesis" },{ rx: /the lesson emerging from/gi, label: "thesis restatement" },{ rx: /the broader implications of/gi, label: "thesis restatement" },{ rx: /what we can learn from .{1,30} is/gi, label: "thesis restatement" },{ rx: /\*what burns in/gi, label: "poetry flourish" }];
-  for (const { rx, label } of nfBanned) { const matches = text.match(rx); if (matches) { warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`); } }
+  const totalDialogueWords = dialogueChunks.reduce((s,c)=>s+c.split(/\s+/).length,0); const totalWords = text.split(/\s+/).length;
+  if (totalWords > 0 && totalDialogueWords/totalWords > 0.20) { warnings.push(`FICTION TRAP: ${((totalDialogueWords/totalWords)*100).toFixed(0)}% dialogue (max 20%)`); }
+  const lines = text.split('\n'); let dRun=0,maxR=0; for (const l of lines){const s=l.trim();if(s&&(s.startsWith('"')||s.startsWith('\u201C')||s.startsWith("'"))){dRun++;maxR=Math.max(maxR,dRun);}else if(s)dRun=0;} if(maxR>=5) warnings.push(`FICTION TRAP: ${maxR} consecutive dialogue lines`);
+  const fictCharMatches=(text.match(/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|felt|thought|smiled|sighed|cried|realized|wondered|looked|opened|entered|left|turned|knew|decided|held|reached)\b/g)||[]).filter(m=>!['January','February','March','April','May','June','July','August','September','October','November','December','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','America','Europe','Asia','Congress','Harvard','Stanford','Oxford','Google','Apple','Amazon'].some(w=>m.startsWith(w)));
+  if(fictCharMatches.length>=3) warnings.push(`FICTIONAL NARRATIVE: character+action (${fictCharMatches.length}x, e.g. "${fictCharMatches[0]}")`);
+  const imCount=(text.match(/\b(?:she felt|he felt|they felt|she wondered|he wondered|she realized|he realized|her heart|his heart|she thought|he thought)\b/gi)||[]).length;
+  if(imCount>=2) warnings.push(`FICTIONAL NARRATIVE: internal monologue (${imCount}x)`);
+  const nfDC=(text.match(/[""\u201C][^""\u201D]{5,}[""\u201D]/g)||[]).length; if(nfDC>5) warnings.push(`FICTIONAL NARRATIVE: ${nfDC} dialogue lines (max 5)`);
+  const vt=(text.match(/\[VERIFY\]/g)||[]).length; if(vt>0) warnings.push(`UNVERIFIED CLAIMS (${vt}): [VERIFY] tags`);
+  const nfBanned=[{rx:/(?:heart|eyes)\s+(?:swelling|brimming|glistening)\s+with\s+(?:pride|tears|joy|emotion)/gi,label:"melodrama"},{rx:/(?:warmth|sense of peace|wave of calm)\s+(?:spread|washed|flooded)\s+(?:through|over)/gi,label:"inspirational"},{rx:/felt a renewed sense of/gi,label:"cliche"},{rx:/it was (?:a )?(?:powerful |beautiful |profound )?(?:reminder|testament)/gi,label:"declaration"},{rx:/(?:infectious|contagious)\s+(?:laughter|enthusiasm|energy|smile|joy)/gi,label:"infectious"},{rx:/(?:monumental|transformative|life-changing|game-changer|game.changing)/gi,label:"hyperbolic"},{rx:/(?:beacon of hope|ray of light|silver lining)/gi,label:"cliche"},{rx:/(?:on a journey|navigate this journey|the road ahead|armed with knowledge)/gi,label:"journey"},{rx:/together,?\s+they\s+(?:would|could|will)\s+(?:build|create|forge)/gi,label:"inspirational"},{rx:/(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi,label:"celebration"},{rx:/it is important to note that/gi,label:"importance"},{rx:/this would prove to be/gi,label:"hindsight"},{rx:/(?:mistakes were made|it was decided|they were seen as)/gi,label:"passive"},{rx:/^(?:throughout history|since the dawn of)/gmi,label:"panoramic"},{rx:/it could be argued that|one might suggest that|it is possible that/gi,label:"hedged"},{rx:/it is worth noting that|it should be mentioned that|one cannot overstate/gi,label:"filler"},{rx:/a tapestry of/gi,label:"purple"},{rx:/represents more than .{1,30} — it embodies/gi,label:"thesis"},{rx:/would prove essential/gi,label:"hindsight"},{rx:/the lesson emerging from/gi,label:"thesis"},{rx:/the broader implications of/gi,label:"thesis"},{rx:/what we can learn from .{1,30} is/gi,label:"thesis"},{rx:/\*what burns in/gi,label:"poetry"}];
+  for(const{rx,label}of nfBanned){const m=text.match(rx);if(m)warnings.push(`NF BAN (${label}): "${m[0]}"`);}
   const _nfCaps=[["represents more than",3],["perhaps most significantly",3],["this transformation",4],["this shift",4],["would prove essential",2],["had global implications",2],["the broader implications",2],["demonstrates that",4],["remind us that",3],["in ways that",5]];for(const[p,mx]of _nfCaps){const rx=new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi');const m=text.match(rx);if(m&&m.length>mx)warnings.push(`NF CAP: "${p}" ${m.length}x (max ${mx})`);}
-  // DeepSeek-style: consecutive analytical paragraphs (>2 in a row without scene/person)
-  const paras = text.split(/\n\n+/);
-  let _anRun = 0, _maxAnRun = 0;
-  for (const p of paras) { const isAn = /\b(therefore|thus|consequently|this (?:shows|demonstrates|meant|suggests)|as a result|it is (?:clear|evident)|one (?:could|might) argue)\b/i.test(p) && !/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|said|turned|looked|arrived)\b/.test(p); if (isAn) { _anRun++; _maxAnRun = Math.max(_maxAnRun, _anRun); } else _anRun = 0; }
-  if (_maxAnRun > 3) { warnings.push(`CONSECUTIVE ANALYSIS: ${_maxAnRun} analytical paragraphs in a row without returning to scene/character — max 2 before grounding in person-in-moment`); }
-  // Triple restatement detection (same concept stated 3+ ways in close proximity)
-  const sents = text.split(/[.!?]+/).filter(s => s.trim().length > 30);
-  for (let i = 0; i < sents.length - 2; i++) { const a = sents[i].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '), b = sents[i+1].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '), c = sents[i+2].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '); const ab = a.split(' ').filter(w => b.includes(w) && w.length > 4).length, ac = a.split(' ').filter(w => c.includes(w) && w.length > 4).length; if (ab >= 2 && ac >= 2) { warnings.push(`TRIPLE RESTATEMENT near: "${sents[i].trim().slice(0,60)}..." — state once, move forward`); break; } }
+  const paras=text.split(/\n\n+/);let _anRun=0,_maxAnRun=0;for(const p of paras){const isAn=/\b(therefore|thus|consequently|this (?:shows|demonstrates|meant|suggests)|as a result|it is (?:clear|evident)|one (?:could|might) argue)\b/i.test(p)&&!/\b[A-Z][a-z]{2,}\s+(?:sat|stood|walked|said|turned|looked|arrived)\b/.test(p);if(isAn){_anRun++;_maxAnRun=Math.max(_maxAnRun,_anRun);}else _anRun=0;}if(_maxAnRun>3)warnings.push(`CONSECUTIVE ANALYSIS: ${_maxAnRun} analytical paragraphs`);
+  const sents=text.split(/[.!?]+/).filter(s=>s.trim().length>30);for(let i=0;i<sents.length-2;i++){const a=sents[i].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '),b=sents[i+1].trim().toLowerCase().split(/\s+/).slice(0,6).join(' '),c=sents[i+2].trim().toLowerCase().split(/\s+/).slice(0,6).join(' ');const ab=a.split(' ').filter(w=>b.includes(w)&&w.length>4).length,ac=a.split(' ').filter(w=>c.includes(w)&&w.length>4).length;if(ab>=2&&ac>=2){warnings.push(`TRIPLE RESTATEMENT near: "${sents[i].trim().slice(0,60)}..."`);break;}}
   return warnings;
 }
 
