@@ -200,6 +200,141 @@ function validatePhase1Settings(settings) {
   return { settings, issues };
 }
 
+// Injected Phase 1 styles — ensures CSS connects regardless of global import order
+const PHASE1_INJECTED_STYLES = `
+.phase1-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 28px 24px 100px;
+  display: grid;
+  grid-template-columns: 192px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.phase1-nav {
+  position: sticky;
+  top: 108px;
+  background: #ffffff;
+  border: 1px solid #e8e8ec;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.phase1-nav-header {
+  padding: 10px 14px 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #9997b0;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8ec;
+  text-transform: uppercase;
+}
+.phase1-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #52516a;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid #f5f5f7;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.phase1-nav-item:last-child { border-bottom: none; }
+.phase1-nav-item:hover { color: #5b50f0; background: #ede9fe; }
+.phase1-nav-item.p1-active {
+  color: #5b50f0;
+  border-left-color: #5b50f0;
+  background: #ede9fe;
+  font-weight: 600;
+}
+.phase1-nav-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #d1d0d8; flex-shrink: 0; transition: background 0.15s;
+}
+.phase1-nav-item.p1-active .phase1-nav-dot { background: #5b50f0; }
+.phase1-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.p1-card {
+  background: #ffffff;
+  border: 1px solid #e8e8ec;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s;
+  scroll-margin-top: 120px;
+}
+.p1-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.07); }
+.p1-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px 11px;
+  border-bottom: 1px solid #e8e8ec;
+  background: #fafafa;
+}
+.p1-card-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.p1-card-title { font-size: 13px; font-weight: 700; color: #18171f; }
+.p1-card-subtitle { font-size: 11px; color: #9997b0; margin-top: 1px; }
+.p1-card-badge {
+  margin-left: auto; font-size: 9px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+  background: #f3f4f6; color: #9997b0;
+}
+.p1-card-body { padding: 16px 18px; }
+.p1-field-group { margin-bottom: 14px; }
+.p1-field-group:last-child { margin-bottom: 0; }
+.p1-label {
+  font-size: 11px; font-weight: 600; color: #52516a;
+  margin-bottom: 5px; display: flex; align-items: center; gap: 4px;
+}
+.p1-label-opt { font-weight: 400; color: #9997b0; font-size: 10px; }
+.p1-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.p1-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.p1-premise-actions { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+.p1-psych-controls {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 2px;
+}
+.p1-psych-toggle {
+  font-size: 11px; font-weight: 600; color: #5b50f0;
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+  padding: 0; font-family: inherit; transition: opacity 0.15s;
+}
+.p1-psych-toggle:hover { opacity: 0.75; }
+.p1-psych-arrow { font-size: 10px; transition: transform 0.2s; }
+.p1-psych-arrow.open { transform: rotate(180deg); }
+.p1-psych-fields { margin-top: 14px; display: flex; flex-direction: column; gap: 13px; }
+.p1-psych-num { font-size: 10px; font-weight: 700; color: #5b50f0; margin-bottom: 3px; }
+.p1-footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(247,247,249,0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid #e8e8ec;
+  padding: 12px 32px;
+  display: flex; justify-content: flex-end; gap: 10px; z-index: 40;
+}
+@media (max-width: 800px) {
+  .phase1-wrap { grid-template-columns: 1fr; padding: 16px 12px 100px; }
+  .phase1-nav { display: none; }
+  .p1-grid-2 { grid-template-columns: 1fr; }
+  .p1-grid-3 { grid-template-columns: 1fr; }
+}
+`;
+
 const TARGET_LENGTHS = [
   { value: "short", label: "Short (25K–50K words)" },
   { value: "medium", label: "Medium (50K–100K words)" },
