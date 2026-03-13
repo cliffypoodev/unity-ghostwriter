@@ -104,9 +104,13 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
   const filteredPrompts = useMemo(() => {
     let results = allPrompts;
 
-    // Book type filter
+    // Book type filter — check explicit field first, then infer from category
     if (bookTypeFilter !== "all") {
-      results = results.filter(p => p.book_type === bookTypeFilter);
+      results = results.filter(p => {
+        if (p.book_type) return p.book_type === bookTypeFilter;
+        const catType = getCategoryType(p.category);
+        return catType === bookTypeFilter || catType === 'shared';
+      });
     }
 
     // Genre filter
