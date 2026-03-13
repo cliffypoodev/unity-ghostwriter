@@ -1400,6 +1400,13 @@ export default function GenerateTab({ projectId, onProceed }) {
           toast.success(`Act ${actNumber - 1} bridge ready — context will be injected`);
         } catch (err) {
           console.warn('Bridge generation failed:', err.message);
+          healthMonitor.report({
+            severity: 'warning',
+            category: 'pipeline',
+            message: `Act bridge generation failed for Act ${actNumber - 1}`,
+            context: { act: actNumber - 1, issue: 'missing_act_bridge' },
+            raw: err,
+          });
           toast.error('Bridge generation failed — proceeding without continuity context');
         }
       }
@@ -1497,6 +1504,13 @@ export default function GenerateTab({ projectId, onProceed }) {
         });
       } catch (pollErr) {
         console.error(`Act ${actNumber} Ch ${ch.chapter_number} poll error:`, pollErr.message);
+        healthMonitor.report({
+          severity: 'error',
+          category: 'generation',
+          message: `Act ${actNumber} Ch ${ch.chapter_number} failed: ${pollErr.message}`,
+          context: { chapterNumber: ch.chapter_number, actNumber },
+          raw: pollErr,
+        });
         result = 'error';
       }
 
@@ -1564,6 +1578,13 @@ export default function GenerateTab({ projectId, onProceed }) {
       toast.success(`Act ${actNumber} bridge ready`);
     } catch (err) {
       console.warn('Bridge generation failed:', err.message);
+      healthMonitor.report({
+        severity: 'warning',
+        category: 'pipeline',
+        message: `Act ${actNumber} bridge generation failed`,
+        context: { act: actNumber, issue: 'missing_act_bridge' },
+        raw: err,
+      });
       toast.error('Bridge generation failed');
     }
   };
