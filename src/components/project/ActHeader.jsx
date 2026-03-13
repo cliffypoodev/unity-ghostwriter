@@ -65,7 +65,7 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
               size="sm"
               variant="outline"
               className="h-6 text-[11px] px-2.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
-              onClick={() => onGenerateBridge(actNumber - 1)}
+              onClick={(e) => { e.stopPropagation(); onGenerateBridge(actNumber - 1); }}
             >
               <Sparkles className="w-3 h-3 mr-1" /> Generate Bridge
             </Button>
