@@ -68,10 +68,14 @@ Return ONLY a valid JSON object — no markdown fences, no backticks, no explana
 INFERENCE RULES:
 - target_audience: infer from genre, subject matter, tone, and demographic signals.
   Example: dark fantasy with adult themes → "Adult Commercial" primary, "Sci-Fi & Fantasy Fans" secondary.
-- author_voice: infer from genre + tone.
-  Example: investigative nonfiction → "Cinematic & Propulsive" or "Bold & Provocative"
-  Example: cozy romance → "Warm & Conversational"
-  Example: hard sci-fi thriller → "Clinical & Precise" or "Suspenseful & Atmospheric"
+- author_voice: infer from genre + tone. Return an ID, not a label.
+  Example: investigative nonfiction → "gladwell" or "didion"
+  Example: cozy romance → "rowling" or "austen"
+  Example: hard sci-fi thriller → "leguin" or "mccarthy"
+  Example: horror → "king"
+  Example: literary fiction → "morrison" or "didion"
+  Example: fantasy → "tolkien" or "gaiman"
+  Example: mystery → "chandler" or "christie"
 - chapter_count: standard novel 20, short nonfiction 12, epic 30, self-help 10-15
 - The expanded_brief must be rich, detailed prose — not bullet points.
 - Do not invent plot details not present or strongly implied by the premise.`;
