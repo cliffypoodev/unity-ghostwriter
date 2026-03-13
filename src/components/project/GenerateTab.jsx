@@ -1549,32 +1549,56 @@ export default function GenerateTab({ projectId, onProceed }) {
         <div className="text-sm text-indigo-600 font-medium text-right">{allScenesProgress}</div>
       )}
 
-      {/* Chapters */}
+      {/* Chapters — grouped by Act */}
       {chapters.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
-          {chapters.map(chapter => {
-            // Look up beat data from outline
-            const parsedOl = safeParse(resolvedOutlineData);
-            const olCh = parsedOl?.chapters?.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
-            const beatData = olCh?.beat_function ? { beat_name: olCh.beat_name, beat_function: olCh.beat_function } : null;
+          {[1, 2, 3].map(actNum => {
+            const act = acts?.[`act${actNum}`];
+            if (!act) return null;
+            const actChapters = getActChapters(chapters, acts, actNum);
+            if (actChapters.length === 0) return null;
+            const actStatus = getActStatus(chapters, acts, actNum);
+            const actGenerated = actChapters.filter(c => c.status === 'generated').length;
+            // Disable write if previous act isn't complete (except act 1)
+            const prevComplete = actNum === 1 || getActStatus(chapters, acts, actNum - 1) === 'complete';
+
             return (
-              <ChapterItem
-                key={chapter.id}
-                chapter={chapter}
-                spec={spec}
-                project={projectData}
-                onWrite={handleWriteChapter}
-                onRewrite={handleWriteChapter}
-                onResume={handleResumeFromChapter}
-                streamingContent={streamingContent[chapter.id] || ""}
-                isStreaming={streamingChapterId === chapter.id}
-                isWriting={activeChapterIds.has(chapter.id)}
-                isResuming={resumingFromChapter === chapter.chapter_number}
-                chapterProgress={chapterProgress[chapter.id] || null}
-                onScenesUpdated={refetchChapters}
-                beatData={beatData}
-              />
+              <div key={actNum} className="space-y-2">
+                <ActHeader
+                  actNumber={actNum}
+                  act={act}
+                  status={actStatus}
+                  chapterCount={actChapters.length}
+                  generatedCount={actGenerated}
+                  onWriteAct={handleWriteAct}
+                  isWriting={writingActNumber === actNum}
+                  hasBridge={!!actBridges[actNum] || (actNum === 1 && false)}
+                  disabled={!prevComplete || writeAllActive || interiorityMissing}
+                />
+                {actChapters.map(chapter => {
+                  const olCh = parsedOutline?.chapters?.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
+                  const beatData = olCh?.beat_function ? { beat_name: olCh.beat_name, beat_function: olCh.beat_function } : null;
+                  return (
+                    <ChapterItem
+                      key={chapter.id}
+                      chapter={chapter}
+                      spec={spec}
+                      project={projectData}
+                      onWrite={handleWriteChapter}
+                      onRewrite={handleWriteChapter}
+                      onResume={handleResumeFromChapter}
+                      streamingContent={streamingContent[chapter.id] || ""}
+                      isStreaming={streamingChapterId === chapter.id}
+                      isWriting={activeChapterIds.has(chapter.id)}
+                      isResuming={resumingFromChapter === chapter.chapter_number}
+                      chapterProgress={chapterProgress[chapter.id] || null}
+                      onScenesUpdated={refetchChapters}
+                      beatData={beatData}
+                    />
+                  );
+                })}
+              </div>
             );
           })}
         </div>
