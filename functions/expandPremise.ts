@@ -114,7 +114,7 @@ INFERENCE RULES:
         reasoning: parsed.target_audience?.reasoning || '',
       },
       author_voice: {
-        selected: parsed.author_voice?.selected || 'Cinematic & Propulsive',
+        selected: parsed.author_voice?.selected || 'basic',
         reasoning: parsed.author_voice?.reasoning || '',
       },
     });
