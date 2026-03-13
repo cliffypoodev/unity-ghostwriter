@@ -1,3 +1,8 @@
+// PIPELINE PHASE ISOLATION — Data Management (Chapters CRUD)
+//
+// This tab is a data viewer/editor only. It performs entity CRUD operations.
+// It must NOT call any AI generation, prose compliance, or review functions.
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
