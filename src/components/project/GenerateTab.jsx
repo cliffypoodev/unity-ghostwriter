@@ -1395,6 +1395,26 @@ export default function GenerateTab({ projectId, onProceed }) {
     await refetchChapters();
   };
 
+  // ── Generate Bridge handler (manual trigger from ActHeader) ──
+  const handleGenerateBridge = async (actNumber) => {
+    const act = acts?.[`act${actNumber}`];
+    if (!act) return;
+    toast.info(`Generating Act ${actNumber} bridge document…`);
+    try {
+      await base44.functions.invoke('generateActBridge', {
+        project_id: projectId,
+        act_number: actNumber,
+        act_start: act.start,
+        act_end: act.end,
+      });
+      setActBridges(prev => ({ ...prev, [actNumber]: true }));
+      toast.success(`Act ${actNumber} bridge ready`);
+    } catch (err) {
+      console.warn('Bridge generation failed:', err.message);
+      toast.error('Bridge generation failed');
+    }
+  };
+
   // ── Empty state ──
   if (!hasOutline && !generating) {
     return (
