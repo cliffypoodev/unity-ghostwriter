@@ -644,7 +644,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check, adapt_prompt' }, { status: 400 });
+    // Section 3: Validate chapter output (structure, meta-text, word count, refusals)
+    if (action === 'validate_chapter') {
+      if (!text) return Response.json({ error: 'text required for validation' }, { status: 400 });
+      const result = validateChapterOutput(text, chapter || { number: chapter_number || 0 }, model_id || 'claude-sonnet');
+      return Response.json(result);
+    }
+
+    // Section 3: Validate act transition continuity
+    if (action === 'validate_act_transition') {
+      if (!text) return Response.json({ error: 'text (chapter content) required' }, { status: 400 });
+      const result = validateActTransition(text, act_bridge || '', chapter_number || 0);
+      return Response.json(result);
+    }
+
+    // Section 3: Full validation (chapter output + act transition in one call)
+    if (action === 'validate_full') {
+      if (!text) return Response.json({ error: 'text required for validation' }, { status: 400 });
+      const chapterResult = validateChapterOutput(text, chapter || { number: chapter_number || 0 }, model_id || 'claude-sonnet');
+      const actResult = validateActTransition(text, act_bridge || '', chapter_number || 0);
+      // Merge act transition warnings into chapter result
+      if (actResult.warnings.length > 0) {
+        chapterResult.warnings.push(...actResult.warnings);
+      }
+      return Response.json({
+        ...chapterResult,
+        actTransition: actResult,
+      });
+    }
+
+    return Response.json({ error: 'Unknown action. Use: profiles, profile, adaptation, validate, trim_check, adapt_prompt, validate_chapter, validate_act_transition, validate_full' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
