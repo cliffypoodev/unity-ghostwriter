@@ -1353,7 +1353,6 @@ export default function GenerateTab({ projectId, onProceed }) {
         await refetchChapters();
       }
     }
-
     // Phase 2: Sequential chapter writing within the act
     setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: `Writing Act ${actNumber}` }));
 
