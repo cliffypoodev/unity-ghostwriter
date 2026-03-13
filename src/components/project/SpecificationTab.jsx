@@ -576,7 +576,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
           pendingSubgenreRef.current = expanded.subgenre;
           // Don't fill("subgenre") — the useEffect will handle it
         }
-        fill("beat_style", beatKey);
+        fill("beat_style", vBeatKey);
         fill("detail_level", expanded.detail_level);
         // Auto-select story structure
         const VALID_TEMPLATES = ["auto","save-the-cat","romance-arc","thriller-tension","heros-journey","argument-driven","narrative-nonfiction","reference-structured","investigative-nonfiction"];
