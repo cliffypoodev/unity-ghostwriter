@@ -97,7 +97,9 @@ INFERENCE RULES:
   SATIRE: any→pratchett or vonnegut
   MAGICAL REALISM: any→marquez
   DO NOT assign morrison to a romance novel. DO NOT assign austen to a horror novel.
-- beat_style rules — GENRE-FIRST, TONE-SECOND. Genre determines the category. Tone determines position within that category. Never let tone override genre entirely.
+- beat_style rules — GENRE-FIRST, TONE-SECOND. Follow this EXACT order:
+  STEP 1: Identify the PRIMARY genre. This is mandatory.
+  STEP 2: Map genre to default beat style using this matrix:
   ROMANCE: default→Slow Burn, dark→Gritty Cinematic, literary→Slow Burn (NOT Melancholic Literary), cozy→Whimsical Cozy, suspense→Dark Suspense, explicit→Slow Burn (spice handles explicitness)
   THRILLER: default→Fast-Paced Thriller, dark→Hard-Boiled Noir, political→High-Stakes Political, tech→Cerebral Sci-Fi, legal→Clinical Procedural, psychological→Intellectual Psychological
   MYSTERY: default→Clinical Procedural, cozy→Whimsical Cozy, noir→Hard-Boiled Noir, psychological→Dark Suspense
@@ -110,6 +112,12 @@ INFERENCE RULES:
   HISTORICAL: default→Epic Historical, literary→Melancholic Literary, thriller→Fast-Paced Thriller
   YOUNG ADULT: default→Nostalgic Coming-of-Age, fantasy→Epic Historical, romance→Slow Burn, dark→Dark Suspense
   EROTICA: default→Steamy Romance, dark→Dark Erotica, slow→Slow Burn Romance
+  STEP 3: Only after genre maps to a category, use tone to pick the VARIANT within that genre.
+  CRITICAL OVERRIDE RULES:
+  - A romance novel with literary tone is still Slow Burn, NOT Melancholic Literary
+  - Melancholic Literary is ONLY for books whose PRIMARY genre is literary fiction
+  - A thriller with atmospheric writing is still Fast-Paced Thriller, NOT Slow Burn
+  - Never assign a beat style from a different genre category than the primary genre
 - spice_level rules: infer from genre and tone.
   Romance=1-2, Erotica=3-4, Thriller=0-1, Horror=0-1, Cozy=0, Literary=0-1, Nonfiction=0
 - language_intensity rules: infer from beat style defaults.
