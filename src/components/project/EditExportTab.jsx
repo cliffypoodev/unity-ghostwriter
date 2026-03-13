@@ -731,6 +731,25 @@ export default function EditExportTab({ projectId }) {
     }
   }, [project]);
 
+  // Add page-break labels to <hr> elements in the editor
+  const addPageBreakLabels = useCallback(() => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current.querySelector('.ql-editor');
+    if (!editor) return;
+    // Remove any existing labels
+    editor.querySelectorAll('.page-break-label').forEach(el => el.remove());
+    // Add labels to each <hr>
+    editor.querySelectorAll('hr').forEach(hr => {
+      const label = document.createElement('div');
+      label.className = 'page-break-label';
+      label.contentEditable = 'false';
+      label.textContent = 'PAGE BREAK';
+      label.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:0.12em;color:#94a3b8;background:' + (docSettings.pageBg === '#1e1e1e' ? '#111' : '#e2e8f0') + ';padding:1px 10px;border-radius:3px;pointer-events:none;margin-top:-24px;z-index:1;';
+      hr.style.position = 'relative';
+      hr.parentNode.insertBefore(label, hr.nextSibling);
+    });
+  }, [docSettings.pageBg]);
+
   // Load content into Quill when data + Quill are both ready
   useEffect(() => {
     if (!quillReady || !quillRef.current || !project) return;
@@ -739,6 +758,7 @@ export default function EditExportTab({ projectId }) {
       if (quillRef.current) {
         quillRef.current.clipboard.dangerouslyPasteHTML(html);
         setPlainText(quillRef.current.getText());
+        setTimeout(addPageBreakLabels, 100);
       }
     });
   }, [quillReady, project, spec, chapters]);
