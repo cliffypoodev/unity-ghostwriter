@@ -57,8 +57,14 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
     queryFn: () => base44.entities.PromptCatalog.list(),
   });
 
-  // Extract unique categories and tags
-  const categories = useMemo(() => {
+  // Reset category when book type changes
+  useEffect(() => {
+    setCategoryFilter("all");
+    setPage(1);
+  }, [bookTypeFilter]);
+
+  // Extract unique categories and tags from ALL prompts
+  const allCategories = useMemo(() => {
     const map = {};
     allPrompts.forEach(p => {
       if (p.category) {
@@ -82,8 +88,17 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
     return Object.entries(tagCounts)
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
+      .slice(0, 30);
   }, [allPrompts]);
+
+  // Filtered categories and tags based on book type
+  const visibleCategories = useMemo(() => {
+    return filterCategoriesByType(allCategories, bookTypeFilter);
+  }, [allCategories, bookTypeFilter]);
+
+  const visibleTags = useMemo(() => {
+    return filterTagsByType(allTags, bookTypeFilter, allPrompts);
+  }, [allTags, bookTypeFilter, allPrompts]);
 
   // Filter and search
   const filteredPrompts = useMemo(() => {
