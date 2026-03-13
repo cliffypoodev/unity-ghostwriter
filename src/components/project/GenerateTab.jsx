@@ -925,6 +925,11 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (onProgress) onProgress(`Error during generation`);
         return "error";
       }
+      // If chapter was externally reset to "pending" (e.g. manual unstick), abort polling
+      if (ch?.status === 'pending' && elapsed > 15) {
+        if (onProgress) onProgress(`Chapter was reset — click Write to retry`);
+        return "error";
+      }
 
       // Detect Deno crash: if HTTP request completed with error but chapter is still "generating",
       // the backend may have crashed OR the gateway timed out (504) while the worker continues.
