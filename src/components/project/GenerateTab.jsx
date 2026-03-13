@@ -878,14 +878,14 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (onProgress) onProgress(`Gateway timeout — worker still running… (${timeStr})`);
       }
 
-      // Detect stale "generating": if 5+ minutes have passed and the chapter updated_date
-      // hasn't changed in 3+ minutes, the worker likely died silently.
-      // (Generous thresholds because multi-pass AI generation can take 4-5 min between DB writes)
+      // Detect stale "generating": if 10+ minutes have passed and the chapter updated_date
+      // hasn't changed in 5+ minutes, the worker likely died silently.
+      // (Generous thresholds because nonfiction with research+multi-pass quality can take 8-10 min)
       if (ch?.updated_date) {
         const updMs = new Date(ch.updated_date).getTime();
-        if (lastUpdatedAt && updMs === lastUpdatedAt && elapsed > 300) {
+        if (lastUpdatedAt && updMs === lastUpdatedAt && elapsed > 600) {
           const staleSecs = Math.floor((Date.now() - updMs) / 1000);
-          if (staleSecs > 180) {
+          if (staleSecs > 300) {
             console.warn(`Ch ${chapterNumber}: Stale "generating" for ${staleSecs}s — marking as error`);
             if (onProgress) onProgress(`Worker timed out — skipping to next chapter`);
             try {
