@@ -909,6 +909,41 @@ export default function EditExportTab({ projectId }) {
             .quill-page-wrapper .ql-editor h3 { font-size: 1.15em; font-weight: 600; margin-top: 1.4em; }
             .quill-page-wrapper .ql-editor p { margin-bottom: 0.8em; }
             .quill-page-wrapper .ql-editor ol, .quill-page-wrapper .ql-editor ul { margin-bottom: 1em; padding-left: 1.5em; }
+            /* Visual page break separators between chapters */
+            .quill-page-wrapper .ql-editor hr {
+              border: none;
+              height: 0;
+              margin: 0 calc(-1 * ${docSettings.margins || "1in"});
+              padding: 0;
+              position: relative;
+            }
+            .quill-page-wrapper .ql-editor hr::before {
+              content: '';
+              display: block;
+              height: 40px;
+              background: ${docSettings.pageBg === "#1e1e1e" ? "#111" : "#e2e8f0"};
+              border-top: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"};
+              border-bottom: 1px solid ${docSettings.pageBg === "#1e1e1e" ? "#444" : "#cbd5e1"};
+              box-shadow: 
+                inset 0 6px 8px -4px rgba(0,0,0,0.12),
+                inset 0 -6px 8px -4px rgba(0,0,0,0.12);
+            }
+            .quill-page-wrapper .ql-editor hr::after {
+              content: 'page break';
+              display: block;
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: ${docSettings.pageBg === "#1e1e1e" ? "#555" : "#94a3b8"};
+              background: ${docSettings.pageBg === "#1e1e1e" ? "#111" : "#e2e8f0"};
+              padding: 2px 12px;
+              border-radius: 3px;
+              pointer-events: none;
+            }
           `}</style>
 
           <div className="quill-page-wrapper h-full">
