@@ -586,6 +586,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               <div className={hl("ai_model")}>
                 <ModelSuggestionPanel
                   genre={form.genre}
+                  bookType={form.book_type}
                   selectedModel={form.ai_model}
                   onSelectModel={(id) => handleChange("ai_model", id)}
                 />
