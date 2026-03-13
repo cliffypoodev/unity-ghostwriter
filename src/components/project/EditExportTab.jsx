@@ -452,7 +452,7 @@ async function buildHtml(project, spec, chapters, showToc) {
 
   for (let idx = 0; idx < sortedChapters.length; idx++) {
     const ch = sortedChapters[idx];
-    if (idx > 0) html += `<div style="page-break-before: always;"></div>\n`;
+    if (idx > 0) html += `<hr/>\n`;
     html += `<h2>Chapter ${ch.chapter_number}: ${ch.title}</h2>\n`;
     if (ch.content) {
       let contentText = ch.content;
