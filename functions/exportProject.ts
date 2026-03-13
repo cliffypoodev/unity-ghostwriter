@@ -111,7 +111,7 @@ function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
         spacing: { before: 200 },
         children: [
           new TextRun({
-            text: settings.subtitle,
+            text: sanitizeForDocx(settings.subtitle),
             font: headingFont,
             size: 28,
             italics: true,
