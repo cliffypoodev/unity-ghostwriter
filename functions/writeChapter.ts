@@ -1009,7 +1009,9 @@ function scanNonfictionQuality(text) {
     { rx: /(?:clapped|cheered|hugged)\s+.{0,30}(?:proud|proud of|so proud)/gi, label: "fictional celebration" },
     { rx: /it is important to note that/gi, label: "importance announcement" }, { rx: /this would prove to be/gi, label: "hindsight framing" },
     { rx: /(?:mistakes were made|it was decided|they were seen as)/gi, label: "passive historical voice" }, { rx: /^(?:throughout history|since the dawn of)/gmi, label: "panoramic opening" },
-    { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" }];
+    { rx: /it could be argued that|one might suggest that|it is possible that/gi, label: "over-hedged analysis" },
+    { rx: /it is worth noting that|it should be mentioned that|one cannot overstate/gi, label: "Gemini hedging filler" },
+    { rx: /a tapestry of/gi, label: "Gemini purple prose" }];
   for (const { rx, label } of nfBanned) { const matches = text.match(rx); if (matches) { warnings.push(`NONFICTION BAN (${label}): "${matches[0]}"`); } }
   // DeepSeek-style: consecutive analytical paragraphs (>2 in a row without scene/person)
   const paras = text.split(/\n\n+/);
