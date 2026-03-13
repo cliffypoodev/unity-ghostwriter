@@ -13,74 +13,91 @@ import { base44 } from "@/api/base44Client";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const WRITING_MODELS = {
+  // ── Anthropic ──
   'claude-haiku': {
-    id: 'claude-haiku', label: 'Claude Haiku 3.5', platform: 'Anthropic',
+    id: 'claude-haiku', label: 'Claude Haiku 4.5', platform: 'Anthropic',
     callHandler: 'anthropic', modelString: 'claude-haiku-4-5-20251001',
     description: 'Fast, lightweight · affordable',
-    costLabel: '$0.25/M', costTier: 'mid', qualityScore: 3, qualityColor: '#f59e0b',
-    inPer1M: 0.25, outPer1M: 1.25, contextWindow: 200000, supportsExplicit: false,
+    costLabel: '$4/M', costTier: 'mid', qualityScore: 3, qualityColor: '#d97706',
+    inPer1M: 0.80, outPer1M: 4.00, contextWindow: 200000, supportsExplicit: false,
   },
   'claude-sonnet': {
     id: 'claude-sonnet', label: 'Claude Sonnet 4.5', platform: 'Anthropic',
     callHandler: 'anthropic', modelString: 'claude-sonnet-4-5',
     description: 'Best overall quality · full beat adherence',
-    costLabel: '$15/M', costTier: 'high', qualityScore: 5, qualityColor: '#f59e0b',
+    costLabel: '$15/M', costTier: 'high', qualityScore: 5, qualityColor: '#d97706',
     inPer1M: 3.00, outPer1M: 15.00, contextWindow: 200000, supportsExplicit: false,
-    recommended: true,
+    recommended: true, badge: 'TOP',
   },
+  // ── Google ──
+  'gemini-flash': {
+    id: 'gemini-flash', label: 'Gemini 2.0 Flash', platform: 'Google',
+    callHandler: 'google', modelString: 'google/gemini-2.0-flash-001',
+    description: 'Ultra-fast · 1M context · affordable',
+    costLabel: '$0.40/M', costTier: 'low', qualityScore: 3, qualityColor: '#16a34a',
+    inPer1M: 0.10, outPer1M: 0.40, contextWindow: 1000000, supportsExplicit: false,
+    badge: 'FAST',
+  },
+  'gemini-pro': {
+    id: 'gemini-pro', label: 'Gemini 2.5 Pro', platform: 'Google',
+    callHandler: 'google', modelString: 'google/gemini-2.5-pro-preview-03-25',
+    description: 'Top-tier quality · 1M context',
+    costLabel: '$10/M', costTier: 'high', qualityScore: 5, qualityColor: '#16a34a',
+    inPer1M: 1.25, outPer1M: 10.00, contextWindow: 1000000, supportsExplicit: false,
+  },
+  // ── OpenAI ──
   'gpt-4o': {
     id: 'gpt-4o', label: 'GPT-4o', platform: 'OpenAI',
     callHandler: 'openai', modelString: 'gpt-4o',
     description: 'Strong instruction following · solid beats',
-    costLabel: '$5/M', costTier: 'mid', qualityScore: 4, qualityColor: '#3b82f6',
+    costLabel: '$10/M', costTier: 'mid', qualityScore: 4, qualityColor: '#2563eb',
     inPer1M: 2.50, outPer1M: 10.00, contextWindow: 128000, supportsExplicit: false,
   },
   'gpt-4o-mini': {
     id: 'gpt-4o-mini', label: 'GPT-4o Mini', platform: 'OpenAI',
     callHandler: 'openai', modelString: 'gpt-4o-mini',
     description: 'Fast · affordable · lighter quality',
-    costLabel: '$0.60/M', costTier: 'low', qualityScore: 3, qualityColor: '#3b82f6',
+    costLabel: '$0.60/M', costTier: 'low', qualityScore: 3, qualityColor: '#2563eb',
     inPer1M: 0.15, outPer1M: 0.60, contextWindow: 128000, supportsExplicit: false,
   },
+  // ── OpenRouter ──
   'deepseek': {
-    id: 'deepseek', label: 'DeepSeek V3', platform: 'OpenRouter · DeepSeek',
+    id: 'deepseek', label: 'DeepSeek V3', platform: 'OpenRouter',
     callHandler: 'openrouter', modelString: 'deepseek/deepseek-chat',
     description: 'Frontier quality · 163k context',
-    costLabel: '$0.89/M', costTier: 'low', qualityScore: 4, qualityColor: '#3b82f6',
+    costLabel: '$0.89/M', costTier: 'low', qualityScore: 4, qualityColor: '#7c3aed',
     inPer1M: 0.32, outPer1M: 0.89, contextWindow: 163840, supportsExplicit: true,
   },
   'trinity': {
-    id: 'trinity', label: 'Trinity Large', platform: 'OpenRouter · Arcee AI',
+    id: 'trinity', label: 'Trinity Large', platform: 'OpenRouter',
     callHandler: 'openrouter', modelString: 'arcee-ai/trinity-large-preview:free',
     description: '400B creative writing model · storytelling',
-    costLabel: 'FREE', costTier: 'free', qualityScore: 4, qualityColor: '#22c55e',
+    costLabel: 'FREE', costTier: 'free', qualityScore: 4, qualityColor: '#7c3aed',
     inPer1M: 0, outPer1M: 0, contextWindow: 131000, supportsExplicit: true,
-    isFree: true, note: 'May be slower during high-demand periods',
+    isFree: true, badge: 'FREE', note: 'May be slower during high-demand periods',
   },
   'lumimaid': {
-    id: 'lumimaid', label: 'Lumimaid v0.2', platform: 'OpenRouter · Lumimaid',
-    callHandler: 'openrouter', modelString: 'neversleep/lumimaid-v0.2-8b',
+    id: 'lumimaid', label: 'Lumimaid 70B', platform: 'OpenRouter',
+    callHandler: 'openrouter', modelString: 'neversleep/lumimaid-v0.2-70b',
     description: 'Explicit content enabled · adult fiction',
-    costLabel: '$0.20/M', costTier: 'low', qualityScore: 3, qualityColor: '#f43f5e',
+    costLabel: '$0.20/M', costTier: 'low', qualityScore: 3, qualityColor: '#7c3aed',
     inPer1M: 0.20, outPer1M: 0.20, contextWindow: 32000, supportsExplicit: true,
-    adultOnly: true,
+    adultOnly: true, badge: '18+',
   },
 };
 
 export const PLATFORM_ORDER = [
   'Anthropic',
+  'Google',
   'OpenAI',
-  'OpenRouter · DeepSeek',
-  'OpenRouter · Arcee AI',
-  'OpenRouter · Lumimaid',
+  'OpenRouter',
 ];
 
 export const PLATFORM_COLORS = {
-  'Anthropic':               '#e879f9',
-  'OpenAI':                  '#10b981',
-  'OpenRouter · DeepSeek':   '#3b82f6',
-  'OpenRouter · Arcee AI':   '#22c55e',
-  'OpenRouter · Lumimaid':   '#f43f5e',
+  'Anthropic':   '#d97706',
+  'Google':      '#16a34a',
+  'OpenAI':      '#2563eb',
+  'OpenRouter':  '#7c3aed',
 };
 
 export const PROMPT_OVERHEAD_TOKENS = {
