@@ -1425,11 +1425,9 @@ The final image of this book should reflect the emotional truth of the protagoni
       systemPrompt += `\n\n${getSpiceLevelInstructions(projectSpec?.spice_level ?? 0)}`;
       systemPrompt += `\n\n${getLanguageIntensityInstructions(projectSpec?.language_intensity ?? 0)}`;
 
-    // Author voice
-    if (projectSpec?.author_voice && projectSpec.author_voice !== 'basic') {
-      const voiceDesc = AUTHOR_VOICES_MAP[projectSpec.author_voice];
-      if (voiceDesc) systemPrompt += `\n\nAuthor Voice: Write in a style reminiscent of: ${voiceDesc}`;
-    }
+    // Author voice — full style prompt injection
+    const legacyAuthorBlock = getAuthorStyleBlock(projectSpec);
+    if (legacyAuthorBlock) systemPrompt += `\n${legacyAuthorBlock}`;
 
     // PART E — thematic elements and consistency rules from story bible
     if (storyBible?.themes?.length > 0) {
