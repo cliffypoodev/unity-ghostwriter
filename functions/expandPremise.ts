@@ -92,17 +92,19 @@ INFERENCE RULES:
   Example: literary fiction → "morrison" or "didion"
   Example: fantasy → "tolkien" or "gaiman"
   Example: mystery → "chandler" or "christie"
-- beat_style rules:
-  Romance + slow build → Slow Burn
-  Romance + explicit content → Steamy Romance or Dark Erotica (spice handles explicitness, not beat)
-  Thriller + action → Fast-Paced Thriller
-  Dark + crime → Hard-Boiled Noir
-  Nonfiction + investigative → Investigative / Nonfiction
-  Fantasy + epic → Grandiose Space Opera or Epic Historical
-  Horror → Visceral Horror
-  Literary fiction → Melancholic Literary
-  Sci-fi + ideas → Cerebral Sci-Fi
-  Cozy/heartwarming → Whimsical Cozy
+- beat_style rules — GENRE-FIRST, TONE-SECOND. Genre determines the category. Tone determines position within that category. Never let tone override genre entirely.
+  ROMANCE: default→Slow Burn, dark→Gritty Cinematic, literary→Slow Burn (NOT Melancholic Literary), cozy→Whimsical Cozy, suspense→Dark Suspense, explicit→Slow Burn (spice handles explicitness)
+  THRILLER: default→Fast-Paced Thriller, dark→Hard-Boiled Noir, political→High-Stakes Political, tech→Cerebral Sci-Fi, legal→Clinical Procedural, psychological→Intellectual Psychological
+  MYSTERY: default→Clinical Procedural, cozy→Whimsical Cozy, noir→Hard-Boiled Noir, psychological→Dark Suspense
+  LITERARY FICTION: default→Melancholic Literary, dark→Melancholic Literary, magical→Poetic Magical Realism, surreal→Surrealist Avant-Garde, satire→Satirical
+  HORROR: default→Visceral Horror, psychological→Dark Suspense, quiet→Slow Burn
+  FANTASY: default→Epic Historical, urban→Urban Gritty Fantasy, epic→Grandiose Space Opera, dark→Gritty Cinematic, cozy→Whimsical Cozy, literary→Poetic Magical Realism
+  SCI-FI: default→Cerebral Sci-Fi, action→Fast-Paced Thriller, space→Grandiose Space Opera, dystopian→High-Stakes Political, horror→Visceral Horror
+  NONFICTION: default→Investigative / Nonfiction, history→Epic Historical, education→Reference / Educational, self-help→Reference / Educational
+  TRUE CRIME: default→Investigative / Nonfiction, dark→Hard-Boiled Noir
+  HISTORICAL: default→Epic Historical, literary→Melancholic Literary, thriller→Fast-Paced Thriller
+  YOUNG ADULT: default→Nostalgic Coming-of-Age, fantasy→Epic Historical, romance→Slow Burn, dark→Dark Suspense
+  EROTICA: default→Steamy Romance, dark→Dark Erotica, slow→Slow Burn Romance
 - spice_level rules: infer from genre and tone.
   Romance=1-2, Erotica=3-4, Thriller=0-1, Horror=0-1, Cozy=0, Literary=0-1, Nonfiction=0
 - language_intensity rules: infer from beat style defaults.
