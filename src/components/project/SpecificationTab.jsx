@@ -385,6 +385,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
     author_voice: "basic",
     additional_requirements: "",
     enforce_genre_content: true,
+    writing_model: "claude-sonnet",
+    budget_mode: false,
     protagonist_life_purpose: "",
     protagonist_core_wound: "",
     protagonist_self_belief: "",
