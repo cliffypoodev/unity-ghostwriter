@@ -809,7 +809,6 @@ export default function EditExportTab({ projectId }) {
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => exportTxt(projectId, docSettings)}>TXT</Button>
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => exportMd(projectId, docSettings)}>MD</Button>
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportHtml(quillRef.current, docSettings)}>HTML</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportDoc(projectId, quillRef.current, docSettings)}>DOC</Button>
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => quillRef.current && exportDocx(projectId, quillRef.current, docSettings)}>DOCX</Button>
         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => quillRef.current && exportPrint(quillRef.current, docSettings)}>
           <Printer className="w-3.5 h-3.5" /> Print/PDF
