@@ -1562,6 +1562,11 @@ Before writing this chapter, review the character motivations established in the
 === END MOTIVATION CONSISTENCY ===`;
     }
 
+    // ── GPT LENGTH ENFORCEMENT — inject when GPT is the prose model ──
+    if (isGptModel(modelKey)) {
+      systemPrompt = GPT_LENGTH_ENFORCEMENT + '\n\n' + systemPrompt;
+    }
+
     // ── PART A — Build conversation-style messages array ─────────────────────
     // PATCH 2 — Cliffhanger resolution: check previous chapter's state doc for ending_type
     const prevStateDocs = []; for (let i = chapterIndex - 1; i >= 0; i--) { if (allChapters[i].state_document) { prevStateDocs.push(allChapters[i].state_document); break; } }
