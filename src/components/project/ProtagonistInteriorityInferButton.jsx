@@ -20,7 +20,7 @@ export default function ProtagonistInteriorityInferButton({ form, onChange }) {
         prompt: `You are a fiction developmental editor specializing in erotica and romance. Given the following book premise, infer the human protagonist's deep interior psychology.
 
 PREMISE:
-${form.topic}
+${premise}
 
 GENRE: ${form.genre || 'Erotica'}
 SUBGENRE: ${form.subgenre || ''}
