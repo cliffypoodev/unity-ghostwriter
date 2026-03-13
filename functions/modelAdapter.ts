@@ -129,9 +129,171 @@ function getModelProfile(modelId) {
   return MODEL_PROFILES[modelId] || MODEL_PROFILES['claude-sonnet'];
 }
 
-// ── PROMPT ADAPTATION HELPERS ───────────────────────────────────────────────
-// These functions generate prompt fragments based on model behavioral profiles.
-// They will be consumed by generateChapterWithCompliance() in Section 2.
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 2A — PROMPT ADAPTER
+// Adjusts the chapter prompt based on the model's profile before sending.
+// Same prompt intent, different framing per model.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── FORMAT EXAMPLE — shown to models that need it ───────────────────────────
+const FORMAT_EXAMPLE = `EXACT OUTPUT FORMAT — FOLLOW THIS PRECISELY:
+
+1: [Your Part 1 subtitle here]
+[Part 1 prose — 625+ words]
+
+2: [Your Part 2 subtitle here]
+[Part 2 prose — 625+ words]
+
+3: [Your Part 3 subtitle here]
+[Part 3 prose — 625+ words]
+
+4: [Your Part 4 subtitle here]
+[Part 4 prose — 625+ words]
+
+RULES:
+- Part labels are exactly "1:", "2:", "3:", "4:" followed by a short subtitle
+- Each part is 625 words minimum — do not cut short
+- Chapter heading appears only before Part 1, never repeated
+- No author notes, commentary, or meta-text anywhere in output
+- No "self-check completed" or similar annotations
+- Write prose only — nothing but the story`;
+
+// ── WORD COUNT REMINDER — injected for models that run short ────────────────
+const WORD_COUNT_REMINDER = `WORD COUNT IS MANDATORY:
+- Each of the 4 parts must be at LEAST 625 words
+- Total chapter must reach 2,500 words minimum
+- If you finish a part under 625 words, continue writing
+- Do not summarize or compress — fully develop each scene`;
+
+// ── HEADER BUILDERS — different framing styles per model type ────────────────
+
+// Structured header for models that respond better to markdown (DeepSeek)
+function buildStructuredHeader(chapter, project) {
+  return `## TASK
+Write Chapter ${chapter.number || chapter.chapter_number}: "${chapter.title}"
+
+## BOOK CONTEXT
+- Title: ${project.title || project.name || 'Untitled'}
+- Genre: ${project.genre || 'Fiction'}
+- Beat Style: ${project.beat_style || project.tone_style || 'Not specified'}
+- Language Intensity: ${project.language_intensity || 0}/4
+
+## BEAT SHEET`;
+}
+
+// Direct header for models that handle instructions naturally (Claude, GPT-4o)
+function buildDirectHeader(chapter, project) {
+  return `You are writing a chapter for a ${project.genre || 'fiction'} book.
+
+BOOK: "${project.title || project.name || 'Untitled'}"
+BEAT STYLE: ${project.beat_style || project.tone_style || 'Not specified'}
+LANGUAGE INTENSITY: ${project.language_intensity || 0}/4
+
+CHAPTER ${chapter.number || chapter.chapter_number}: ${chapter.title}
+BEAT SHEET:`;
+}
+
+// Conversational header for creative models (Trinity, Lumimaid)
+function buildConversationalHeader(chapter, project) {
+  return `Write the next chapter of this ${project.genre || 'fiction'} book.
+
+The book is called "${project.title || project.name || 'Untitled'}".
+Beat style: ${project.beat_style || project.tone_style || 'Not specified'}.
+Language intensity: ${project.language_intensity || 0} out of 4.
+
+You're writing Chapter ${chapter.number || chapter.chapter_number}: "${chapter.title}".
+Here's what needs to happen in this chapter:`;
+}
+
+// ── ACT BRIDGE TRIMMER — truncates the largest optional block first ──────────
+function trimActBridgeIfNeeded(prompt, safeLimit) {
+  const tokenEstimate = Math.round(prompt.length / 4);
+  if (tokenEstimate <= safeLimit) return prompt;
+
+  // Find and truncate the act bridge block (matches both naming patterns)
+  const bridgePatterns = [
+    { start: 'ACT CONTINUITY BRIDGE:', endMarker: '\n\nCHAPTER ' },
+    { start: '═══════════════════════════════════════════════\nACT', endMarker: '═══════════════════════════════════════════════\nThe above' },
+  ];
+
+  for (const { start, endMarker } of bridgePatterns) {
+    const bridgeStart = prompt.indexOf(start);
+    if (bridgeStart === -1) continue;
+    const bridgeEnd = prompt.indexOf(endMarker, bridgeStart + start.length);
+    if (bridgeEnd === -1) continue;
+
+    const bridge = prompt.slice(bridgeStart, bridgeEnd);
+    // Keep first 800 chars of bridge
+    const trimmedBridge = bridge.slice(0, 800) + '\n[Bridge truncated for context limit]';
+    const result = prompt.slice(0, bridgeStart) + trimmedBridge + prompt.slice(bridgeEnd);
+    console.warn(`trimActBridge: trimmed ${bridge.length - 800} chars from act bridge`);
+    return result;
+  }
+
+  return prompt;
+}
+
+// ── MAIN PROMPT ADAPTER ─────────────────────────────────────────────────────
+// Takes a base prompt (system or user), chapter info, project spec, and model ID.
+// Returns the adapted prompt with model-specific framing adjustments.
+// Never throws — returns basePrompt on any error.
+
+function adaptPromptForModel(basePrompt, chapter, project, modelId) {
+  try {
+    const profile = getModelProfile(modelId);
+    let adapted = basePrompt;
+
+    // 1. Replace header style based on promptStyle
+    //    Only applies if the base prompt contains a recognizable direct-style header
+    if (profile.promptStyle === 'structured' && chapter && project) {
+      const directHeader = buildDirectHeader(chapter, project);
+      const structHeader = buildStructuredHeader(chapter, project);
+      if (adapted.includes(directHeader)) {
+        adapted = adapted.replace(directHeader, structHeader);
+      }
+    } else if (profile.promptStyle === 'conversational' && chapter && project) {
+      const directHeader = buildDirectHeader(chapter, project);
+      const convHeader = buildConversationalHeader(chapter, project);
+      if (adapted.includes(directHeader)) {
+        adapted = adapted.replace(directHeader, convHeader);
+      }
+    }
+    // 'direct' style — no header change needed
+
+    // 2. Inject format example if required
+    if (profile.requiresFormatExample) {
+      adapted = adapted + '\n\n' + FORMAT_EXAMPLE;
+    }
+
+    // 3. Inject word count reminder if required
+    if (profile.requiresWordCountReminder) {
+      adapted = adapted + '\n\n' + WORD_COUNT_REMINDER;
+    }
+
+    // 4. Make part labels extra explicit if required
+    if (profile.requiresExplicitPartLabels) {
+      adapted = adapted.replace(
+        /deliver in 4 parts/gi,
+        'deliver in EXACTLY 4 parts, each labeled "1:", "2:", "3:", "4:" at the start'
+      );
+    }
+
+    // 5. Trim to context safe limit if needed
+    const tokenEstimate = Math.round(adapted.length / 4);
+    if (tokenEstimate > profile.contextSafeLimit) {
+      console.warn(`adaptPromptForModel: prompt ~${tokenEstimate} tokens may exceed ${modelId} limit ${profile.contextSafeLimit}`);
+      adapted = trimActBridgeIfNeeded(adapted, profile.contextSafeLimit);
+    }
+
+    return adapted;
+
+  } catch (err) {
+    console.warn('adaptPromptForModel failed:', err.message);
+    return basePrompt; // Always return something — never throw
+  }
+}
+
+// ── LEGACY HELPERS (kept for Section 1 API compatibility) ───────────────────
 
 function buildPartLabelBlock(profile, partCount) {
   if (!profile.requiresExplicitPartLabels) return '';
@@ -174,7 +336,7 @@ No chapter titles, no scene numbers, no headers. Just prose separated by * * * m
 === END FORMAT EXAMPLE ===\n`;
 }
 
-// Builds all model-specific prompt adaptations as a single block
+// Builds all model-specific prompt adaptations as a single block (Section 1 API)
 function buildModelAdaptationBlock(modelId, targetWords, partCount) {
   const profile = getModelProfile(modelId);
   let block = '';
