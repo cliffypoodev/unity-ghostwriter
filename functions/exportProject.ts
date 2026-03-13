@@ -95,7 +95,7 @@ function buildDocxDocument(projectTitle, generatedChapters, spec, settings) {
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: projectTitle,
+          text: sanitizeForDocx(projectTitle),
           font: headingFont,
           size: 56,
           bold: true,
