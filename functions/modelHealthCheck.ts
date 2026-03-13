@@ -7,11 +7,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 const MODEL_MAP = {
   "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
   "claude-haiku":      { provider: "anthropic", modelId: "claude-haiku-4-5", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o", defaultTemp: 0.4, maxTokensLimit: null },
   "gpt-4o-mini":       { provider: "openai",    modelId: "gpt-4o-mini", defaultTemp: 0.9, maxTokensLimit: null },
   "deepseek":          { provider: "deepseek",  modelId: "deepseek-chat", defaultTemp: 0.72, maxTokensLimit: 8192 },
   "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.9, maxTokensLimit: null },
-  "lumimaid":          { provider: "openrouter", modelId: "neversleep/lumimaid-v0.2-8b", defaultTemp: 0.92, maxTokensLimit: null },
+  "lumimaid":          { provider: "openrouter", modelId: "neversleep/lumimaid-v0.2-70b", defaultTemp: 0.92, maxTokensLimit: null },
 };
 
 async function callAIQuick(modelKey, prompt) {
