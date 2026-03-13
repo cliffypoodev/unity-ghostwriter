@@ -1673,7 +1673,7 @@ ${isLast ? `ENDING STYLE: ${endingType.name} — ${endingType.desc}` : ''}`;
 
 WRITE THIS CHAPTER SCENE-BY-SCENE IN THIS EXACT ORDER:
 
-${sceneSections}
+${sceneSectionsText}
 
 === SCENE RULES (NON-NEGOTIABLE) ===
 
