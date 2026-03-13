@@ -1710,13 +1710,16 @@ ${_beatUsrBlock(chapterBeat)}`;
       try {
         const stag = chapterSubjectsLog ? chapterSubjectsLog.split('\n').find(l => l.startsWith(`Ch ${chapter.chapter_number}:`))?.replace(/^Ch \d+:\s*/, '') : null;
         console.log(`NF Ch ${chapter.chapter_number}: web search research...`);
-        const rr = await base44.functions.invoke('researchNonfictionTopic', { topic: projectSpec?.topic, subject: stag || chapter.summary || chapter.title, genre: projectSpec?.genre, subgenre: projectSpec?.subgenre, scope: `Chapter ${chapter.chapter_number}: ${chapter.title}` });
+        // Race research against a 15s timeout to prevent blocking generation
+        const researchPromise = base44.functions.invoke('researchNonfictionTopic', { topic: projectSpec?.topic, subject: stag || chapter.summary || chapter.title, genre: projectSpec?.genre, subgenre: projectSpec?.subgenre, scope: `Chapter ${chapter.chapter_number}: ${chapter.title}` });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Research timeout')), 15000));
+        const rr = await Promise.race([researchPromise, timeoutPromise]);
         const cr = rr.data || rr;
         if (cr?.facts?.length > 0) {
           console.log(`Ch ${chapter.chapter_number} research: ${cr.facts.length} facts`);
           chResBlock = `\n=== CHAPTER RESEARCH (verified via web search) ===\n${cr.contextSummary || ''}\n\nVerified Facts:\n${cr.facts.map(f => '- ' + f).join('\n')}${cr.timeline?.length ? '\nTimeline:\n' + cr.timeline.map(t => '- ' + t.date + ': ' + t.event).join('\n') : ''}${cr.keyFigures?.length ? '\nKey Figures:\n' + cr.keyFigures.map(f => '- ' + f.name + ': ' + f.role).join('\n') : ''}\n\nUse these verified facts as your factual spine. If you reference something not in this list, flag it with [VERIFY].\n=== END CHAPTER RESEARCH ===\n\n`;
         }
-      } catch (re) { console.warn(`Ch ${chapter.chapter_number} research failed:`, re.message); }
+      } catch (re) { console.warn(`Ch ${chapter.chapter_number} research skipped:`, re.message); }
       let nfBB='';try{const _nb=chapter.scenes&&JSON.parse(chapter.scenes);if(_nb?.opening_hook)nfBB=`\n=== NONFICTION BEAT SHEET ===\nHOOK: ${_nb.opening_hook}\nCONTEXT: ${_nb.context_block||''}\nEVIDENCE: ${_nb.central_evidence||''}\nHUMAN FOCUS: ${_nb.human_focus||''}\nMYTH vs FACT: ${_nb.myth_vs_fact||''}\nCOMPLICATION: ${_nb.complication||''}\nIMPLICATION: ${_nb.implication||''}\nCLOSING BEAT: ${_nb.closing_beat||''}\nFollow: HOOK→CONTEXT→EVIDENCE via HUMAN FOCUS→MYTH vs FACT→COMPLICATION→IMPLICATION→CLOSING BEAT.${_nb.fabrication_warnings?.length?'\nWARNINGS: '+_nb.fabrication_warnings.join('; '):''}\n=== END ===\n`;}catch{}
       currentChapterRequest = chResBlock + nfBB + _buildNonfictionUserMessage(chapter.chapter_number, { title: chapter.title, prompt: chapter.prompt, summary: chapter.summary }, totalChapters, TARGET_WORDS);
       currentChapterRequest += structuralBlock;
