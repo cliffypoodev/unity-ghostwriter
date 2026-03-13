@@ -313,23 +313,28 @@ Deno.serve(async (req) => {
 
   // ── DOCX Export (proper Open XML via docx library) ──
   if (exportFormat === 'docx') {
-    const doc = buildDocxDocument(projectTitle, generatedChapters, spec, mergedSettings);
-    const buffer = await Packer.toBuffer(doc);
-    // Convert buffer to base64 in chunks to avoid stack overflow on large documents
-    const bytes = new Uint8Array(buffer);
-    let binaryStr = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      binaryStr += String.fromCharCode.apply(null, chunk);
-    }
-    const base64 = btoa(binaryStr);
-    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
+    try {
+      const doc = buildDocxDocument(projectTitle, generatedChapters, spec, mergedSettings);
+      const buffer = await Packer.toBuffer(doc);
+      // Convert buffer to base64 in chunks to avoid stack overflow on large documents
+      const bytes = new Uint8Array(buffer);
+      let binaryStr = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binaryStr += String.fromCharCode.apply(null, chunk);
+      }
+      const base64 = btoa(binaryStr);
+      const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
 
-    return Response.json({
-      base64,
-      filename: `${safeTitle}.docx`,
-    });
+      return Response.json({
+        base64,
+        filename: `${safeTitle}.docx`,
+      });
+    } catch (err) {
+      console.error('DOCX generation error:', err.message);
+      return Response.json({ error: `DOCX generation failed: ${err.message}` }, { status: 500 });
+    }
   }
 
   return Response.json({ error: `Unsupported format: ${exportFormat}` }, { status: 400 });
