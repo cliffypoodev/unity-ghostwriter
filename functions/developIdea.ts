@@ -49,8 +49,9 @@ Transform this into a tight, pitch-ready premise. Named characters, vivid settin
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
+      // resolveDevelopIdeaModel: always 'claude' regardless of project prose model setting.
+      // Phase 1 metadata_generation — hardcoded to Claude Sonnet. Never changes.
       model: "claude-sonnet-4-20250514",
-      // Falls back handled by Anthropic API — uses latest available sonnet
       max_tokens: 1024,
       messages: [
         { role: "user", content: userPrompt }
