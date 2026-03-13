@@ -144,7 +144,8 @@ const MODEL_PROFILES = {
     requiresWordCountReminder:  true,
     requiresFormatExample:      true,
     contextSafeLimit:  28000,            // hard buffer under 32k
-    timeoutMs:         90000,
+    timeoutMs:         30000,
+    isFreeTier:        false,
   },
 
 };

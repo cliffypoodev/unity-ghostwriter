@@ -16,7 +16,7 @@ const MODEL_MAP = {
   "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
-  "openrouter":        { provider: "openrouter", modelId: "meta-llama/llama-3.1-70b-instruct", defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat", defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
