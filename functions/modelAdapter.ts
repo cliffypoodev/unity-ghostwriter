@@ -5,7 +5,10 @@
 // prompt construction (part labels, word count reminders, format examples)
 // and output validation (structure compliance, beat adherence expectations).
 //
-// Section 2+: generateChapterWithCompliance(), callAI() enhancements
+// Section 2A: PROMPT ADAPTER — adjusts prompt framing per model's behavioral
+// profile (header style, format example, word count reminder, part labels,
+// context trimming with act bridge truncation).
+// Section 3+: generateChapterWithCompliance(), callAI() enhancements
 // will be added in subsequent sections.
 // ═══════════════════════════════════════════════════════════════════════════════
 
