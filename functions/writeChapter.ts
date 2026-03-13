@@ -1212,7 +1212,7 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
       else { const tc = (olStr.match(/\[EXPLICIT\]/gi) || []).length; if (tc < 2) console.warn(`EXPLICIT TAG WARNING: Only ${tc} [EXPLICIT] tag(s) across ${outlineData.chapters.length} chapters — consider adding more.`); }
     }
 
-    const TARGET_WORDS = 1600;
+    const TARGET_WORDS = isGptModel(modelKey) ? 2500 : 1600;
 
     // callAI wrapper using conversation messages array
     async function callAIConversation(messages, maxTokens = 8192) {
