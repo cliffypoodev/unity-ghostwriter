@@ -1838,19 +1838,23 @@ ${_beatUsrBlock(chapterBeat)}`;
     // Strip scene header / chapter heading artifacts
     fullContent = fullContent.replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^\*?\*?(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*\*?\*?$/gm, '').replace(/^(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '').replace(/\n{3,}/g, '\n\n').trim();
     const wordCount = fullContent.trim().split(/\s+/).length;
-    // ── GPT VOLUME VERIFICATION GATE — per-scene 625w minimum, GPT only ──
-    if (isGptModel(modelKey) && useScenePath && parsedScenes.length > 1) {
-      const _vParts = fullContent.split(/\*\s*\*\s*\*/); let _thin = _vParts.map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
+    // ── VOLUME VERIFICATION GATE — per-part 625w min (GPT fiction scenes + GPT/DS nonfiction) ──
+    const _volApplies = (isGptModel(modelKey) && useScenePath && parsedScenes.length > 1) || (isNonfiction && isNfLengthModel(modelKey));
+    if (_volApplies) { const _sep = useScenePath ? /\*\s*\*\s*\*/ : /\n{3,}|\n\s*---\s*\n|\n\s*\*\s*\*\s*\*\s*\n/;
+      let _vParts = fullContent.split(_sep); let _thin = _vParts.map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
+      // NF narrative balance check — flag >40% analytical sentences even if word count passes
+      if (isNonfiction && _thin.length === 0) { const _sAll = fullContent.split(/[.!?]+/).filter(s=>s.trim().length>20); const _sAn = _sAll.filter(s=>/\b(therefore|thus|consequently|this shows|this demonstrates|it is clear|this meant|this would|as a result)\b/i.test(s)); const _rat = _sAn.length/(_sAll.length||1); if(_rat>0.4){ console.warn(`Ch ${chapter.chapter_number} NF balance: ${Math.round(_rat*100)}% analytical`); _thin=[{idx:1,wc:wordCount,narrativeBalance:true,ratio:_rat}]; } }
+      const _isDS = isDeepseekModel(modelKey);
       for (let _va=0; _va<2 && _thin.length>0; _va++) {
-        const _vb = _thin.map(p=>`INSUFFICIENT LENGTH: Part ${p.idx} is only ${p.wc} words. Minimum is 625 words per part.\nYou have summarized this scene rather than inhabiting it. Rewrite it with:\n- At least 3 paragraphs on environment and sensory detail\n- One moment of internal conflict specific to protagonist backstory\n- At least one beat of dialogue with subtext\n- Do not move forward until this part reaches 625 words minimum`).join('\n\n');
-        console.warn(`Ch ${chapter.chapter_number} GPT vol ${_va+1}: ${_thin.length} thin`, _thin.map(p=>`P${p.idx}:${p.wc}w`));
+        const _vb = _thin.map(p=> p.narrativeBalance ? `NARRATIVE BALANCE VIOLATION: ${Math.round(p.ratio*100)}% of sentences are analytical. Convert at least half the analytical paragraphs into scene-level moments — show events happening before explaining significance.` : `INSUFFICIENT LENGTH: Part ${p.idx} is only ${p.wc} words (min 625).\n${_isDS ? 'You have compressed this material. Expand each documented moment into scene before moving to the next.' : isNonfiction ? 'Narrative nonfiction requires scene-level inhabitation, not efficient coverage of facts.' : 'You summarized this scene — inhabit it.'}\n- ${isNonfiction ? 'Open with a specific person in a specific moment, weave context into action' : 'At least 3 paragraphs environment+sensory detail, one internal conflict beat'}\n- Do not proceed to next beat until 625 words minimum`).join('\n\n');
+        console.warn(`Ch ${chapter.chapter_number} vol ${_va+1}: ${_thin.length} thin`, _thin.map(p=>`P${p.idx}:${p.wc}w`));
         const _vm=[...messages]; _vm[_vm.length-1]={role:'user',content:`VOLUME REVISION REQUIRED:\n\n${_vb}\n\nRewrite the ENTIRE chapter with all parts expanded:\n\n${messages[messages.length-1].content}`};
         try { const _vr=await callAIConversation(_vm,8192); if(_vr&&_vr.trim().length>200&&!isRefusal(_vr)){
           let _vc=_vr.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm,'').replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi,'').replace(/\n{3,}/g,'\n\n').trim();
-          const _nt=_vc.split(/\*\s*\*\s*\*/).map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
-          if(_nt.length<_thin.length){console.log(`GPT vol ${_va+1}: ${_thin.length}→${_nt.length} thin`);fullContent=_vc;_thin=_nt;}else{console.warn(`GPT vol ${_va+1} no improve`);break;}}else break;
-        } catch(ve){console.warn(`GPT vol ${_va+1} err:`,ve.message);break;}
-      } if(_thin.length>0) console.warn(`Ch ${chapter.chapter_number} GPT vol: ${_thin.length} thin parts remain`);
+          const _nt=_vc.split(_sep).map((p,i)=>({idx:i+1,wc:p.trim().split(/\s+/).length})).filter(p=>p.wc<600);
+          if(_nt.length<_thin.length){console.log(`vol ${_va+1}: ${_thin.length}→${_nt.length} thin`);fullContent=_vc;_thin=_nt;}else{console.warn(`vol ${_va+1} no improve`);break;}}else break;
+        } catch(ve){console.warn(`vol ${_va+1} err:`,ve.message);break;}
+      } if(_thin.length>0) console.warn(`Ch ${chapter.chapter_number} vol: ${_thin.length} thin parts remain`);
     }
     // ── PRE-OUTPUT COMPLIANCE GATE — up to 3 regeneration attempts ──
     { let compAttempt = 0; const MAX_CA = 3;
