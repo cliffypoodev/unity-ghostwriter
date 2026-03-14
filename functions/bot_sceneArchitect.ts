@@ -1,0 +1,299 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOT 1 — SCENE ARCHITECT
+// ═══════════════════════════════════════════════════════════════════════════════
+// Produce a scene-by-scene structural breakdown for ONE chapter.
+// Fiction → scene list. Nonfiction → beat sheet. NEVER writes prose.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+
+// ═══ INLINED: shared/aiRouter (compact) ═══
+const MODEL_MAP = {
+  "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
+  "gpt-4o": { provider: "openai", modelId: "gpt-4o", defaultTemp: 0.4, maxTokensLimit: null },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
+  "deepseek-chat": { provider: "deepseek", modelId: "deepseek-chat", defaultTemp: 0.72, maxTokensLimit: 8192 },
+};
+
+async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const { provider, modelId, defaultTemp, maxTokensLimit } = config;
+  const temperature = options.temperature ?? defaultTemp;
+  let maxTokens = options.maxTokens ?? 8192;
+  if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
+  if (provider === "anthropic") {
+    const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status)); return d.content[0].text;
+  }
+  if (provider === "openai") {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('OPENAI_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('OpenAI: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
+  }
+  if (provider === "google") {
+    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
+    const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status)); return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+  if (provider === "deepseek") {
+    const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('DeepSeek: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
+  }
+  throw new Error('Unknown provider: ' + provider);
+}
+
+async function safeParseJSON(raw) {
+  if (!raw) throw new Error('Empty AI response');
+  let cleaned = raw.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  const jsonStart = cleaned.indexOf('[') !== -1 && (cleaned.indexOf('{') === -1 || cleaned.indexOf('[') < cleaned.indexOf('{')) ? cleaned.indexOf('[') : cleaned.indexOf('{');
+  if (jsonStart > 0) cleaned = cleaned.slice(jsonStart);
+  const jsonEnd = cleaned.lastIndexOf(']') !== -1 && cleaned.lastIndexOf(']') > cleaned.lastIndexOf('}') ? cleaned.lastIndexOf(']') + 1 : cleaned.lastIndexOf('}') + 1;
+  if (jsonEnd > 0) cleaned = cleaned.slice(0, jsonEnd);
+  return JSON.parse(cleaned);
+}
+
+// ═══ INLINED: shared/resolveModel ═══
+const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', consistency_check:'claude-sonnet', style_rewrite:'claude-sonnet', chapter_state:'claude-sonnet' };
+function resolveModel(callType, spec) {
+  if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
+  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
+  return 'claude-sonnet';
+}
+
+// ═══ INLINED: shared/dataLoader ═══
+async function resolveContent(content) {
+  if (!content) return '';
+  if (typeof content === 'string' && (content.startsWith('http://') || content.startsWith('https://'))) {
+    try { const r = await fetch(content); if (!r.ok) return ''; const t = await r.text(); if (t.trim().startsWith('<')) return ''; return t; } catch { return ''; }
+  }
+  return content;
+}
+
+async function loadProjectContext(base44, projectId) {
+  let chapters = [], specs = [], outlines = [], projects = [];
+  [chapters, specs, outlines, projects] = await Promise.all([
+    base44.entities.Chapter.filter({ project_id: projectId }),
+    base44.entities.Specification.filter({ project_id: projectId }),
+    base44.entities.Outline.filter({ project_id: projectId }),
+    base44.entities.Project.filter({ id: projectId }).catch(() => []),
+  ]);
+  const project = projects[0] || {};
+  const rawSpec = specs[0]; const outline = outlines[0];
+  const spec = rawSpec ? { ...rawSpec, beat_style: rawSpec.beat_style || rawSpec.tone_style || "", spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)), language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)) } : null;
+  let outlineData = null; let outlineRaw = outline?.outline_data || '';
+  if (!outlineRaw && outline?.outline_url) { try { outlineRaw = await (await fetch(outline.outline_url)).text(); } catch {} }
+  try { outlineData = outlineRaw ? JSON.parse(outlineRaw) : null; } catch {}
+  let storyBible = null; let bibleRaw = outline?.story_bible || '';
+  if (!bibleRaw && outline?.story_bible_url) { try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {} }
+  try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
+  chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+  return { project, chapters, spec, outline, outlineData, storyBible, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
+}
+
+function getChapterContext(ctx, chapterId) {
+  const chapter = ctx.chapters.find(c => c.id === chapterId);
+  if (!chapter) throw new Error('Chapter not found: ' + chapterId);
+  const chapterIndex = ctx.chapters.findIndex(c => c.id === chapterId);
+  const prevChapter = chapterIndex > 0 ? ctx.chapters[chapterIndex - 1] : null;
+  const nextChapter = chapterIndex < ctx.chapters.length - 1 ? ctx.chapters[chapterIndex + 1] : null;
+  const outlineChapters = ctx.outlineData?.chapters || [];
+  const outlineEntry = outlineChapters.find(c => (c.number || c.chapter_number) === chapter.chapter_number) || {};
+  return { chapter, chapterIndex, prevChapter, nextChapter, outlineEntry };
+}
+
+// ═══ CONSTANTS ═══
+
+const WORDS_PER_CHAPTER = { short: 1200, medium: 1600, long: 2200, epic: 3000 };
+function getSceneCount(targetLength) { return ((targetLength === 'long' || targetLength === 'epic') ? 4 : 3) + Math.round(Math.random()); }
+
+const BEAT_NAMES = {"fast-paced-thriller":"Fast-Paced Thriller","gritty-cinematic":"Gritty Cinematic","hollywood-blockbuster":"Hollywood Blockbuster","slow-burn":"Slow Burn","steamy-romance":"Steamy Romance","slow-burn-romance":"Slow Burn Romance","dark-erotica":"Dark Erotica","clean-romance":"Clean Romance","faith-infused":"Faith-Infused Contemporary","investigative-nonfiction":"Investigative Nonfiction","reference-educational":"Reference / Educational","intellectual-psychological":"Intellectual Psychological","dark-suspense":"Dark Suspense","satirical":"Satirical","epic-historical":"Epic Historical","whimsical-cozy":"Whimsical Cozy","hard-boiled-noir":"Hard-Boiled Noir","grandiose-space-opera":"Grandiose Space Opera","visceral-horror":"Visceral Horror","poetic-magical-realism":"Poetic Magical Realism","clinical-procedural":"Clinical Procedural","hyper-stylized-action":"Hyper-Stylized Action","nostalgic-coming-of-age":"Nostalgic Coming-of-Age","cerebral-sci-fi":"Cerebral Sci-Fi","high-stakes-political":"High-Stakes Political","surrealist-avant-garde":"Surrealist Avant-Garde","melancholic-literary":"Melancholic Literary","urban-gritty-fantasy":"Urban Gritty Fantasy"};
+const SPICE_NAMES = { 0:'Fade to Black', 1:'Closed Door', 2:'Cracked Door', 3:'Open Door', 4:'Full Intensity' };
+const LANG_NAMES = { 0:'Clean', 1:'Mild', 2:'Moderate', 3:'Strong', 4:'Raw' };
+
+function buildContextHeader(spec) {
+  const bs = spec?.beat_style || spec?.tone_style || '';
+  const bn = BEAT_NAMES[bs] || bs || 'Not specified';
+  const sp = parseInt(spec?.spice_level) || 0;
+  const li = parseInt(spec?.language_intensity) || 0;
+  return `═══ PROJECT CONTEXT ═══\nTYPE: ${(spec?.book_type || 'fiction').toUpperCase()} | GENRE: ${spec?.genre || 'Fiction'}${spec?.subgenre ? ' / ' + spec.subgenre : ''} | BEAT: ${bn} | LANG: ${li}/4 ${LANG_NAMES[li] || 'Clean'}${sp > 0 ? ' | SPICE: ' + sp + '/4 ' + SPICE_NAMES[sp] : ''}\n═══════════════════════`;
+}
+
+// ═══ FICTION SCENE GENERATION ═══
+
+async function generateFictionScenes(ctx, chCtx) {
+  const { spec, storyBible } = ctx;
+  const { chapter, prevChapter, nextChapter, outlineEntry } = chCtx;
+  const totalChapters = ctx.totalChapters;
+  const targetLength = spec?.target_length || 'medium';
+  const sceneCount = getSceneCount(targetLength);
+  const wordsPerChapter = WORDS_PER_CHAPTER[targetLength] || 1600;
+  const wordTarget = Math.round(wordsPerChapter / sceneCount);
+
+  let prevChapterTail = '';
+  if (prevChapter?.content) {
+    const content = await resolveContent(prevChapter.content);
+    prevChapterTail = content.trim().slice(-200);
+  }
+
+  const characters = storyBible?.characters || [];
+  const world = storyBible?.world || storyBible?.settings;
+  const rules = storyBible?.rules;
+  const isErotica = ctx.isErotica;
+
+  const explicitTagging = isErotica ? `\n\nIMPORTANT — EXPLICIT SCENE TAGGING:\nWhen a scene requires explicit sexual content, set extra_instructions to begin with "[EXPLICIT]" and end with "[/EXPLICIT]".\nOnly tag scenes needing on-page explicit content.` : '';
+
+  const contextHeader = buildContextHeader(spec);
+  const modelKey = resolveModel('beat_sheet', spec);
+
+  const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.\n\n${contextHeader}${explicitTagging}`;
+
+  const userMessage = `Genre: ${spec?.genre || 'Fiction'}
+Subgenre: ${spec?.subgenre || 'Not specified'}
+Beat Style: ${spec?.beat_style || spec?.tone_style || 'Not specified'}
+Spice Level: ${parseInt(spec?.spice_level) || 0}/4 — ${SPICE_NAMES[parseInt(spec?.spice_level) || 0] || 'Fade to Black'}
+Language Intensity: ${parseInt(spec?.language_intensity) || 0}/4 — ${LANG_NAMES[parseInt(spec?.language_intensity) || 0] || 'Clean'}
+
+STORY BIBLE — Characters:
+${characters.length > 0 ? characters.map(c => `- ${c.name} (${c.role || 'character'}): ${c.description || ''}${c.relationships ? ' | Relationships: ' + c.relationships : ''}`).join('\n') : 'Not specified'}
+
+STORY BIBLE — World/Settings:
+${world ? (typeof world === 'object' ? JSON.stringify(world, null, 2) : world) : 'Not specified'}
+
+STORY BIBLE — Rules:
+${rules ? (typeof rules === 'string' ? rules : JSON.stringify(rules)) : 'Not specified'}
+
+Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"
+Summary: ${chapter.summary || outlineEntry.summary || 'No summary provided'}
+Key Events: ${JSON.stringify(outlineEntry.key_events || outlineEntry.key_beats || [])}
+Chapter Prompt: ${chapter.prompt || outlineEntry.scene_prompt || 'No additional prompt'}
+
+${outlineEntry.transition_from ? `Transition FROM previous chapter: ${outlineEntry.transition_from}` : ''}
+${nextChapter ? `Next chapter: "${nextChapter.title}"` : 'This is the final chapter — end with resolution'}
+${outlineEntry.transition_to ? `Transition TO next chapter: ${outlineEntry.transition_to}` : ''}
+
+${prevChapterTail ? `Previous chapter ended with:\n"...${prevChapterTail}"\n(Start somewhere different — different location, different emotional beat)` : ''}
+
+Generate exactly ${sceneCount} scenes. Word target per scene: ~${wordTarget} words.
+
+Return ONLY a JSON array of ${sceneCount} scene objects:
+{
+  "scene_number": number,
+  "title": "3-5 word title",
+  "location": "Specific location with 1-2 sensory details",
+  "time": "Time relative to previous scene",
+  "pov": "Character name whose POV dominates",
+  "characters_present": ["Name1", "Name2"],
+  "purpose": "What this scene accomplishes for the plot",
+  "emotional_arc": "Starting emotion → ending emotion",
+  "key_action": "ONE concrete irreversible event",
+  "dialogue_focus": "What conversation reveals, or null",
+  "sensory_anchor": "One dominant sensory detail to open the scene",
+  "extra_instructions": "Optional tone/pacing note, or empty string",
+  "word_target": ${wordTarget}
+}`;
+
+  let raw;
+  try {
+    raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 8192, temperature: 0.6 });
+  } catch (primaryErr) {
+    console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with claude-sonnet`);
+    raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens: 8192, temperature: 0.6 });
+  }
+
+  const scenes = await safeParseJSON(raw);
+  if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
+  return { scenes, type: 'fiction' };
+}
+
+// ═══ NONFICTION BEAT SHEET ═══
+
+async function generateNonfictionBeatSheet(ctx, chCtx) {
+  const { spec } = ctx;
+  const { chapter, outlineEntry, prevChapter, nextChapter } = chCtx;
+  const totalChapters = ctx.totalChapters;
+  const targetWords = spec?.target_length === 'epic' ? 4500 : spec?.target_length === 'long' ? 3500 : 2500;
+  const modelKey = resolveModel('beat_sheet', spec);
+  const contextHeader = buildContextHeader(spec);
+
+  const systemPrompt = `You are a nonfiction book architect. Generate a structural beat sheet for one chapter. Output ONLY valid JSON. No explanation.\n\n${contextHeader}\n\nThis is NONFICTION. No fictional scenes or invented characters.`;
+
+  const userMessage = `Book: "${ctx.project.name || 'Untitled'}"
+Genre: ${spec?.genre || 'Nonfiction'} / ${spec?.subgenre || ''}
+Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"
+Summary: ${chapter.summary || outlineEntry.summary || 'No summary'}
+Prompt: ${chapter.prompt || outlineEntry.scene_prompt || ''}
+${prevChapter ? `Previous chapter: "${prevChapter.title}"` : ''}
+${nextChapter ? `Next chapter: "${nextChapter.title}"` : 'This is the final chapter.'}
+
+Target: ~${targetWords} words
+
+Return JSON with this structure:
+{
+  "beat_name": "Chapter structural beat name",
+  "beat_function": "SETUP|DISRUPTION|ESCALATION|CLIMAX|RESOLUTION|CONNECTIVE_TISSUE",
+  "beat_scene_type": "exposition|case_study|analysis|how_to|mixed",
+  "beat_tempo": "fast|medium|slow",
+  "sections": [
+    {
+      "section_number": 1,
+      "title": "Section title",
+      "mode": "vignette|analysis|case_study|how_to|exposition",
+      "content_focus": "What this section covers",
+      "key_evidence": "Real research, stats, or examples to include",
+      "word_target": ${Math.round(targetWords / 4)},
+      "fabrication_warnings": ["Any claims needing verification"]
+    }
+  ],
+  "word_target": ${targetWords}
+}`;
+
+  let raw;
+  try {
+    raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 4096, temperature: 0.6 });
+  } catch (primaryErr) {
+    console.warn(`NF beat primary failed: ${primaryErr.message} — retrying with claude-sonnet`);
+    raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens: 4096, temperature: 0.6 });
+  }
+
+  const beatSheet = await safeParseJSON(raw);
+  return { scenes: beatSheet, type: 'nonfiction' };
+}
+
+// ═══ MAIN BOT ═══
+
+async function runSceneArchitect(base44, projectId, chapterId) {
+  const ctx = await loadProjectContext(base44, projectId);
+  const chCtx = getChapterContext(ctx, chapterId);
+
+  let result;
+  if (ctx.isNonfiction) {
+    result = await generateNonfictionBeatSheet(ctx, chCtx);
+  } else {
+    result = await generateFictionScenes(ctx, chCtx);
+  }
+
+  // Save scenes to chapter
+  await base44.entities.Chapter.update(chapterId, {
+    scenes: JSON.stringify(result.scenes),
+  });
+
+  return { success: true, chapter_id: chapterId, scene_count: Array.isArray(result.scenes) ? result.scenes.length : 1, type: result.type };
+}
+
+// ═══ DENO SERVE ═══
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { project_id, chapter_id } = await req.json();
+    if (!project_id || !chapter_id) return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
+
+    const result = await runSceneArchitect(base44, project_id, chapter_id);
+    return Response.json(result);
+  } catch (error) {
+    console.error('sceneArchitect error:', error.message);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
