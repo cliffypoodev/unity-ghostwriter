@@ -288,7 +288,7 @@ html, body {
 .phase1-wrap {
   max-width: 960px;
   margin: 0 auto;
-  padding: 28px 24px 120px;
+  padding: 28px 24px 180px;
   display: grid;
   grid-template-columns: 192px 1fr;
   gap: 24px;
@@ -515,7 +515,7 @@ html, body {
 @media (max-width: 800px) {
   .phase1-wrap {
     grid-template-columns: 1fr;
-    padding: 16px 12px 100px;
+    padding: 16px 12px 180px;
   }
   .phase1-nav {
     display: none;
