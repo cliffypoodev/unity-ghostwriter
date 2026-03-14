@@ -1309,8 +1309,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
         </div>
 
-        {/* ══ STICKY FOOTER ══ */}
-        <div className="p1-footer">
+        {/* ══ FOOTER BUTTONS ══ */}
+        <div className="flex justify-end gap-3 py-6 mt-4 border-t border-slate-200 bg-white rounded-xl px-4">
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
             {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Save Specifications
