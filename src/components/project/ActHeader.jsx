@@ -27,7 +27,7 @@ const ACT_THEMES = {
   },
 };
 
-export default function ActHeader({ actNumber, act, status, chapterCount, generatedCount, onWriteAct, onGenerateBridge, isWriting, hasBridge, disabled, prevActComplete }) {
+export default function ActHeader({ actNumber, act, status, chapterCount, generatedCount, onWriteAct, isWriting, disabled, prevActComplete }) {
   if (!act) return null;
 
   const theme = ACT_THEMES[actNumber] || ACT_THEMES[1];
@@ -65,59 +65,19 @@ export default function ActHeader({ actNumber, act, status, chapterCount, genera
         />
       </div>
 
-      {/* Bridge status — differentiated success vs warning */}
-      {actNumber > 1 && (
-        <div className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-lg border text-[13px]",
-          hasBridge
-            ? "bg-green-50 border-green-200 text-green-800"
-            : prevActComplete
-              ? "bg-amber-50 border-amber-200 text-amber-800"
-              : "bg-slate-50 border-slate-200 text-slate-500"
-        )}>
-          <span className="font-bold text-sm shrink-0">
-            {hasBridge ? "✓" : prevActComplete ? "⚠" : "🔒"}
-          </span>
-          <span className="flex-1 min-w-0">
-            {hasBridge
-              ? `Continuity bridge ready — Act ${actNumber - 1} context loaded`
-              : prevActComplete
-                ? `Act ${actNumber - 1} complete — generate bridge for better continuity`
-                : `Complete Act ${actNumber - 1} first`
-            }
-          </span>
-          {!hasBridge && prevActComplete && onGenerateBridge && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-[11px] px-2.5 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); console.log("Bridge btn clicked (status area), actNumber:", actNumber, "calling with:", actNumber - 1); onGenerateBridge(actNumber - 1); }}
-              type="button"
-            >
-              <Sparkles className="w-3 h-3 mr-1" /> Generate Bridge
-            </Button>
-          )}
+      {/* Act dependency notice */}
+      {actNumber > 1 && !prevActComplete && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-slate-50 border-slate-200 text-slate-500 text-[13px]">
+          <span className="font-bold text-sm shrink-0">🔒</span>
+          <span>Complete Act {actNumber - 1} first</span>
         </div>
       )}
 
       {/* Action button — full width */}
       {isComplete ? (
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="flex-1 h-9 text-xs border-emerald-300 text-emerald-700" disabled>
-            <Check className="w-3.5 h-3.5 mr-1.5" /> Act {actNumber} Complete
-          </Button>
-          {actNumber < 3 && !hasBridge && onGenerateBridge && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 text-xs px-3 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); console.log("Bridge btn clicked (complete area), actNumber:", actNumber); onGenerateBridge(actNumber); }}
-              type="button"
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Generate Bridge
-            </Button>
-          )}
-        </div>
+        <Button size="sm" variant="outline" className="w-full h-9 text-xs border-emerald-300 text-emerald-700" disabled>
+          <Check className="w-3.5 h-3.5 mr-1.5" /> Act {actNumber} Complete
+        </Button>
       ) : (
         <Button
           className={cn("w-full h-10 text-sm font-semibold text-white", theme.btn)}
