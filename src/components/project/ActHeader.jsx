@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Check, Loader2, Play, RotateCcw, Lock, Sparkles } from "lucide-react";
+import { Check, Loader2, Play, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ACT_THEMES = {

@@ -666,7 +666,7 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [resumingFromChapter, setResumingFromChapter] = useState(null);
   const [regenOutlineConfirm, setRegenOutlineConfirm] = useState(false);
   const [writingActNumber, setWritingActNumber] = useState(null);
-  const [actBridges, setActBridges] = useState({});
+  
   const [customActSplits, setCustomActSplits] = useState(null);
 
   const { data: projectData } = useQuery({
@@ -759,18 +759,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     act3: { start: customActSplits.act2End + 1, end: totalCount, label: 'Act 3 — Fracture & Resolve' },
   } : autoActs;
 
-  // Load act bridge files on mount
-  useEffect(() => {
-    if (!projectId) return;
-    base44.entities.SourceFile.filter({ project_id: projectId }).then(files => {
-      const bridges = {};
-      for (const f of files) {
-        const m = f.filename?.match(/^act_(\d+)_bridge\.txt$/);
-        if (m) bridges[parseInt(m[1])] = true;
-      }
-      setActBridges(bridges);
-    }).catch(() => {});
-  }, [projectId, generatedCount]);
+  
 
   const handleGenerateOutline = async () => {
     setGenerating(true);
@@ -1388,36 +1377,6 @@ export default function GenerateTab({ projectId, onProceed }) {
     const act = acts?.[`act${actNumber}`];
     if (!act) return;
 
-    // If act > 1, inject continuity bridge context from the previous act
-    // Auto-generate bridge for previous act if it's complete but bridge is missing
-    if (actNumber > 1 && !actBridges[actNumber - 1]) {
-      const prevAct = acts[`act${actNumber - 1}`];
-      const prevStatus = getActStatus(chapters, acts, actNumber - 1);
-      if (prevStatus === 'complete') {
-        toast.info(`Generating Act ${actNumber - 1} continuity bridge…`);
-        try {
-          await base44.functions.invoke('generateActBridge', {
-            project_id: projectId,
-            act_number: actNumber - 1,
-            act_start: prevAct.start,
-            act_end: prevAct.end,
-          });
-          setActBridges(prev => ({ ...prev, [actNumber - 1]: true }));
-          toast.success(`Act ${actNumber - 1} bridge ready — context will be injected`);
-        } catch (err) {
-          console.warn('Bridge generation failed:', err.message);
-          healthMonitor.report({
-            severity: 'warning',
-            category: 'pipeline',
-            message: `Act bridge generation failed for Act ${actNumber - 1}`,
-            context: { act: actNumber - 1, issue: 'missing_act_bridge' },
-            raw: err,
-          });
-          toast.error('Bridge generation failed — proceeding without continuity context');
-        }
-      }
-    }
-
     const actChapters = getActChapters(chapters, acts, actNumber);
     const toWrite = actChapters.filter(c => c.status !== 'generated');
     if (toWrite.length === 0) {
@@ -1553,41 +1512,8 @@ export default function GenerateTab({ projectId, onProceed }) {
     setWritingActNumber(null);
     await refetchChapters();
 
-    // After act completion, prompt user to generate bridge (non-blocking toast)
-    if (actFullyComplete && actNumber < 3) {
-      toast.success(`Act ${actNumber} complete!`, {
-        description: `Generate the continuity bridge before writing Act ${actNumber + 1} for best story consistency.`,
-        duration: 15000,
-        action: {
-          label: `Generate Bridge`,
-          onClick: () => handleGenerateBridge(actNumber),
-        },
-      });
-    } else if (actFullyComplete && actNumber === 3) {
-      toast.success('Act 3 complete — all acts finished!');
-    }
-  };
-
-  // ── Generate Bridge handler (manual trigger from ActHeader) ──
-  const handleGenerateBridge = async (actNumArg) => {
-    const actNumber = (typeof actNumArg === 'object' && actNumArg !== null) ? actNumArg?.detail : actNumArg;
-    if (!actNumber || !acts) return;
-    const act = acts[`act${actNumber}`];
-    if (!act) return;
-    
-    toast.info(`Generating Act ${actNumber} bridge document…`);
-    try {
-      await base44.functions.invoke('generateActBridge', {
-        project_id: projectId,
-        act_number: actNumber,
-        act_start: act.start,
-        act_end: act.end,
-      });
-      setActBridges(prev => ({ ...prev, [actNumber]: true }));
-      toast.success(`Act ${actNumber} bridge ready`);
-    } catch (err) {
-      console.error('Bridge generation failed:', err);
-      toast.error(`Bridge generation failed: ${err.message || 'Unknown error'}`);
+    if (actFullyComplete) {
+      toast.success(`Act ${actNumber} complete!`);
     }
   };
 
@@ -1774,9 +1700,7 @@ export default function GenerateTab({ projectId, onProceed }) {
                   chapterCount={actChapters.length}
                   generatedCount={actGenerated}
                   onWriteAct={handleWriteAct}
-                  onGenerateBridge={handleGenerateBridge}
                   isWriting={writingActNumber === actNum}
-                  hasBridge={actNum === 1 ? !!actBridges[1] : !!actBridges[actNum - 1]}
                   disabled={!prevComplete || writeAllActive || interiorityMissing}
                   prevActComplete={prevComplete}
                 />
