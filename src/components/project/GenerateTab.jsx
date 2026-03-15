@@ -746,43 +746,55 @@ export default function GenerateTab({ projectId, onProceed }) {
   const resolvedBookMetadata = outline?.book_metadata || null;
 
   // ── Auto-unstick chapters left in "generating" status from a previous session ──
-  // Runs on a 15-second interval. If a chapter is "generating" in the DB but
-  // we have no active polling for it, it's stale — reset to "pending".
+  // IMPORTANT: This ONLY runs when NO chapters are actively being written.
+  // During active generation, the writeAndPoll loop handles its own timeouts.
+  // This catches orphaned "generating" statuses from crashed sessions or page refreshes.
   useEffect(() => {
     const unstickInterval = setInterval(async () => {
       if (chapters.length === 0) return;
+      // NEVER fire during active generation — the polling loop handles that
+      if (activeChapterIds.size > 0) return;
       const staleGenerating = chapters.filter(
-        c => c.status === 'generating' && !activeChapterIds.has(c.id)
+        c => c.status === 'generating'
       );
       if (staleGenerating.length > 0) {
         console.warn(`Auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
-        await Promise.all(
-          staleGenerating.map(c =>
-            base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
-          )
-        );
-        refetchChapters();
-        toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
+        try {
+          await Promise.all(
+            staleGenerating.map(c =>
+              base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
+            )
+          );
+          refetchChapters();
+          toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
+        } catch (e) {
+          // Swallow rate limit errors silently
+          if (!String(e?.message).includes('429')) console.warn('Unstick failed:', e.message);
+        }
       }
-    }, 15000); // Check every 15 seconds
+    }, 60000); // Check every 60 seconds (not 15 — avoids rate limit pressure)
 
-    // Also run once immediately on mount (catches chapters stuck from previous session)
+    // Run once on mount with a generous delay (catches chapters stuck from previous session)
     const mountCheck = setTimeout(async () => {
-      if (chapters.length === 0) return;
+      if (chapters.length === 0 || activeChapterIds.size > 0) return;
       const staleGenerating = chapters.filter(
-        c => c.status === 'generating' && !activeChapterIds.has(c.id)
+        c => c.status === 'generating'
       );
       if (staleGenerating.length > 0) {
         console.warn(`Mount: auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
-        await Promise.all(
-          staleGenerating.map(c =>
-            base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
-          )
-        );
-        refetchChapters();
-        toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
+        try {
+          await Promise.all(
+            staleGenerating.map(c =>
+              base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
+            )
+          );
+          refetchChapters();
+          toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
+        } catch (e) {
+          if (!String(e?.message).includes('429')) console.warn('Mount unstick failed:', e.message);
+        }
       }
-    }, 3000); // 3-second delay on mount to let activeChapterIds populate first
+    }, 5000); // 5-second delay on mount
 
     return () => { clearInterval(unstickInterval); clearTimeout(mountCheck); };
   }, [chapters.length, activeChapterIds.size]); // Re-establish interval when chapter count or active set changes
