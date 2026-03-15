@@ -746,30 +746,46 @@ export default function GenerateTab({ projectId, onProceed }) {
   const resolvedBookMetadata = outline?.book_metadata || null;
 
   // ── Auto-unstick chapters left in "generating" status from a previous session ──
-  // Runs on every chapters refetch. If a chapter is "generating" in the DB but
+  // Runs on a 15-second interval. If a chapter is "generating" in the DB but
   // we have no active polling for it, it's stale — reset to "pending".
-  const unstickCooldownRef = useRef(0);
   useEffect(() => {
-    if (chapters.length === 0) return;
-    const now = Date.now();
-    // Cooldown: don't run more than once per 10 seconds
-    if (now - unstickCooldownRef.current < 10000) return;
-    const staleGenerating = chapters.filter(
-      c => c.status === 'generating' && !activeChapterIds.has(c.id)
-    );
-    if (staleGenerating.length > 0) {
-      unstickCooldownRef.current = now;
-      console.warn(`Auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
-      Promise.all(
-        staleGenerating.map(c =>
-          base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
-        )
-      ).then(() => {
+    const unstickInterval = setInterval(async () => {
+      if (chapters.length === 0) return;
+      const staleGenerating = chapters.filter(
+        c => c.status === 'generating' && !activeChapterIds.has(c.id)
+      );
+      if (staleGenerating.length > 0) {
+        console.warn(`Auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
+        await Promise.all(
+          staleGenerating.map(c =>
+            base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
+          )
+        );
         refetchChapters();
         toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
-      });
-    }
-  }, [chapters]);
+      }
+    }, 15000); // Check every 15 seconds
+
+    // Also run once immediately on mount (catches chapters stuck from previous session)
+    const mountCheck = setTimeout(async () => {
+      if (chapters.length === 0) return;
+      const staleGenerating = chapters.filter(
+        c => c.status === 'generating' && !activeChapterIds.has(c.id)
+      );
+      if (staleGenerating.length > 0) {
+        console.warn(`Mount: auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
+        await Promise.all(
+          staleGenerating.map(c =>
+            base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
+          )
+        );
+        refetchChapters();
+        toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
+      }
+    }, 3000); // 3-second delay on mount to let activeChapterIds populate first
+
+    return () => { clearInterval(unstickInterval); clearTimeout(mountCheck); };
+  }, [chapters.length, activeChapterIds.size]); // Re-establish interval when chapter count or active set changes
 
   const generatedCount = chapters.filter(c => c.status === "generated").length;
   const totalCount = chapters.length;
@@ -1035,6 +1051,10 @@ export default function GenerateTab({ projectId, onProceed }) {
         raw: err,
       });
       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
+      // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
+      try {
+        await base44.entities.Chapter.update(chapter.id, { status: 'error' });
+      } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
     } finally {
       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
       setStreamingChapterId(null);
@@ -1172,6 +1192,10 @@ export default function GenerateTab({ projectId, onProceed }) {
           raw: pollErr,
         });
         result = 'error';
+        // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
+        try {
+          await base44.entities.Chapter.update(ch.id, { status: 'error' });
+        } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
       }
 
       if (result === 'generated') {
@@ -1293,6 +1317,10 @@ export default function GenerateTab({ projectId, onProceed }) {
           raw: pollErr,
         });
         result = 'error';
+        // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
+        try {
+          await base44.entities.Chapter.update(ch.id, { status: 'error' });
+        } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
       }
 
       if (result === 'generated') {
