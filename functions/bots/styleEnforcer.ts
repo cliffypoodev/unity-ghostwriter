@@ -168,28 +168,34 @@ function scanMetaResponse(text) {
   return [];
 }
 
-// ── EROTICA SENSATION SPECIFICITY SCANNER ───────────────────────────────────
+// ── VAGUE SENSATION SCANNER (ALL GENRES) ────────────────────────────────────
+// These patterns produce weak, unspecific prose in ANY genre — not just erotica.
+// Thrillers, horror, literary fiction, romance all suffer from abstract sensation labels.
 
-function scanEroticaSensations(text) {
+function scanVagueSensations(text) {
   const violations = [];
   const VAGUE_SENSATIONS = [
-    [/\belectricity\b/gi, '"electricity" for touch', 1],
-    [/\belectric\b/gi, '"electric" for touch', 1],
+    [/\belectricity\b/gi, '"electricity" for physical sensation', 1],
+    [/\belectric\b/gi, '"electric" for physical sensation', 2],
     [/\bjolt of \w+/gi, '"jolt of [noun]"', 2],
     [/\bsurge of \w+/gi, '"surge of [noun]"', 2],
     [/\bspike of \w+/gi, '"spike of [noun]"', 2],
-    [/\bwave of (pleasure|sensation|desire|heat|arousal)/gi, '"wave of [sensation]"', 0],
+    [/\bwave of (pleasure|sensation|desire|heat|arousal|fear|panic|relief|emotion|dread|nausea)/gi, '"wave of [abstract noun]"', 0],
     [/\bpure,?\s*undiluted\b/gi, '"pure undiluted"', 0],
     [/that stole (his|her|their) breath/gi, '"stole breath"', 1],
-    [/\bprofound\b.{0,15}\b(sensation|pleasure|coolness|warmth|ache|desire)/gi, '"profound [sensation]"', 0],
-    [/\bdevastating\b.{0,15}\b(sensation|pleasure|spike|arousal|desire)/gi, '"devastating [sensation]"', 1],
+    [/\bprofound\b.{0,15}\b(sensation|pleasure|coolness|warmth|ache|desire|sadness|silence|dread|loss)/gi, '"profound [sensation]"', 0],
+    [/\bdevastating\b.{0,15}\b(sensation|pleasure|spike|arousal|desire|blow|loss|silence|beauty)/gi, '"devastating [noun]"', 1],
     [/\bcoolness that burn/gi, '"coolness that burned" paradox', 1],
     [/\bcircuit complet/gi, '"circuit completing" metaphor', 1],
     [/\blive wire\b/gi, '"live wire" metaphor', 1],
-    [/\bsomething (metallic|deeper|else|warm|dark|ancient|spicy|sharp|clean|alien|new|familiar)\b/gi, '"something [adj]" vague placeholder', 3],
+    [/\bsomething (metallic|deeper|else|warm|dark|ancient|spicy|sharp|clean|alien|new|familiar|cold|heavy|wrong|different)\b/gi, '"something [adj]" vague placeholder', 3],
     [/\bozone and star anise\b/gi, 'repeated scent formula (ozone+star anise)', 2],
     [/\b(hum|thrum|vibrat\w+)\b/gi, '"hum/thrum/vibration"', 5],
     [/\bpooled? (in |low )/gi, '"pooled in/low"', 2],
+    [/\bsent (a |)(jolt|shiver|chill|wave|surge|bolt|current|shock|rush|spark) (through|down|up|along|across)/gi, '"sent [x] through [y]"', 0],
+    [/\bthreatened to (overwhelm|consume|drown|engulf|swallow)/gi, '"threatened to overwhelm"', 0],
+    [/\bcouldn't help but\b/gi, '"couldn\'t help but"', 0],
+    [/\bin that moment\b/gi, '"in that moment"', 1],
   ];
   for (const [rx, label, max] of VAGUE_SENSATIONS) {
     const m = text.match(rx);
@@ -205,8 +211,12 @@ function scanEroticaSensations(text) {
 function scanInteriorityRepetition(text) {
   const violations = [];
   const INTERIORITY_CAPS = [
+    // These apply to ALL genres — repetitive emotional vocabulary weakens any prose
     [/\bhollow\b/gi, '"hollow"', 2],
     [/\bhollow place\b/gi, '"hollow place"', 1],
+    [/\bhollowness\b/gi, '"hollowness"', 1],
+    [/\bempty\b/gi, '"empty"', 3],
+    [/\bemptiness\b/gi, '"emptiness"', 1],
     [/\bunlovable\b/gi, '"unlovable"', 1],
     [/\bcore wound\b/gi, '"core wound"', 1],
     [/\bold wound\b/gi, '"old wound"', 1],
@@ -215,7 +225,11 @@ function scanInteriorityRepetition(text) {
     [/\bscraped raw\b/gi, '"scraped raw"', 1],
     [/\blaid bare\b/gi, '"laid bare"', 1],
     [/smelled? like failure/gi, '"smelled like failure"', 0],
-    [/\bhollowness\b/gi, '"hollowness"', 1],
+    [/\bshattered\b/gi, '"shattered"', 2],
+    [/\bbroken\b/gi, '"broken" (emotional)', 3],
+    [/\bnumb(ness)?\b/gi, '"numb/numbness"', 2],
+    [/\bvoid\b/gi, '"void"', 2],
+    [/\baching?\b/gi, '"ache/aching"', 3],
   ];
   for (const [rx, label, max] of INTERIORITY_CAPS) {
     const m = text.match(rx);
@@ -254,9 +268,11 @@ function scanInstructionLeaks(text) {
     /as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi,
     /per the (outline|beat sheet|specification)/gi,
     /I('ll| will) (now |)write (this |the )(chapter|scene|section)/gi,
-    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving)/gmi,
-    /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
     /\[VERIFY[:\s]/gi,
+    // Scene direction notes that got printed as prose — catch line-initial directives
+    /^(Begin|Show|Either establish|Continue from|Start with|Open with|Transition from|Describe how|Establish) /gm,
+    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving|timeline|earlier)/gmi,
+    /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
@@ -437,7 +453,9 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   }
 
   // ── Phase A: Scan for all violations ──
-  const isErotica = /erotica|erotic|romance|bdsm/.test(((ctx.spec?.genre || '') + ' ' + (ctx.spec?.subgenre || '')).toLowerCase()) || (parseInt(ctx.spec?.spice_level) || 0) >= 3;
+  // Note: vague sensation scan, interiority repetition, dialogue patterns, POV distance,
+  // instruction leaks, and scene endings apply to ALL genres — not gated behind erotica/nonfiction.
+  // Only nonfiction-specific and Gemini-specific scans are genre-gated.
 
   const allViolations = [
     ...scanMetaResponse(text),
@@ -450,7 +468,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanDialoguePatterns(text),
     ...scanPovDistance(text),
     ...scanScentOpener(text),
-    ...(isErotica ? scanEroticaSensations(text) : []),
+    ...scanVagueSensations(text),
     ...(ctx.isNonfiction ? scanNonfictionPatterns(text) : []),
     ...(ctx.isNonfiction ? scanGeminiNonfictionPatterns(text) : []),
   ];
