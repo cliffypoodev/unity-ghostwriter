@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X, Eye, Check, Loader2 } from "lucide-react";
+import { Search, X, Eye, Check, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getCategoryType, filterCategoriesByType, filterTagsByType } from "../constants/catalogTaxonomy";
@@ -205,6 +205,59 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
     setPage(1);
   };
 
+  const [inspiring, setInspiring] = useState(false);
+
+  const handleNeedInspiration = async () => {
+    if (allPrompts.length < 2) {
+      toast.error("Not enough prompts in the catalog to generate inspiration");
+      return;
+    }
+    setInspiring(true);
+    try {
+      // Pick 3-5 random prompts from the catalog (respecting current book type filter)
+      const pool = bookTypeFilter !== "all"
+        ? allPrompts.filter(p => p.book_type === bookTypeFilter)
+        : allPrompts;
+      if (pool.length < 2) {
+        toast.error("Not enough prompts for this book type");
+        setInspiring(false);
+        return;
+      }
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      const seeds = shuffled.slice(0, Math.min(4, pool.length));
+      const seedSummaries = seeds.map(s => `"${s.title}" — ${(s.description || s.content || '').slice(0, 120)}`).join('\n');
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a creative writing prompt generator. Below are ${seeds.length} existing book prompts from a catalog. Use them as loose inspiration to create ONE completely NEW and UNIQUE book premise that combines unexpected elements, twists genres, or merges themes in a fresh way.
+
+SEED PROMPTS:
+${seedSummaries}
+
+Generate a brand new premise that is:
+- Original and distinct from the seeds (not a copy or slight variation)
+- Compelling and specific (not generic)
+- 2-4 sentences, ready to be used as a book topic/premise
+
+Return ONLY the premise text, nothing else. No title, no labels, no quotes around it.`,
+      });
+
+      const generatedPremise = typeof result === 'string' ? result.trim() : (result?.trim?.() || '');
+      if (generatedPremise) {
+        onSelectPrompt({
+          title: "AI-Generated Inspiration",
+          content: generatedPremise,
+          book_type: bookTypeFilter !== "all" ? bookTypeFilter : "",
+        });
+        toast.success("Fresh premise generated from catalog inspiration!");
+      }
+    } catch (err) {
+      console.error("Inspiration generation error:", err);
+      toast.error("Failed to generate inspiration");
+    } finally {
+      setInspiring(false);
+    }
+  };
+
   const availableGenres = useMemo(() => {
     const source = bookTypeFilter === "all"
       ? allPrompts
@@ -302,6 +355,17 @@ export default function PromptCatalogBrowser({ isOpen, onClose, onSelectPrompt, 
           <span className="text-sm text-slate-500 ml-auto">
             {filteredPrompts.length} of {allPrompts.length} prompts
           </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNeedInspiration}
+            disabled={inspiring}
+            className="text-xs border-violet-300 text-violet-700 hover:bg-violet-50"
+          >
+            {inspiring ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+            {inspiring ? "Generating..." : "Need Inspiration?"}
+          </Button>
 
           {isFiltered && (
             <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs">

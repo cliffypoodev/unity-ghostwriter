@@ -40,7 +40,6 @@ import { Save, Loader2, Send, ArrowRight, MessageSquare, Wand2, Search, X, Light
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
-import PromptSuggestions from "./PromptSuggestions";
 import PromptCatalogBrowser from "./PromptCatalogBrowser";
 import AuthorVoiceSelector, { ALL_AUTHOR_PROFILES, resolveAuthorId } from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
@@ -1190,14 +1189,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
             )}
 
-            <div className="mt-3">
-              <PromptSuggestions
-                bookType={form.book_type}
-                genre={form.genre}
-                onSelect={handleSelectPrompt}
-                onBrowseAll={() => setShowCatalogBrowser(true)}
-              />
-            </div>
+
           </div>
         </div>
 
