@@ -175,6 +175,119 @@ function checkCapabilities(text, storyBible) {
   return violations;
 }
 
+// ═══ NONFICTION SUBJECT DEDUPLICATION ═══
+
+function checkNonfictionSubjectOverlap(text, ctx, chCtx) {
+  if (!ctx.isNonfiction) return [];
+  const violations = [];
+  const { chapter } = chCtx;
+  const chNum = chapter.chapter_number;
+  const outlineChapters = ctx.outlineData?.chapters || [];
+
+  // Build a map of each chapter's primary subject from outline
+  const chapterSubjects = {};
+  for (const oc of outlineChapters) {
+    const num = oc.number || oc.chapter_number;
+    if (!num) continue;
+    // Extract primary subject from title + summary
+    const subjectText = ((oc.title || '') + ' ' + (oc.summary || '')).toLowerCase();
+    chapterSubjects[num] = { title: oc.title || '', summary: oc.summary || '', subjectText };
+  }
+
+  // Also check the project's chapter_subjects_log if available
+  const subjectsLog = ctx.project?.chapter_subjects_log || '';
+  const logEntries = subjectsLog.split('\n').filter(l => l.trim());
+
+  // Extract prominent proper nouns from the current chapter's prose (first 8000 chars)
+  const proseSlice = text.slice(0, 8000);
+  const properNounRx = /\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){0,2})\b/g;
+  const nounCounts = {};
+  let match;
+  while ((match = properNounRx.exec(proseSlice)) !== null) {
+    const name = match[1];
+    // Skip common sentence-start words
+    if (/^(The|This|That|These|Those|When|Where|What|While|After|Before|During|Between|Through|Their|There|Here|Most|Some|Many|Each|Every|However|Although|Because|Since|Until|About|According)$/.test(name)) continue;
+    nounCounts[name] = (nounCounts[name] || 0) + 1;
+  }
+
+  // Find the top mentioned proper nouns (likely primary subjects)
+  const topNouns = Object.entries(nounCounts)
+    .filter(([, count]) => count >= 5)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  // Cross-reference: check if any top noun is the primary subject of a DIFFERENT chapter
+  for (const noun of topNouns) {
+    const nounLower = noun.toLowerCase();
+    for (const [numStr, data] of Object.entries(chapterSubjects)) {
+      const otherNum = parseInt(numStr);
+      if (otherNum === chNum) continue;
+
+      // Check if this noun appears prominently in another chapter's title/summary
+      const inTitle = data.title.toLowerCase().includes(nounLower);
+      const inSummary = data.subjectText.includes(nounLower);
+
+      if (inTitle) {
+        // This person/subject has a DEDICATED chapter (appears in title)
+        const mentionCount = nounCounts[noun] || 0;
+        if (mentionCount > 15) {
+          violations.push({
+            type: 'subject_overlap',
+            severity: 'critical',
+            character: noun,
+            description: `SUBJECT OVERLAP: "${noun}" is the primary subject of Ch ${otherNum} ("${data.title}") but appears ${mentionCount} times in Ch ${chNum}. This chapter must cover NEW ground not addressed in Ch ${otherNum}. Mention "${noun}" only in passing (1-2 paragraphs max).`,
+            location: proseSlice.slice(proseSlice.indexOf(noun), proseSlice.indexOf(noun) + 80),
+            suggested_fix: `Reduce "${noun}" coverage to 1-2 brief paragraphs. Their dedicated chapter is Ch ${otherNum}. Focus this chapter on its own primary subject instead.`,
+          });
+        } else if (mentionCount > 8) {
+          violations.push({
+            type: 'subject_cross_ref',
+            severity: 'warning',
+            character: noun,
+            description: `"${noun}" has a dedicated chapter (Ch ${otherNum}: "${data.title}") but appears ${mentionCount} times here. Keep to 1-2 paragraphs max to avoid covering the same biographical ground.`,
+            location: proseSlice.slice(proseSlice.indexOf(noun), proseSlice.indexOf(noun) + 80),
+            suggested_fix: `Trim "${noun}" references to brief contextual mentions only. Save detailed coverage for Ch ${otherNum}.`,
+          });
+        }
+      }
+    }
+  }
+
+  // Also check subjects_log for overlap detection
+  for (const logLine of logEntries) {
+    // Format: [TIME PERIOD] | [PRIMARY SUBJECT] | [LOCATION]
+    const parts = logLine.split('|').map(s => s.trim());
+    if (parts.length < 2) continue;
+    const logSubject = parts[1].toLowerCase();
+    const logChNumMatch = logLine.match(/^Ch\s*(\d+)/i);
+    if (!logChNumMatch) continue;
+    const logChNum = parseInt(logChNumMatch[1]);
+    if (logChNum === chNum) continue;
+
+    // Check if current chapter's title/summary overlaps with a logged subject
+    const currentSubject = chapterSubjects[chNum];
+    if (currentSubject) {
+      const currentText = currentSubject.subjectText;
+      // Check for significant word overlap (not just single common words)
+      const logWords = logSubject.split(/\s+/).filter(w => w.length > 3);
+      const matchingWords = logWords.filter(w => currentText.includes(w));
+      if (matchingWords.length >= 2) {
+        violations.push({
+          type: 'subject_overlap',
+          severity: 'warning',
+          character: parts[1],
+          description: `Potential thematic overlap: Ch ${chNum} and Ch ${logChNum} may cover similar ground ("${parts[1]}"). Verify chapters address distinct aspects.`,
+          location: chapter.title,
+          suggested_fix: `Ensure this chapter focuses on a different angle or time period than Ch ${logChNum}.`,
+        });
+      }
+    }
+  }
+
+  return violations;
+}
+
 // ═══ AI-POWERED DEEP CHECK ═══
 
 async function runAIConsistencyCheck(text, ctx, chCtx) {
