@@ -254,6 +254,9 @@ function scanInstructionLeaks(text) {
     /as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi,
     /per the (outline|beat sheet|specification)/gi,
     /I('ll| will) (now |)write (this |the )(chapter|scene|section)/gi,
+    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving)/gmi,
+    /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
+    /\[VERIFY[:\s]/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
