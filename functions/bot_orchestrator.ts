@@ -23,14 +23,23 @@ async function resolveContent(content) {
 
 // ── BOT INVOCATIONS ─────────────────────────────────────────────────────────
 
-async function invokeBot(base44, botName, payload) {
+async function invokeBot(base44, botName, payload, retries = 3) {
   const startMs = Date.now();
-  try {
-    const result = await base44.functions.invoke(botName, payload, { timeout: 600000 });
-    return { success: true, data: result.data || result, duration_ms: Date.now() - startMs };
-  } catch (err) {
-    console.error(`Bot ${botName} failed:`, err.message);
-    return { success: false, error: err.message, duration_ms: Date.now() - startMs };
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await base44.functions.invoke(botName, payload, { timeout: 600000 });
+      return { success: true, data: result.data || result, duration_ms: Date.now() - startMs };
+    } catch (err) {
+      const is429 = err.message?.includes('429') || err.message?.includes('Rate limit') || err.message?.includes('rate limit');
+      if (is429 && attempt < retries) {
+        const delay = (attempt + 1) * 15000; // 15s, 30s, 45s
+        console.warn(`Bot ${botName}: rate limited (attempt ${attempt + 1}/${retries + 1}), waiting ${delay / 1000}s...`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      console.error(`Bot ${botName} failed:`, err.message);
+      return { success: false, error: err.message, duration_ms: Date.now() - startMs };
+    }
   }
 }
 
