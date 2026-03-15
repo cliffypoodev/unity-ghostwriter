@@ -259,10 +259,15 @@ function buildFictionSystemPrompt(ctx, chCtx) {
       'third-multi': 'Write in THIRD PERSON MULTIPLE POV. Each scene stays in one character\'s perspective. Mark POV shifts with scene breaks (* * *). Use character names and pronouns, not clinical descriptors.',
       'third-omniscient': 'Write in THIRD PERSON OMNISCIENT. The narrator can see into any character\'s mind and can editorialize. Maintain a consistent narrative voice throughout.',
       'second-person': 'Write in SECOND PERSON (you/your). Address the reader directly as the protagonist. "You walk into the room. You feel the tension."',
+      'nf-author': 'Write in AUTHOR VOICE (I/we). The author speaks from personal experience and authority. Use "I" for personal accounts, "we" for shared human experience. This is reflective, opinionated, and grounded in lived knowledge.',
+      'nf-direct': 'Write in DIRECT ADDRESS (you). Speak to the reader as "you" throughout. Instructional, prescriptive, conversational. "You need to understand..." / "Here\'s what you do..." The reader is the student; the author is the guide.',
+      'nf-third': 'Write in THIRD PERSON NARRATIVE. Maintain observational distance. Refer to subjects by name and role. The author is an invisible narrator reconstructing events. "Kennedy entered the room..." / "The study revealed..." No "I" or "you."',
+      'nf-editorial': 'Write in EDITORIAL MIX (I + you + they). The author shifts fluidly between personal authority ("I investigated..."), reader engagement ("you might assume..."), and third-person narrative ("the officials claimed..."). This is the voice of longform journalism and investigative nonfiction.',
     };
     const TENSE_INSTRUCTIONS = {
       'past': 'Write in PAST TENSE (walked, said, thought). This is the default narrative tense. Do NOT slip into present tense during action sequences or tense moments.',
       'present': 'Write in PRESENT TENSE (walks, says, thinks). Maintain present tense consistently. Do NOT slip into past tense for backstory — use past perfect ("had walked") for flashbacks only.',
+      'mixed': 'Write in MIXED TENSE. Use PRESENT TENSE for analysis, commentary, and direct address ("This pattern reveals..." / "What we see here is..."). Use PAST TENSE for reconstructed events, historical narrative, and quoted sources ("The committee met..." / "She testified that..."). Transition cleanly between the two — present for the author\'s lens, past for the story.',
     };
     sp += `\n\n=== POV & TENSE (MANDATORY — DO NOT DEVIATE) ===`;
     if (povMode && POV_INSTRUCTIONS[povMode]) sp += `\n${POV_INSTRUCTIONS[povMode]}`;
@@ -307,6 +312,21 @@ function buildNonfictionSystemPrompt(ctx, chCtx, targetWords) {
   const { chapter } = chCtx;
   const beatInstructions = getBeatStyleInstructions(spec?.tone_style || spec?.beat_style);
 
+  // ── POV & TENSE for nonfiction ──
+  const NF_POV = {
+    'nf-author': 'AUTHOR VOICE (I/we) — Write from personal experience and authority. Use "I" for personal accounts, "we" for shared experience. Reflective, opinionated, grounded.',
+    'nf-direct': 'DIRECT ADDRESS (you) — Speak to the reader as "you" throughout. Instructional, prescriptive, conversational. The reader is the student; the author is the guide.',
+    'nf-third': 'THIRD PERSON NARRATIVE — Maintain observational distance. Refer to subjects by name and role. No "I" or "you." The author is an invisible narrator reconstructing events.',
+    'nf-editorial': 'EDITORIAL MIX (I + you + they) — Shift fluidly between personal authority ("I investigated..."), reader engagement ("you might assume..."), and third-person narrative ("the officials claimed...").',
+  };
+  const NF_TENSE = {
+    'past': 'PAST TENSE — Events described as completed actions (walked, said, revealed). Standard for biography, history, memoir.',
+    'present': 'PRESENT TENSE — Analysis and events in present (walks, says, reveals). Creates immediacy. Standard for prescriptive/instructional.',
+    'mixed': 'MIXED TENSE — Present for analysis and commentary ("This pattern reveals..."), past for reconstructed events ("The committee met..."). Transition cleanly between the two.',
+  };
+  const povLine = NF_POV[spec?.pov_mode] || NF_POV['nf-editorial'];
+  const tenseLine = NF_TENSE[spec?.tense] || NF_TENSE['mixed'];
+
   return `═══ PROJECT CONTEXT ═══
 TYPE: NONFICTION | GENRE: ${spec?.genre || 'General'}${spec?.subgenre ? ' / ' + spec.subgenre : ''} | BEAT: ${beatInstructions.split('\n')[0]}
 ═══════════════════════
@@ -320,12 +340,17 @@ Genre: ${spec?.genre || 'General'}${spec?.subgenre ? `\nSubgenre: ${spec.subgenr
 Beat Style: ${beatInstructions}
 Target Audience: ${spec?.target_audience || 'General readers'}
 
+=== POV & TENSE (MANDATORY — DO NOT DEVIATE) ===
+${povLine}
+${tenseLine}
+Never refer to subjects as "the human," "the man," "the subject," or similar clinical descriptors. Use their NAME or role.
+=== END POV & TENSE ===
+
 THIS IS NONFICTION:
-1. DIRECT ADDRESS — Speak to the reader as "you" when appropriate.
-2. GROUNDED VIGNETTES — Brief concrete observational moments, NOT fictional dialogue scenes.
-3. PHILOSOPHICAL REFLECTION — After grounding, explain what the moment means.
-4. INSTRUCTIONAL CLARITY — Offer frameworks, principles, direct guidance.
-5. EMOTIONAL HONESTY — Specificity and restraint, not fictional scenes.
+1. GROUNDED VIGNETTES — Brief concrete observational moments, NOT fictional dialogue scenes.
+2. PHILOSOPHICAL REFLECTION — After grounding, explain what the moment means.
+3. INSTRUCTIONAL CLARITY — Offer frameworks, principles, direct guidance.
+4. EMOTIONAL HONESTY — Specificity and restraint, not fictional scenes.
 
 STRUCTURE: Vignettes (1-4 paragraphs) then authorial analysis (3-5 paragraphs).
 
