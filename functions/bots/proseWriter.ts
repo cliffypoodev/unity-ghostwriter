@@ -339,6 +339,22 @@ function buildFictionSystemPrompt(ctx, chCtx) {
     sp += `\n\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist's transformation.\n=== END ===`;
   }
 
+  // Short-form story enforcement
+  const totalChapters = ctx.totalChapters || 1;
+  if (totalChapters <= 2) {
+    sp += `\n\n=== SHORT-FORM COMPLETE ARC (MANDATORY — ${totalChapters} CHAPTER PROJECT) ===
+This is a SHORT-FORM story. The ENTIRE story must be COMPLETE within ${totalChapters} chapter(s).
+- Do NOT write this as "Chapter 1 of a longer story." Write it as a COMPLETE narrative.
+- The chapter MUST contain: setup, escalation, climax, and resolution/aftermath.
+- Do NOT end on a cliffhanger, unresolved tension, or "to be continued."
+- Do NOT spend the entire chapter on buildup without delivering the climactic scene.
+- The MAIN EVENT the premise promises MUST happen ON-PAGE. Not teased, not implied, not cut away from.
+- Minimum 40% of word count = the climactic scene + immediate aftermath.
+- If this is erotica/romance with Spice >= 3: the explicit scene MUST be WRITTEN ON THE PAGE within this chapter.
+- Structure: ~25% setup/tension → ~50% escalation + climactic scene → ~25% aftermath/resolution.
+=== END SHORT-FORM ===`;
+  }
+
   return sp;
 }
 
