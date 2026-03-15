@@ -154,18 +154,47 @@ When the scene reaches physical intimacy beyond kissing:
 // Controls the VOCABULARY and TONE of intimate scenes only. Non-intimate prose
 // follows the selected beat style regardless of this setting.
 const EROTICA_REGISTER = {
-  0: { name: "Literary", instructions: `INTIMATE SCENE PROSE REGISTER: LITERARY
-Write intimate scenes with lyrical, emotionally rich prose. Use metaphor, sensory poetry, and emotional interiority. Anatomical language should be indirect or poetic — "the heat of him," "where their bodies joined," "the slick friction between them." Dialogue during intimacy should be sparse, tender, or breathlessly fragmented. The emphasis is on the EMOTIONAL experience of physical connection. This is literary erotica — beautiful, devastating, artful.` },
+  0: { name: "Literary", instructions: `=== INTIMATE SCENE PROSE REGISTER: LITERARY (ACTIVE) ===
+Write intimate scenes with lyrical, emotionally rich prose. Use metaphor, sensory poetry, and emotional interiority. Anatomical language should be indirect or poetic — "the heat of him," "where their bodies joined," "the slick friction between them." Dialogue during intimacy should be sparse, tender, or breathlessly fragmented. The emphasis is on the EMOTIONAL experience of physical connection. This is literary erotica — beautiful, devastating, artful.
+=== END REGISTER ===` },
 
-  1: { name: "Naturalistic", instructions: `INTIMATE SCENE PROSE REGISTER: NATURALISTIC
-Write intimate scenes with plain, direct, unadorned prose. Use correct anatomical terms without euphemism or poetry — cock, cunt, nipple, ass, thigh — but without vulgarity or crude slang. Dialogue during intimacy should be natural, the way real people speak during sex — short, direct, sometimes awkward. No purple prose. No metaphorical flourishes. The emphasis is on PHYSICAL REALISM. "He slid inside her and she gasped, gripping his shoulders." Not "their souls merged in a devastating confluence."` },
+  1: { name: "Naturalistic", instructions: `=== INTIMATE SCENE PROSE REGISTER: NATURALISTIC (ACTIVE) ===
+Write intimate scenes with plain, direct, unadorned prose. Use correct anatomical terms without euphemism or poetry — cock, cunt, nipple, ass, thigh — but without vulgarity or crude slang. Dialogue during intimacy should be natural, the way real people speak during sex — short, direct, sometimes awkward. No purple prose. No metaphorical flourishes. The emphasis is on PHYSICAL REALISM.
+CORRECT: "He slid inside her and she gasped, gripping his shoulders."
+WRONG: "Their souls merged in a devastating confluence of need."
+This register applies ONLY to intimate scenes. Non-intimate prose follows the selected beat style.
+=== END REGISTER ===` },
 
-  2: { name: "Vernacular", instructions: `INTIMATE SCENE PROSE REGISTER: VERNACULAR
-Write intimate scenes using common sexual slang and casual dirty talk. Characters should speak the way real people talk during sex — blunt, hungry, sometimes crude. Use colloquial terms: cock, dick, pussy, ass, tits, fuck, suck, ride, pound. Dialogue should be direct and graphic: "Fuck me harder," "You feel so good," "I want to taste you." The prose itself should be punchy and fast-paced, not flowery. Body parts are named plainly. Actions are described explicitly. No poetic metaphors for genitals or sex acts. The emphasis is on RAW DESIRE communicated in everyday language.` },
+  2: { name: "Vernacular", instructions: `=== INTIMATE SCENE PROSE REGISTER: VERNACULAR (ACTIVE) ===
+Write intimate scenes using common sexual slang and casual dirty talk. Characters speak the way real people talk during sex — blunt, hungry, sometimes crude. Use colloquial terms: cock, dick, pussy, ass, tits, fuck, suck, ride, pound. Dialogue is direct and graphic: "Fuck me harder," "You feel so good," "I want to taste you." The prose itself is punchy and fast-paced, not flowery. Body parts are named plainly. Actions are described explicitly. No poetic metaphors for genitals or sex acts.
+CORRECT: "He grabbed her hips and fucked her hard, the bed slamming the wall."
+WRONG: "He claimed her with a devastating urgency, their bodies finding a primal rhythm."
+This register applies ONLY to intimate scenes. Non-intimate prose follows the selected beat style.
+=== END REGISTER ===` },
 
-  3: { name: "Raw / Smut", instructions: `INTIMATE SCENE PROSE REGISTER: RAW / SMUT
-Write intimate scenes with maximum vulgarity and zero restraint. This is unfiltered smut. Use the most explicit terms available: cock, cunt, asshole, dick, tits, cum, slut, whore (if consensual/in-character), breed, gag, choke, wreck. Dirty talk should be graphic and dominant: "Take it," "You're dripping for me," "I'm going to ruin you." The prose itself is aggressive, blunt, and prioritizes raw sexual energy over emotional nuance. No euphemisms. No metaphors. No "their bodies became one." Instead: "He fucked her until she screamed." The emphasis is on VISCERAL, UNAPOLOGETIC CARNALITY. Emotional beats exist only as fuel for desire, not as counterweight to it.
-IMPORTANT: This register applies ONLY to intimate scenes. Non-intimate prose should still follow the selected beat style and maintain narrative quality.` },
+  3: { name: "Raw / Smut", instructions: `=== INTIMATE SCENE PROSE REGISTER: RAW / SMUT (ACTIVE — OVERRIDES LITERARY DEFAULTS) ===
+CRITICAL OVERRIDE: During intimate scenes, this register SUPERSEDES the quality upgrades and prose style rules above. Do NOT write intimate scenes in a literary, lyrical, or emotionally poetic register. The user has explicitly chosen RAW SMUT. Respect that choice.
+
+VOCABULARY: Use the most explicit terms available. cock, cunt, asshole, dick, tits, cum, hole, slit, breed, gag, wreck, ruin, use, fill, pound, slam, choke, drip, leak, swallow, gape. Slut and whore are permitted if consensual and in-character. NEVER use euphemisms like "his length," "her core," "their joining," "the heat of him," "where their bodies met." Call body parts and acts by their bluntest names.
+
+DIRTY TALK: Characters talk during sex. Graphic, dominant, possessive, filthy. "Take it." "You're dripping for me." "I'm going to wreck this hole." "Beg for it." "You love getting fucked like this." Dirty talk should appear in EVERY intimate scene, not just one.
+
+PROSE STYLE: Short, punchy sentences. Active verbs. Physical choreography over emotional metaphor. Describe what bodies DO — thrust, grip, spread, clench, gag, slam — not what souls feel. Emotional beats exist as fuel for desire, not counterweight.
+
+WRONG (literary register leaking through):
+"Pleasure detonated, a system-wide cascade, a full-body convulsion that felt like a fundamental reorganization."
+"The sensation was devastating in its gentleness, a masterful contrast to the sheer power."
+"A devastating confluence of need."
+
+CORRECT (raw/smut register):
+"He came so hard his vision went white, cum painting his stomach, his hole clenching around the thick cock still buried in him."
+"Zephyr fucked him into the mattress, each thrust punching a grunt out of him."
+"'Harder,' Marcus begged. 'Fucking wreck me.'"
+
+The model MUST default to the CORRECT examples above, not the WRONG ones. If a sentence about sex could appear in a literary novel, rewrite it dirtier.
+
+This register applies ONLY to intimate/sexual scenes. Non-intimate prose (dialogue, worldbuilding, plot, emotional scenes outside of sex) should still follow the selected beat style and maintain narrative quality.
+=== END REGISTER ===` },
 };
 
 // ── NONFICTION SOURCE ANCHORING ─────────────────────────────────────────────
@@ -294,7 +323,15 @@ function buildFictionSystemPrompt(ctx, chCtx) {
     const registerLevel = Math.max(0, Math.min(3, parseInt(spec?.erotica_register) || 0));
     const register = EROTICA_REGISTER[registerLevel];
     if (register) {
-      sp += `\n\n${register.instructions}`;
+      if (registerLevel >= 2) {
+        // Vernacular and Raw registers need override authority
+        sp += `\n\n╔══════════════════════════════════════════════════════╗`;
+        sp += `\n║  PROSE REGISTER OVERRIDE — ${register.name.toUpperCase()} — READ THIS LAST  ║`;
+        sp += `\n╚══════════════════════════════════════════════════════╝`;
+        sp += `\n${register.instructions}`;
+      } else {
+        sp += `\n\n${register.instructions}`;
+      }
     }
   }
 
