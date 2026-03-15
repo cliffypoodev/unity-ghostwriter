@@ -440,6 +440,106 @@ function checkNonfictionSubjectOverlap(text, ctx, chCtx) {
   return violations;
 }
 
+// ═══ POV CONSISTENCY CHECK (v6) ═══
+
+function checkPovConsistency(text, spec) {
+  const violations = [];
+  const povMode = spec?.pov_mode;
+  if (!povMode) return violations;
+  const sample = text.slice(0, 3000);
+  const fullSample = text;
+  if (povMode === 'first-person') {
+    const firstPersonCount = (sample.match(/\b(I|me|my|myself|I'm|I'd|I've|I'll)\b/g) || []).length;
+    const thirdNarration = (sample.match(/\b(he thought|she thought|he felt|she felt|he knew|she knew|he wondered|she wondered)\b/gi) || []).length;
+    if (firstPersonCount < 3 && thirdNarration > 2) {
+      violations.push({ type: 'pov_drift', severity: 'critical', character: null, description: `POV set to first-person but chapter uses third-person narration (${thirdNarration} instances of "he/she thought/felt/knew"). Rewrite in first person.`, location: sample.slice(0, 80) });
+    }
+  } else if (povMode === 'third-close' || povMode === 'third-multi') {
+    const withoutDialogue = fullSample.replace(/[""\u201C][^""\u201D]*[""\u201D]/g, '').replace(/'[^']*'/g, '');
+    const firstPersonNarration = (withoutDialogue.match(/\bI\s+(was|am|had|have|went|thought|felt|knew|saw|heard|could|would|should|walked|stood|sat|ran|looked)\b/g) || []).length;
+    if (firstPersonNarration > 3) {
+      violations.push({ type: 'pov_drift', severity: 'critical', character: null, description: `POV set to third-person but chapter contains ${firstPersonNarration} first-person narration instances outside dialogue.`, location: 'Multiple locations' });
+    }
+  } else if (povMode === 'second-person') {
+    const secondPersonCount = (sample.match(/\b(you|your|yourself|you're|you've|you'll)\b/g) || []).length;
+    if (secondPersonCount < 5) {
+      violations.push({ type: 'pov_drift', severity: 'critical', character: null, description: `POV set to second-person but chapter doesn't use "you/your" address (only ${secondPersonCount} instances).`, location: sample.slice(0, 80) });
+    }
+  }
+  return violations;
+}
+
+// ═══ TENSE CONSISTENCY CHECK (v6) ═══
+
+function checkTenseConsistency(text, spec) {
+  const violations = [];
+  const tense = spec?.tense;
+  if (!tense) return violations;
+  const withoutDialogue = text.replace(/[""\u201C][^""\u201D]*[""\u201D]/g, '').replace(/'[^']*'/g, '');
+  const sentences = withoutDialogue.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 50);
+  if (tense === 'past') {
+    let presentCount = 0;
+    const presentPatterns = /\b(he|she|they|it)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes)\b/gi;
+    for (const s of sentences) { presentCount += (s.match(presentPatterns) || []).length; }
+    if (presentCount > 8) {
+      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `Tense set to past but chapter contains ${presentCount} present-tense narrative verbs.`, location: 'Multiple locations' });
+    }
+  } else if (tense === 'present') {
+    let pastCount = 0;
+    const pastPatterns = /\b(he|she|they|it)\s+(walked|ran|said|thought|felt|knew|saw|heard|stood|sat|looked|moved|turned|opened|closed|stepped|reached|pulled|pushed)\b/gi;
+    for (const s of sentences) { pastCount += (s.match(pastPatterns) || []).length; }
+    if (pastCount > 8) {
+      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `Tense set to present but chapter contains ${pastCount} past-tense narrative verbs.`, location: 'Multiple locations' });
+    }
+  }
+  return violations;
+}
+
+// ═══ CHARACTER NAME USAGE CHECK (v6) ═══
+
+function checkCharacterNameUsage(text, characters) {
+  const violations = [];
+  if (!characters || characters.length === 0) return violations;
+  const CLINICAL_DESCRIPTORS = ['the human', 'the programmer', 'the man', 'the woman', 'the subject', 'the candidate', 'the creature', 'the being', 'the entity', 'the alien', 'the stranger', 'the figure'];
+  for (const descriptor of CLINICAL_DESCRIPTORS) {
+    const rx = new RegExp(descriptor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const count = (text.match(rx) || []).length;
+    if (count > 3) {
+      violations.push({ type: 'name_avoidance', severity: 'warning', character: null, description: `"${descriptor}" used ${count}x — use character names for reader intimacy.`, location: descriptor });
+    }
+  }
+  return violations;
+}
+
+// ═══ MULTI-CHARACTER NAME CLARITY CHECK (v6) ═══
+
+function checkMultiCharacterNameClarity(text, characters) {
+  const violations = [];
+  if (!characters || characters.length < 2) return violations;
+  const scenes = text.split(/\*\s*\*\s*\*/);
+  for (let si = 0; si < scenes.length; si++) {
+    const scene = scenes[si];
+    const presentChars = characters.filter(c => c.name && scene.includes(c.name));
+    if (presentChars.length < 2) continue;
+    const paras = scene.split(/\n\n+/).filter(p => p.trim().length > 30);
+    let namelessStreak = 0;
+    for (const para of paras) {
+      const hasAnyName = presentChars.some(c => para.includes(c.name));
+      if (hasAnyName) { namelessStreak = 0; } else {
+        namelessStreak++;
+        if (namelessStreak >= 3) {
+          const pronounCount = (para.match(/\b(he|she|they|him|her|them|his|their)\b/gi) || []).length;
+          if (pronounCount >= 2) {
+            violations.push({ type: 'name_ambiguity', severity: 'warning', character: presentChars.map(c => c.name).join(' & '), description: `Scene ${si + 1}: ${namelessStreak} consecutive paragraphs without character names while ${presentChars.length} characters are present.`, location: para.slice(0, 60) });
+            break;
+          }
+        }
+      }
+    }
+  }
+  return violations;
+}
+
 // ═══ AI-POWERED DEEP CHECK ═══
 
 async function runAIConsistencyCheck(text, ctx, chCtx) {
@@ -497,6 +597,10 @@ async function runContinuityGuardian(base44, projectId, chapterId, rawProse) {
     ...checkNonHumanPhysiologyActiveUse(text, ctx.storyBible, ctx.spec),
     ...checkNonfictionSubjectOverlap(text, ctx, chCtx),
     ...checkNonfictionSourceIntegrity(text, ctx),
+    ...checkPovConsistency(text, ctx.spec),
+    ...checkTenseConsistency(text, ctx.spec),
+    ...checkCharacterNameUsage(text, characters),
+    ...checkMultiCharacterNameClarity(text, characters),
   ];
 
   const aiViolations = await runAIConsistencyCheck(text, ctx, chCtx);
