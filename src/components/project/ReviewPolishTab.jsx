@@ -494,6 +494,11 @@ export default function ReviewPolishTab({ projectId }) {
           )}
         </>
       )}
+
+      {/* Deep Continuity Review — always visible when chapters exist */}
+      {generatedChapters.length > 0 && (
+        <DeepReviewPanel projectId={projectId} chapters={chapters} />
+      )}
     </div>
   );
 }
