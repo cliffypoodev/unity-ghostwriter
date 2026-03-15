@@ -163,6 +163,67 @@ function scanInlineNotes(text) {
   return violations;
 }
 
+// ═══ CHARACTER NAME VALIDATION ═══
+
+function scanCharacterNames(text, storyBible, nameRegistry) {
+  const violations = [];
+  const knownChars = [];
+
+  // Build known character list from story bible
+  if (storyBible?.characters?.length > 0) {
+    for (const c of storyBible.characters) {
+      if (c.name) {
+        const parts = c.name.trim().split(/\s+/);
+        const lastName = parts.length > 1 ? parts[parts.length - 1] : null;
+        knownChars.push({ name: c.name, lastName, role: (c.role || '').toLowerCase(), description: c.description || '' });
+      }
+    }
+  }
+
+  // Augment from name registry
+  if (nameRegistry && typeof nameRegistry === 'object') {
+    for (const [name, info] of Object.entries(nameRegistry)) {
+      if (!knownChars.find(c => c.name === name)) {
+        const parts = name.trim().split(/\s+/);
+        const lastName = parts.length > 1 ? parts[parts.length - 1] : null;
+        knownChars.push({ name, lastName, role: (info.role || '').toLowerCase(), description: '' });
+      }
+    }
+  }
+
+  if (knownChars.length === 0) return violations;
+
+  // Collect all "Dr. LastName" patterns in the text
+  const drPattern = /Dr\.?\s+([A-Z][a-z]+)/g;
+  let match;
+  const foundDrNames = new Set();
+  while ((match = drPattern.exec(text)) !== null) {
+    foundDrNames.add(match[1]);
+  }
+
+  // Check if any Dr. names don't match known characters
+  const knownLastNames = new Set(knownChars.filter(c => c.lastName).map(c => c.lastName));
+  for (const drName of foundDrNames) {
+    if (!knownLastNames.has(drName)) {
+      // Check if it's close to a known name (potential substitution)
+      const closest = [...knownLastNames].find(kn =>
+        kn.toLowerCase().startsWith(drName.toLowerCase().slice(0, 3)) ||
+        drName.toLowerCase().startsWith(kn.toLowerCase().slice(0, 3))
+      );
+      violations.push({
+        type: 'character_name_inconsistency',
+        label: `Unknown "Dr. ${drName}" not in character registry${closest ? ` (did you mean Dr. ${closest}?)` : ''}`,
+        count: 1,
+        max: 0,
+        fixed: false,
+        severity: 'high',
+      });
+    }
+  }
+
+  return violations;
+}
+
 // ═══ SCAN FUNCTIONS ═══
 
 function scanBannedPhrases(text) {
