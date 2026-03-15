@@ -274,6 +274,32 @@ function scanDialoguePatterns(text) {
   return violations;
 }
 
+// ═══ INSTRUCTION LEAK DETECTOR (v7) ═══
+
+function scanInstructionLeaks(text) {
+  const violations = [];
+  const LEAK_PATTERNS = [
+    /either establish .{1,40} in the verification document/gi,
+    /use consistent neutral language/gi,
+    /\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\b/gi,
+    /\[TODO[:\s]/gi,
+    /as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi,
+    /per the (outline|beat sheet|specification)/gi,
+    /I('ll| will) (now |)write (this |the )(chapter|scene|section)/gi,
+    /\[VERIFY[:\s]/gi,
+    /^(Begin|Show|Either establish|Continue from|Start with|Open with|Transition from|Describe how|Establish) /gm,
+    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving|timeline|earlier)/gmi,
+    /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
+  ];
+  for (const rx of LEAK_PATTERNS) {
+    const m = text.match(rx);
+    if (m) {
+      violations.push({ type: 'instruction_leak', label: `Bot instruction in prose: "${m[0].slice(0, 60)}"`, count: m.length, max: 0, fixed: false });
+    }
+  }
+  return violations;
+}
+
 // ═══ INLINE EDITORIAL NOTE DETECTION ═══
 // ABSOLUTE PROHIBITION: Never allow editorial notes, structural suggestions,
 // continuity flags, or revision reminders inside narrative output.
@@ -560,6 +586,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   // Collect all violations
   const allViolations = [
     ...scanInlineNotes(text),
+    ...scanInstructionLeaks(text),
     ...scanMetaResponse(text),
     ...scanCharacterNames(text, storyBible, nameRegistry),
     ...scanBannedPhrases(text),
