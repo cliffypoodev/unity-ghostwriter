@@ -293,11 +293,20 @@ Return ONLY a JSON object with these exact fields:
 
     const isErotica = /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase());
 
-    const explicitTaggingInstruction = isErotica ? `\n\nIMPORTANT — EXPLICIT SCENE TAGGING:
-When a scene requires explicit sexual content, you MUST set the extra_instructions field to begin with "[EXPLICIT]" and end with "[/EXPLICIT]", wrapping the scene's description. All other scenes leave extra_instructions as a normal string or empty.
-Example for an explicit scene: "extra_instructions": "[EXPLICIT] The submission scene — Zephyr dominates Marcus physically and sexually. Write this scene completely without cutting away. Stay in the room. Describe specific physical action, desire, and consequence. [/EXPLICIT]"
-Example for a standard scene: "extra_instructions": ""
-Only tag scenes that require on-page explicit sexual content. Tension, kissing, emotional aftermath = no tag needed.` : '';
+    const explicitTaggingInstruction = isErotica ? `\n\nMANDATORY — EXPLICIT SCENE TAGGING (EROTICA PROJECT):
+This is an EROTICA project. Most scenes MUST contain on-page explicit sexual content.
+For EVERY scene that contains sexual activity, desire, physical intimacy, or erotic tension,
+you MUST set the extra_instructions field to begin with "[EXPLICIT]" and end with "[/EXPLICIT]".
+
+RULES:
+- At MINIMUM, ${sceneCount > 2 ? sceneCount - 1 : sceneCount} of ${sceneCount} scenes MUST have [EXPLICIT] tags.
+- Only pure setup/transition scenes (arriving at location, initial dialogue before intimacy) may omit the tag.
+- When in doubt, TAG IT. This is erotica — explicit content is the genre's core purpose.
+
+Example for an explicit scene:
+"extra_instructions": "[EXPLICIT] Full explicit scene — describe specific physical action, desire, sensation, and consequence. Do not fade to black. Do not cut away. Stay in the moment. [/EXPLICIT]"
+Example for a setup scene:
+"extra_instructions": "Establish location and initial tension before the encounter."` : '';
 
     const contextHeader = buildContextHeader(spec);
     const systemPrompt = `Generate scenes for a fiction chapter. Output ONLY valid JSON array. No explanation.
