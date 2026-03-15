@@ -52,6 +52,40 @@ import ProtagonistInteriorityInferButton from "./ProtagonistInteriorityInferButt
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
 
+// ── POV & TENSE SYSTEM ──────────────────────────────────────────────────────
+const POV_OPTIONS = [
+  { value: "first-person", label: "First Person (I/me)", desc: "Intimate, immersive. Best for memoir, romance, thriller." },
+  { value: "third-close", label: "Third Person Close (he/she — single POV)", desc: "Deep character access with narrative flexibility. Most common in fiction." },
+  { value: "third-multi", label: "Third Person Multiple POV", desc: "Multiple character perspectives across chapters. Best for ensemble casts, epic scope." },
+  { value: "third-omniscient", label: "Third Person Omniscient", desc: "All-seeing narrator. Best for historical, literary, epic fantasy." },
+  { value: "second-person", label: "Second Person (you)", desc: "Rare. Immersive/experimental. Best for self-help, choose-your-own-adventure." },
+];
+
+const TENSE_OPTIONS = [
+  { value: "past", label: "Past Tense (he walked, she said)", desc: "Standard narrative tense. Feels natural, established." },
+  { value: "present", label: "Present Tense (he walks, she says)", desc: "Immediate, urgent. Common in YA, thriller, literary fiction." },
+];
+
+// Suggest POV + tense based on genre and book type
+function suggestPovTense(bookType, genre) {
+  const g = (genre || '').toLowerCase();
+  if (bookType === 'nonfiction') {
+    if (/memoir/.test(g)) return { pov: 'first-person', tense: 'past', reason: 'Memoir is almost always first-person past tense — personal reflection on lived experience.' };
+    if (/self-help|business|education|health|cooking/.test(g)) return { pov: 'second-person', tense: 'present', reason: 'Instructional nonfiction addresses the reader directly in present tense.' };
+    if (/biography/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Biography uses close third-person past tense to inhabit the subject\'s perspective.' };
+    return { pov: 'third-omniscient', tense: 'past', reason: 'Narrative nonfiction typically uses omniscient past tense for authority and scope.' };
+  }
+  // Fiction suggestions
+  if (/erotica|romance/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Romance/erotica needs deep character interiority. Third-close past is the genre standard.' };
+  if (/thriller|mystery|crime/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Thriller/mystery benefits from close POV to control information reveal. Past tense is standard.' };
+  if (/young adult/.test(g)) return { pov: 'first-person', tense: 'present', reason: 'YA commonly uses first-person present for immediacy and teen voice.' };
+  if (/literary/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Literary fiction favors close third for interiority with narrative distance.' };
+  if (/fantasy|science fiction|dystopian/.test(g)) return { pov: 'third-multi', tense: 'past', reason: 'Epic/speculative fiction often uses multiple POVs to show world scope.' };
+  if (/horror/.test(g)) return { pov: 'third-close', tense: 'present', reason: 'Horror benefits from present tense immediacy and single POV vulnerability.' };
+  if (/historical/.test(g)) return { pov: 'third-omniscient', tense: 'past', reason: 'Historical fiction uses omniscient past for period authority and scope.' };
+  return { pov: 'third-close', tense: 'past', reason: 'Third-person close past tense is the most versatile default for fiction.' };
+}
+
 // Fuzzy genre matcher — handles AI returning "Sci-Fi" vs dropdown "Science Fiction", etc.
 function matchGenre(aiGenre, bookType) {
   if (!aiGenre) return null;
@@ -521,6 +555,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
     enforce_genre_content: true,
     writing_model: "claude-sonnet",
     budget_mode: false,
+    pov_mode: "",
+    tense: "",
     protagonist_life_purpose: "",
     protagonist_core_wound: "",
     protagonist_self_belief: "",
@@ -760,6 +796,19 @@ export default function SpecificationTab({ projectId, onProceed }) {
           filled.push("language_intensity");
         }
 
+        // Auto-suggest POV and tense based on genre
+        if (!prev.pov_mode || !prev.tense) {
+          const suggestion = suggestPovTense(next.book_type || prev.book_type, next.genre || prev.genre);
+          if (!prev.pov_mode && suggestion.pov) {
+            next.pov_mode = suggestion.pov;
+            filled.push("pov_mode");
+          }
+          if (!prev.tense && suggestion.tense) {
+            next.tense = suggestion.tense;
+            filled.push("tense");
+          }
+        }
+
         return next;
       });
 
@@ -779,6 +828,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
       }
       if (langData.reasoning) {
         hints.language_intensity = { reasoning: langData.reasoning };
+      }
+      // POV/tense reasoning from genre suggestion
+      {
+        const suggestion = suggestPovTense(form.book_type, form.genre);
+        if (suggestion.reason) {
+          hints.pov_mode = { reasoning: suggestion.reason };
+          hints.tense = { reasoning: suggestion.reason };
+        }
       }
       setAutoHints(hints);
 
@@ -1111,6 +1168,52 @@ export default function SpecificationTab({ projectId, onProceed }) {
                   <span>Auto-selected: {autoHints.beat_style.reasoning}</span>
                 </p>
               )}
+            </div>
+
+            {/* Spice Level + Language Intensity side by side */}
+            <div className="p1-grid-2 p1-field-group">
+              {/* POV Mode */}
+              <div className={hl("pov_mode")}>
+                <div className="p1-label">Point of View</div>
+                <Select value={form.pov_mode || ""} onValueChange={v => handleChange("pov_mode", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select POV..." /></SelectTrigger>
+                  <SelectContent>
+                    {POV_OPTIONS.map(p => (
+                      <SelectItem key={p.value} value={p.value}>
+                        <span>{p.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.pov_mode && <p className="text-xs text-slate-400 mt-1">{POV_OPTIONS.find(p => p.value === form.pov_mode)?.desc}</p>}
+                {autoHints.pov_mode?.reasoning && (
+                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                    <span className="shrink-0">✦</span>
+                    <span>Suggested: {autoHints.pov_mode.reasoning}</span>
+                  </p>
+                )}
+              </div>
+              {/* Tense */}
+              <div className={hl("tense")}>
+                <div className="p1-label">Narrative Tense</div>
+                <Select value={form.tense || ""} onValueChange={v => handleChange("tense", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select tense..." /></SelectTrigger>
+                  <SelectContent>
+                    {TENSE_OPTIONS.map(t => (
+                      <SelectItem key={t.value} value={t.value}>
+                        <span>{t.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.tense && <p className="text-xs text-slate-400 mt-1">{TENSE_OPTIONS.find(t => t.value === form.tense)?.desc}</p>}
+                {autoHints.tense?.reasoning && !autoHints.pov_mode?.reasoning && (
+                  <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
+                    <span className="shrink-0">✦</span>
+                    <span>Suggested: {autoHints.tense.reasoning}</span>
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Spice Level + Language Intensity side by side */}
