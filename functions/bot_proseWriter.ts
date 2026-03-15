@@ -484,21 +484,7 @@ function buildProsePrompt(ctx, chCtx) {
     `\n${CONTENT_GUARDRAILS}`,
     `\n${OUTPUT_FORMAT_RULES}`,
     `\nTarget: ~${wordTarget} words. MINIMUM ${Math.round(wordTarget * 0.8)} words.`,
-    `\n${isNonfiction ? `DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
-  Every factual claim must be anchored to at least ONE of:
-  • A specific document with date and archive location
-  • A named person's testimony with context  
-  • A court case with docket number or ruling name
-  • A published book/article with author and year
-  • A specific dated event with verifiable details
-  If you cannot anchor a claim, insert [VERIFY: source needed].
-  DO NOT invent specific times ("3:47 AM"), specific dollar amounts,
-  specific dialogue, or specific scenes unless sourced from documented record.
-  Atmospheric reconstruction is permitted ONLY when labeled:
-  "Contemporary accounts describe..." or "Records from the period suggest..."
-  DO NOT use unnamed composites as documented individuals.
-
-${NONFICTION_CHAPTER_PROGRESSION}` : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
+    `\n${isNonfiction ? buildNonfictionBlock(spec) : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
     isLastChapter ? '\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist\'s transformation.\n=== END ===' : '',
     isFirstChapter ? '\n- THIS IS THE OPENING CHAPTER. Hook the reader immediately. Establish world and tone.' : '',
     `\nOPENING TYPE for this chapter: ${openingType.name} — ${openingType.desc}`,
