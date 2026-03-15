@@ -949,15 +949,28 @@ export default function GenerateTab({ projectId, onProceed }) {
     let lastUpdatedAt = null; // Track when the chapter record was last modified
 
     while (Date.now() - startedAt < maxWaitMs) {
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 8000)); // 8-second intervals to avoid rate limits
       const elapsed = Math.floor((Date.now() - startedAt) / 1000);
       const mins = Math.floor(elapsed / 60);
       const secs = elapsed % 60;
       const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
       const msgIdx = Math.floor(elapsed / 20) % progressMessages.length;
 
-      const updatedChapters = await base44.entities.Chapter.filter({ project_id: projectId });
-      const ch = updatedChapters.find(c => c.id === chapterId);
+      // Fetch ONLY the chapter being written — not the whole project
+      let ch;
+      try {
+        const singleResult = await base44.entities.Chapter.filter({ id: chapterId });
+        ch = singleResult?.[0] || null;
+      } catch (fetchErr) {
+        // Rate limited or network error — skip this poll cycle, don't crash
+        if (String(fetchErr?.message).includes('429')) {
+          if (onProgress) onProgress(`Rate limited — waiting… (${timeStr})`);
+          await new Promise(r => setTimeout(r, 10000)); // Extra 10s backoff on 429
+          continue;
+        }
+        console.warn(`Poll fetch failed: ${fetchErr.message}`);
+        continue;
+      }
 
       if (ch?.status === 'generated') {
         if (onProgress) onProgress(`Complete — ${ch.word_count || 0} words (${timeStr})`);
