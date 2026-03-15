@@ -230,8 +230,20 @@ ${chapterContent.slice(0, 12000)}`;
   const updatedBanned = [...(ctx.bannedPhrases || []), ...distinctivePhrases];
   const projectUpdates = {
     name_registry: JSON.stringify(updatedNameRegistry),
-    banned_phrases_log: JSON.stringify(updatedBanned.slice(-500)),
   };
+
+  // Upload banned_phrases_log as file to avoid field size limit
+  try {
+    const bannedJson = JSON.stringify(updatedBanned.slice(-500));
+    const bannedFile = new File([bannedJson], 'banned_phrases_log.json', { type: 'application/json' });
+    const bannedUpload = await base44.integrations.Core.UploadFile({ file: bannedFile });
+    if (bannedUpload?.file_url) projectUpdates.banned_phrases_log = bannedUpload.file_url;
+  } catch (e) {
+    console.warn('Banned phrases upload failed, trying inline:', e.message);
+    // Fallback: trim more aggressively to fit inline
+    const trimmed = JSON.stringify(updatedBanned.slice(-100));
+    projectUpdates.banned_phrases_log = trimmed;
+  }
 
   // Append to chapter state log
   const newLogEntry = `\n\n══════ CHAPTER ${chapter.chapter_number}: ${chapter.title} ══════\n${stateDoc}`;
