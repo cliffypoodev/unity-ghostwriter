@@ -186,6 +186,7 @@ export default function Home() {
           </Button>
         </div>
       ) : (
+        <>
         {selectMode && selectedIds.size > 0 && (
           <SelectionToolbar
             selectedIds={selectedIds}
@@ -308,6 +309,7 @@ export default function Home() {
             );
           })}
         </div>
+        </>
       )}
     </div>
   );
