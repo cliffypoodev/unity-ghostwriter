@@ -511,6 +511,7 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'nf_fiction_trap') return `NF PATTERN: ${v.label}. Replace with author analysis or research citation.`;
     if (v.type === 'meta_response') return `META: Output starts with AI assistant language. Remove all meta-commentary.`;
     if (v.type === 'inline_editorial_note') return `CRITICAL — INLINE NOTE: ${v.label}. This is an editorial instruction embedded in prose. OPTION A: Silently fix it by writing the actual scene/transition/content it describes. OPTION B: Remove it entirely if you lack context. NEVER leave editorial notes in narrative text.`;
+    if (v.type === 'instruction_leak') return `INSTRUCTION LEAK: ${v.label}. This is a bot directive that leaked into prose output. Remove it entirely — it is not narrative content.`;
     if (v.type === 'character_name_inconsistency') return `CHARACTER NAME ERROR: ${v.label}. Replace this name with the correct character from the registry, or use a generic descriptor (e.g., "the doctor", "the detective") if no match exists.`;
     if (v.type === 'gemini_nf_cap') return `GEMINI NF CAP: ${v.label}. Rewrite excess occurrences using different phrasing. Vary sentence structure.`;
     if (v.type === 'gemini_nf_ban') return `GEMINI NF BAN: "${v.label}" is banned entirely. Rewrite using concrete specific detail instead of this cliché.`;
