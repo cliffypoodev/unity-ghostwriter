@@ -164,26 +164,32 @@ const GEMINI_NF_ENDING_BANS = [
   /the\s+system\s+that\s+had\s+been\s+designed\s+to\b/i,
 ];
 
-// ═══ VAGUE SENSATION SCANNER (ALL GENRES — v5 universal) ═══
+// ═══ VAGUE SENSATION SCANNER (ALL GENRES — v6 universal) ═══
 
 function scanVagueSensations(text) {
   const violations = [];
   const VAGUE_SENSATIONS = [
-    [/\belectricity\b/gi, '"electricity" for touch', 1],
-    [/\belectric\b/gi, '"electric" for touch', 1],
+    [/\belectricity\b/gi, '"electricity" for physical sensation', 1],
+    [/\belectric\b/gi, '"electric" for physical sensation', 2],
     [/\bjolt of \w+/gi, '"jolt of [noun]"', 2],
     [/\bsurge of \w+/gi, '"surge of [noun]"', 2],
     [/\bspike of \w+/gi, '"spike of [noun]"', 2],
-    [/\bwave of (pleasure|sensation|desire|heat|arousal)/gi, '"wave of [sensation]"', 0],
+    [/\bwave of (pleasure|sensation|desire|heat|arousal|fear|panic|relief|emotion|dread|nausea)/gi, '"wave of [abstract noun]"', 0],
     [/\bpure,?\s*undiluted\b/gi, '"pure undiluted"', 0],
     [/that stole (his|her|their) breath/gi, '"stole breath"', 1],
-    [/\bprofound\b.{0,15}\b(sensation|pleasure|coolness|warmth|ache|desire)/gi, '"profound [sensation]"', 0],
-    [/\bdevastating\b.{0,15}\b(sensation|pleasure|spike|arousal|desire)/gi, '"devastating [sensation]"', 1],
+    [/\bprofound\b.{0,15}\b(sensation|pleasure|coolness|warmth|ache|desire|sadness|silence|dread|loss)/gi, '"profound [sensation]"', 0],
+    [/\bdevastating\b.{0,15}\b(sensation|pleasure|spike|arousal|desire|blow|loss|silence|beauty)/gi, '"devastating [noun]"', 1],
     [/\bcoolness that burn/gi, '"coolness that burned" paradox', 1],
     [/\bcircuit complet/gi, '"circuit completing" metaphor', 1],
     [/\blive wire\b/gi, '"live wire" metaphor', 1],
-    [/\bsomething (inside|within) (him|her|them) (broke|shattered|snapped|cracked|shifted|loosened|tightened)/gi, '"something inside [x] broke/shattered" — vague climax', 0],
-    [/smelled? (of|like) \w+ and \w+/gi, '"smelled of [x] and [y]" scent formula', 2],
+    [/\bsomething (metallic|deeper|else|warm|dark|ancient|spicy|sharp|clean|alien|new|familiar|cold|heavy|wrong|different)\b/gi, '"something [adj]" vague placeholder', 3],
+    [/\bozone and star anise\b/gi, 'repeated scent formula (ozone+star anise)', 2],
+    [/\b(hum|thrum|vibrat\w+)\b/gi, '"hum/thrum/vibration"', 5],
+    [/\bpooled? (in |low )/gi, '"pooled in/low"', 2],
+    [/\bsent (a |)(jolt|shiver|chill|wave|surge|bolt|current|shock|rush|spark) (through|down|up|along|across)/gi, '"sent [x] through [y]"', 0],
+    [/\bthreatened to (overwhelm|consume|drown|engulf|swallow)/gi, '"threatened to overwhelm"', 0],
+    [/\bcouldn't help but\b/gi, '"couldn\'t help but"', 0],
+    [/\bin that moment\b/gi, '"in that moment"', 1],
   ];
   for (const [rx, label, max] of VAGUE_SENSATIONS) {
     const m = text.match(rx);
@@ -192,13 +198,16 @@ function scanVagueSensations(text) {
   return violations;
 }
 
-// ═══ INTERIORITY REPETITION SCANNER ═══
+// ═══ INTERIORITY REPETITION SCANNER (v6 expanded) ═══
 
 function scanInteriorityRepetition(text) {
   const violations = [];
   const INTERIORITY_CAPS = [
     [/\bhollow\b/gi, '"hollow"', 2],
     [/\bhollow place\b/gi, '"hollow place"', 1],
+    [/\bhollowness\b/gi, '"hollowness"', 1],
+    [/\bempty\b/gi, '"empty"', 3],
+    [/\bemptiness\b/gi, '"emptiness"', 1],
     [/\bunlovable\b/gi, '"unlovable"', 1],
     [/\bcore wound\b/gi, '"core wound"', 1],
     [/\bold wound\b/gi, '"old wound"', 1],
@@ -207,11 +216,49 @@ function scanInteriorityRepetition(text) {
     [/\bscraped raw\b/gi, '"scraped raw"', 1],
     [/\blaid bare\b/gi, '"laid bare"', 1],
     [/smelled? like failure/gi, '"smelled like failure"', 0],
-    [/\bhollowness\b/gi, '"hollowness"', 1],
+    [/\bshattered\b/gi, '"shattered"', 2],
+    [/\bbroken\b/gi, '"broken" (emotional)', 3],
+    [/\bnumb(ness)?\b/gi, '"numb/numbness"', 2],
+    [/\bvoid\b/gi, '"void"', 2],
+    [/\baching?\b/gi, '"ache/aching"', 3],
   ];
   for (const [rx, label, max] of INTERIORITY_CAPS) {
     const m = text.match(rx);
     if (m && m.length > max) violations.push({ type: 'interiority_repetition', label, count: m.length, max, fixed: false });
+  }
+  return violations;
+}
+
+// ═══ POV DISTANCE CHECK (v6) ═══
+
+function scanPovDistance(text) {
+  const violations = [];
+  const CLINICAL_REFS = [
+    [/\bthe human\b/gi, '"the human"'],
+    [/\bthe programmer\b/gi, '"the programmer"'],
+    [/\bthe subject\b/gi, '"the subject"'],
+    [/\bthe candidate\b/gi, '"the candidate"'],
+    [/\bthe creature\b/gi, '"the creature"'],
+    [/\bthe being\b/gi, '"the being"'],
+    [/\bthe entity\b/gi, '"the entity"'],
+    [/\bthe alien\b/gi, '"the alien"'],
+  ];
+  for (const [rx, label] of CLINICAL_REFS) {
+    const count = (text.match(rx) || []).length;
+    if (count > 3) {
+      violations.push({ type: 'pov_distance', label: `${label} used ${count}x — use character names`, count, max: 3, fixed: false });
+    }
+  }
+  return violations;
+}
+
+// ═══ SCENT OPENER CHECK (v6) ═══
+
+function scanScentOpener(text) {
+  const violations = [];
+  const firstSentence = text.trim().split(/[.!?]/)[0] || '';
+  if (/\b(scent|smell|aroma|odor|fragrance|stench|whiff)\b/i.test(firstSentence)) {
+    violations.push({ type: 'scent_opener', label: 'Chapter opens with scent description (overused pattern)', count: 1, max: 0, fixed: false });
   }
   return violations;
 }
@@ -521,6 +568,8 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanSceneEndings(text),
     ...scanInteriorityRepetition(text),
     ...scanDialoguePatterns(text),
+    ...scanPovDistance(text),
+    ...scanScentOpener(text),
     ...scanVagueSensations(text),
     ...(isNonfiction ? scanNonfictionPatterns(text) : []),
     ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
