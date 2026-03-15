@@ -16,6 +16,8 @@ import {
   AlertTriangle, ChevronDown, ChevronUp, Wand2, BookOpen, Zap,
   FileText, Target, Eye, MessageSquare, Clock, BarChart3
 } from "lucide-react";
+import ManuscriptUploader from "./ManuscriptUploader";
+import DeepReviewPanel from "./DeepReviewPanel";
 
 // ═══ SCANNER PATTERNS (mirrored from bot pipeline) ═══
 
