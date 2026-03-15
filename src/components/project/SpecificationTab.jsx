@@ -83,26 +83,73 @@ const EROTICA_REGISTER_OPTIONS = [
   { value: 3, label: "Raw / Smut", desc: "Explicit, vulgar, unapologetic. Four-letter words. Zero euphemism." },
 ];
 
+// ── POV/TENSE PRESETS ────────────────────────────────────────────────────────
+// One-click combinations that auto-fill both POV and Tense fields.
+const FICTION_PRESETS = [
+  { id: "classic", label: "Classic Novel", pov: "third-close", tense: "past",
+    desc: "Deep in one character's head, told in past tense. The industry standard.",
+    examples: "Stephen King, Colleen Hoover, most bestselling fiction" },
+  { id: "confessional", label: "Confessional / Diary", pov: "first-person", tense: "past",
+    desc: "The narrator tells their own story, looking back on events.",
+    examples: "Gone Girl, The Great Gatsby, Catcher in the Rye" },
+  { id: "urgent", label: "Urgent / YA", pov: "first-person", tense: "present",
+    desc: "Happening right now, through one person's eyes. Maximum immediacy.",
+    examples: "The Hunger Games, Divergent, fast-paced thriller" },
+  { id: "epic", label: "Epic / Ensemble", pov: "third-multi", tense: "past",
+    desc: "Multiple character viewpoints across chapters. Big-scope storytelling.",
+    examples: "Game of Thrones, Wheel of Time, multi-POV sci-fi" },
+  { id: "cinematic", label: "Cinematic / God's Eye", pov: "third-omniscient", tense: "past",
+    desc: "The narrator sees everything — zooms into any character's mind.",
+    examples: "Lord of the Rings, Dune, historical epics" },
+  { id: "horror", label: "Immersive Horror", pov: "third-close", tense: "present",
+    desc: "Trapped in one perspective, happening NOW. Maximum tension.",
+    examples: "Horror, psychological thriller, survival fiction" },
+  { id: "experimental", label: "Experimental", pov: "second-person", tense: "present",
+    desc: "Puts the reader IN the story as 'you.' Rare but striking.",
+    examples: "Bright Lights Big City, choose-your-own-adventure, literary experiments" },
+];
+
+const NONFICTION_PRESETS = [
+  { id: "memoir", label: "Memoir / Personal", pov: "nf-author", tense: "past",
+    desc: "Your story, told by you, looking back. Reflective and personal.",
+    examples: "Educated, Becoming, personal essays" },
+  { id: "selfhelp", label: "Self-Help / How-To", pov: "nf-direct", tense: "present",
+    desc: "Talking directly to the reader. 'Here's what you need to do.'",
+    examples: "Atomic Habits, The 4-Hour Workweek, cookbooks" },
+  { id: "biography", label: "Biography / History", pov: "nf-third", tense: "past",
+    desc: "Telling someone else's story from a distance. Authoritative.",
+    examples: "Walter Isaacson's bios, David McCullough, Ken Burns" },
+  { id: "truecrime", label: "True Crime / Investigative", pov: "nf-editorial", tense: "mixed",
+    desc: "Part detective, part storyteller. Shifts between 'I found...' and 'The evidence showed...'",
+    examples: "In Cold Blood, Serial podcast style, longform journalism" },
+  { id: "narrative", label: "Narrative Nonfiction", pov: "nf-editorial", tense: "mixed",
+    desc: "Flexible authority — weaves personal insight, reader engagement, and storytelling.",
+    examples: "Malcolm Gladwell, Michael Lewis, Erik Larson" },
+  { id: "academic", label: "Academic / Reference", pov: "nf-third", tense: "present",
+    desc: "Authoritative present-tense analysis. No 'I' or 'you.' Formal.",
+    examples: "Textbooks, reference guides, technical manuals" },
+];
+
 // Suggest POV + tense based on genre and book type
 function suggestPovTense(bookType, genre) {
   const g = (genre || '').toLowerCase();
   if (bookType === 'nonfiction') {
-    if (/memoir/.test(g)) return { pov: 'nf-author', tense: 'past', reason: 'Memoir is almost always author voice past tense — personal reflection on lived experience.' };
-    if (/self-help|business|education|health|cooking/.test(g)) return { pov: 'nf-direct', tense: 'present', reason: 'Instructional nonfiction addresses the reader directly in present tense.' };
-    if (/biography/.test(g)) return { pov: 'nf-third', tense: 'past', reason: 'Biography uses third-person narrative past tense to inhabit the subject\'s perspective.' };
-    if (/true.crime|investigat/.test(g)) return { pov: 'nf-editorial', tense: 'mixed', reason: 'Investigative nonfiction uses editorial mix — present for analysis, past for reconstructed events.' };
-    if (/history|political/.test(g)) return { pov: 'nf-third', tense: 'past', reason: 'Historical nonfiction uses third-person narrative past tense for authority and scope.' };
-    return { pov: 'nf-editorial', tense: 'mixed', reason: 'Narrative nonfiction typically uses editorial mix for authority with reader engagement.' };
+    if (/memoir/.test(g)) return { pov: 'nf-author', tense: 'past', preset: 'memoir', reason: 'Memoir is almost always author voice past tense — personal reflection on lived experience.' };
+    if (/self-help|business|education|health|cooking/.test(g)) return { pov: 'nf-direct', tense: 'present', preset: 'selfhelp', reason: 'Instructional nonfiction addresses the reader directly in present tense.' };
+    if (/biography/.test(g)) return { pov: 'nf-third', tense: 'past', preset: 'biography', reason: 'Biography uses third-person narrative past tense to inhabit the subject\'s perspective.' };
+    if (/true.crime|investigat/.test(g)) return { pov: 'nf-editorial', tense: 'mixed', preset: 'truecrime', reason: 'Investigative nonfiction uses editorial mix — present for analysis, past for reconstructed events.' };
+    if (/history|political/.test(g)) return { pov: 'nf-third', tense: 'past', preset: 'biography', reason: 'Historical nonfiction uses third-person narrative past tense for authority and scope.' };
+    return { pov: 'nf-editorial', tense: 'mixed', preset: 'narrative', reason: 'Narrative nonfiction typically uses editorial mix for authority with reader engagement.' };
   }
   // Fiction suggestions
-  if (/erotica|romance/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Romance/erotica needs deep character interiority. Third-close past is the genre standard.' };
-  if (/thriller|mystery|crime/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Thriller/mystery benefits from close POV to control information reveal. Past tense is standard.' };
-  if (/young adult/.test(g)) return { pov: 'first-person', tense: 'present', reason: 'YA commonly uses first-person present for immediacy and teen voice.' };
-  if (/literary/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Literary fiction favors close third for interiority with narrative distance.' };
-  if (/fantasy|science fiction|dystopian/.test(g)) return { pov: 'third-multi', tense: 'past', reason: 'Epic/speculative fiction often uses multiple POVs to show world scope.' };
-  if (/horror/.test(g)) return { pov: 'third-close', tense: 'present', reason: 'Horror benefits from present tense immediacy and single POV vulnerability.' };
-  if (/historical/.test(g)) return { pov: 'third-omniscient', tense: 'past', reason: 'Historical fiction uses omniscient past for period authority and scope.' };
-  return { pov: 'third-close', tense: 'past', reason: 'Third-person close past tense is the most versatile default for fiction.' };
+  if (/erotica|romance/.test(g)) return { pov: 'third-close', tense: 'past', preset: 'classic', reason: 'Romance/erotica needs deep character interiority. Third-close past is the genre standard.' };
+  if (/thriller|mystery|crime/.test(g)) return { pov: 'third-close', tense: 'past', preset: 'classic', reason: 'Thriller/mystery benefits from close POV to control information reveal. Past tense is standard.' };
+  if (/young adult/.test(g)) return { pov: 'first-person', tense: 'present', preset: 'urgent', reason: 'YA commonly uses first-person present for immediacy and teen voice.' };
+  if (/literary/.test(g)) return { pov: 'third-close', tense: 'past', preset: 'classic', reason: 'Literary fiction favors close third for interiority with narrative distance.' };
+  if (/fantasy|science fiction|dystopian/.test(g)) return { pov: 'third-multi', tense: 'past', preset: 'epic', reason: 'Epic/speculative fiction often uses multiple POVs to show world scope.' };
+  if (/horror/.test(g)) return { pov: 'third-close', tense: 'present', preset: 'horror', reason: 'Horror benefits from present tense immediacy and single POV vulnerability.' };
+  if (/historical/.test(g)) return { pov: 'third-omniscient', tense: 'past', preset: 'cinematic', reason: 'Historical fiction uses omniscient past for period authority and scope.' };
+  return { pov: 'third-close', tense: 'past', preset: 'classic', reason: 'Third-person close past tense is the most versatile default for fiction.' };
 }
 
 // Fuzzy genre matcher — handles AI returning "Sci-Fi" vs dropdown "Science Fiction", etc.
@@ -853,7 +900,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
       {
         const suggestion = suggestPovTense(form.book_type, form.genre);
         if (suggestion.reason) {
-          hints.pov_mode = { reasoning: suggestion.reason };
+          hints.pov_mode = { reasoning: suggestion.reason, preset: suggestion.preset };
           hints.tense = { reasoning: suggestion.reason };
         }
       }
@@ -1192,6 +1239,39 @@ export default function SpecificationTab({ projectId, onProceed }) {
 
             {/* Spice Level + Language Intensity side by side */}
             <div className="p1-grid-2 p1-field-group">
+              {/* POV/Tense Presets */}
+              <div className="col-span-2">
+                <div className="p1-label mb-2">Narrative Style Preset</div>
+                <p className="text-xs text-slate-400 mb-3">Pick a preset to auto-fill POV and tense, or choose manually below.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                  {(form.book_type === 'nonfiction' ? NONFICTION_PRESETS : FICTION_PRESETS).map(preset => {
+                    const isActive = form.pov_mode === preset.pov && form.tense === preset.tense;
+                    const isSuggested = autoHints.pov_mode?.preset === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => { handleChange("pov_mode", preset.pov); handleChange("tense", preset.tense); }}
+                        className={`text-left p-2.5 rounded-lg border transition-all ${
+                          isActive
+                            ? 'border-violet-500 bg-violet-500/10 ring-1 ring-violet-500/30'
+                            : isSuggested
+                              ? 'border-violet-400/40 bg-violet-500/5 hover:border-violet-400'
+                              : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-sm font-medium ${isActive ? 'text-violet-300' : 'text-slate-200'}`}>{preset.label}</span>
+                          {isSuggested && !isActive && <span className="text-[10px] text-violet-400 bg-violet-500/20 px-1.5 py-0.5 rounded-full">Suggested</span>}
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-tight">{preset.desc}</p>
+                        <p className="text-[10px] text-slate-500 mt-1 italic">{preset.examples}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* POV Mode */}
               <div className={hl("pov_mode")}>
                 <div className="p1-label">Point of View</div>
