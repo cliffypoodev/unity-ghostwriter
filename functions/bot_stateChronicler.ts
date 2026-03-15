@@ -228,9 +228,19 @@ ${chapterContent.slice(0, 12000)}`;
 
   // Update project-level tracking
   const updatedBanned = [...(ctx.bannedPhrases || []), ...distinctivePhrases];
-  const projectUpdates = {
-    name_registry: JSON.stringify(updatedNameRegistry),
-  };
+  const nameRegJson = JSON.stringify(updatedNameRegistry);
+  const projectUpdates = {};
+
+  // Upload name_registry as file if too large
+  if (nameRegJson.length > 10000) {
+    try {
+      const nrFile = new File([nameRegJson], 'name_registry.json', { type: 'application/json' });
+      const nrUpload = await base44.integrations.Core.UploadFile({ file: nrFile });
+      if (nrUpload?.file_url) projectUpdates.name_registry = nrUpload.file_url;
+    } catch (e) { projectUpdates.name_registry = nameRegJson; }
+  } else {
+    projectUpdates.name_registry = nameRegJson;
+  }
 
   // Upload banned_phrases_log as file to avoid field size limit
   try {
