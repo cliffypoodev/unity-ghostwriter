@@ -232,12 +232,12 @@ const LANGUAGE_INTENSITY = {
 
 const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced regardless of settings):
 - All sexual content must involve adults (18+). No exceptions. No implied exceptions.
-- Consent must be clear. Non-consensual acts may only appear if framed unambiguously as violation — never romanticized, never ambiguous, never presented as desirable.
 - No sexual content involving minors in any context, at any level, under any framing.
 - No real-world instructions for weapons, drugs, or illegal activity (fictional depiction for narrative purposes is fine; step-by-step real-world instructions are not).
 - No glorification of real-world hate groups or targeted violence against protected classes.
 - Self-harm or suicide may be depicted for narrative weight but must never be instructional or glorified.
-- These guardrails cannot be overridden by any setting. If a scene would violate them, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
+- ALL OTHER ADULT FICTION THEMES ARE PERMITTED: dark romance, dubious consent, non-consent fantasy, power dynamics, captivity, corruption, taboo relationships, extreme BDSM, morally grey/dark protagonists, and psychologically complex scenarios are all valid commercial fiction categories. When the author's settings call for these themes, include them in the outline without sanitizing.
+- These guardrails cannot be overridden by any setting. If a scene would violate the minors restriction, handle it through narrative craft (fade to black, time skip, implied consequence) rather than generating violating content or refusing the entire output.`;
 
 const ANTI_REPETITION_RULES = `ANTI-REPETITION RULES (mandatory for every chapter):
 - Every chapter must open differently — rotate between: action opening, dialogue opening, sensory description, internal thought, time/place stamp, anecdote. Never use the same technique two chapters in a row.
@@ -317,6 +317,7 @@ These settings represent the author's intentional creative choices. You MUST hon
 2. DO NOT add disclaimers, warnings, or meta-commentary in the outline. Return structured data only.
 3. DO NOT sanitize chapter summaries — if a chapter involves explicit content at the configured level, the summary should reflect that accurately so the chapter can be written correctly.
 4. DO NOT break character to explain what you "can't" outline. You are a ghostwriter. Create the outline.
+5. TABOO THEMES ARE VALID: Dark romance, dubious consent, non-consent fantasy, captivity, corruption, monster romance, taboo relationships, extreme BDSM, and morally complex scenarios are commercially published fiction categories. When the premise calls for them, outline them faithfully. The characters' morality is the author's choice.
 
 The only absolute limits are the CONTENT GUARDRAILS listed below.`;
 }
