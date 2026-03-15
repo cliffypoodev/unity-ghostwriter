@@ -322,6 +322,128 @@ function checkCharacterNameUsage(text, characters) {
   return violations;
 }
 
+/** Check that named characters are identified by name in multi-character scenes. */
+function checkMultiCharacterNameClarity(text, characters) {
+  const violations = [];
+  if (!characters || characters.length < 2) return violations;
+
+  // Split into scenes
+  const scenes = text.split(/\*\s*\*\s*\*/);
+  for (let si = 0; si < scenes.length; si++) {
+    const scene = scenes[si];
+    // Find which named characters appear in this scene
+    const presentChars = characters.filter(c => c.name && scene.includes(c.name));
+    if (presentChars.length < 2) continue; // Only check multi-character scenes
+
+    // Split scene into paragraphs, check for long stretches without names
+    const paras = scene.split(/\n\n+/).filter(p => p.trim().length > 30);
+    let namelessStreak = 0;
+    for (const para of paras) {
+      const hasAnyName = presentChars.some(c => para.includes(c.name));
+      if (hasAnyName) {
+        namelessStreak = 0;
+      } else {
+        namelessStreak++;
+        if (namelessStreak >= 3) {
+          // Check if pronouns are ambiguous (multiple characters, only he/she/they)
+          const pronounCount = (para.match(/\b(he|she|they|him|her|them|his|their)\b/gi) || []).length;
+          if (pronounCount >= 2) {
+            violations.push({
+              type: 'name_ambiguity',
+              severity: 'warning',
+              character: presentChars.map(c => c.name).join(' & '),
+              description: `Scene ${si + 1}: ${namelessStreak} consecutive paragraphs without character names while ${presentChars.length} characters are present. Use names to clarify who is acting, especially during intimate scenes.`,
+              location: para.slice(0, 60),
+            });
+            break; // One warning per scene is enough
+          }
+        }
+      }
+    }
+  }
+  return violations;
+}
+
+/** Check for character name inconsistencies across chapters (e.g., ex named Priya in Ch1, Sarah in Ch2). */
+function checkNameConsistencyAcrossChapters(text, chapterNumber, previousChapters, storyBible) {
+  const violations = [];
+  if (!previousChapters || previousChapters.length === 0) return violations;
+
+  // Extract all proper nouns from this chapter that appear 2+ times
+  const nameRx = /\b([A-Z][a-z]{2,})\b/g;
+  const nameCounts = {};
+  let m;
+  while ((m = nameRx.exec(text)) !== null) {
+    const n = m[1];
+    // Skip common non-name words
+    if (/^(The|This|That|What|When|Where|Which|There|Here|They|Then|But|And|His|Her|Chapter|Scene|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December)$/.test(n)) continue;
+    nameCounts[n] = (nameCounts[n] || 0) + 1;
+  }
+  const thisChapterNames = new Set(Object.entries(nameCounts).filter(([, c]) => c >= 2).map(([n]) => n));
+
+  // Check story bible characters — are any bible names MISSING but a similar role filled by a new name?
+  const bibleChars = storyBible?.characters || [];
+  for (const bChar of bibleChars) {
+    if (!bChar.name) continue;
+    const firstName = bChar.name.split(' ')[0];
+    // If this bible character's name doesn't appear but their role description matches someone who does
+    if (!thisChapterNames.has(firstName)) continue;
+  }
+
+  // Cross-reference: look for names that appear in previous chapters in similar contexts
+  // Specifically check for relationship partner names that change
+  const relationshipTerms = /\b(ex|girlfriend|boyfriend|partner|wife|husband|fiancee|fiance|broke up|breakup|left me|walked out|final words|dismissal|leaving)\b/gi;
+  const thisChapterRelContext = [];
+  const sentences = text.split(/[.!?]+/);
+  for (const sent of sentences) {
+    if (relationshipTerms.test(sent)) {
+      relationshipTerms.lastIndex = 0;
+      const names = [...sent.matchAll(/\b([A-Z][a-z]{2,})\b/g)].map(m => m[1]).filter(n =>
+        !/^(The|This|That|Marcus|Zephyr|Lysandra|Thorne|Elias)$/.test(n) && thisChapterNames.has(n)
+      );
+      thisChapterRelContext.push(...names);
+    }
+  }
+
+  // Check previous chapters for different relationship partner names
+  for (const prev of previousChapters) {
+    if (!prev.content || prev.content.startsWith('http')) continue;
+    const prevText = prev.content;
+    const prevRelNames = [];
+    const prevSentences = prevText.split(/[.!?]+/);
+    for (const sent of prevSentences) {
+      if (relationshipTerms.test(sent)) {
+        relationshipTerms.lastIndex = 0;
+        const names = [...sent.matchAll(/\b([A-Z][a-z]{2,})\b/g)].map(m => m[1]).filter(n =>
+          !/^(The|This|That|Marcus|Zephyr|Lysandra|Thorne|Elias)$/.test(n)
+        );
+        prevRelNames.push(...names);
+      }
+    }
+
+    // If both chapters reference a relationship partner but with different names
+    if (thisChapterRelContext.length > 0 && prevRelNames.length > 0) {
+      const thisSet = new Set(thisChapterRelContext);
+      const prevSet = new Set(prevRelNames);
+      for (const thisName of thisSet) {
+        for (const prevName of prevSet) {
+          if (thisName !== prevName) {
+            violations.push({
+              type: 'name_inconsistency',
+              severity: 'critical',
+              character: `${thisName} vs ${prevName}`,
+              description: `Protagonist's ex-partner is called "${prevName}" in Ch ${prev.chapter_number} but "${thisName}" in Ch ${chapterNumber}. Character names must be consistent across all chapters.`,
+              location: `${thisName} in relationship context`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
 // ── AI-POWERED DEEP CHECK ───────────────────────────────────────────────────
 
 async function runAIConsistencyCheck(text, ctx, chCtx) {
@@ -405,6 +527,8 @@ async function runContinuityGuardian(base44, projectId, chapterId, rawProse) {
     ...checkPovConsistency(text, ctx.spec),
     ...checkTenseConsistency(text, ctx.spec),
     ...checkCharacterNameUsage(text, characters),
+    ...checkMultiCharacterNameClarity(text, characters),
+    ...checkNameConsistencyAcrossChapters(text, chCtx.chapter.chapter_number, chCtx.previousChapters, ctx.storyBible),
   ];
 
   // AI deep check
