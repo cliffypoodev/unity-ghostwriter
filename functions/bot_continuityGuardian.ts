@@ -175,6 +175,52 @@ function checkCapabilities(text, storyBible) {
   return violations;
 }
 
+// ═══ NON-HUMAN PHYSIOLOGY CHECK ═══
+
+function checkNonHumanPhysiologyActiveUse(text, storyBible, spec) {
+  const violations = [];
+  const spiceLevel = parseInt(spec?.spice_level) || 0;
+  if (spiceLevel < 3) return violations;
+
+  const nhKeywords = /alien|creature|dragon|vampire|werewolf|fae|demon|shifter|monster|serpent|reptil|hybrid|non.?human|xeno|orc|naga|lamia|symbiote|mer(man|maid|folk)|drakmori|scaled/i;
+  const chars = storyBible?.characters || [];
+  const nhChars = chars.filter(c => nhKeywords.test((c.description || '') + ' ' + (c.role || '')));
+  if (nhChars.length === 0) return violations;
+
+  const intimateIndicators = /\b(kiss|thrust|moan|gasp|naked|undress|arousal|orgasm|climax|intimate|bed|sheets|skin to skin|straddl|penetrat|tongue|lips on|mouth on)\b/gi;
+  const intimateMatches = text.match(intimateIndicators) || [];
+  if (intimateMatches.length < 3) return violations;
+
+  const activeTraitPatterns = [
+    /scales?\s+(against|on|pressed|dragg|slid|scraped|brushed|grazed|rubbed)/gi,
+    /claws?\s+(traced|dragged|scraped|pressed|dug|raked|gripped|hooked)/gi,
+    /\b(forked|split)\s+tongue/gi,
+    /temperature\s+(difference|contrast|shift)/gi,
+    /(cool|cold|hot|warm)\s+scales?\s+(against|on|pressed)/gi,
+    /\btail\b.{0,40}(wrapped|curled|stroked|pressed|squeezed|coiled)/gi,
+    /bioluminescen/gi,
+    /purr(ed|ing)?\s+(through|vibrat|against|into)/gi,
+  ];
+
+  let activeTraitCount = 0;
+  for (const rx of activeTraitPatterns) {
+    if (rx.test(text)) activeTraitCount++;
+    rx.lastIndex = 0;
+  }
+
+  if (activeTraitCount < 3) {
+    violations.push({
+      type: 'nh_physiology_decorative',
+      severity: 'critical',
+      character: nhChars.map(c => c.name).join(', '),
+      description: `Intimate scene has only ${activeTraitCount}/3 required active non-human physical traits. Species-specific physiology must be FELT, not just SEEN.`,
+      location: 'Full chapter intimate scene',
+    });
+  }
+
+  return violations;
+}
+
 // ═══ NONFICTION SOURCE INTEGRITY ═══
 
 function checkNonfictionSourceIntegrity(text, ctx) {
@@ -448,6 +494,7 @@ async function runContinuityGuardian(base44, projectId, chapterId, rawProse) {
     ...checkCompositeFigureFraming(text, chCtx.chapter.chapter_number, ctx.storyBible),
     ...checkActTransition(text, chCtx.lastStateDoc, chCtx.chapter.chapter_number),
     ...checkCapabilities(text, ctx.storyBible),
+    ...checkNonHumanPhysiologyActiveUse(text, ctx.storyBible, ctx.spec),
     ...checkNonfictionSubjectOverlap(text, ctx, chCtx),
     ...checkNonfictionSourceIntegrity(text, ctx),
   ];
