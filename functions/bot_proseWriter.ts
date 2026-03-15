@@ -240,6 +240,81 @@ const LANGUAGE_INTENSITY = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// QUALITY & GUARDRAIL CONSTANTS (from v2)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CONTENT_GUARDRAILS = `CONTENT GUARDRAILS (always enforced):
+- All sexual content must involve adults (18+). No exceptions.
+- Consent must be clear. Non-consensual acts only if unambiguously framed as violation.
+- No sexual content involving minors.
+- No real-world instructions for weapons, drugs, or illegal activity.
+- No glorification of hate groups or targeted violence.
+- These cannot be overridden by any setting.`;
+
+const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
+- Return ONLY prose. No preamble. No commentary.
+- Do NOT include chapter title, number, or heading.
+- Do NOT include scene headers or numbers. Only "* * *" between scenes.
+- Do not start with "Here is..." or any assistant-style opening.
+- Do not end with "Let me know if..." or any assistant-style closing.
+- No content warnings or disclaimers in output.
+- Never output meta-commentary, checklists, or instructions.
+- If uncertain about a scene's level, write at the configured level.`;
+
+const QUALITY_UPGRADES = `INTERIORITY: Internal monologue max 2 consecutive sentences before action/dialogue/sensory.
+DIALOGUE SUBTEXT: Every exchange >2 lines must contain subtext. Direct on-the-nose max 1x/chapter.
+SCENE ENDING: Final paragraph ends on: physical image, dialogue, concrete action, or sensory detail. NOT: emotional summary, stated realization, thematic declaration.
+OPENING: First sentence mid-action/sensation/dialogue. No character name in first 5 words.
+CHARACTER ARC DIVERSITY: Each chapter must reveal a NEW dimension of the protagonist — a new fear, desire, memory, or contradiction. Do NOT restate the same emotional wound using the same vocabulary across multiple chapters.
+DIALOGUE MODE DIVERSITY: Each major character must demonstrate at least 3 distinct conversational modes across the manuscript. If a character only psychoanalyzes the protagonist, they are not a character — they are a device. Give them mundane moments, uncertainty, humor, or genuine questions.`;
+
+const EROTICA_SCENE_ENFORCEMENT = `=== EXPLICIT SCENE ENFORCEMENT (EROTICA — NON-NEGOTIABLE) ===
+When the scene reaches physical intimacy beyond kissing:
+1. MINIMUM 600 WORDS of on-page physical action before any interruption or scene break.
+2. You MUST describe specific body-to-body contact: which body part touches which, the texture, temperature, pressure, and physical response.
+3. You MUST NOT summarize the sex scene in a single paragraph. "What followed was..." or "They came together in..." followed by abstract description is a GENRE FAILURE. SHOW the scene beat by beat.
+4. Every intimate scene must include at least 3 SPECIFIC physical details unique to this species pairing.
+5. The protagonist's arousal must be described through PHYSICAL SIGNS — NOT emotional labels.
+6. After climax: minimum 2 paragraphs of physical aftermath.
+7. DO NOT write "it was not gentle" and then skip to aftermath. SHOW the not-gentle part.
+8. Sensation must name SPECIFIC BODY LOCATIONS. "Electricity shot through him" = BANNED.
+9. The non-human partner's alien physiology is NOT decorative. Their unique physical traits MUST be active erotic elements.
+=== END EXPLICIT SCENE ENFORCEMENT ===`;
+
+const NONFICTION_CHAPTER_PROGRESSION = `=== CHAPTER ARGUMENT PROGRESSION ===
+This chapter must advance a SPECIFIC NEW claim or body of evidence that no prior chapter has covered. If a person, institution, or event has a DEDICATED chapter elsewhere in the outline, this chapter may mention them in passing only (1-2 paragraphs max) and must NOT cover the same biographical ground.
+
+Do NOT write a standalone essay. This chapter must:
+1. Build on what the previous chapter established
+2. Add NEW evidence, cases, or analysis not seen before
+3. Set up what the next chapter will address
+=== END CHAPTER PROGRESSION ===`;
+
+function getOpeningType(chNum) {
+  const idx = ((chNum - 1) % 5) + 1;
+  const types = {
+    1: { name: "Mid-action", desc: "character already DOING something physical" },
+    2: { name: "Dialogue", desc: "open mid-conversation, no attribution tag first" },
+    3: { name: "Sensory detail", desc: "one sense, one sentence, visceral and specific" },
+    4: { name: "Time/place anchor", desc: "e.g. 'Tuesday, 3 AM. Lucas's hands were bleeding.'" },
+    5: { name: "Contradicting thought", desc: "character thinks X right before opposite happens" },
+  };
+  return types[idx];
+}
+
+function getEndingType(chNum) {
+  const idx = ((chNum + 1) % 5) + 1;
+  const types = {
+    1: { name: "Mid-action cliffhanger", desc: "interrupt mid-action, cut to black" },
+    2: { name: "Revelation recontextualizes", desc: "new info, no reaction narration" },
+    3: { name: "Concrete sensory image", desc: "actual thing character sees/hears/touches" },
+    4: { name: "Gut-punch dialogue", desc: "quote is the last thing. No narration after." },
+    5: { name: "Quiet mundane contrast", desc: "character makes coffee after harrowing event" },
+  };
+  return types[idx];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PROMPT BUILDERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
