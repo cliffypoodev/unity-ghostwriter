@@ -96,6 +96,11 @@ ${prevChapterTail ? `Previous chapter ended with:\n"...${prevChapterTail}"\n(Sta
 
 Generate exactly ${sceneCount} scenes. Word target per scene: ~${wordTarget} words.
 
+SCENE STRUCTURE RULES:
+- FROZEN PROTAGONIST BAN: No more than ONE chapter per manuscript may end with the protagonist unable to speak, respond, or decide. If the previous chapter ended with the protagonist frozen in silence or paralyzed by indecision, this chapter's final scene MUST show an active choice — a spoken word, a physical action, a decisive movement.
+- OPENING DIVERSITY: If the previous chapter opened with a scent/smell/aroma description, this chapter MUST open with a different sense or with action/dialogue. No two consecutive chapters may open the same way.
+- SCENE TYPE DIVERSITY: The climactic scene of this chapter should differ structurally from the previous chapter's climax. Vary between: protagonist yields, protagonist initiates, power dynamic reverses, external interruption, genuine conflict between characters, or mundane shared activity.
+
 Return ONLY a JSON array of ${sceneCount} scene objects:
 {
   "scene_number": number,
