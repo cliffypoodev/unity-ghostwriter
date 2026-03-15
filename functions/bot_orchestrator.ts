@@ -40,11 +40,23 @@ async function orchestrateChapter(base44, projectId, chapterId) {
   const startMs = Date.now();
   const timings = {};
 
-  await base44.entities.Chapter.update(chapterId, { status: 'generating' });
-
   const chapters = await base44.entities.Chapter.filter({ project_id: projectId });
   const chapter = chapters.find(c => c.id === chapterId);
   if (!chapter) throw new Error('Chapter not found: ' + chapterId);
+
+  // Guard: if chapter is already generated (another run may have completed), skip
+  if (chapter.status === 'generated' && chapter.content) {
+    console.log(`Ch ${chapter.chapter_number}: Already generated — skipping duplicate orchestration`);
+    return {
+      success: true, chapter_id: chapterId,
+      word_count: chapter.word_count || 0, quality_report: null,
+      violations_remaining: 0, continuity_violations: 0,
+      generation_time_ms: 0, bot_timings: {},
+      skipped: true,
+    };
+  }
+
+  await base44.entities.Chapter.update(chapterId, { status: 'generating' });
 
   const specs = await base44.entities.Specification.filter({ project_id: projectId });
   const spec = specs[0];
