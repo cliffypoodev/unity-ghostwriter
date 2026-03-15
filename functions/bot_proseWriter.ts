@@ -268,6 +268,21 @@ OPENING: First sentence mid-action/sensation/dialogue. No character name in firs
 CHARACTER ARC DIVERSITY: Each chapter must reveal a NEW dimension of the protagonist — a new fear, desire, memory, or contradiction. Do NOT restate the same emotional wound using the same vocabulary across multiple chapters.
 DIALOGUE MODE DIVERSITY: Each major character must demonstrate at least 3 distinct conversational modes across the manuscript. If a character only psychoanalyzes the protagonist, they are not a character — they are a device. Give them mundane moments, uncertainty, humor, or genuine questions.`;
 
+// ═══ EROTICA PROSE REGISTER (v6) ═══
+// Controls VOCABULARY and TONE of intimate scenes only. Non-intimate prose
+// follows the selected beat style regardless of this setting.
+const EROTICA_REGISTER = {
+  0: { name: "Literary", instructions: `INTIMATE SCENE PROSE REGISTER: LITERARY
+Write intimate scenes with lyrical, emotionally rich prose. Use metaphor, sensory poetry, and emotional interiority. Anatomical language should be indirect or poetic — "the heat of him," "where their bodies joined," "the slick friction between them." Dialogue during intimacy should be sparse, tender, or breathlessly fragmented. The emphasis is on the EMOTIONAL experience of physical connection. This is literary erotica — beautiful, devastating, artful.` },
+  1: { name: "Naturalistic", instructions: `INTIMATE SCENE PROSE REGISTER: NATURALISTIC
+Write intimate scenes with plain, direct, unadorned prose. Use correct anatomical terms without euphemism or poetry — cock, cunt, nipple, ass, thigh — but without vulgarity or crude slang. Dialogue during intimacy should be natural, the way real people speak during sex — short, direct, sometimes awkward. No purple prose. No metaphorical flourishes. The emphasis is on PHYSICAL REALISM. "He slid inside her and she gasped, gripping his shoulders." Not "their souls merged in a devastating confluence."` },
+  2: { name: "Vernacular", instructions: `INTIMATE SCENE PROSE REGISTER: VERNACULAR
+Write intimate scenes using common sexual slang and casual dirty talk. Characters should speak the way real people talk during sex — blunt, hungry, sometimes crude. Use colloquial terms: cock, dick, pussy, ass, tits, fuck, suck, ride, pound. Dialogue should be direct and graphic: "Fuck me harder," "You feel so good," "I want to taste you." The prose itself should be punchy and fast-paced, not flowery. Body parts are named plainly. Actions are described explicitly. No poetic metaphors for genitals or sex acts. The emphasis is on RAW DESIRE communicated in everyday language.` },
+  3: { name: "Raw / Smut", instructions: `INTIMATE SCENE PROSE REGISTER: RAW / SMUT
+Write intimate scenes with maximum vulgarity and zero restraint. This is unfiltered smut. Use the most explicit terms available: cock, cunt, asshole, dick, tits, cum, slut, whore (if consensual/in-character), breed, gag, choke, wreck. Dirty talk should be graphic and dominant: "Take it," "You're dripping for me," "I'm going to ruin you." The prose itself is aggressive, blunt, and prioritizes raw sexual energy over emotional nuance. No euphemisms. No metaphors. No "their bodies became one." Instead: "He fucked her until she screamed." The emphasis is on VISCERAL, UNAPOLOGETIC CARNALITY. Emotional beats exist only as fuel for desire, not as counterweight to it.
+IMPORTANT: This register applies ONLY to intimate scenes. Non-intimate prose should still follow the selected beat style and maintain narrative quality.` },
+};
+
 const EROTICA_SCENE_ENFORCEMENT = `=== EXPLICIT SCENE ENFORCEMENT (EROTICA — NON-NEGOTIABLE) ===
 When the scene reaches physical intimacy beyond kissing:
 1. MINIMUM 600 WORDS of on-page physical action before any interruption or scene break.
