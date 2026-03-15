@@ -164,9 +164,9 @@ const GEMINI_NF_ENDING_BANS = [
   /the\s+system\s+that\s+had\s+been\s+designed\s+to\b/i,
 ];
 
-// ═══ EROTICA SENSATION SPECIFICITY SCANNER ═══
+// ═══ VAGUE SENSATION SCANNER (ALL GENRES — v5 universal) ═══
 
-function scanEroticaSensations(text) {
+function scanVagueSensations(text) {
   const violations = [];
   const VAGUE_SENSATIONS = [
     [/\belectricity\b/gi, '"electricity" for touch', 1],
@@ -521,7 +521,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanSceneEndings(text),
     ...scanInteriorityRepetition(text),
     ...scanDialoguePatterns(text),
-    ...(isErotica ? scanEroticaSensations(text) : []),
+    ...scanVagueSensations(text),
     ...(isNonfiction ? scanNonfictionPatterns(text) : []),
     ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
     ...(isNonfiction ? scanGeminiEndingEnforcement(text) : []),
