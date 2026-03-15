@@ -104,7 +104,7 @@ async function loadProjectContext(base44, projectId) {
   if (!bibleRaw && outline?.story_bible_url) { try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {} }
   try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
   chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
-  let nameRegistry = {}; if (project.name_registry) { try { nameRegistry = JSON.parse(project.name_registry); } catch {} }
+  let nameRegistry = {}; if (project.name_registry) { let nrRaw = project.name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
   let bannedPhrases = []; if (project.banned_phrases_log) { let bpRaw = project.banned_phrases_log; if (typeof bpRaw === 'string' && bpRaw.startsWith('http')) { try { bpRaw = await (await fetch(bpRaw)).text(); } catch { bpRaw = '[]'; } } try { bannedPhrases = JSON.parse(bpRaw); } catch {} }
   let chapterStateLog = ''; if (project.chapter_state_log) { chapterStateLog = await resolveContent(project.chapter_state_log); }
   return { project, chapters, spec, outline, outlineData, storyBible, sourceFiles, globalSourceFiles, nameRegistry, bannedPhrases, chapterStateLog, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isFiction: spec?.book_type !== 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
