@@ -989,12 +989,12 @@ export default function GenerateTab({ projectId, onProceed }) {
       }
 
       // Detect Deno crash: if HTTP request completed with error but chapter is still "generating",
-      // the backend may have crashed OR the gateway timed out (504) while the worker continues.
-      // Gateway 504s are common for long-running AI generation (3-5 min) — the worker keeps running.
-      // Only mark as error after a generous grace period (3+ minutes after HTTP error).
+      // the backend may have crashed OR the gateway timed out (500/504) while the worker continues.
+      // Gateway timeouts (500/504) are common for long-running AI generation (4-7 min with 6-bot pipeline).
+      // The worker keeps running after a gateway timeout — only mark as error after a very generous grace period.
       if (httpDone && httpError && ch?.status === 'generating') {
-        const is504 = httpError.includes('504') || httpError.includes('Gateway');
-        const gracePeriod = is504 ? 420 : 180; // 7 min grace for 504, 3 min for other errors (generation takes 60-90s)
+        const isGatewayTimeout = httpError.includes('504') || httpError.includes('500') || httpError.includes('Gateway') || httpError.includes('status code');
+        const gracePeriod = isGatewayTimeout ? 540 : 420; // 9 min grace for gateway timeouts, 7 min for other errors
         if (elapsed > gracePeriod) {
           console.warn(`Ch ${chapterNumber}: Backend likely crashed (${httpError}, ${elapsed}s elapsed) — marking as error`);
           if (onProgress) onProgress(`Generation timed out — skipping to next chapter`);
@@ -1004,7 +1004,7 @@ export default function GenerateTab({ projectId, onProceed }) {
           return "error";
         }
         // Still within grace period — keep polling, worker may still be running
-        if (onProgress) onProgress(`Gateway timeout — worker still running… (${timeStr})`);
+        if (onProgress) onProgress(`HTTP returned early — worker still running… (${timeStr})`);
       }
 
       // Detect stale "generating": if 10+ minutes have passed and the chapter updated_date
