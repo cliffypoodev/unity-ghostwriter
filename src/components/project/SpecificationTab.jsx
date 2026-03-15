@@ -66,6 +66,15 @@ const TENSE_OPTIONS = [
   { value: "present", label: "Present Tense (he walks, she says)", desc: "Immediate, urgent. Common in YA, thriller, literary fiction." },
 ];
 
+// ── EROTICA PROSE REGISTER ──────────────────────────────────────────────────
+// Controls the vocabulary and tone of intimate scenes. Only visible when Spice ≥ 2.
+const EROTICA_REGISTER_OPTIONS = [
+  { value: 0, label: "Literary", desc: "Lyrical, metaphorical, emotionally rich. Poetic descriptions of intimacy." },
+  { value: 1, label: "Naturalistic", desc: "Plain, direct language. Anatomically accurate but not crude." },
+  { value: 2, label: "Vernacular", desc: "Common slang, casual dirty talk. Body parts named bluntly." },
+  { value: 3, label: "Raw / Smut", desc: "Explicit, vulgar, unapologetic. Four-letter words. Zero euphemism." },
+];
+
 // Suggest POV + tense based on genre and book type
 function suggestPovTense(bookType, genre) {
   const g = (genre || '').toLowerCase();
@@ -557,6 +566,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     budget_mode: false,
     pov_mode: "",
     tense: "",
+    erotica_register: 0,
     protagonist_life_purpose: "",
     protagonist_core_wound: "",
     protagonist_self_belief: "",
@@ -1241,6 +1251,31 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 )}
               </div>
             </div>
+
+            {/* Erotica Prose Register — only visible when Spice Level >= 2 */}
+            {form.book_type === "fiction" && (parseInt(form.spice_level) || 0) >= 2 && (
+              <div className={`p1-field-group ${hl("erotica_register")}`}>
+                <div className="p1-label">Intimate Scene Prose Style</div>
+                <p className="text-xs text-slate-500 mb-2">Controls the vocabulary and tone of explicit scenes. Does not affect non-intimate prose.</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {EROTICA_REGISTER_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleChange("erotica_register", opt.value)}
+                      className={`p-2.5 rounded-lg border text-center transition-all ${
+                        (parseInt(form.erotica_register) || 0) === opt.value
+                          ? "border-pink-500 bg-pink-50 text-pink-900 ring-1 ring-pink-300"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">{opt.label}</span>
+                      <span className="block text-[10px] mt-0.5 text-slate-400">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Genre Content Enforcement (DeepSeek only) */}
             {form.ai_model?.includes("deepseek") && (
