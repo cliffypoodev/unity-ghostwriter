@@ -391,12 +391,37 @@ export default function ReviewPolishTab({ projectId }) {
         </div>
       </div>
 
-      {generatedChapters.length === 0 && !scanning && (
+      {/* Upload section */}
+      <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-medium text-slate-300">External Manuscript</p>
+            <p className="text-xs text-slate-500 mt-0.5">Upload a .txt, .md, .docx, or .pdf file to review alongside or instead of project chapters</p>
+          </div>
+          <ManuscriptUploader onTextLoaded={(text, name) => { setUploadedText(text); setUploadedFileName(name); }} />
+        </div>
+        {uploadedText && (
+          <div className="rounded-lg border border-slate-600 bg-slate-900/50 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <FileText className="w-3 h-3" />
+                {uploadedFileName || "Uploaded manuscript"} · {uploadedText.trim().split(/\s+/).length.toLocaleString()} words
+              </span>
+              <button onClick={() => { setUploadedText(""); setUploadedFileName(null); }} className="text-xs text-slate-500 hover:text-slate-300">Clear</button>
+            </div>
+            <div className="max-h-32 overflow-y-auto text-xs text-slate-500 font-mono whitespace-pre-wrap leading-relaxed">
+              {uploadedText.slice(0, 2000)}{uploadedText.length > 2000 ? "…" : ""}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {generatedChapters.length === 0 && !scanning && !uploadedText && (
         <div className="flex items-center justify-center py-20 text-center">
           <div>
             <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400 font-medium">No generated chapters yet</p>
-            <p className="text-sm text-slate-500 mt-1">Generate chapters in the Write tab first</p>
+            <p className="text-sm text-slate-500 mt-1">Generate chapters in the Write tab first, or upload a manuscript above</p>
           </div>
         </div>
       )}
