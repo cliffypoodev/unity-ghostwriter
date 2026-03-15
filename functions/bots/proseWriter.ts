@@ -133,7 +133,8 @@ DIALOGUE SUBTEXT: Every exchange >2 lines must contain subtext. Direct on-the-no
 SCENE ENDING: Final paragraph ends on: physical image, dialogue, concrete action, or sensory detail. NOT: emotional summary, stated realization, thematic declaration.
 OPENING: First sentence mid-action/sensation/dialogue. No character name in first 5 words.
 CHARACTER ARC DIVERSITY: Each chapter must reveal a NEW dimension of the protagonist — a new fear, desire, memory, or contradiction. Do NOT restate the same emotional wound using the same vocabulary across multiple chapters.
-DIALOGUE MODE DIVERSITY: Each major character must demonstrate at least 3 distinct conversational modes across the manuscript. If a character only psychoanalyzes the protagonist, they are not a character — they are a device. Give them mundane moments, uncertainty, humor, or genuine questions.`;
+DIALOGUE MODE DIVERSITY: Each major character must demonstrate at least 3 distinct conversational modes across the manuscript. If a character only psychoanalyzes the protagonist, they are not a character — they are a device. Give them mundane moments, uncertainty, humor, or genuine questions.
+CLIMAX SPECIFICITY: At the moment of orgasm/climax in an explicit scene, describe what the body DOES (muscles contracting, back arching, specific sounds, breathing pattern, grip tightening) and what specific sensation is happening at the point of contact. Do NOT retreat into metaphor ("a cascade," "a reorganization," "an annihilation," "a system-wide event"). Stay in the body. Stay specific. The reader must feel it, not read a label for it.`;
 
 // ── EROTICA/ROMANCE EXPLICIT SCENE ENFORCEMENT ──────────────────────────────
 const EROTICA_SCENE_ENFORCEMENT = `=== EXPLICIT SCENE ENFORCEMENT (EROTICA — NON-NEGOTIABLE) ===
