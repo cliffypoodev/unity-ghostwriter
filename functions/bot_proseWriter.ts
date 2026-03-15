@@ -621,9 +621,13 @@ async function runProseWriter(base44, projectId, chapterId) {
 
   // Strip meta-response artifacts
   if (rawProse) {
-    rawProse = rawProse.replace(/^(Here is|Here's|I've written|Below is)[^\n]*\n+/i, '');
-    rawProse = rawProse.replace(/^(Chapter \d+[:\s])/i, '');
-    rawProse = rawProse.trim();
+    rawProse = rawProse
+      .replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '')
+      .replace(/^(Here is|Here's|I've written|Below is)[^\n]*\n+/i, '')
+      .replace(/^#{1,4}\s*(SCENE|Scene)\s*\d+[:\-—]?\s*[^\n]*/gm, '')
+      .replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
