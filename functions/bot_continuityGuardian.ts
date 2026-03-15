@@ -516,21 +516,50 @@ function checkCharacterNameUsage(text, characters) {
 function checkMultiCharacterNameClarity(text, characters) {
   const violations = [];
   if (!characters || characters.length < 2) return violations;
+
+  // Determine if any characters share pronouns (same-gender scene)
+  const genderMap = {};
+  for (const c of characters) {
+    const g = (c.gender || c.pronouns || '').toLowerCase();
+    const key = /\b(he|him|his|male|man|boy)\b/.test(g) ? 'male' :
+                /\b(she|her|hers|female|woman|girl)\b/.test(g) ? 'female' :
+                /\b(they|them|theirs|nonbinary|nb|enby)\b/.test(g) ? 'nb' : 'unknown';
+    if (!genderMap[key]) genderMap[key] = [];
+    genderMap[key].push(c.name);
+  }
+  const hasSameGenderPair = Object.values(genderMap).some(arr => arr.length >= 2);
+  const namelessThreshold = hasSameGenderPair ? 2 : 3;
+
+  // Detect intimate scene sections (rough heuristic)
+  const intimateMarkers = /\b(cock|cunt|nipple|thrust|moan|orgasm|climax|naked|erect|penetrat|straddl|undress|kiss(?:ed|ing)?.*(?:deep|hard|fierce)|fuck|suck|lick|grind)\b/i;
+
   const scenes = text.split(/\*\s*\*\s*\*/);
   for (let si = 0; si < scenes.length; si++) {
     const scene = scenes[si];
+    const isIntimate = intimateMarkers.test(scene);
     const presentChars = characters.filter(c => c.name && scene.includes(c.name));
     if (presentChars.length < 2) continue;
+
+    // Check if present characters share pronouns
+    const presentGenders = presentChars.map(c => {
+      const g = (c.gender || c.pronouns || '').toLowerCase();
+      return /\b(he|him|his|male|man|boy)\b/.test(g) ? 'male' :
+             /\b(she|her|hers|female|woman|girl)\b/.test(g) ? 'female' : 'other';
+    });
+    const sceneHasSameGender = presentGenders.filter(g => g !== 'other').some((g, i, arr) => arr.indexOf(g) !== i);
+    const threshold = sceneHasSameGender ? 2 : namelessThreshold;
+
     const paras = scene.split(/\n\n+/).filter(p => p.trim().length > 30);
     let namelessStreak = 0;
     for (const para of paras) {
       const hasAnyName = presentChars.some(c => para.includes(c.name));
       if (hasAnyName) { namelessStreak = 0; } else {
         namelessStreak++;
-        if (namelessStreak >= 3) {
+        if (namelessStreak >= threshold) {
           const pronounCount = (para.match(/\b(he|she|they|him|her|them|his|their)\b/gi) || []).length;
           if (pronounCount >= 2) {
-            violations.push({ type: 'name_ambiguity', severity: 'warning', character: presentChars.map(c => c.name).join(' & '), description: `Scene ${si + 1}: ${namelessStreak} consecutive paragraphs without character names while ${presentChars.length} characters are present.`, location: para.slice(0, 60) });
+            const severity = (sceneHasSameGender && isIntimate) ? 'critical' : 'warning';
+            violations.push({ type: 'name_ambiguity', severity, character: presentChars.map(c => c.name).join(' & '), description: `Scene ${si + 1}: ${namelessStreak} consecutive paragraphs without character names while ${presentChars.length} characters are present${sceneHasSameGender ? ' (SAME-GENDER SCENE — pronouns are ambiguous)' : ''}${isIntimate ? ' during an intimate scene' : ''}. Use character NAMES to clarify who is acting, touching, and speaking.`, location: para.slice(0, 60) });
             break;
           }
         }
