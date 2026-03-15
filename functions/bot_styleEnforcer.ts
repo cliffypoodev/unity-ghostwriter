@@ -164,6 +164,67 @@ const GEMINI_NF_ENDING_BANS = [
   /the\s+system\s+that\s+had\s+been\s+designed\s+to\b/i,
 ];
 
+// ═══ EROTICA SENSATION SPECIFICITY SCANNER ═══
+
+function scanEroticaSensations(text) {
+  const violations = [];
+  const VAGUE_SENSATIONS = [
+    [/\belectricity\b/gi, '"electricity" for touch', 1],
+    [/\belectric\b/gi, '"electric" for touch', 1],
+    [/\bjolt of \w+/gi, '"jolt of [noun]"', 2],
+    [/\bsurge of \w+/gi, '"surge of [noun]"', 2],
+    [/\bspike of \w+/gi, '"spike of [noun]"', 2],
+    [/\bwave of (pleasure|sensation|desire|heat|arousal)/gi, '"wave of [sensation]"', 0],
+    [/\bpure,?\s*undiluted\b/gi, '"pure undiluted"', 0],
+    [/that stole (his|her|their) breath/gi, '"stole breath"', 1],
+    [/\bprofound\b.{0,15}\b(sensation|pleasure|coolness|warmth|ache|desire)/gi, '"profound [sensation]"', 0],
+    [/\bdevastating\b.{0,15}\b(sensation|pleasure|spike|arousal|desire)/gi, '"devastating [sensation]"', 1],
+    [/\bcoolness that burn/gi, '"coolness that burned" paradox', 1],
+    [/\bcircuit complet/gi, '"circuit completing" metaphor', 1],
+    [/\blive wire\b/gi, '"live wire" metaphor', 1],
+  ];
+  for (const [rx, label, max] of VAGUE_SENSATIONS) {
+    const m = text.match(rx);
+    if (m && m.length > max) violations.push({ type: 'vague_sensation', label, count: m.length, max, fixed: false });
+  }
+  return violations;
+}
+
+// ═══ INTERIORITY REPETITION SCANNER ═══
+
+function scanInteriorityRepetition(text) {
+  const violations = [];
+  const INTERIORITY_CAPS = [
+    [/\bhollow\b/gi, '"hollow"', 2],
+    [/\bhollow place\b/gi, '"hollow place"', 1],
+    [/\bunlovable\b/gi, '"unlovable"', 1],
+    [/\bcore wound\b/gi, '"core wound"', 1],
+    [/\bold wound\b/gi, '"old wound"', 1],
+    [/\binsufficient\b/gi, '"insufficient"', 1],
+    [/\bincapable\b/gi, '"incapable"', 1],
+    [/\bscraped raw\b/gi, '"scraped raw"', 1],
+    [/\blaid bare\b/gi, '"laid bare"', 1],
+    [/smelled? like failure/gi, '"smelled like failure"', 0],
+    [/\bhollowness\b/gi, '"hollowness"', 1],
+  ];
+  for (const [rx, label, max] of INTERIORITY_CAPS) {
+    const m = text.match(rx);
+    if (m && m.length > max) violations.push({ type: 'interiority_repetition', label, count: m.length, max, fixed: false });
+  }
+  return violations;
+}
+
+// ═══ DIALOGUE PATTERN DETECTOR ═══
+
+function scanDialoguePatterns(text) {
+  const violations = [];
+  const shameNaming = (text.match(/you (carry|are broken|are tired|feel the weight|build walls|are so very|crave|are empty|are hollow)/gi) || []).length;
+  const binaryChoice = (text.match(/you can (run|return|go back|leave|walk away).{0,80}or.{0,80}you can (walk deeper|stay|learn|accept|yield|submit)/gi) || []).length;
+  if (shameNaming > 3) violations.push({ type: 'dialogue_pattern', label: 'Character psychoanalyzes protagonist >3 times', count: shameNaming, max: 3, fixed: false });
+  if (binaryChoice > 1) violations.push({ type: 'dialogue_pattern', label: 'Binary choice speech pattern repeated', count: binaryChoice, max: 1, fixed: false });
+  return violations;
+}
+
 // ═══ INLINE EDITORIAL NOTE DETECTION ═══
 // ABSOLUTE PROHIBITION: Never allow editorial notes, structural suggestions,
 // continuity flags, or revision reminders inside narrative output.
@@ -380,6 +441,9 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'gemini_nf_ban') return `GEMINI NF BAN: "${v.label}" is banned entirely. Rewrite using concrete specific detail instead of this cliché.`;
     if (v.type === 'gemini_nf_manuscript_cap') return `GEMINI NF MANUSCRIPT BAN: ${v.label}. Remove or replace — this phrase is near its manuscript-wide limit.`;
     if (v.type === 'gemini_nf_ending') return `GEMINI NF ENDING: ${v.label}. Rewrite the final paragraph to end on a concrete image, specific documented detail, or an unresolved question — NOT a sweeping thematic statement.`;
+    if (v.type === 'vague_sensation') return `VAGUE SENSATION: ${v.label} appears ${v.count}x (max ${v.max}). Replace with specific body location + physical descriptor. BAD: "electricity shot through him." GOOD: "the drag of cool scales across his inner thigh made his hips jerk."`;
+    if (v.type === 'interiority_repetition') return `INTERIORITY REPETITION: ${v.label} appears ${v.count}x (max ${v.max}). Replace repeated emotional vocabulary with NEW dimensions of the character's psychology.`;
+    if (v.type === 'dialogue_pattern') return `DIALOGUE PATTERN: ${v.label}. This character needs different conversational modes — mundane exchanges, genuine questions, uncertainty, humor.`;
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
@@ -441,6 +505,9 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   // Apply high-confidence continuity fixes first
   text = applyContinuityFixes(text, continuityFixes);
 
+  // Detect erotica for genre-specific scans
+  const isErotica = /erotica|erotic|romance|bdsm/.test(((ctx.spec?.genre || '') + ' ' + (ctx.spec?.subgenre || '')).toLowerCase()) || (parseInt(ctx.spec?.spice_level) || 0) >= 3;
+
   // Collect all violations
   const allViolations = [
     ...scanInlineNotes(text),
@@ -450,6 +517,9 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanFrequencyCaps(text),
     ...scanDynamicCaps(text, chCtx.previousChapters),
     ...scanSceneEndings(text),
+    ...scanInteriorityRepetition(text),
+    ...scanDialoguePatterns(text),
+    ...(isErotica ? scanEroticaSensations(text) : []),
     ...(isNonfiction ? scanNonfictionPatterns(text) : []),
     ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
     ...(isNonfiction ? scanGeminiEndingEnforcement(text) : []),
@@ -462,6 +532,25 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     const result = await applyAIFixes(text, allViolations, ctx.spec, isNonfiction);
     cleanProse = result.text;
     fixedCount = result.fixed;
+  }
+
+  // Nonfiction ending fix (dedicated AI pass)
+  if (isNonfiction) {
+    const paras = cleanProse.trim().split(/\n\n+/);
+    const lastPara = paras[paras.length - 1] || '';
+    if (NF_ENDING_BANS.some(p => p.test(lastPara))) {
+      try {
+        const endingFix = await callAI(resolveModel('style_rewrite'),
+          'You are a nonfiction editor. Rewrite the final 2-3 sentences ONLY. End on specific documented detail, concrete image, or unresolved question. No thesis, no morals, no verse.',
+          `CURRENT ENDING (VIOLATING):\n${lastPara}\n\nReturn only replacement sentences.`,
+          { maxTokens: 512, temperature: 0.4 }
+        );
+        if (endingFix?.trim().length > 20 && !isRefusal(endingFix)) {
+          paras[paras.length - 1] = endingFix.trim();
+          cleanProse = paras.join('\n\n');
+        }
+      } catch (e) { console.warn('NF ending fix failed:', e.message); }
+    }
   }
 
   // Re-scan to report remaining violations
