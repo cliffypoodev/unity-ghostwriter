@@ -61,9 +61,17 @@ const POV_OPTIONS = [
   { value: "second-person", label: "Second Person (you)", desc: "Rare. Immersive/experimental. Best for self-help, choose-your-own-adventure." },
 ];
 
+const NF_POV_OPTIONS = [
+  { value: "nf-author", label: "Author Voice (I/we)", desc: "Personal authority. Best for memoir, personal essay, opinion." },
+  { value: "nf-direct", label: "Direct Address (you)", desc: "Reader-facing instruction. Best for self-help, how-to, prescriptive." },
+  { value: "nf-third", label: "Third Person Narrative", desc: "Observational distance. Best for biography, history, true crime." },
+  { value: "nf-editorial", label: "Editorial Mix (I + you + they)", desc: "Flexible authority. Best for investigative, longform journalism, hybrid nonfiction." },
+];
+
 const TENSE_OPTIONS = [
   { value: "past", label: "Past Tense (he walked, she said)", desc: "Standard narrative tense. Feels natural, established." },
   { value: "present", label: "Present Tense (he walks, she says)", desc: "Immediate, urgent. Common in YA, thriller, literary fiction." },
+  { value: "mixed", label: "Mixed (editorial present + historical past)", desc: "Present tense for analysis, past for events. Standard for investigative and narrative nonfiction." },
 ];
 
 // ── EROTICA PROSE REGISTER ──────────────────────────────────────────────────
@@ -79,10 +87,12 @@ const EROTICA_REGISTER_OPTIONS = [
 function suggestPovTense(bookType, genre) {
   const g = (genre || '').toLowerCase();
   if (bookType === 'nonfiction') {
-    if (/memoir/.test(g)) return { pov: 'first-person', tense: 'past', reason: 'Memoir is almost always first-person past tense — personal reflection on lived experience.' };
-    if (/self-help|business|education|health|cooking/.test(g)) return { pov: 'second-person', tense: 'present', reason: 'Instructional nonfiction addresses the reader directly in present tense.' };
-    if (/biography/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Biography uses close third-person past tense to inhabit the subject\'s perspective.' };
-    return { pov: 'third-omniscient', tense: 'past', reason: 'Narrative nonfiction typically uses omniscient past tense for authority and scope.' };
+    if (/memoir/.test(g)) return { pov: 'nf-author', tense: 'past', reason: 'Memoir is almost always author voice past tense — personal reflection on lived experience.' };
+    if (/self-help|business|education|health|cooking/.test(g)) return { pov: 'nf-direct', tense: 'present', reason: 'Instructional nonfiction addresses the reader directly in present tense.' };
+    if (/biography/.test(g)) return { pov: 'nf-third', tense: 'past', reason: 'Biography uses third-person narrative past tense to inhabit the subject\'s perspective.' };
+    if (/true.crime|investigat/.test(g)) return { pov: 'nf-editorial', tense: 'mixed', reason: 'Investigative nonfiction uses editorial mix — present for analysis, past for reconstructed events.' };
+    if (/history|political/.test(g)) return { pov: 'nf-third', tense: 'past', reason: 'Historical nonfiction uses third-person narrative past tense for authority and scope.' };
+    return { pov: 'nf-editorial', tense: 'mixed', reason: 'Narrative nonfiction typically uses editorial mix for authority with reader engagement.' };
   }
   // Fiction suggestions
   if (/erotica|romance/.test(g)) return { pov: 'third-close', tense: 'past', reason: 'Romance/erotica needs deep character interiority. Third-close past is the genre standard.' };
@@ -648,7 +658,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const handleChange = (field, value) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; updated.beat_style = ""; updated.tone_style = ""; updated.beat_sheet_template = "auto"; }
+      if (field === "book_type") { updated.genre = ""; updated.subgenre = ""; updated.beat_style = ""; updated.tone_style = ""; updated.beat_sheet_template = "auto"; updated.pov_mode = ""; updated.tense = ""; }
       if (field === "genre") { updated.subgenre = ""; }
       return updated;
     });
@@ -1188,14 +1198,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
                 <Select value={form.pov_mode || ""} onValueChange={v => handleChange("pov_mode", v)}>
                   <SelectTrigger><SelectValue placeholder="Select POV..." /></SelectTrigger>
                   <SelectContent>
-                    {POV_OPTIONS.map(p => (
+                    {(form.book_type === 'nonfiction' ? NF_POV_OPTIONS : POV_OPTIONS).map(p => (
                       <SelectItem key={p.value} value={p.value}>
                         <span>{p.label}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {form.pov_mode && <p className="text-xs text-slate-400 mt-1">{POV_OPTIONS.find(p => p.value === form.pov_mode)?.desc}</p>}
+                {form.pov_mode && <p className="text-xs text-slate-400 mt-1">{[...POV_OPTIONS, ...NF_POV_OPTIONS].find(p => p.value === form.pov_mode)?.desc}</p>}
                 {autoHints.pov_mode?.reasoning && (
                   <p className="text-xs text-violet-600 flex items-start gap-1 mt-1.5">
                     <span className="shrink-0">✦</span>
