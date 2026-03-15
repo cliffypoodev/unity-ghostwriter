@@ -296,6 +296,48 @@ When the scene reaches physical intimacy beyond kissing:
 9. The non-human partner's alien physiology is NOT decorative. Their unique physical traits MUST be active erotic elements.
 === END EXPLICIT SCENE ENFORCEMENT ===`;
 
+// ═══ NONFICTION POV SYSTEM (v6.1) ═══
+
+const NF_POV = {
+  'nf-author': 'AUTHOR VOICE (I/we) — Write from personal experience and authority. Use "I" for personal accounts, "we" for shared experience. Reflective, opinionated, grounded.',
+  'nf-direct': 'DIRECT ADDRESS (you) — Speak to the reader as "you" throughout. Instructional, prescriptive, conversational. The reader is the student; the author is the guide.',
+  'nf-third': 'THIRD PERSON NARRATIVE — Maintain observational distance. Refer to subjects by name and role. No "I" or "you." The author is an invisible narrator reconstructing events.',
+  'nf-editorial': 'EDITORIAL MIX (I + you + they) — Shift fluidly between personal authority ("I investigated..."), reader engagement ("you might assume..."), and third-person narrative ("the officials claimed...").',
+};
+
+const NF_TENSE = {
+  'past': 'PAST TENSE — Events described as completed actions (walked, said, revealed). Standard for biography, history, memoir.',
+  'present': 'PRESENT TENSE — Analysis and events in present (walks, says, reveals). Creates immediacy. Standard for prescriptive/instructional.',
+  'mixed': 'MIXED TENSE — Present for analysis and commentary ("This pattern reveals..."), past for reconstructed events ("The committee met..."). Transition cleanly between the two.',
+};
+
+function buildNonfictionBlock(spec) {
+  const povLine = NF_POV[spec?.pov_mode] || NF_POV['nf-editorial'];
+  const tenseLine = NF_TENSE[spec?.tense] || NF_TENSE['mixed'];
+
+  return `=== POV & TENSE (MANDATORY — DO NOT DEVIATE) ===
+${povLine}
+${tenseLine}
+Never refer to subjects as "the human," "the man," "the subject," or similar clinical descriptors. Use their NAME or role.
+=== END POV & TENSE ===
+
+DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
+  Every factual claim must be anchored to at least ONE of:
+  • A specific document with date and archive location
+  • A named person's testimony with context
+  • A court case with docket number or ruling name
+  • A published book/article with author and year
+  • A specific dated event with verifiable details
+  If you cannot anchor a claim, insert [VERIFY: source needed].
+  DO NOT invent specific times ("3:47 AM"), specific dollar amounts,
+  specific dialogue, or specific scenes unless sourced from documented record.
+  Atmospheric reconstruction is permitted ONLY when labeled:
+  "Contemporary accounts describe..." or "Records from the period suggest..."
+  DO NOT use unnamed composites as documented individuals.
+
+${NONFICTION_CHAPTER_PROGRESSION}`;
+}
+
 const NONFICTION_CHAPTER_PROGRESSION = `=== CHAPTER ARGUMENT PROGRESSION ===
 This chapter must advance a SPECIFIC NEW claim or body of evidence that no prior chapter has covered. If a person, institution, or event has a DEDICATED chapter elsewhere in the outline, this chapter may mention them in passing only (1-2 paragraphs max) and must NOT cover the same biographical ground.
 
