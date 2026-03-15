@@ -186,6 +186,10 @@ function scanEroticaSensations(text) {
     [/\bcoolness that burn/gi, '"coolness that burned" paradox', 1],
     [/\bcircuit complet/gi, '"circuit completing" metaphor', 1],
     [/\blive wire\b/gi, '"live wire" metaphor', 1],
+    [/\bsomething (metallic|deeper|else|warm|dark|ancient|spicy|sharp|clean|alien|new|familiar)\b/gi, '"something [adj]" vague placeholder', 3],
+    [/\bozone and star anise\b/gi, 'repeated scent formula (ozone+star anise)', 2],
+    [/\b(hum|thrum|vibrat\w+)\b/gi, '"hum/thrum/vibration"', 5],
+    [/\bpooled? (in |low )/gi, '"pooled in/low"', 2],
   ];
   for (const [rx, label, max] of VAGUE_SENSATIONS) {
     const m = text.match(rx);
