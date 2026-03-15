@@ -182,6 +182,8 @@ function scanEroticaSensations(text) {
     [/\bcoolness that burn/gi, '"coolness that burned" paradox', 1],
     [/\bcircuit complet/gi, '"circuit completing" metaphor', 1],
     [/\blive wire\b/gi, '"live wire" metaphor', 1],
+    [/\bsomething (inside|within) (him|her|them) (broke|shattered|snapped|cracked|shifted|loosened|tightened)/gi, '"something inside [x] broke/shattered" — vague climax', 0],
+    [/smelled? (of|like) \w+ and \w+/gi, '"smelled of [x] and [y]" scent formula', 2],
   ];
   for (const [rx, label, max] of VAGUE_SENSATIONS) {
     const m = text.match(rx);
