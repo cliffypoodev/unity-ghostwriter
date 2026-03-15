@@ -128,6 +128,42 @@ const NF_ENDING_BANS = [
   /this (transformation|shift|change) (would|has|had)/i, /what (we can learn|emerges|this shows)/i,
 ];
 
+// ═══ GEMINI NONFICTION BANS ═══
+
+const GEMINI_NF_FREQUENCY_CAPS = [
+  // "The [noun] that [past tense verb]..." as sentence opener — max 2/chapter
+  { rx: /(?:^|\.\s+)The\s+[a-z]+\s+that\s+[a-z]+ed\b/gim, label: '"The [noun] that [verb]ed..." opener', max: 2 },
+  // "[Person] understood that..." — max 1/chapter
+  { rx: /\b[A-Z][a-z]+\s+understood\s+that\b/g, label: '"[Person] understood that..."', max: 1 },
+  // "This [abstract noun] created/produced/generated..." — max 2/chapter
+  { rx: /\bThis\s+[a-z]+\s+(?:created|produced|generated)\b/gi, label: '"This [noun] created/produced/generated..."', max: 2 },
+  // "would prove/manifest/haunt/become" — max 1/chapter total
+  { rx: /\bwould\s+(?:prove|manifest|haunt|become)\b/gi, label: '"would prove/manifest/haunt/become"', max: 1 },
+  // "represented/demonstrated/illustrated/exemplified" as main verb — max 2/chapter
+  { rx: /\b(?:represented|demonstrated|illustrated|exemplified)\b/gi, label: '"represented/demonstrated/illustrated/exemplified"', max: 2 },
+  // "the human cost of..." — max 1/chapter
+  { rx: /\bthe human cost of\b/gi, label: '"the human cost of..."', max: 1 },
+  // Triple abstract noun endings — max 1/chapter
+  { rx: /[a-z]+(?:tion|ment|ness|ity|ence|ance),\s+[a-z]+(?:tion|ment|ness|ity|ence|ance),\s+and\s+[a-z]+(?:tion|ment|ness|ity|ence|ance)\s*[.!?]/gi, label: 'triple abstract noun ending clause', max: 1 },
+];
+
+const GEMINI_NF_ABSOLUTE_BANS = [
+  { rx: /\bconditions\s+where\s+\w+\s+could\s+(?:flourish|thrive)\b/gi, label: '"conditions where [x] could flourish/thrive"' },
+  { rx: /\bleaving\s+behind\s+a\s+trail\s+of\b/gi, label: '"leaving behind a trail of..."' },
+  { rx: /\bfor\s+(?:generations|decades)\s+to\s+come\b/gi, label: '"for generations/decades to come"' },
+];
+
+// "nightmare machine" / "dream factory" — max 1 per manuscript (checked at chapter level as max 0)
+const GEMINI_NF_MANUSCRIPT_CAPS = [
+  { rx: /\b(?:nightmare\s+machine|dream\s+factory)\b/gi, label: '"nightmare machine" / "dream factory" (max 1/manuscript)', max: 0 },
+];
+
+const GEMINI_NF_ENDING_BANS = [
+  /\blegacy\b/i, /\bgenerations\b/i, /\bhaunt\b/i, /\breverberat/i,
+  /\billuminat/i, /\breveal/i, /\bdark\s+reality\b/i, /\bglamorous\s+facade\b/i,
+  /the\s+system\s+that\s+had\s+been\s+designed\s+to\b/i,
+];
+
 // ═══ INLINE EDITORIAL NOTE DETECTION ═══
 // ABSOLUTE PROHIBITION: Never allow editorial notes, structural suggestions,
 // continuity flags, or revision reminders inside narrative output.
@@ -272,6 +308,52 @@ function scanNonfictionPatterns(text) {
   if (NF_ENDING_BANS.some(p => p.test(lastPara))) { warnings.push({ type: 'nf_thesis_ending', label: 'Final paragraph restates thesis', count: 1, max: 0, fixed: false }); }
   return warnings;
 }
+
+function scanGeminiNonfictionBans(text) {
+  const violations = [];
+
+  // Frequency caps
+  for (const { rx, label, max } of GEMINI_NF_FREQUENCY_CAPS) {
+    const m = text.match(rx);
+    const count = m ? m.length : 0;
+    if (count > max) violations.push({ type: 'gemini_nf_cap', label: `${label} (${count}x, max ${max})`, count, max, fixed: false });
+  }
+
+  // Absolute bans
+  for (const { rx, label } of GEMINI_NF_ABSOLUTE_BANS) {
+    const m = text.match(rx);
+    if (m) violations.push({ type: 'gemini_nf_ban', label, count: m.length, max: 0, fixed: false });
+  }
+
+  // Manuscript-level caps (flag at chapter level — orchestrator tracks manuscript total)
+  for (const { rx, label, max } of GEMINI_NF_MANUSCRIPT_CAPS) {
+    const m = text.match(rx);
+    if (m && m.length > max) violations.push({ type: 'gemini_nf_manuscript_cap', label, count: m.length, max, fixed: false });
+  }
+
+  return violations;
+}
+
+function scanGeminiEndingEnforcement(text) {
+  const violations = [];
+  const paras = text.trim().split(/\n\n+/);
+  const lastPara = paras[paras.length - 1] || '';
+
+  for (const rx of GEMINI_NF_ENDING_BANS) {
+    const m = lastPara.match(rx);
+    if (m) {
+      violations.push({
+        type: 'gemini_nf_ending',
+        label: `Final paragraph contains banned word/phrase: "${m[0]}"`,
+        count: 1,
+        max: 0,
+        fixed: false,
+      });
+    }
+  }
+
+  return violations;
+}
 function scanMetaResponse(text) {
   const first500 = text.slice(0, 500);
   const META = [/^I appreciate you/i, /^I need to clarify/i, /^Here is/i, /^Here are/i, /^As requested/i, /^I'll write/i, /[✓✗☐☑]/];
@@ -294,6 +376,10 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'meta_response') return `META: Output starts with AI assistant language. Remove all meta-commentary.`;
     if (v.type === 'inline_editorial_note') return `CRITICAL — INLINE NOTE: ${v.label}. This is an editorial instruction embedded in prose. OPTION A: Silently fix it by writing the actual scene/transition/content it describes. OPTION B: Remove it entirely if you lack context. NEVER leave editorial notes in narrative text.`;
     if (v.type === 'character_name_inconsistency') return `CHARACTER NAME ERROR: ${v.label}. Replace this name with the correct character from the registry, or use a generic descriptor (e.g., "the doctor", "the detective") if no match exists.`;
+    if (v.type === 'gemini_nf_cap') return `GEMINI NF CAP: ${v.label}. Rewrite excess occurrences using different phrasing. Vary sentence structure.`;
+    if (v.type === 'gemini_nf_ban') return `GEMINI NF BAN: "${v.label}" is banned entirely. Rewrite using concrete specific detail instead of this cliché.`;
+    if (v.type === 'gemini_nf_manuscript_cap') return `GEMINI NF MANUSCRIPT BAN: ${v.label}. Remove or replace — this phrase is near its manuscript-wide limit.`;
+    if (v.type === 'gemini_nf_ending') return `GEMINI NF ENDING: ${v.label}. Rewrite the final paragraph to end on a concrete image, specific documented detail, or an unresolved question — NOT a sweeping thematic statement.`;
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
@@ -365,6 +451,8 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanDynamicCaps(text, chCtx.previousChapters),
     ...scanSceneEndings(text),
     ...(isNonfiction ? scanNonfictionPatterns(text) : []),
+    ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
+    ...(isNonfiction ? scanGeminiEndingEnforcement(text) : []),
   ];
 
   // If violations found, do ONE AI fix pass
@@ -380,6 +468,8 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   const remaining = [
     ...scanBannedPhrases(cleanProse),
     ...scanFrequencyCaps(cleanProse),
+    ...(isNonfiction ? scanGeminiNonfictionBans(cleanProse) : []),
+    ...(isNonfiction ? scanGeminiEndingEnforcement(cleanProse) : []),
   ];
 
   // Build quality report
