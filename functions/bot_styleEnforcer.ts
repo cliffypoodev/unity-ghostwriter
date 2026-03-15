@@ -110,6 +110,8 @@ const FREQUENCY_CAPS = [
   [/\bsomething in\b/gi, 'something in', 3], [/\bsomething about\b/gi, 'something about', 2], [/\bthe kind of\b/gi, 'the kind of', 3],
   [/\bparticular\b/gi, 'particular', 3], [/\bsomehow\b/gi, 'somehow', 2],
   [/\bfamiliar\b/gi, 'familiar', 3],
+  [/\bozone\b/gi, 'ozone', 1], [/\btraitorous\b/gi, 'traitorous', 1],
+  [/\bcurdl/gi, 'curdle/curdled', 1], [/\blive wire\b/gi, 'live wire', 1],
 ];
 
 const EMOTIONAL_ENDING_PATTERNS = [
@@ -346,12 +348,25 @@ function scanInstructionLeaks(text) {
     /^(Begin|Show|Start|Continue|Complete|Adjust|Rewrite|Address) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish|indicate|focus|rewrite)/gmi,
     // NON-ANCHORED versions — catch leaks embedded mid-paragraph
     /\bAdjust the (year|name|time|date|setting|location|chapter) to (be |match |reflect )/gi,
-    /\bRewrite to (focus|include|show|address|reflect|incorporate|emphasize)/gi,
+    /\bRewrite (to |the |this |chapter )(focus|include|show|address|reflect|incorporate|emphasize)/gi,
     /\bAddress the .{1,40}(incident|event|scene|cliffhanger|plot point) from the previous/gi,
     /\b(consistent|inconsistent) with the (established |)?(timeline|outline|beat sheet|story bible|specification)/gi,
     /\blike an anchor to this moment/gi,
     /\badd a clear time transition/gi,
     /\bchapter break indicator/gi,
+    // v10.2 — patterns from Witch's Intimate Arts leaks
+    /\bRemove references to .{1,40}, or (establish|update|add)/gi,
+    /\bReplace .{1,40} with .{1,40} throughout/gi,
+    /\bInclude .{1,40}(presence|status|treatment|recovery) (at|in|into) the/gi,
+    /\bIncorporate the .{1,40}(ritual|healing|subplot|storyline)/gi,
+    /\b(Either |)(change|update|revise|modify) the (chapter |)(outline|content|storyline|plot) to (match|reflect|align|incorporate)/gi,
+    /\bor (update|ensure|revise) (this |the |)(outline|chapter|content) to (match|align)/gi,
+    /\bRevise to (leave|make|ensure|show|have|keep) .{1,40}(alive|dead|defeated|present|consistent)/gi,
+    /\bor (ensure|verify) this aligns with (overall |)(plot|story|outline|chapter)/gi,
+    /\bEnsure (this|the|that) (aligns|matches|is consistent) with/gi,
+    // GENERIC: any directive verb + meta-reference in same sentence (broad catch-all)
+    /\b(Remove|Include|Incorporate|Establish|Ensure|Update|Revise|Clarify) .{1,60}(backstory|storyline|plot structure|character arc|earlier chapters|overall plot|chapter outline)/gi,
+    /\b(as specified|as outlined|per the outline|as noted|as described) (in |)(the |)(previous|earlier|chapter|outline|spec)/gi,
     // AI meta-comments about completing/continuing the text
     /complete the (chapter|scene|story|section) or indicate/gi,
     /indicate if this is intentional/gi,
