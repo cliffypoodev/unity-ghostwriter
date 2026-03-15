@@ -281,6 +281,61 @@ function buildSceneContext(scenes) {
   }).join('\n\n');
 }
 
+function buildCharacterNameLock(storyBible, nameRegistry, outlineData) {
+  const chars = [];
+
+  // Pull from story bible characters
+  if (storyBible?.characters?.length > 0) {
+    for (const c of storyBible.characters) {
+      if (c.name) {
+        chars.push({ name: c.name, role: c.role || 'character', firstAppearance: null });
+      }
+    }
+  }
+
+  // Augment with name registry (has first_chapter info)
+  if (nameRegistry && typeof nameRegistry === 'object') {
+    for (const [name, info] of Object.entries(nameRegistry)) {
+      if (!chars.find(c => c.name === name)) {
+        chars.push({ name, role: info.role || 'character', firstAppearance: info.first_chapter || null });
+      } else {
+        const existing = chars.find(c => c.name === name);
+        if (info.first_chapter && !existing.firstAppearance) existing.firstAppearance = info.first_chapter;
+      }
+    }
+  }
+
+  // Pull from outline chapters' character lists
+  if (outlineData?.chapters) {
+    for (const ch of outlineData.chapters) {
+      for (const cName of (ch.characters || ch.key_characters || [])) {
+        const nameStr = typeof cName === 'string' ? cName : cName?.name;
+        if (nameStr && !chars.find(c => c.name === nameStr)) {
+          chars.push({ name: nameStr, role: 'character', firstAppearance: ch.number || ch.chapter_number || null });
+        }
+      }
+    }
+  }
+
+  if (chars.length === 0) return '';
+
+  const lines = chars.map(c => {
+    let line = `  ${c.role}: ${c.name}`;
+    if (c.firstAppearance) line += ` (first appears Ch ${c.firstAppearance})`;
+    return line;
+  });
+
+  return `\nCHARACTER NAME LOCK — NON-NEGOTIABLE:
+The following character names are fixed for this manuscript. Use ONLY these
+names. Do not introduce new names for established roles. Do not use
+placeholder names if the character already exists in this registry.
+
+${lines.join('\n')}
+
+If a scene requires a character whose name is not in this registry, use a
+generic descriptor (e.g., "the defense attorney") rather than inventing a name.`;
+}
+
 function buildBannedPhrasesContext(bannedPhrases) {
   if (!bannedPhrases || bannedPhrases.length === 0) return '';
   const recent = bannedPhrases.slice(-60);
