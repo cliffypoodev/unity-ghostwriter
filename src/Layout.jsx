@@ -14,7 +14,7 @@ function ScrollToTop() {
 }
 
 import { createPageUrl } from "@/utils";
-import { BookOpen, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function Layout({ children }) {
