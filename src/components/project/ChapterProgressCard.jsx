@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 
 const STAGE_MESSAGES = [
-  "Generating prose…",
-  "Running quality scan…",
-  "Applying corrections…",
+  "Generating scenes…",
+  "Writing prose…",
+  "Checking continuity…",
+  "Enforcing style…",
+  "Polishing prose…",
   "Building state document…",
   "Finalizing chapter…",
 ];
@@ -24,8 +26,8 @@ export default function ChapterProgressCard({ current, currentTitle, chapterWord
     const timer = setInterval(() => {
       const elapsed = Math.floor((Date.now() - chapterStart) / 1000);
       setChapterElapsed(elapsed);
-      // Rotate stage messages every ~90 seconds
-      setStageIdx(Math.min(Math.floor(elapsed / 90), STAGE_MESSAGES.length - 1));
+      // Rotate stage messages every ~60 seconds (7-bot pipeline takes 5-10 min)
+      setStageIdx(Math.min(Math.floor(elapsed / 60), STAGE_MESSAGES.length - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, [current]);
@@ -75,7 +77,7 @@ export default function ChapterProgressCard({ current, currentTitle, chapterWord
             {STAGE_MESSAGES[stageIdx]}
           </p>
           <p className="text-xs text-slate-400 mt-0.5">
-            Each chapter typically takes 5–10 minutes
+            Each chapter typically takes 5–12 minutes
           </p>
         </>
       )}
