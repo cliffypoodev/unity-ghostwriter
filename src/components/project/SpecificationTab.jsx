@@ -1822,7 +1822,8 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
         </div>
 
-        </div>{/* /phase1-form */}
+        {/* /phase1-form */}
+        </div>
       )}
       {/* /wizardStep === 2 */}
 
