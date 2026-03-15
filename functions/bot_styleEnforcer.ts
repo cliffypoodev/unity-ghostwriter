@@ -33,6 +33,22 @@ function isRefusal(text) { if (!text) return false; const f = text.slice(0, 300)
 // ═══ INLINED: shared/resolveModel ═══
 function resolveModel(callType) { return 'claude-sonnet'; }
 
+// ═══ RETRY HELPER for SDK rate limits ═══
+async function withRetry(fn, retries = 3) {
+  for (let i = 0; i <= retries; i++) {
+    try { return await fn(); } catch (err) {
+      const is429 = err.message?.includes('429') || err.message?.includes('Rate limit') || err.message?.includes('rate limit');
+      if (is429 && i < retries) {
+        const delay = (i + 1) * 10000;
+        console.warn(`SDK rate limited, retry ${i + 1}/${retries} in ${delay / 1000}s...`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // ═══ INLINED: shared/dataLoader (minimal) ═══
 async function resolveContent(content) {
   if (!content) return '';
@@ -44,10 +60,10 @@ async function resolveContent(content) {
 async function loadProjectContext(base44, projectId) {
   let chapters = [], specs = [], outlines = [], projects = [];
   [chapters, specs, outlines, projects] = await Promise.all([
-    base44.entities.Chapter.filter({ project_id: projectId }),
-    base44.entities.Specification.filter({ project_id: projectId }),
-    base44.entities.Outline.filter({ project_id: projectId }),
-    base44.entities.Project.filter({ id: projectId }).catch(() => []),
+    withRetry(() => base44.entities.Chapter.filter({ project_id: projectId })),
+    withRetry(() => base44.entities.Specification.filter({ project_id: projectId })),
+    withRetry(() => base44.entities.Outline.filter({ project_id: projectId })),
+    withRetry(() => base44.entities.Project.filter({ id: projectId })).catch(() => []),
   ]);
   const project = projects[0] || {};
   const rawSpec = specs[0]; const outline = outlines[0];
