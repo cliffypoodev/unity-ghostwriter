@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, Trash2, Clock, BookOpenText, Loader2, Settings } from "lucide-react";
+import { Plus, BookOpen, Trash2, Clock, BookOpenText, Loader2, Settings, CheckSquare, Square } from "lucide-react";
+import SelectionToolbar from "../components/projects/SelectionToolbar";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
@@ -16,6 +17,30 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const toggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === projects.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(projects.map(p => p.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
 
   // Scroll to top on page mount
   useEffect(() => {
@@ -94,6 +119,17 @@ export default function Home() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Your Projects</h1>
         <div className="flex items-center gap-2">
+          {projects.length > 0 && (
+            <Button
+              variant={selectMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+              className={selectMode ? "bg-indigo-600 hover:bg-indigo-700 h-9" : "h-9"}
+            >
+              <CheckSquare className="w-4 h-4 mr-1.5" />
+              {selectMode ? "Done" : "Select"}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="icon"
@@ -150,22 +186,64 @@ export default function Home() {
           </Button>
         </div>
       ) : (
+        {selectMode && selectedIds.size > 0 && (
+          <SelectionToolbar
+            selectedIds={selectedIds}
+            projects={projects}
+            onClearSelection={exitSelectMode}
+            onDeleteComplete={() => {
+              exitSelectMode();
+              queryClient.invalidateQueries({ queryKey: ["projects"] });
+              queryClient.invalidateQueries({ queryKey: ["all-chapters"] });
+            }}
+          />
+        )}
+        {selectMode && projects.length > 1 && (
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={toggleSelectAll}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              {selectedIds.size === projects.length ? "Deselect All" : "Select All"}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => {
             const chapterCount = getChapterCount(project.id);
+            const isSelected = selectedIds.has(project.id);
             return (
               <div
                  key={project.id}
                  onClick={() => {
+                   if (selectMode) {
+                     toggleSelect(project.id, { stopPropagation: () => {} });
+                     return;
+                   }
                    window.scrollTo(0, 0);
                    navigate(createPageUrl("ProjectDetail") + `?id=${project.id}`);
                  }}
-                 className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer p-5 group"
+                 className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer p-5 group ${
+                   isSelected ? 'border-indigo-400 ring-2 ring-indigo-200 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-200'
+                 }`}
                >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors text-base leading-snug flex-1 min-w-0 pr-2 truncate">
-                    {project.name}
-                  </h3>
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+                    {selectMode && (
+                      <button
+                        onClick={(e) => toggleSelect(project.id, e)}
+                        className="shrink-0 text-indigo-500"
+                      >
+                        {isSelected
+                          ? <CheckSquare className="w-5 h-5" />
+                          : <Square className="w-5 h-5 text-slate-300" />
+                        }
+                      </button>
+                    )}
+                    <h3 className="font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors text-base leading-snug flex-1 min-w-0 truncate">
+                      {project.name}
+                    </h3>
+                  </div>
                   <StatusBadge status={project.status} />
                 </div>
 
