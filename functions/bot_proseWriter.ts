@@ -447,6 +447,18 @@ Under no circumstances is an editorial note permitted inside prose.`);
   const systemPrompt = systemParts.filter(Boolean).join('\n');
 
   // Build user message
+  // Extract argument progression from nonfiction beat sheet (stored in scenes field)
+  let argumentProgression = '';
+  if (isNonfiction && scenes && !Array.isArray(scenes) && scenes.argument_progression) {
+    const ap = scenes.argument_progression;
+    const apLines = [];
+    if (ap.prior_chapter_endpoint) apLines.push(`PRIOR ENDPOINT: ${ap.prior_chapter_endpoint}`);
+    if (ap.this_chapter_advances) apLines.push(`THIS CHAPTER ADVANCES: ${ap.this_chapter_advances}`);
+    if (ap.new_ground) apLines.push(`NEW GROUND (cover this — it appears NOWHERE else): ${ap.new_ground}`);
+    if (ap.handoff) apLines.push(`HANDOFF TO NEXT: ${ap.handoff}`);
+    if (apLines.length > 0) argumentProgression = '\nARGUMENT PROGRESSION:\n' + apLines.join('\n');
+  }
+
   const userParts = [
     buildContextHeader(spec),
     '',
@@ -456,6 +468,7 @@ Under no circumstances is an editorial note permitted inside prose.`);
     `Summary: ${chapter.summary || outlineEntry?.summary || 'No summary'}`,
     `Key events: ${JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
     chapter.prompt ? `Prompt: ${chapter.prompt}` : '',
+    argumentProgression,
     '',
     buildSceneContext(scenes),
     '',
