@@ -83,6 +83,26 @@ const EROTICA_REGISTER_OPTIONS = [
   { value: 3, label: "Raw / Smut", desc: "Explicit, vulgar, unapologetic. Four-letter words. Zero euphemism." },
 ];
 
+// ── NONFICTION STRUCTURE MODES ──────────────────────────────────────────────
+const NF_STRUCTURE_MODES = [
+  { value: "prescriptive", label: "Prescriptive / How-To",
+    desc: "Step-by-step guidance organized around actionable frameworks. Each chapter teaches a skill or principle.",
+    examples: "Atomic Habits, The 4-Hour Workweek, caregiving manuals",
+    chapterStyle: "Framework → Evidence → Application → Exercise/Takeaway" },
+  { value: "narrative", label: "Narrative Nonfiction",
+    desc: "True events told with cinematic pacing. Characters, scenes, and dramatic arc — but everything is real.",
+    examples: "In Cold Blood, The Devil in the White City, Killers of the Flower Moon",
+    chapterStyle: "Scene → Context → Tension → Resolution → Implication" },
+  { value: "reference", label: "Reference / Academic",
+    desc: "Comprehensive, organized by topic. Readers dip in and out. Each chapter is self-contained.",
+    examples: "Textbooks, encyclopedias, technical manuals, field guides",
+    chapterStyle: "Definition → Deep Explanation → Examples → Cross-references" },
+  { value: "investigative", label: "Investigative / Exposé",
+    desc: "Evidence-driven revelation. Each chapter builds the case, peels back a layer, follows the trail.",
+    examples: "She Said, Dark Money, Catch and Kill",
+    chapterStyle: "Evidence → Reconstruction → Analysis → Implication → Next lead" },
+];
+
 // ── POV/TENSE PRESETS ────────────────────────────────────────────────────────
 // One-click combinations that auto-fill both POV and Tense fields.
 const FICTION_PRESETS = [
@@ -624,6 +644,10 @@ export default function SpecificationTab({ projectId, onProceed }) {
     pov_mode: "",
     tense: "",
     erotica_register: 0,
+    nf_structure_mode: "",
+    nf_key_frameworks: "",
+    nf_audience_needs: "",
+    nf_knowledge_base_status: "",
     protagonist_life_purpose: "",
     protagonist_core_wound: "",
     protagonist_self_belief: "",
@@ -935,6 +959,78 @@ export default function SpecificationTab({ projectId, onProceed }) {
     }));
     toast.success(`Loaded: ${prompt.title}`);
   };
+
+  // ── Nonfiction Topic Research ──
+  const triggerTopicResearch = async () => {
+    if (!form.topic || form.topic.trim().length < 10) {
+      toast.error("Enter a detailed topic/premise before running research.");
+      return;
+    }
+    handleChange("nf_knowledge_base_status", "researching");
+    try {
+      const result = await base44.functions.invoke('bot_researchChronicler', {
+        project_id: projectId,
+        mode: 'topic_research',
+      }, { timeout: 120000 });
+
+      const data = result?.data || result;
+      if (data?.success && data?.knowledge_base) {
+        const kb = data.knowledge_base;
+        // Populate key frameworks
+        if (kb.key_frameworks?.length > 0) {
+          const fwText = kb.key_frameworks.map(f => `${f.name}: ${f.description}`).join('\n');
+          handleChange("nf_key_frameworks", fwText);
+        }
+        // Populate audience needs
+        if (kb.target_audience_needs) {
+          const needs = kb.target_audience_needs;
+          const needsText = [
+            needs.primary_reader ? `Reader: ${needs.primary_reader}` : '',
+            needs.knowledge_level ? `Level: ${needs.knowledge_level}` : '',
+            needs.pain_points?.length ? `Pain points: ${needs.pain_points.join('; ')}` : '',
+            needs.desired_outcomes?.length ? `Goals: ${needs.desired_outcomes.join('; ')}` : '',
+          ].filter(Boolean).join('\n');
+          handleChange("nf_audience_needs", needsText);
+        }
+        // Auto-suggest structure mode if not set
+        if (!form.nf_structure_mode && kb.suggested_chapters?.length > 0) {
+          const g = (form.genre || '').toLowerCase();
+          if (/self.help|business|education|health|how.to|cooking/.test(g)) handleChange("nf_structure_mode", "prescriptive");
+          else if (/true.crime|investigat|journalism|expos/.test(g)) handleChange("nf_structure_mode", "investigative");
+          else if (/memoir|biography|history/.test(g)) handleChange("nf_structure_mode", "narrative");
+          else if (/reference|technical|science/.test(g)) handleChange("nf_structure_mode", "reference");
+          else handleChange("nf_structure_mode", "prescriptive");
+        }
+        handleChange("nf_knowledge_base_status", "complete");
+        toast.success(`Research complete — ${data.source_count} sources, ${data.theme_count} themes, ${data.chapter_suggestions} suggested chapters`);
+      } else {
+        handleChange("nf_knowledge_base_status", "");
+        toast.error(data?.error || "Research failed — try again");
+      }
+    } catch (err) {
+      console.error("Topic research error:", err);
+      handleChange("nf_knowledge_base_status", "");
+      toast.error(`Research failed: ${err.message}`);
+    }
+  };
+
+  // Auto-trigger topic research when nonfiction topic is entered for the first time
+  const topicResearchTriggered = useRef(false);
+  useEffect(() => {
+    if (
+      form.book_type === 'nonfiction' &&
+      form.topic && form.topic.trim().length >= 20 &&
+      form.genre &&
+      !form.nf_knowledge_base_status &&
+      !topicResearchTriggered.current &&
+      projectId
+    ) {
+      topicResearchTriggered.current = true;
+      // Small delay so other auto-fills complete first
+      const timer = setTimeout(() => triggerTopicResearch(), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [form.book_type, form.topic, form.genre, form.nf_knowledge_base_status, projectId]);
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
   const genres = form.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
@@ -1387,6 +1483,112 @@ export default function SpecificationTab({ projectId, onProceed }) {
             )}
           </div>
         </div>
+
+        {/* ══ SECTION 3b — NONFICTION RESEARCH & STRUCTURE (NF only) ══ */}
+        {form.book_type === "nonfiction" && (
+          <div className="p1-card" id="sec-nf-research">
+            <div className="p1-card-header">
+              <div className="p1-card-icon" style={{ background:'#dbeafe', color:'#1d4ed8' }}>🔬</div>
+              <div>
+                <div className="p1-card-title">Nonfiction Research &amp; Structure</div>
+                <div className="p1-card-subtitle">Topic research, knowledge base, and chapter organization mode</div>
+              </div>
+            </div>
+            <div className="p1-card-body">
+              {/* NF Structure Mode */}
+              <div className="p1-field-group">
+                <div className="p1-label mb-2">Book Structure</div>
+                <p className="text-xs text-slate-400 mb-3">How should the chapters be organized? This shapes the outline generator's approach.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {NF_STRUCTURE_MODES.map(mode => {
+                    const isActive = form.nf_structure_mode === mode.value;
+                    return (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => handleChange("nf_structure_mode", mode.value)}
+                        className={`text-left p-3 rounded-lg border transition-all ${
+                          isActive
+                            ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/30'
+                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
+                        }`}
+                      >
+                        <span className={`text-sm font-medium ${isActive ? 'text-blue-300' : 'text-slate-200'}`}>{mode.label}</span>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-tight">{mode.desc}</p>
+                        <p className="text-[10px] text-slate-500 mt-1 italic">{mode.examples}</p>
+                        <p className="text-[10px] text-blue-400/60 mt-1">Chapter pattern: {mode.chapterStyle}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Topic Research Trigger */}
+              <div className="p1-field-group">
+                <div className="p1-label mb-2">Topic Research</div>
+                <p className="text-xs text-slate-400 mb-3">
+                  AI will research your topic deeply — finding real frameworks, authoritative sources, competing books, and suggested chapter structure. This knowledge base feeds into the outline generator.
+                </p>
+                {form.nf_knowledge_base_status === "researching" ? (
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-blue-300">Researching topic... this may take 30-60 seconds</span>
+                  </div>
+                ) : form.nf_knowledge_base_status === "complete" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
+                      <span className="text-green-400">✓</span>
+                      <span className="text-sm text-green-300">Knowledge base generated — will be used for outline generation</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => triggerTopicResearch()}
+                      className="text-xs text-slate-400 hover:text-slate-200 underline"
+                    >
+                      Re-run research with updated topic
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => triggerTopicResearch()}
+                    disabled={!form.topic || form.topic.trim().length < 10}
+                    className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    🔬 Research This Topic
+                  </button>
+                )}
+                {!form.topic || form.topic.trim().length < 10 ? (
+                  <p className="text-xs text-amber-400/70 mt-2">Enter a detailed topic/premise above to enable research</p>
+                ) : null}
+              </div>
+
+              {/* NF Key Frameworks (populated by research, editable) */}
+              <div className="p1-field-group">
+                <div className="p1-label">Key Frameworks</div>
+                <p className="text-xs text-slate-400 mb-1">Major models, theories, or organizing principles for your topic. Auto-populated by research, editable.</p>
+                <textarea
+                  className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm p-3 min-h-[80px] resize-y"
+                  value={form.nf_key_frameworks || ""}
+                  onChange={e => handleChange("nf_key_frameworks", e.target.value)}
+                  placeholder="e.g., Person-Centered Care Model, Maslow's Hierarchy applied to caregiving, Trauma-Informed Care framework..."
+                />
+              </div>
+
+              {/* NF Audience Needs (populated by research, editable) */}
+              <div className="p1-field-group">
+                <div className="p1-label">Target Audience Needs</div>
+                <p className="text-xs text-slate-400 mb-1">What your readers need to learn, their pain points, their knowledge gaps. Auto-populated by research, editable.</p>
+                <textarea
+                  className="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm p-3 min-h-[80px] resize-y"
+                  value={form.nf_audience_needs || ""}
+                  onChange={e => handleChange("nf_audience_needs", e.target.value)}
+                  placeholder="e.g., New caregivers overwhelmed by daily challenges, lack of training in behavioral support, need practical not theoretical guidance..."
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ══ SECTION 4 — VOICE & WRITING MODEL ══ */}
         <div className="p1-card" id="sec-voice">
