@@ -214,33 +214,51 @@ function scanVagueSensations(text) {
   return violations;
 }
 
-// ═══ INTERIORITY REPETITION SCANNER (v6 expanded) ═══
+// ═══ INTERIORITY REPETITION SCANNER (v10 — tightened caps) ═══
 
-function scanInteriorityRepetition(text) {
+function scanInteriorityRepetition(text, bannedPhrases = []) {
   const violations = [];
+  // Per-chapter caps — these are TIGHT because a 25-chapter book multiplies them
   const INTERIORITY_CAPS = [
-    [/\bhollow\b/gi, '"hollow"', 2],
-    [/\bhollow place\b/gi, '"hollow place"', 1],
-    [/\bhollowness\b/gi, '"hollowness"', 1],
-    [/\bempty\b/gi, '"empty"', 3],
+    [/\bhollow\b/gi, '"hollow"', 1],
+    [/\bhollow place\b/gi, '"hollow place"', 0],
+    [/\bhollowness\b/gi, '"hollowness"', 0],
+    [/\bempty\b/gi, '"empty"', 1],
     [/\bemptiness\b/gi, '"emptiness"', 1],
     [/\bunlovable\b/gi, '"unlovable"', 1],
-    [/\bcore wound\b/gi, '"core wound"', 1],
-    [/\bold wound\b/gi, '"old wound"', 1],
+    [/\bcore wound\b/gi, '"core wound"', 0],
+    [/\bold wound\b/gi, '"old wound"', 0],
     [/\binsufficient\b/gi, '"insufficient"', 1],
     [/\bincapable\b/gi, '"incapable"', 1],
-    [/\bscraped raw\b/gi, '"scraped raw"', 1],
-    [/\blaid bare\b/gi, '"laid bare"', 1],
+    [/\bscraped raw\b/gi, '"scraped raw"', 0],
+    [/\blaid bare\b/gi, '"laid bare"', 0],
     [/smelled? like failure/gi, '"smelled like failure"', 0],
-    [/\bshattered\b/gi, '"shattered"', 2],
-    [/\bbroken\b/gi, '"broken" (emotional)', 3],
-    [/\bnumb(ness)?\b/gi, '"numb/numbness"', 2],
-    [/\bvoid\b/gi, '"void"', 2],
-    [/\baching?\b/gi, '"ache/aching"', 3],
+    [/\bshattered\b/gi, '"shattered"', 1],
+    [/\bbroken\b/gi, '"broken" (emotional)', 1],
+    [/\bnumb(ness)?\b/gi, '"numb/numbness"', 1],
+    [/\bvoid\b/gi, '"void"', 1],
+    [/\baching?\b/gi, '"ache/aching"', 2],
+    [/\bfragile\b/gi, '"fragile"', 1],
+    [/\bweight (of|in) (his|her|their) chest\b/gi, '"weight in chest"', 1],
+    [/\bclench(ed|ing)? (in |)(his|her|their) (chest|gut|stomach)\b/gi, '"clench in chest/gut"', 1],
   ];
   for (const [rx, label, max] of INTERIORITY_CAPS) {
     const m = text.match(rx);
     if (m && m.length > max) violations.push({ type: 'interiority_repetition', label, count: m.length, max, fixed: false });
+  }
+  // Check banned phrases from previous chapters (manuscript-wide enforcement)
+  if (bannedPhrases && bannedPhrases.length > 0) {
+    for (const phrase of bannedPhrases) {
+      if (typeof phrase === 'string' && phrase.length > 2) {
+        try {
+          const rx = new RegExp('\\b' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+          const m = text.match(rx);
+          if (m && m.length > 0) {
+            violations.push({ type: 'interiority_repetition', label: `BANNED from previous chapters: "${phrase}"`, count: m.length, max: 0, fixed: false, severity: 'critical' });
+          }
+        } catch {}
+      }
+    }
   }
   return violations;
 }
@@ -273,9 +291,28 @@ function scanPovDistance(text) {
 function scanScentOpener(text) {
   const violations = [];
   const firstSentence = text.trim().split(/[.!?]/)[0] || '';
+  
+  // Scent-specific opener
   if (/\b(scent|smell|aroma|odor|fragrance|stench|whiff)\b/i.test(firstSentence)) {
     violations.push({ type: 'scent_opener', label: 'Chapter opens with scent description (overused pattern)', count: 1, max: 0, fixed: false });
   }
+  
+  // Broader sensory formula: "The [adjective] [sensory noun] of/from..." 
+  // This catches: "The rhythmic clinking of...", "The bitter aroma of...", "The metallic tang of...",
+  // "The flickering fluorescent lights...", "The sharp glare of...", "The relentless drumming of..."
+  if (/^The\s+\w+[\s,]+\w*\s*(scent|smell|aroma|tang|taste|hum|buzz|drone|whir|clinking|clink|drumming|patter|squeak|screech|creak|gurgle|hiss|rumble|thrum|pulse|rhythm|glow|glare|flicker|shimmer|gleam|glint|warmth|chill|cold|cool|heat|damp|rough|smooth|sharp|bitter|sweet|acrid|musty|stale|lingering)\b/i.test(firstSentence)) {
+    violations.push({ type: 'sensory_opener', label: 'Chapter opens with "The [adj] [sensory noun]..." formula (rotate opening types)', count: 1, max: 0, fixed: false });
+  }
+  
+  // Even broader: "The [adjective] [noun] of [possessive]..." pattern at chapter start
+  // Catches: "The rhythmic clinking of Lucia's spoon", "The ghost of Lucia's perfume"
+  if (/^The\s+\w+[\s,]+\w+\s+of\s+(the|his|her|their|\w+'s)\s/i.test(firstSentence)) {
+    // Only flag if the noun cluster is sensory — check for auditory/visual/tactile words
+    if (/\b(light|lights|sound|noise|air|wind|rain|sun|shadow|silence|hum|buzz|clinking|smell|scent|aroma|taste|feel|touch|warmth|cold|heat|glass|metal|wood|fabric|leather)\b/i.test(firstSentence)) {
+      violations.push({ type: 'sensory_opener', label: 'Chapter opens with sensory atmosphere description (vary: try dialogue, action, or thought)', count: 1, max: 0, fixed: false });
+    }
+  }
+  
   return violations;
 }
 
@@ -303,9 +340,18 @@ function scanInstructionLeaks(text) {
     /per the (outline|beat sheet|specification)/gi,
     /I('ll| will) (now |)write (this |the )(chapter|scene|section)/gi,
     /\[VERIFY[:\s]/gi,
-    /^(Begin|Show|Either establish|Continue from|Start with|Open with|Transition from|Describe how|Establish) /gm,
-    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving|timeline|earlier)/gmi,
-    /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
+    // Line-start scene directions (expanded: Adjust, Rewrite, Address, Include, Ensure, Note)
+    /^(Begin|Show|Either establish|Continue from|Start with|Open with|Transition from|Describe how|Establish|Adjust the|Rewrite to|Address the|Include a|Ensure that|Note that) /gm,
+    /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish|Adjust|Rewrite|Address|Include|Ensure) (the |this |him |her |from |with |in |a |to )\w+.{0,80}(chapter|scene|kitchen|conversation|computer|leaving|moving|timeline|earlier|intentional|outline|consistent|previous|incident|emphasis)/gmi,
+    /^(Begin|Show|Start|Continue|Complete|Adjust|Rewrite|Address) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish|indicate|focus|rewrite)/gmi,
+    // NON-ANCHORED versions — catch leaks embedded mid-paragraph
+    /\bAdjust the (year|name|time|date|setting|location|chapter) to (be |match |reflect )/gi,
+    /\bRewrite to (focus|include|show|address|reflect|incorporate|emphasize)/gi,
+    /\bAddress the .{1,40}(incident|event|scene|cliffhanger|plot point) from the previous/gi,
+    /\b(consistent|inconsistent) with the (established |)?(timeline|outline|beat sheet|story bible|specification)/gi,
+    /\blike an anchor to this moment/gi,
+    /\badd a clear time transition/gi,
+    /\bchapter break indicator/gi,
     // AI meta-comments about completing/continuing the text
     /complete the (chapter|scene|story|section) or indicate/gi,
     /indicate if this is intentional/gi,
@@ -315,7 +361,7 @@ function scanInstructionLeaks(text) {
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
     if (m) {
-      violations.push({ type: 'instruction_leak', label: `Bot instruction in prose: "${m[0].slice(0, 60)}"`, count: m.length, max: 0, fixed: false });
+      violations.push({ type: 'instruction_leak', label: `Bot instruction in prose: "${m[0].slice(0, 80)}"`, count: m.length, max: 0, fixed: false, severity: 'critical' });
     }
   }
   return violations;
@@ -541,6 +587,8 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'vague_sensation') return `VAGUE SENSATION: ${v.label} appears ${v.count}x (max ${v.max}). Replace with specific body location + physical descriptor. BAD: "electricity shot through him." GOOD: "the drag of cool scales across his inner thigh made his hips jerk." For "something inside broke/shattered": replace with what SPECIFICALLY the character felt — name the muscle group, the body part, the physical reflex. For scent formulas: replace with ONE dominant scent tied to a specific memory or physical reaction.`;
     if (v.type === 'interiority_repetition') return `INTERIORITY REPETITION: ${v.label} appears ${v.count}x (max ${v.max}). Replace repeated emotional vocabulary with NEW dimensions of the character's psychology.`;
     if (v.type === 'dialogue_pattern') return `DIALOGUE PATTERN: ${v.label}. This character needs different conversational modes — mundane exchanges, genuine questions, uncertainty, humor.`;
+    if (v.type === 'sensory_opener') return `SENSORY OPENER: ${v.label}. Rewrite the opening sentence to use a DIFFERENT approach: dialogue, action, internal thought, a question, or a time/place stamp. Do NOT open with "The [adjective] [sensory detail]..."`;
+    if (v.type === 'word_count_excess') return `WORD COUNT: Chapter is ${v.count} words, target is ${v.max} max. Trim redundant paragraphs, compress recap sections, and cut any passages that don't advance plot or character. Do NOT cut dialogue or climactic scenes.`;
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
@@ -615,7 +663,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanFrequencyCaps(text),
     ...scanDynamicCaps(text, chCtx.previousChapters),
     ...scanSceneEndings(text),
-    ...scanInteriorityRepetition(text),
+    ...scanInteriorityRepetition(text, ctx.bannedPhrases),
     ...scanDialoguePatterns(text),
     ...scanPovDistance(text),
     ...scanScentOpener(text),
@@ -624,6 +672,22 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
     ...(isNonfiction ? scanGeminiEndingEnforcement(text) : []),
   ];
+
+  // Word count enforcement — flag chapters exceeding 130% of target
+  const wordCount = text.trim().split(/\s+/).length;
+  const TARGET_WORDS = { short: 2500, medium: 2500, long: 2800, epic: 3000 };
+  const targetWords = TARGET_WORDS[ctx.spec?.target_length || 'medium'] || 2500;
+  const maxWords = Math.round(targetWords * 1.3);
+  if (wordCount > maxWords) {
+    allViolations.push({
+      type: 'word_count_excess',
+      label: `Chapter is ${wordCount} words — exceeds ${maxWords} word maximum (target: ${targetWords}). AI must trim to target length.`,
+      count: wordCount,
+      max: maxWords,
+      fixed: false,
+      severity: 'warning',
+    });
+  }
 
   // If violations found, do ONE AI fix pass
   let cleanProse = text;
