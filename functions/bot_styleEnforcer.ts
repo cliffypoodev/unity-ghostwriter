@@ -358,6 +358,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   const allViolations = [
     ...scanInlineNotes(text),
     ...scanMetaResponse(text),
+    ...scanCharacterNames(text, storyBible, nameRegistry),
     ...scanBannedPhrases(text),
     ...scanFrequencyCaps(text),
     ...scanDynamicCaps(text, chCtx.previousChapters),
