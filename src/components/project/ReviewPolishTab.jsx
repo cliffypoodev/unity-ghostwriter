@@ -288,6 +288,8 @@ export default function ReviewPolishTab({ projectId }) {
   const [polishing, setPolishing] = useState({});
   const [polishAll, setPolishAll] = useState(false);
   const [polishResults, setPolishResults] = useState({});
+  const [uploadedText, setUploadedText] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState(null);
 
   const { data: chapters = [] } = useQuery({
     queryKey: ["chapters", projectId],
