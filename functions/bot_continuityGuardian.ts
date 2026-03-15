@@ -332,6 +332,7 @@ async function runContinuityGuardian(base44, projectId, chapterId, rawProse) {
     ...checkCompositeFigureFraming(text, chCtx.chapter.chapter_number, ctx.storyBible),
     ...checkActTransition(text, chCtx.lastStateDoc, chCtx.chapter.chapter_number),
     ...checkCapabilities(text, ctx.storyBible),
+    ...checkNonfictionSubjectOverlap(text, ctx, chCtx),
   ];
 
   const aiViolations = await runAIConsistencyCheck(text, ctx, chCtx);
