@@ -88,7 +88,7 @@ async function loadProjectContext(base44, projectId) {
   try { storyBible = bibleRaw ? JSON.parse(bibleRaw) : null; } catch {}
   chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
   let nameRegistry = {};
-  if (project.name_registry) { try { nameRegistry = JSON.parse(project.name_registry); } catch {} }
+  if (project.name_registry) { let nrRaw = project.name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
   return { project, chapters, spec, outline, outlineData, storyBible, nameRegistry, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isFiction: spec?.book_type !== 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
 }
 

@@ -572,7 +572,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
       if (bibleRaw) { try { storyBible = JSON.parse(bibleRaw); } catch {} }
     }
     const projects = await base44.entities.Project.filter({ id: projectId });
-    if (projects[0]?.name_registry) { try { nameRegistry = JSON.parse(projects[0].name_registry); } catch {} }
+    if (projects[0]?.name_registry) { let nrRaw = projects[0].name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
   } catch {}
 
   let text = prose || await resolveContent(chCtx.chapter.content);
