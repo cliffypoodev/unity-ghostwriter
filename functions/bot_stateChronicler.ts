@@ -60,7 +60,11 @@ async function loadProjectContext(base44, projectId) {
   try { outlineData = outlineRaw ? JSON.parse(outlineRaw) : null; } catch {}
   chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
   let nameRegistry = {};
-  if (project.name_registry) { try { nameRegistry = JSON.parse(project.name_registry); } catch {} }
+  if (project.name_registry) {
+    let nrRaw = project.name_registry;
+    if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } }
+    try { nameRegistry = JSON.parse(nrRaw); } catch {}
+  }
   let bannedPhrases = [];
   if (project.banned_phrases_log) { let bpRaw = project.banned_phrases_log; if (typeof bpRaw === 'string' && bpRaw.startsWith('http')) { try { bpRaw = await (await fetch(bpRaw)).text(); } catch { bpRaw = '[]'; } } try { bannedPhrases = JSON.parse(bpRaw); } catch {} }
   return { project, chapters, spec, outlineData, nameRegistry, bannedPhrases, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction' };
