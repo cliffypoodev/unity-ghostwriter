@@ -128,6 +128,41 @@ const NF_ENDING_BANS = [
   /this (transformation|shift|change) (would|has|had)/i, /what (we can learn|emerges|this shows)/i,
 ];
 
+// ═══ INLINE EDITORIAL NOTE DETECTION ═══
+// ABSOLUTE PROHIBITION: Never allow editorial notes, structural suggestions,
+// continuity flags, or revision reminders inside narrative output.
+
+const INLINE_NOTE_PATTERNS = [
+  /add (a |an )?(brief |short )?(scene|transition|section|explanation|opening)/i,
+  /change (all references|dr\.|character) (from|to)/i,
+  /either (revise|remove|include|adjust|update)/i,
+  /show (the |this )?(scene|revelation|moment|reaction)/i,
+  /clarify the (timeline|date|relationship|sequence)/i,
+  /add .{3,40} to the (character list|outline|chapter)/i,
+  /or (replace with|adjust to match|update the outline)/i,
+  /throughout the chapter/i,
+  /flash.?forward|flash.?back.{0,20}(with clear|establish)/i,
+];
+
+function scanInlineNotes(text) {
+  const violations = [];
+  for (const pattern of INLINE_NOTE_PATTERNS) {
+    const m = text.match(pattern);
+    if (m) {
+      violations.push({
+        type: 'inline_editorial_note',
+        label: `Editorial note: "${m[0]}"`,
+        count: 1,
+        max: 0,
+        fixed: false,
+        severity: 'critical',
+        autoRegenerate: true,
+      });
+    }
+  }
+  return violations;
+}
+
 // ═══ SCAN FUNCTIONS ═══
 
 function scanBannedPhrases(text) {
