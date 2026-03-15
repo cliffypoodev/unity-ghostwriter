@@ -207,8 +207,20 @@ Deno.serve(async (req) => {
       const nfSystemPrompt = `You are a narrative nonfiction editor building a scene-level beat sheet for a single chapter. Return ONLY valid JSON. No markdown, no backticks, no explanation.
 
 ${nfContextHeader}`;
+      // Build full outline summary for NEW_GROUND cross-reference
+      const outlineSummaryLines = outlineChapters.map(oc => {
+        const num = oc.number || oc.chapter_number;
+        return `Ch ${num}: "${oc.title || 'Untitled'}" — ${(oc.summary || '').slice(0, 150)}`;
+      }).join('\n');
+
+      const prevChapterRef = chapterNumber > 1 ? chapters.find(c => c.chapter_number === chapterNumber - 1) : null;
+      const nextChapterRef = chapters.find(c => c.chapter_number === chapterNumber + 1);
+
       const nfUserMessage = `BOOK THESIS / THROUGHLINE:
 ${thesis}
+
+FULL OUTLINE (for cross-reference — identify what is covered ELSEWHERE):
+${outlineSummaryLines}
 
 CHAPTER ${chapterNumber} of ${totalChapters}: "${chapter.title}"
 DESCRIPTION: ${chapter.summary || outlineEntry.summary || 'No description provided'}
@@ -217,6 +229,8 @@ BEAT STYLE: ${beatStyle}
 GENRE: ${genre}
 ${outlineEntry.beat_function ? `STRUCTURAL ROLE: ${outlineEntry.beat_function} (${outlineEntry.beat_name || ''})` : ''}
 ${outlineEntry.beat_scene_type ? `MODE: ${outlineEntry.beat_scene_type}` : ''}
+${prevChapterRef ? `PREVIOUS CHAPTER: Ch ${prevChapterRef.chapter_number}: "${prevChapterRef.title}" — ${(prevChapterRef.summary || '').slice(0, 200)}` : 'THIS IS THE FIRST CHAPTER.'}
+${nextChapterRef ? `NEXT CHAPTER: Ch ${nextChapterRef.chapter_number}: "${nextChapterRef.title}" — ${(nextChapterRef.summary || '').slice(0, 200)}` : 'THIS IS THE FINAL CHAPTER.'}
 
 Generate a structured beat sheet for this nonfiction chapter.
 Return ONLY a JSON object with these exact fields:
@@ -224,6 +238,12 @@ Return ONLY a JSON object with these exact fields:
 {
   "chapter_number": ${chapterNumber},
   "chapter_title": "${chapter.title}",
+  "argument_progression": {
+    "prior_chapter_endpoint": "What the previous chapter established as its final conclusion or revelation. For Ch 1, state the book's starting premise.",
+    "this_chapter_advances": "The specific NEW claim, evidence, or argument this chapter adds that did not exist before it.",
+    "new_ground": "Material covered here that appears NOWHERE else in the outline. Be specific — name the people, events, documents, or analysis unique to this chapter.",
+    "handoff": "What this chapter sets up for the next chapter. The question it leaves open or the tension it creates."
+  },
   "opening_hook": "The specific scene, person, or fact that opens this chapter cinematically. Concrete and immediate — not a thesis statement.",
   "context_block": "What historical, political, social, or geographic background the reader needs before the central evidence. Keep to essential minimum.",
   "central_evidence": "The primary documented events, records, or facts being reconstructed in this chapter. What actually happened, and to whom.",
@@ -234,7 +254,9 @@ Return ONLY a JSON object with these exact fields:
   "closing_beat": "The specific unresolved thread, question, or revelation that pulls the reader into the next chapter.",
   "word_target": 2500,
   "fabrication_warnings": ["List any claims in the chapter description that cannot be verified from public record"]
-}`;
+}
+
+CRITICAL VALIDATION: The "new_ground" field must identify material that is NOT covered in any other chapter listed in the outline above. If you cannot identify distinct new ground, set "new_ground" to "[RESTRUCTURE NEEDED: overlaps with Ch X]" so the user knows this chapter concept needs revision before generation.`;
 
       const nfModelKey = 'gemini-pro';
       let nfRaw;

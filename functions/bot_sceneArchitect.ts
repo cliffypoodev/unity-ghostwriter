@@ -214,15 +214,26 @@ async function generateNonfictionBeatSheet(ctx, chCtx) {
   const modelKey = resolveModel('beat_sheet', spec);
   const contextHeader = buildContextHeader(spec);
 
+  // Build full outline summary for NEW_GROUND cross-reference
+  const outlineChapters = ctx.outlineData?.chapters || [];
+  const outlineSummaryLines = outlineChapters.map(oc => {
+    const num = oc.number || oc.chapter_number;
+    return `Ch ${num}: "${oc.title || 'Untitled'}" — ${(oc.summary || '').slice(0, 150)}`;
+  }).join('\n');
+
   const systemPrompt = `You are a nonfiction book architect. Generate a structural beat sheet for one chapter. Output ONLY valid JSON. No explanation.\n\n${contextHeader}\n\nThis is NONFICTION. No fictional scenes or invented characters.`;
 
   const userMessage = `Book: "${ctx.project.name || 'Untitled'}"
 Genre: ${spec?.genre || 'Nonfiction'} / ${spec?.subgenre || ''}
+
+FULL OUTLINE (for cross-reference — identify what is covered ELSEWHERE):
+${outlineSummaryLines}
+
 Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"
 Summary: ${chapter.summary || outlineEntry.summary || 'No summary'}
 Prompt: ${chapter.prompt || outlineEntry.scene_prompt || ''}
-${prevChapter ? `Previous chapter: "${prevChapter.title}"` : ''}
-${nextChapter ? `Next chapter: "${nextChapter.title}"` : 'This is the final chapter.'}
+${prevChapter ? `Previous chapter: Ch ${prevChapter.chapter_number}: "${prevChapter.title}" — ${(prevChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FIRST CHAPTER.'}
+${nextChapter ? `Next chapter: Ch ${nextChapter.chapter_number}: "${nextChapter.title}" — ${(nextChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FINAL CHAPTER.'}
 
 Target: ~${targetWords} words
 
@@ -232,6 +243,12 @@ Return JSON with this structure:
   "beat_function": "SETUP|DISRUPTION|ESCALATION|CLIMAX|RESOLUTION|CONNECTIVE_TISSUE",
   "beat_scene_type": "exposition|case_study|analysis|how_to|mixed",
   "beat_tempo": "fast|medium|slow",
+  "argument_progression": {
+    "prior_chapter_endpoint": "What the previous chapter established. For Ch 1, state the book's starting premise.",
+    "this_chapter_advances": "The specific NEW claim or evidence this chapter adds.",
+    "new_ground": "Material covered here that appears NOWHERE else in the outline. Name specific people, events, documents, or analysis unique to this chapter.",
+    "handoff": "What this chapter sets up for the next chapter."
+  },
   "sections": [
     {
       "section_number": 1,
@@ -244,7 +261,9 @@ Return JSON with this structure:
     }
   ],
   "word_target": ${targetWords}
-}`;
+}
+
+CRITICAL VALIDATION: The "new_ground" field must identify material NOT covered in any other chapter listed in the outline above. If you cannot identify distinct new ground, set "new_ground" to "[RESTRUCTURE NEEDED: overlaps with Ch X]" so the chapter concept can be revised before generation.`;
 
   let raw;
   try {
