@@ -746,17 +746,19 @@ export default function GenerateTab({ projectId, onProceed }) {
   const resolvedBookMetadata = outline?.book_metadata || null;
 
   // ── Auto-unstick chapters left in "generating" status from a previous session ──
-  // If the page loads and chapters are "generating" but we have no active polling
-  // for them, they are stale leftovers from a crashed/timed-out generation.
-  // Reset them to "pending" so the user can retry.
-  const unstickRanRef = useRef(false);
+  // Runs on every chapters refetch. If a chapter is "generating" in the DB but
+  // we have no active polling for it, it's stale — reset to "pending".
+  const unstickCooldownRef = useRef(0);
   useEffect(() => {
-    if (unstickRanRef.current || chapters.length === 0) return;
+    if (chapters.length === 0) return;
+    const now = Date.now();
+    // Cooldown: don't run more than once per 10 seconds
+    if (now - unstickCooldownRef.current < 10000) return;
     const staleGenerating = chapters.filter(
       c => c.status === 'generating' && !activeChapterIds.has(c.id)
     );
     if (staleGenerating.length > 0) {
-      unstickRanRef.current = true;
+      unstickCooldownRef.current = now;
       console.warn(`Auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
       Promise.all(
         staleGenerating.map(c =>
@@ -767,7 +769,7 @@ export default function GenerateTab({ projectId, onProceed }) {
         toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
       });
     }
-  }, [chapters.length]); // Only run once when chapters first load
+  }, [chapters]);
 
   const generatedCount = chapters.filter(c => c.status === "generated").length;
   const totalCount = chapters.length;
