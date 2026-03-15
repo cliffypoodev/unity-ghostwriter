@@ -150,6 +150,24 @@ When the scene reaches physical intimacy beyond kissing:
 9. The non-human partner's alien physiology is NOT decorative. Their unique physical traits MUST be active erotic elements — felt, tasted, heard, pressed against skin — not just visually observed.
 === END EXPLICIT SCENE ENFORCEMENT ===`;
 
+// ── EROTICA PROSE REGISTER ──────────────────────────────────────────────────
+// Controls the VOCABULARY and TONE of intimate scenes only. Non-intimate prose
+// follows the selected beat style regardless of this setting.
+const EROTICA_REGISTER = {
+  0: { name: "Literary", instructions: `INTIMATE SCENE PROSE REGISTER: LITERARY
+Write intimate scenes with lyrical, emotionally rich prose. Use metaphor, sensory poetry, and emotional interiority. Anatomical language should be indirect or poetic — "the heat of him," "where their bodies joined," "the slick friction between them." Dialogue during intimacy should be sparse, tender, or breathlessly fragmented. The emphasis is on the EMOTIONAL experience of physical connection. This is literary erotica — beautiful, devastating, artful.` },
+
+  1: { name: "Naturalistic", instructions: `INTIMATE SCENE PROSE REGISTER: NATURALISTIC
+Write intimate scenes with plain, direct, unadorned prose. Use correct anatomical terms without euphemism or poetry — cock, cunt, nipple, ass, thigh — but without vulgarity or crude slang. Dialogue during intimacy should be natural, the way real people speak during sex — short, direct, sometimes awkward. No purple prose. No metaphorical flourishes. The emphasis is on PHYSICAL REALISM. "He slid inside her and she gasped, gripping his shoulders." Not "their souls merged in a devastating confluence."` },
+
+  2: { name: "Vernacular", instructions: `INTIMATE SCENE PROSE REGISTER: VERNACULAR
+Write intimate scenes using common sexual slang and casual dirty talk. Characters should speak the way real people talk during sex — blunt, hungry, sometimes crude. Use colloquial terms: cock, dick, pussy, ass, tits, fuck, suck, ride, pound. Dialogue should be direct and graphic: "Fuck me harder," "You feel so good," "I want to taste you." The prose itself should be punchy and fast-paced, not flowery. Body parts are named plainly. Actions are described explicitly. No poetic metaphors for genitals or sex acts. The emphasis is on RAW DESIRE communicated in everyday language.` },
+
+  3: { name: "Raw / Smut", instructions: `INTIMATE SCENE PROSE REGISTER: RAW / SMUT
+Write intimate scenes with maximum vulgarity and zero restraint. This is unfiltered smut. Use the most explicit terms available: cock, cunt, asshole, dick, tits, cum, slut, whore (if consensual/in-character), breed, gag, choke, wreck. Dirty talk should be graphic and dominant: "Take it," "You're dripping for me," "I'm going to ruin you." The prose itself is aggressive, blunt, and prioritizes raw sexual energy over emotional nuance. No euphemisms. No metaphors. No "their bodies became one." Instead: "He fucked her until she screamed." The emphasis is on VISCERAL, UNAPOLOGETIC CARNALITY. Emotional beats exist only as fuel for desire, not as counterweight to it.
+IMPORTANT: This register applies ONLY to intimate scenes. Non-intimate prose should still follow the selected beat style and maintain narrative quality.` },
+};
+
 // ── NONFICTION SOURCE ANCHORING ─────────────────────────────────────────────
 const NONFICTION_SOURCE_REQUIREMENTS = `=== DOCUMENTARY NONFICTION SOURCE REQUIREMENTS ===
 Every factual claim must be anchored to at least ONE of:
@@ -266,6 +284,13 @@ function buildFictionSystemPrompt(ctx, chCtx) {
   const genreStr = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
   if (/erotica|erotic|romance|bdsm/.test(genreStr) || (parseInt(spec?.spice_level) || 0) >= 3) {
     sp += `\n\n${EROTICA_SCENE_ENFORCEMENT}`;
+
+    // Erotica prose register — controls vocabulary/tone of intimate scenes
+    const registerLevel = Math.max(0, Math.min(3, parseInt(spec?.erotica_register) || 0));
+    const register = EROTICA_REGISTER[registerLevel];
+    if (register) {
+      sp += `\n\n${register.instructions}`;
+    }
   }
 
   if (isLastChapter) {
