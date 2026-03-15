@@ -412,6 +412,24 @@ function buildProsePrompt(ctx, chCtx) {
     systemParts.push(interiorityBlock);
   }
 
+  // Character name lock — prevents AI from inventing wrong names
+  const nameLock = buildCharacterNameLock(storyBible, ctx.nameRegistry, ctx.outlineData);
+  if (nameLock) {
+    systemParts.push(nameLock);
+  }
+
+  // Absolute prohibition on inline editorial notes
+  systemParts.push(`\nABSOLUTE PROHIBITION — INLINE EDITORIAL NOTES:
+Never insert editorial notes, structural suggestions, continuity flags, or
+revision reminders inside narrative output. Examples of BANNED patterns:
+- "Add [scene/transition] here"
+- "Change [name] to [other name] throughout"
+- "Either revise this or update the outline"
+- "Show [event] before this scene"
+If you identify a continuity problem WHILE WRITING, fix it silently within
+the narrative. If you cannot fix it, STOP and do not write that section.
+Under no circumstances is an editorial note permitted inside prose.`);
+
   const systemPrompt = systemParts.filter(Boolean).join('\n');
 
   // Build user message
