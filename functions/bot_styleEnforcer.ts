@@ -293,6 +293,7 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'nf_fiction_trap') return `NF PATTERN: ${v.label}. Replace with author analysis or research citation.`;
     if (v.type === 'meta_response') return `META: Output starts with AI assistant language. Remove all meta-commentary.`;
     if (v.type === 'inline_editorial_note') return `CRITICAL — INLINE NOTE: ${v.label}. This is an editorial instruction embedded in prose. OPTION A: Silently fix it by writing the actual scene/transition/content it describes. OPTION B: Remove it entirely if you lack context. NEVER leave editorial notes in narrative text.`;
+    if (v.type === 'character_name_inconsistency') return `CHARACTER NAME ERROR: ${v.label}. Replace this name with the correct character from the registry, or use a generic descriptor (e.g., "the doctor", "the detective") if no match exists.`;
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
