@@ -514,10 +514,16 @@ ${NONFICTION_CHAPTER_PROGRESSION}` : `Show, don't tell. Concrete sensory detail.
   systemParts.push(`\nSpice Level: ${spiceLevel}/4 — ${SPICE_LEVELS[spiceLevel]?.name || 'Fade to Black'}\n${spiceInstructions}`);
   systemParts.push(`\nLanguage Intensity: ${langLevel}/4 — ${LANGUAGE_INTENSITY[langLevel]?.name || 'Clean'}\n${langInstructions}`);
 
-  // Erotica/Romance explicit scene enforcement
+  // Erotica/Romance explicit scene enforcement + prose register (v6)
   const genreStr = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
   if (/erotica|erotic|romance|bdsm/.test(genreStr) || spiceLevel >= 3) {
     systemParts.push(`\n${EROTICA_SCENE_ENFORCEMENT}`);
+    // Erotica prose register — controls vocabulary/tone of intimate scenes
+    const registerLevel = Math.max(0, Math.min(3, parseInt(spec?.erotica_register) || 0));
+    const register = EROTICA_REGISTER[registerLevel];
+    if (register) {
+      systemParts.push(`\n${register.instructions}`);
+    }
   }
 
   if (interiorityBlock) {
