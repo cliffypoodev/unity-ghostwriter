@@ -201,13 +201,32 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     } catch (e) { console.warn('File upload failed, storing directly:', e.message); }
   }
 
-  await base44.entities.Chapter.update(chapterId, {
+  // Save chapter — retry once on failure since this is the critical write
+  const chapterUpdate = {
     content: contentValue,
     status: 'generated',
     word_count: finalWordCount,
     generated_at: new Date().toISOString(),
     quality_scan: qualityReport ? JSON.stringify(qualityReport) : '',
-  });
+  };
+  try {
+    await base44.entities.Chapter.update(chapterId, chapterUpdate);
+  } catch (saveErr) {
+    console.error(`Ch ${chapter.chapter_number}: CRITICAL — chapter save failed, retrying:`, saveErr.message);
+    // If the content was too large, try without quality_scan
+    try {
+      await base44.entities.Chapter.update(chapterId, {
+        content: contentValue,
+        status: 'generated',
+        word_count: finalWordCount,
+        generated_at: new Date().toISOString(),
+      });
+    } catch (retryErr) {
+      console.error(`Ch ${chapter.chapter_number}: CRITICAL — retry save also failed:`, retryErr.message);
+      await base44.entities.Chapter.update(chapterId, { status: 'error' });
+      throw retryErr;
+    }
+  }
 
   // ── STEP 6: STATE CHRONICLER ──
   try {
