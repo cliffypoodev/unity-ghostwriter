@@ -485,27 +485,43 @@ function checkPovConsistency(text, spec) {
   return violations;
 }
 
-// ═══ TENSE CONSISTENCY CHECK (v6) ═══
+// ═══ TENSE CONSISTENCY CHECK (v10 — tightened) ═══
 
 function checkTenseConsistency(text, spec) {
   const violations = [];
   const tense = spec?.tense;
-  if (!tense) return violations;
+  if (!tense || tense === 'mixed') return violations;
+  // Strip dialogue — tense inside quotes is character voice, not narration
   const withoutDialogue = text.replace(/[""\u201C][^""\u201D]*[""\u201D]/g, '').replace(/'[^']*'/g, '');
-  const sentences = withoutDialogue.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 50);
+  // Scan ALL sentences, not just first 50
+  const sentences = withoutDialogue.split(/[.!?]+/).filter(s => s.trim().length > 20);
   if (tense === 'past') {
     let presentCount = 0;
-    const presentPatterns = /\b(he|she|they|it)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes)\b/gi;
-    for (const s of sentences) { presentCount += (s.match(presentPatterns) || []).length; }
-    if (presentCount > 8) {
-      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `Tense set to past but chapter contains ${presentCount} present-tense narrative verbs.`, location: 'Multiple locations' });
+    // Include character names + pronouns — "Lucia stands" is just as wrong as "she stands"
+    const presentPatterns = /\b(\w+)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi;
+    for (const s of sentences) {
+      const matches = s.match(presentPatterns) || [];
+      // Filter: only count if the subject is a pronoun or capitalized name (not "the door opens")
+      for (const m of matches) {
+        const subj = m.split(/\s+/)[0];
+        if (/^(he|she|they|it|I|we)$/i.test(subj) || /^[A-Z]/.test(subj)) presentCount++;
+      }
+    }
+    if (presentCount > 3) {
+      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `TENSE DRIFT: Project tense is PAST but chapter has ${presentCount} present-tense narrative verbs. The proseWriter MUST rewrite all narration in past tense. Present tense is ONLY acceptable inside direct dialogue quotes.`, location: 'Multiple locations' });
     }
   } else if (tense === 'present') {
     let pastCount = 0;
-    const pastPatterns = /\b(he|she|they|it)\s+(walked|ran|said|thought|felt|knew|saw|heard|stood|sat|looked|moved|turned|opened|closed|stepped|reached|pulled|pushed)\b/gi;
-    for (const s of sentences) { pastCount += (s.match(pastPatterns) || []).length; }
-    if (pastCount > 8) {
-      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `Tense set to present but chapter contains ${pastCount} past-tense narrative verbs.`, location: 'Multiple locations' });
+    const pastPatterns = /\b(\w+)\s+(walked|ran|said|thought|felt|knew|saw|heard|stood|sat|looked|moved|turned|opened|closed|stepped|reached|pulled|pushed|watched|pressed|asked|cut|filled|took|set|picked|dropped|began|started|stopped|grabbed|held|caught|lifted|placed)\b/gi;
+    for (const s of sentences) {
+      const matches = s.match(pastPatterns) || [];
+      for (const m of matches) {
+        const subj = m.split(/\s+/)[0];
+        if (/^(he|she|they|it|I|we)$/i.test(subj) || /^[A-Z]/.test(subj)) pastCount++;
+      }
+    }
+    if (pastCount > 3) {
+      violations.push({ type: 'tense_drift', severity: 'critical', character: null, description: `TENSE DRIFT: Project tense is PRESENT but chapter has ${pastCount} past-tense narrative verbs. The proseWriter MUST rewrite all narration in present tense. Past tense is ONLY acceptable in flashback passages.`, location: 'Multiple locations' });
     }
   }
   return violations;
