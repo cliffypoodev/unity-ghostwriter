@@ -347,8 +347,19 @@ Deno.serve(async (req) => {
       if (!body.project_id || !body.chapter_id) {
         return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
       }
-      const result = await orchestrateChapter(base44, body.project_id, body.chapter_id);
-      return Response.json(result);
+      try {
+        const result = await orchestrateChapter(base44, body.project_id, body.chapter_id);
+        return Response.json(result);
+      } catch (orchErr) {
+        // Last-resort catch: if orchestrateChapter throws unexpectedly, reset chapter status
+        console.error(`orchestrateChapter crashed for ${body.chapter_id}:`, orchErr.message);
+        try {
+          await base44.entities.Chapter.update(body.chapter_id, { status: 'error' });
+        } catch (resetErr) {
+          console.error('Failed to reset chapter status after crash:', resetErr.message);
+        }
+        return Response.json({ error: orchErr.message, success: false }, { status: 500 });
+      }
     }
 
     if (action === 'write_all') {
