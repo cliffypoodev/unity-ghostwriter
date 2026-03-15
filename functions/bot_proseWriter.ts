@@ -565,6 +565,26 @@ function buildProsePrompt(ctx, chCtx) {
     `ENDING TYPE for this chapter: ${endingType.name} — ${endingType.desc}`,
   ];
 
+  // POV & Tense (v7 — unified for fiction and nonfiction)
+  if (!isNonfiction && (spec?.pov_mode || spec?.tense)) {
+    const POV_INSTRUCTIONS = {
+      'first-person': 'Write in FIRST PERSON (I/me/my). The narrator IS the POV character. Never use "he thought" or "she felt" — use "I thought" and "I felt." The reader experiences everything through the narrator\'s direct perception.',
+      'third-close': 'Write in THIRD PERSON CLOSE (he/she + character name). Stay inside ONE character\'s head per scene. Use their name and pronouns, never "the human" or "the man." Filter all observations through their perspective. Free indirect discourse permitted.',
+      'third-multi': 'Write in THIRD PERSON MULTIPLE POV. Each scene stays in one character\'s perspective. Mark POV shifts with scene breaks (* * *). Use character names and pronouns, not clinical descriptors.',
+      'third-omniscient': 'Write in THIRD PERSON OMNISCIENT. The narrator can see into any character\'s mind and can editorialize. Maintain a consistent narrative voice throughout.',
+      'second-person': 'Write in SECOND PERSON (you/your). Address the reader directly as the protagonist. "You walk into the room. You feel the tension."',
+    };
+    const TENSE_INSTRUCTIONS = {
+      'past': 'Write in PAST TENSE (walked, said, thought). This is the default narrative tense. Do NOT slip into present tense during action sequences.',
+      'present': 'Write in PRESENT TENSE (walks, says, thinks). Maintain present tense consistently. Use past perfect ("had walked") for flashbacks only.',
+    };
+    systemParts.push(`\n=== POV & TENSE (MANDATORY — DO NOT DEVIATE) ===`);
+    if (spec.pov_mode && POV_INSTRUCTIONS[spec.pov_mode]) systemParts.push(POV_INSTRUCTIONS[spec.pov_mode]);
+    if (spec.tense && TENSE_INSTRUCTIONS[spec.tense]) systemParts.push(TENSE_INSTRUCTIONS[spec.tense]);
+    systemParts.push(`Never refer to the POV character as "the human," "the programmer," "the man," "the subject," or similar clinical descriptors. Use their NAME or appropriate pronouns.`);
+    systemParts.push(`=== END POV & TENSE ===`);
+  }
+
   if (beatInstructions && beatInstructions !== 'Not specified') {
     systemParts.push(`\nBEAT STYLE:\n${beatInstructions}`);
   }
