@@ -1,887 +1,466 @@
-// PIPELINE PHASE ISOLATION — Phase 4 (Review + Polish)
-//
-// Permitted AI calls: InvokeLLM (manuscript analysis, issue fixing, passage rewriting),
-//   consistencyCheck, rewriteInVoice, characterInterview
-//
-// Forbidden: developIdea, expandPremise (Phase 1), generateOutline (Phase 2),
-//            writeChapter, enforceProseCompliance, verifyGeminiProse (Phase 3).
-//
-// This file reads completed chapter content for review but must NOT
-// trigger generation or outline functions.
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4 — REVIEW & POLISH (v10)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Scanner dashboard (Rotten Tomatoes score), per-chapter quality cards,
+// on-demand Prose Polisher. Uses the same regex patterns as the bot pipeline.
+// ═══════════════════════════════════════════════════════════════════════════════
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  Upload, BookOpen, Loader2, RefreshCw, Download, Sparkles,
-  Check, X, ChevronDown, AlertCircle, AlertTriangle, Info,
-  Wand2, FileText
+  Loader2, RefreshCw, Sparkles, Check, X, AlertCircle,
+  AlertTriangle, ChevronDown, ChevronUp, Wand2, BookOpen, Zap,
+  FileText, Target, Eye, MessageSquare, Clock, BarChart3
 } from "lucide-react";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ═══ SCANNER PATTERNS (mirrored from bot pipeline) ═══
 
-function scoreColor(score) {
-  if (score >= 80) return "text-emerald-600";
-  if (score >= 60) return "text-amber-500";
-  return "text-red-500";
+const SCAN_CATEGORIES = {
+  instruction_leak: { label: "Instruction Leaks", icon: "🚨", weight: 25, color: "red" },
+  tense_drift: { label: "Tense Drift", icon: "⏱", weight: 15, color: "red" },
+  interiority_repetition: { label: "Interiority Repetition", icon: "🔁", weight: 10, color: "amber" },
+  transition_crutch: { label: "Transition Crutches", icon: "🔗", weight: 8, color: "amber" },
+  sensory_opener: { label: "Sensory Opener Monotony", icon: "👁", weight: 8, color: "amber" },
+  scaffolding: { label: "Placeholder Scaffolding", icon: "🏗", weight: 10, color: "amber" },
+  fiction_cliche: { label: "Fiction Clichés", icon: "📝", weight: 5, color: "blue" },
+  hedging: { label: "Hedging Fog", icon: "🌫", weight: 5, color: "blue" },
+  recap_bloat: { label: "Recap Bloat", icon: "♻️", weight: 5, color: "blue" },
+  generic_conclusion: { label: "Generic Conclusions", icon: "🔚", weight: 5, color: "blue" },
+  word_count: { label: "Word Count Issues", icon: "📏", weight: 4, color: "blue" },
+};
+
+const PATTERNS = {
+  instruction_leak: [
+    [/\bAdjust the (year|name|time|date|setting|location|chapter) to (be |match |reflect )/gi, "Adjust the [X] to..."],
+    [/\bRewrite to (focus|include|show|address|reflect|incorporate|emphasize)/gi, "Rewrite to..."],
+    [/\bAddress the .{1,40}(incident|event|scene|cliffhanger|plot point) from the previous/gi, "Address the [X] from previous"],
+    [/\b(consistent|inconsistent) with the (established |)?(timeline|outline|beat sheet|story bible)/gi, "consistent with the timeline"],
+    [/\blike an anchor to this moment/gi, "like an anchor to this moment"],
+    [/\badd a clear time transition/gi, "add a clear time transition"],
+    [/\bchapter break indicator/gi, "chapter break indicator"],
+    [/complete the (chapter|scene|story|section) or indicate/gi, "complete the chapter or indicate"],
+    [/indicate if this is intentional/gi, "indicate if this is intentional"],
+    [/should (I|we) (continue|complete|finish|expand)/gi, "should I continue/complete"],
+    [/\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\b/gi, "[NOTE TO AUTHOR/AI]"],
+    [/\[TODO[:\s]/gi, "[TODO]"],
+    [/as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi, "as instructed by the prompt"],
+    [/per the (outline|beat sheet|specification)/gi, "per the outline/beat sheet"],
+  ],
+  tense_past_drift: [
+    [/\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi, "present-tense verb in past-tense narrative"],
+  ],
+  tense_present_drift: [
+    [/\b(he|she|they|it|I|we)\s+(walked|ran|said|thought|felt|knew|saw|heard|stood|sat|looked|moved|turned|opened|closed|stepped|reached|pulled|pushed|watched|pressed|asked|cut|filled|took|set|picked|dropped|began|started|stopped|grabbed|held|caught|lifted|placed)\b/gi, "past-tense verb in present-tense narrative"],
+  ],
+  interiority_repetition: [
+    [/\bhollow\b/gi, "hollow", 2], [/\bhollowness\b/gi, "hollowness", 1],
+    [/\bempty\b/gi, "empty", 3], [/\bemptiness\b/gi, "emptiness", 2],
+    [/\bshattered\b/gi, "shattered", 2], [/\bbroken\b/gi, "broken", 3],
+    [/\bnumb(ness)?\b/gi, "numb/numbness", 2], [/\bvoid\b/gi, "void", 2],
+    [/\baching?\b/gi, "ache/aching", 4], [/\bfragile\b/gi, "fragile", 3],
+  ],
+  transition_crutch: [
+    [/\bFurthermore\b/g, "Furthermore"], [/\bMoreover\b/g, "Moreover"],
+    [/\bIn addition\b/gi, "In addition"], [/\bAdditionally\b/g, "Additionally"],
+    [/\bIt'?s worth noting that\b/gi, "It's worth noting that"],
+    [/\bAs (mentioned|discussed|noted|stated) (earlier|above|previously|before)\b/gi, "As mentioned earlier"],
+    [/\bThis (brings|leads|takes) us to\b/gi, "This brings/leads us to"],
+    [/\bLet us (now )?turn (our attention )?to\b/gi, "Let us turn to"],
+    [/\bWith this (understanding|context|background|foundation)\b/gi, "With this understanding"],
+    [/\bUltimately\b/g, "Ultimately"],
+  ],
+  scaffolding: [
+    [/\bThis (chapter|section|part) (will )?(explore|examine|discuss|investigate|look at|delve into|unpack)\b/gi, "This chapter explores..."],
+    [/\bIn this (chapter|section|part),? we (will|shall|are going to)\b/gi, "In this chapter, we will..."],
+    [/\bBefore (we|I) (begin|dive in|proceed|explore|examine)\b/gi, "Before we begin..."],
+    [/\bLet'?s (begin|start|dive in|explore|examine|unpack)\b/gi, "Let's begin/explore..."],
+    [/\bWhat (follows|comes next) is\b/gi, "What follows is..."],
+  ],
+  fiction_cliche: [
+    [/\bLittle did (he|she|they) know\b/gi, "Little did they know"],
+    [/\bUnbeknownst to\b/gi, "Unbeknownst to"],
+    [/\bA (chill|shiver) (ran|crept|went|traveled) (down|up) (his|her|their) spine\b/gi, "A chill ran down their spine"],
+    [/\b(He|She|They) let out a breath (he|she|they) didn'?t (know|realize)/gi, "breath they didn't know they were holding"],
+    [/\bTime (seemed to|appeared to) (slow|stop|stand still|freeze)\b/gi, "Time seemed to slow"],
+    [/\bA (single|lone) tear (rolled|slid|traced|tracked) down\b/gi, "A single tear rolled down"],
+    [/\bDarkness (claimed|consumed|swallowed|took) (him|her|them)\b/gi, "Darkness claimed them"],
+  ],
+  hedging: [
+    [/\bIt could be argued that\b/gi, "It could be argued that"],
+    [/\bOne (might|could|may) (suggest|argue|say|think) that\b/gi, "One might suggest that"],
+    [/\bPerhaps (it is|it's) (the case|true|fair to say) that\b/gi, "Perhaps it is the case that"],
+    [/\bTo be (sure|fair|certain)\b/gi, "To be sure/fair"],
+  ],
+  recap_bloat: [
+    [/\bAs (we'?ve?|I'?ve?) (discussed|seen|explored|examined|noted|mentioned|established)\b/gi, "As we've discussed"],
+    [/\bTo (summarize|recap|sum up|review) (what we'?ve?|the above|our discussion)\b/gi, "To summarize..."],
+    [/\bIn (summary|conclusion|closing|short)\b/gi, "In summary/conclusion"],
+    [/\bThe (bottom line|key takeaway|main point) (is|here is)\b/gi, "The bottom line is"],
+  ],
+  generic_conclusion: [
+    [/\bThe (story|tale|saga|history|legacy) of .{5,60} (reminds|teaches|shows|tells|demonstrates) us that\b/gi, "The story of X reminds us"],
+    [/\bOnly time (will|would|could) tell\b/gi, "Only time will tell"],
+    [/\bThe rest,? as they say,? is history\b/gi, "The rest is history"],
+    [/\bAnd (so|thus),? the (stage was set|seeds were sown|wheels were set in motion)\b/gi, "And so the stage was set"],
+  ],
+};
+
+// ═══ SCANNING ENGINE ═══
+
+function stripDialogue(text) {
+  return text.replace(/["\u201C][^"\u201D]*["\u201D]/g, "").replace(/'[^']*'/g, "");
 }
 
-function scoreBarColor(score) {
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 60) return "bg-amber-400";
-  return "bg-red-400";
+function scanChapter(chapterText, chapterNum, tense) {
+  const findings = [];
+  const clean = stripDialogue(chapterText);
+  const words = chapterText.trim().split(/\s+/).length;
+
+  for (const [rx, label] of PATTERNS.instruction_leak) {
+    const m = chapterText.match(rx);
+    if (m) findings.push({ category: "instruction_leak", label, count: m.length, chapter: chapterNum, samples: m.slice(0, 2).map(s => s.slice(0, 100)) });
+  }
+
+  if (tense === "past") {
+    for (const [rx] of PATTERNS.tense_past_drift) {
+      const m = clean.match(rx);
+      if (m && m.length > 3) findings.push({ category: "tense_drift", label: `${m.length} present-tense verbs in past-tense narrative`, count: m.length, chapter: chapterNum, samples: m.slice(0, 5).map(s => s.slice(0, 60)) });
+    }
+  } else if (tense === "present") {
+    for (const [rx] of PATTERNS.tense_present_drift) {
+      const m = clean.match(rx);
+      if (m && m.length > 3) findings.push({ category: "tense_drift", label: `${m.length} past-tense verbs in present-tense narrative`, count: m.length, chapter: chapterNum, samples: m.slice(0, 5).map(s => s.slice(0, 60)) });
+    }
+  }
+
+  for (const [rx, label, cap] of PATTERNS.interiority_repetition) {
+    const m = chapterText.match(rx);
+    if (m && m.length > cap) findings.push({ category: "interiority_repetition", label: `"${label}" x${m.length} (cap: ${cap})`, count: m.length, chapter: chapterNum });
+  }
+
+  const scanSimple = (patternKey, category) => {
+    for (const [rx, label] of PATTERNS[patternKey]) {
+      const m = chapterText.match(rx);
+      if (m) findings.push({ category, label, count: m.length, chapter: chapterNum });
+    }
+  };
+  scanSimple("transition_crutch", "transition_crutch");
+  scanSimple("scaffolding", "scaffolding");
+  scanSimple("fiction_cliche", "fiction_cliche");
+  scanSimple("hedging", "hedging");
+  scanSimple("recap_bloat", "recap_bloat");
+  scanSimple("generic_conclusion", "generic_conclusion");
+
+  const firstSentence = chapterText.trim().split(/[.!?]/)[0] || "";
+  if (/^The\s+\w+[\s,]+\w*\s*(scent|smell|aroma|tang|taste|hum|buzz|drone|clinking|drumming|squeak|screech|creak|glow|glare|flicker|shimmer|warmth|chill|cold|cool|heat|damp|sharp|bitter|sweet|acrid|musty|stale|lingering)\b/i.test(firstSentence)) {
+    findings.push({ category: "sensory_opener", label: "Sensory atmosphere formula", count: 1, chapter: chapterNum });
+  } else if (/\b(scent|smell|aroma|odor|fragrance|stench|whiff)\b/i.test(firstSentence)) {
+    findings.push({ category: "sensory_opener", label: "Scent description opener", count: 1, chapter: chapterNum });
+  }
+
+  return { findings, words };
 }
 
-function severityConfig(severity) {
-  if (severity === "high") return { label: "High", className: "bg-red-100 text-red-700 border-red-200" };
-  if (severity === "medium") return { label: "Medium", className: "bg-amber-100 text-amber-700 border-amber-200" };
-  return { label: "Low", className: "bg-blue-100 text-blue-700 border-blue-200" };
+function computeScore(allFindings, totalChapters) {
+  let deductions = 0;
+  for (const f of allFindings) {
+    if (f.category === "instruction_leak") deductions += f.count * 8;
+    else if (f.category === "tense_drift") deductions += Math.min(f.count * 0.5, 15);
+    else if (f.category === "interiority_repetition") deductions += f.count * 0.3;
+    else if (f.category === "sensory_opener") deductions += f.count * 1.5;
+    else deductions += f.count * 0.5;
+  }
+  return Math.max(0, Math.min(100, Math.round(100 - deductions)));
 }
 
-const REWRITE_STYLES = [
-  { id: "descriptive", label: "More Descriptive", desc: "Adds richer sensory details, vivid imagery, and atmosphere" },
-  { id: "concise", label: "More Concise", desc: "Tightens the prose, removes filler, sharpens impact" },
-  { id: "emotional", label: "More Emotional", desc: "Deepens internal monologue, heightens feeling and vulnerability" },
-  { id: "dramatic", label: "More Dramatic", desc: "Raises stakes, adds tension, intensifies conflict" },
-  { id: "conversational", label: "More Conversational", desc: "Makes prose feel natural, warm, accessible" },
-  { id: "literary", label: "More Literary", desc: "Elevates language, adds poetic rhythm and metaphor" },
-  { id: "action", label: "More Action-Packed", desc: "Punchy short sentences, rapid pacing, kinetic energy" },
-  { id: "darker", label: "Darker Tone", desc: "Adds edge, menace, psychological weight" },
-  { id: "lighter", label: "Lighter Tone", desc: "Softens mood, adds warmth or humor" },
-  { id: "grammar", label: "Fix Grammar & Flow", desc: "Corrects grammar, smooths awkward phrasing, improves readability" },
-  { id: "custom", label: "Custom Instructions", desc: "Type your own rewrite instructions" },
-];
+// ═══ COMPONENTS ═══
 
-function countWords(text) {
-  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
-}
-
-// ── Overall Score Gauge ───────────────────────────────────────────────────────
-
-function ScoreGauge({ score }) {
-  const radius = 54;
+function RTScoreGauge({ score }) {
+  const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const filled = (score / 100) * circumference;
   const color = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
+  const label = score >= 80 ? "CERTIFIED FRESH" : score >= 60 ? "FRESH" : "ROTTEN";
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-2">
       <svg width="140" height="140" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
-        <circle
-          cx="70" cy="70" r={radius}
-          fill="none" stroke={color} strokeWidth="12"
-          strokeDasharray={`${filled} ${circumference}`}
-          strokeLinecap="round"
-          transform="rotate(-90 70 70)"
-          style={{ transition: "stroke-dasharray 0.8s ease" }}
-        />
-        <text x="70" y="66" textAnchor="middle" fontSize="28" fontWeight="bold" fill={color}>{score}</text>
-        <text x="70" y="84" textAnchor="middle" fontSize="11" fill="#94a3b8">/100</text>
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="#1e293b" strokeWidth="10" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${filled} ${circumference}`} strokeLinecap="round"
+          transform="rotate(-90 70 70)" style={{ transition: "stroke-dasharray 1s ease" }} />
+        <text x="70" y="62" textAnchor="middle" fontSize="32" fontWeight="bold" fill={color}>{score}</text>
+        <text x="70" y="82" textAnchor="middle" fontSize="11" fill="#94a3b8">/ 100</text>
       </svg>
-      <p className={cn("text-base font-semibold", scoreColor(score))}>
-        {score >= 80 ? "Strong Manuscript" : score >= 60 ? "Needs Polish" : "Requires Revision"}
-      </p>
+      <div className="flex items-center gap-1.5">
+        <span className="text-lg">🍅</span>
+        <span className={cn("text-sm font-bold tracking-wide", score >= 80 ? "text-emerald-400" : score >= 60 ? "text-amber-400" : "text-red-400")}>{label}</span>
+      </div>
     </div>
   );
 }
 
-// ── Category Score Bar ────────────────────────────────────────────────────────
-
-function CategoryBar({ label, score, notes }) {
+function CategoryRow({ category, findings }) {
+  const cat = SCAN_CATEGORIES[category];
+  if (!cat) return null;
+  const totalInstances = findings.reduce((sum, f) => sum + f.count, 0);
+  const colorMap = { red: "bg-red-500/20 text-red-400 border-red-500/30", amber: "bg-amber-500/20 text-amber-400 border-amber-500/30", blue: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-slate-700 capitalize">{label.replace(/_/g, " ")}</span>
-        <span className={cn("font-bold text-sm", scoreColor(score))}>{score}</span>
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-800/50">
+      <div className="flex items-center gap-2">
+        <span className="text-base">{cat.icon}</span>
+        <span className="text-sm text-slate-200">{cat.label}</span>
       </div>
-      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all duration-700", scoreBarColor(score))}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      {notes && <p className="text-xs text-slate-400 leading-relaxed">{notes}</p>}
+      <Badge className={cn("text-xs border", findings.length === 0 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : colorMap[cat.color])}>
+        {findings.length === 0 ? "✓ Clean" : `${totalInstances} instance${totalInstances !== 1 ? "s" : ""}`}
+      </Badge>
     </div>
   );
 }
 
-// ── Issue Card ────────────────────────────────────────────────────────────────
+function ChapterCard({ chapter, findings, words, targetWords, onPolish, polishing }) {
+  const [expanded, setExpanded] = useState(false);
+  const chFindings = findings.filter(f => f.chapter === chapter.number);
+  const totalInstances = chFindings.reduce((sum, f) => sum + f.count, 0);
+  const overTarget = targetWords && words > targetWords * 1.3;
+  const hasLeaks = chFindings.some(f => f.category === "instruction_leak");
+  const hasTenseDrift = chFindings.some(f => f.category === "tense_drift");
+  const statusColor = hasLeaks ? "border-red-500/50 bg-red-500/5" : hasTenseDrift ? "border-amber-500/50 bg-amber-500/5" : chFindings.length > 0 ? "border-slate-600" : "border-emerald-500/30 bg-emerald-500/5";
 
-function IssueCard({ issue, onFix, fixing, fixed, selected, onToggleSelect }) {
-  const sc = severityConfig(issue.severity);
   return (
-    <div className={cn("border rounded-xl p-4 space-y-2 transition-all", fixed ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200")}>
-      <div className="flex items-start gap-2">
-        {/* Selection checkbox — only for auto-fixable, unfixed issues */}
-        {issue.auto_fixable && !fixed && (
-          <label className="flex items-center mt-0.5 flex-shrink-0 cursor-pointer" onClick={e => e.stopPropagation()}>
-            <input
-              type="checkbox"
-              checked={!!selected}
-              onChange={() => onToggleSelect(issue.id)}
-              className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
-            />
-          </label>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-wrap gap-1.5">
-              <Badge className={cn("text-xs border", sc.className)}>{sc.label}</Badge>
-              <Badge variant="outline" className="text-xs capitalize">{issue.category?.replace(/_/g, " ")}</Badge>
-              {issue.chapter && <Badge variant="outline" className="text-xs">Ch. {issue.chapter}</Badge>}
+    <div className={cn("rounded-xl border p-4 transition-all", statusColor)}>
+      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center gap-3">
+          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+            hasLeaks ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-600 text-white" : "bg-emerald-500 text-white"
+          )}>{chapter.number}</div>
+          <div>
+            <div className="text-sm font-medium text-slate-200 truncate max-w-[300px]">{chapter.title.replace(/^Chapter \d+:\s*/, "")}</div>
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className={cn("text-xs", overTarget ? "text-red-400 font-medium" : "text-slate-400")}>{words.toLocaleString()} words{overTarget ? " ⚠️" : ""}</span>
+              {chFindings.length > 0 ? <span className="text-xs text-amber-400">{totalInstances} issue{totalInstances !== 1 ? "s" : ""}</span> : <span className="text-xs text-emerald-400">✓ Clean</span>}
             </div>
-            {fixed ? (
-              <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium flex-shrink-0">
-                <Check className="w-3.5 h-3.5" /> Fixed
-              </span>
-            ) : issue.auto_fixable ? (
-              <Button
-                size="sm"
-                className="h-7 text-xs px-3 bg-violet-600 hover:bg-violet-700 flex-shrink-0"
-                onClick={() => onFix(issue)}
-                disabled={fixing}
-              >
-                {fixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3 mr-1" />}
-                {fixing ? "Fixing…" : "Fix"}
-              </Button>
-            ) : null}
           </div>
-          <p className="text-sm font-medium text-slate-800 mt-1">{issue.description}</p>
-          {issue.location && <p className="text-xs text-slate-400">{issue.location}</p>}
-          {issue.suggestion && <p className="text-xs text-slate-500 italic leading-relaxed">💡 {issue.suggestion}</p>}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Fix Comparison Panel ──────────────────────────────────────────────────────
-
-function FixComparison({ issue, fixedText, onApply, onReject }) {
-  return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-lg">
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-        <span className="text-sm font-semibold text-slate-700">Review Fix — {issue.description}</span>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onReject}><X className="w-4 h-4" /></Button>
-      </div>
-      <div className="grid grid-cols-2 divide-x divide-slate-200">
-        <div className="p-4">
-          <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">Original</p>
-          <p className="text-sm text-slate-700 leading-relaxed bg-red-50 rounded-lg p-3 whitespace-pre-wrap">{issue.original_text || "(no original text provided)"}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">Fixed</p>
-          <p className="text-sm text-slate-700 leading-relaxed bg-emerald-50 rounded-lg p-3 whitespace-pre-wrap">{fixedText}</p>
-        </div>
-      </div>
-      <div className="flex gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs" onClick={onApply}>
-          <Check className="w-3 h-3 mr-1" /> Apply Fix
-        </Button>
-        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={onReject}>Reject</Button>
-      </div>
-    </div>
-  );
-}
-
-// ── Rewrite Style Picker ──────────────────────────────────────────────────────
-
-function RewriteStylePicker({ onSelect, onClose }) {
-  const [customText, setCustomText] = useState("");
-  const [showCustom, setShowCustom] = useState(false);
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-72 max-h-80 overflow-y-auto z-50">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
-        <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Choose Rewrite Style</span>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
-      </div>
-      {REWRITE_STYLES.map(style => (
-        <button
-          key={style.id}
-          className="w-full text-left px-3 py-2.5 hover:bg-violet-50 transition-colors border-b border-slate-50 last:border-0"
-          onClick={() => {
-            if (style.id === "custom") { setShowCustom(true); return; }
-            onSelect(style);
-          }}
-        >
-          <p className="text-sm font-medium text-slate-800">{style.label}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{style.desc}</p>
-        </button>
-      ))}
-      {showCustom && (
-        <div className="p-3 border-t border-slate-100">
-          <textarea
-            className="w-full text-sm border border-slate-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-violet-300"
-            rows={3}
-            placeholder="e.g. Make the dialogue sound more Southern..."
-            value={customText}
-            onChange={e => setCustomText(e.target.value)}
-            autoFocus
-          />
-          <div className="flex gap-2 mt-2">
-            <Button size="sm" className="h-7 text-xs bg-violet-600 hover:bg-violet-700 flex-1"
-              disabled={!customText.trim()}
-              onClick={() => onSelect({ id: "custom", label: "Custom", desc: customText.trim() })}>
-              Rewrite
+        <div className="flex items-center gap-2">
+          {chFindings.length > 0 && (
+            <Button size="sm" variant="outline" disabled={polishing}
+              className="text-xs h-7 border-violet-500/40 text-violet-300 hover:bg-violet-500/10"
+              onClick={(e) => { e.stopPropagation(); onPolish(chapter.number); }}>
+              {polishing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+              <span className="ml-1">Polish</span>
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowCustom(false)}>Back</Button>
-          </div>
+          )}
+          {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+        </div>
+      </div>
+      {expanded && chFindings.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-slate-700 space-y-2">
+          {chFindings.map((f, i) => {
+            const cat = SCAN_CATEGORIES[f.category];
+            return (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span className="shrink-0">{cat?.icon || "•"}</span>
+                <div>
+                  <span className={cn("font-medium", f.category === "instruction_leak" ? "text-red-400" : f.category === "tense_drift" ? "text-amber-400" : "text-slate-300")}>{cat?.label}:</span>{" "}
+                  <span className="text-slate-400">{f.label} ({f.count}x)</span>
+                  {f.samples && <div className="mt-1 space-y-1">{f.samples.map((s, j) => <div key={j} className="pl-3 border-l-2 border-slate-700 text-slate-500 italic">"{s}"</div>)}</div>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-// ── Selection Toolbar ─────────────────────────────────────────────────────────
-
-function SelectionToolbar({ position, onRewrite, onClose }) {
-  if (!position) return null;
-  return (
-    <div
-      className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl px-3 py-2 flex items-center gap-2"
-      style={{ top: position.y, left: position.x, transform: "translateX(-50%)" }}
-    >
-      <Button size="sm" className="h-7 text-xs bg-violet-600 hover:bg-violet-700 gap-1.5" onClick={onRewrite}>
-        <Wand2 className="w-3 h-3" /> Rewrite
-      </Button>
-    </div>
-  );
-}
-
-// ── Rewrite Comparison Panel ──────────────────────────────────────────────────
-
-function RewriteComparison({ original, rewrites, activeTab, onTabChange, onAccept, onTryAnother, onCancel }) {
-  const current = rewrites[activeTab];
-  const origWords = countWords(original);
-  const newWords = current ? countWords(current.text) : 0;
-  const diff = newWords - origWords;
-  return (
-    <div className="border border-violet-200 rounded-xl overflow-hidden bg-white shadow-lg">
-      {rewrites.length > 1 && (
-        <div className="flex gap-1 px-3 py-2 bg-violet-50 border-b border-violet-100 overflow-x-auto">
-          {rewrites.map((r, i) => (
-            <button key={i}
-              className={cn("text-xs px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                i === activeTab ? "bg-violet-600 text-white" : "text-violet-600 hover:bg-violet-100")}
-              onClick={() => onTabChange(i)}>
-              {r.style}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="grid grid-cols-2 divide-x divide-slate-200">
-        <div className="p-4">
-          <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">Original</p>
-          <p className="text-sm text-slate-700 leading-relaxed bg-red-50 rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">{original}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">{current?.style || "Rewritten"}</p>
-          <p className="text-sm text-slate-700 leading-relaxed bg-emerald-50 rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">{current?.text || ""}</p>
-        </div>
-      </div>
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-        <span className="text-xs text-slate-400">
-          {origWords} words → {newWords} words {diff !== 0 && <span className={diff > 0 ? "text-emerald-600" : "text-red-400"}>({diff > 0 ? "+" : ""}{diff})</span>}
-        </span>
-        <div className="flex gap-2">
-          <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => onAccept(current?.text)}>
-            <Check className="w-3 h-3 mr-1" /> Accept
-          </Button>
-          <Button size="sm" variant="outline" className="h-7 text-xs border-violet-300 text-violet-600" onClick={onTryAnother}>
-            Try Another Style
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel}>Cancel</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Main Component ────────────────────────────────────────────────────────────
+// ═══ MAIN COMPONENT ═══
 
 export default function ReviewPolishTab({ projectId }) {
-  const [manuscript, setManuscript] = useState("");
-  const [manuscriptModified, setManuscriptModified] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState("");
-  const [analysis, setAnalysis] = useState(null);
-  const [analyzed, setAnalyzed] = useState(false);
-  const [fixStates, setFixStates] = useState({}); // id -> "fixing" | "comparing" | "fixed"
-  const [fixTexts, setFixTexts] = useState({}); // id -> fixed text
-  const [fixAllProgress, setFixAllProgress] = useState(null);
-  const [selectedIssues, setSelectedIssues] = useState({}); // id -> boolean
-  const [saveFormat, setSaveFormat] = useState("txt");
-  const [lastAnalyzedManuscript, setLastAnalyzedManuscript] = useState("");
+  const [scanResults, setScanResults] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [polishing, setPolishing] = useState({});
+  const [polishAll, setPolishAll] = useState(false);
+  const [polishResults, setPolishResults] = useState({});
 
-  // Selection / rewrite state
-  const [selection, setSelection] = useState(null); // { start, end, text, position }
-  const [showStylePicker, setShowStylePicker] = useState(false);
-  const [rewriting, setRewriting] = useState(false);
-  const [rewrites, setRewrites] = useState([]); // [{style, text}]
-  const [activeRewriteTab, setActiveRewriteTab] = useState(0);
-  const [showRewriteComparison, setShowRewriteComparison] = useState(false);
-  const [flashRange, setFlashRange] = useState(null);
-
-  const previewRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  // Load spec for context
-  const { data: specs = [] } = useQuery({
-    queryKey: ["specification", projectId],
-    queryFn: () => base44.entities.Specification.filter({ project_id: projectId }),
-  });
-  const spec = specs[0] || null;
-
-  // Load chapters
   const { data: chapters = [] } = useQuery({
     queryKey: ["chapters", projectId],
-    queryFn: () => base44.entities.Chapter.filter({ project_id: projectId }, "chapter_number"),
+    queryFn: () => base44.entities.Chapter.filter({ project_id: projectId }),
+    enabled: !!projectId,
+  });
+  const { data: specs = [] } = useQuery({
+    queryKey: ["specifications", projectId],
+    queryFn: () => base44.entities.Specification.filter({ project_id: projectId }),
+    enabled: !!projectId,
   });
 
-  const generatedChapters = chapters.filter(c => c.status === "generated");
-  const wordCount = countWords(manuscript);
-  const chapterCount = generatedChapters.length;
-  const manuscriptChanged = analyzed && manuscript !== lastAnalyzedManuscript;
+  const spec = specs[0];
+  const tense = spec?.tense || "";
+  const targetWords = { short: 2500, medium: 2500, long: 2800, epic: 3000 }[spec?.target_length || "medium"] || 2500;
+  const generatedChapters = chapters.filter(c => c.status === "generated").sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
 
-  // ── Load current project ───────────────────────────────────────────────────
-  const handleLoadProject = async () => {
-    setLoading(true);
-    setLoadingMsg("Loading chapters...");
+  const handleScan = useCallback(async () => {
+    if (generatedChapters.length === 0) return;
+    setScanning(true);
+    setScanResults(null);
     try {
-      const parts = [];
+      const chapterData = [];
+      const allFindings = [];
       for (const ch of generatedChapters) {
         let content = ch.content || "";
-        if (content.startsWith("http://") || content.startsWith("https://")) {
-          try { content = await (await fetch(content)).text(); } catch { content = ""; }
+        if (content.startsWith("http")) { try { content = await (await fetch(content)).text(); } catch { content = ""; } }
+        if (!content || content.length < 50) continue;
+        const title = `Chapter ${ch.chapter_number}: ${ch.title || ""}`;
+        const { findings, words } = scanChapter(content, ch.chapter_number, tense);
+        allFindings.push(...findings);
+        chapterData.push({ number: ch.chapter_number, title, text: content, words, chapterId: ch.id });
+      }
+      const fullText = chapterData.map(c => c.text).join("\n\n");
+      for (const [rx, label, manuscriptCap] of PATTERNS.interiority_repetition) {
+        const m = fullText.match(rx);
+        const manuscriptMax = manuscriptCap * Math.max(1, Math.floor(chapterData.length / 5));
+        if (m && m.length > manuscriptMax) {
+          allFindings.push({ category: "interiority_repetition", label: `MANUSCRIPT-WIDE: "${label}" x${m.length} (max ~${manuscriptMax})`, count: m.length - manuscriptMax, chapter: 0 });
         }
-        if (content) parts.push(`Chapter ${ch.chapter_number}: ${ch.title}\n\n${content}`);
       }
-      const joined = parts.join("\n\n---\n\n");
-      setManuscript(joined);
-      setManuscriptModified(false);
-      setAnalysis(null);
-      setAnalyzed(false);
-    } finally {
-      setLoading(false);
-      setLoadingMsg("");
-    }
-  };
-
-  // ── File upload ────────────────────────────────────────────────────────────
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setManuscript(ev.target.result || "");
-      setManuscriptModified(false);
-      setAnalysis(null);
-      setAnalyzed(false);
-    };
-    reader.readAsText(file);
-  };
-
-  // ── Analyze ────────────────────────────────────────────────────────────────
-  const handleAnalyze = async () => {
-    if (!manuscript) return;
-    setLoading(true);
-    setLoadingMsg("Analyzing your manuscript...");
-    setAnalysis(null);
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert manuscript editor. Analyze this manuscript and return a comprehensive quality analysis as JSON.
-
-MANUSCRIPT:
-${manuscript.slice(0, 40000)}
-
-Return JSON with this exact structure:
-{
-  "overall_score": <integer 0-100>,
-  "scores": {
-    "prose_quality": { "score": <int>, "max": 100, "notes": "<string>" },
-    "continuity": { "score": <int>, "max": 100, "notes": "<string>" },
-    "pacing": { "score": <int>, "max": 100, "notes": "<string>" },
-    "character_consistency": { "score": <int>, "max": 100, "notes": "<string>" },
-    "dialogue_quality": { "score": <int>, "max": 100, "notes": "<string>" },
-    "repetition": { "score": <int>, "max": 100, "notes": "<string>" },
-    "structure": { "score": <int>, "max": 100, "notes": "<string>" }
-  },
-  "issues": [
-    {
-      "id": <int>,
-      "severity": "high"|"medium"|"low",
-      "category": "<string>",
-      "chapter": <int or null>,
-      "description": "<string>",
-      "location": "<string>",
-      "original_text": "<short excerpt or null>",
-      "suggestion": "<string>",
-      "auto_fixable": <boolean>
-    }
-  ]
-}
-
-Provide 8-20 specific, actionable issues. Sort by severity (high first). Be precise and helpful.`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            overall_score: { type: "number" },
-            scores: { type: "object" },
-            issues: { type: "array", items: { type: "object" } }
-          }
-        }
+      const sensoryOpeners = allFindings.filter(f => f.category === "sensory_opener").length;
+      const openerRatio = chapterData.length > 0 ? sensoryOpeners / chapterData.length : 0;
+      const score = computeScore(allFindings, chapterData.length);
+      setScanResults({
+        score, allFindings, chapterData,
+        totalWords: chapterData.reduce((sum, c) => sum + c.words, 0),
+        totalChapters: chapterData.length, openerRatio,
+        scannedAt: new Date().toISOString(),
       });
-      setAnalysis(result);
-      setAnalyzed(true);
-      setLastAnalyzedManuscript(manuscript);
-      setFixStates({});
-      setFixTexts({});
-      setSelectedIssues({});
+    } finally { setScanning(false); }
+  }, [generatedChapters, tense]);
+
+  const handlePolishChapter = async (chapterNum) => {
+    const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
+    if (!ch) return;
+    setPolishing(prev => ({ ...prev, [chapterNum]: true }));
+    try {
+      const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id }, { timeout: 120000 });
+      const data = result?.data || result;
+      setPolishResults(prev => ({ ...prev, [chapterNum]: data }));
+      if (data?.changed) setTimeout(() => handleScan(), 1000);
     } catch (err) {
-      console.error("Analysis failed:", err);
-    } finally {
-      setLoading(false);
-      setLoadingMsg("");
+      setPolishResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
+    } finally { setPolishing(prev => ({ ...prev, [chapterNum]: false })); }
+  };
+
+  const handlePolishAll = async () => {
+    if (!scanResults) return;
+    setPolishAll(true);
+    const chaptersWithIssues = scanResults.chapterData.filter(ch => scanResults.allFindings.some(f => f.chapter === ch.number));
+    for (const ch of chaptersWithIssues) {
+      await handlePolishChapter(ch.number);
+      await new Promise(r => setTimeout(r, 2000));
     }
+    setPolishAll(false);
   };
 
-  // ── Fix single issue ───────────────────────────────────────────────────────
-  const handleFix = async (issue) => {
-    setFixStates(s => ({ ...s, [issue.id]: "fixing" }));
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert manuscript editor. Apply this fix to the passage.
-
-ISSUE: ${issue.description}
-ORIGINAL TEXT: ${issue.original_text || "(no excerpt provided — apply fix conceptually)"}
-SUGGESTION: ${issue.suggestion}
-
-Return ONLY the corrected text. No preamble, no explanation.`,
-      });
-      setFixTexts(t => ({ ...t, [issue.id]: result }));
-      setFixStates(s => ({ ...s, [issue.id]: "comparing" }));
-    } catch {
-      setFixStates(s => ({ ...s, [issue.id]: null }));
-    }
-  };
-
-  const handleApplyFix = (issue) => {
-    const fixedText = fixTexts[issue.id];
-    if (fixedText && issue.original_text) {
-      setManuscript(m => m.replace(issue.original_text, fixedText));
-    }
-    setFixStates(s => ({ ...s, [issue.id]: "fixed" }));
-  };
-
-  const handleRejectFix = (issueId) => {
-    setFixStates(s => ({ ...s, [issueId]: null }));
-  };
-
-  // ── Fix selected issues ─────────────────────────────────────────────────────
-  const handleFixSelected = async () => {
-    const selectedIds = Object.keys(selectedIssues).filter(id => selectedIssues[id]);
-    const fixable = (analysis?.issues || []).filter(i => selectedIds.includes(String(i.id)) && i.auto_fixable && fixStates[i.id] !== "fixed");
-    if (!fixable.length) return;
-    setFixAllProgress({ current: 0, total: fixable.length });
-    for (let i = 0; i < fixable.length; i++) {
-      const issue = fixable[i];
-      setFixAllProgress({ current: i + 1, total: fixable.length });
-      setFixStates(s => ({ ...s, [issue.id]: "fixing" }));
-      try {
-        const result = await base44.integrations.Core.InvokeLLM({
-          prompt: `Apply this editorial fix. Return only the corrected text.\n\nISSUE: ${issue.description}\nORIGINAL: ${issue.original_text || ""}\nSUGGESTION: ${issue.suggestion}`,
-        });
-        if (issue.original_text) setManuscript(m => m.replace(issue.original_text, result));
-        setFixStates(s => ({ ...s, [issue.id]: "fixed" }));
-        setSelectedIssues(s => ({ ...s, [issue.id]: false }));
-      } catch {
-        setFixStates(s => ({ ...s, [issue.id]: null }));
-      }
-    }
-    setFixAllProgress(null);
-  };
-
-  const toggleIssueSelection = (id) => {
-    setSelectedIssues(s => ({ ...s, [id]: !s[id] }));
-  };
-
-  const toggleSelectAll = () => {
-    const fixable = (analysis?.issues || []).filter(i => i.auto_fixable && fixStates[i.id] !== "fixed");
-    const allSelected = fixable.every(i => selectedIssues[i.id]);
-    const newSelection = {};
-    fixable.forEach(i => { newSelection[i.id] = !allSelected; });
-    setSelectedIssues(s => ({ ...s, ...newSelection }));
-  };
-
-  // ── Text selection handling ────────────────────────────────────────────────
-  const handleMouseUp = useCallback(() => {
-    if (showRewriteComparison) return;
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-      setSelection(null);
-      setShowStylePicker(false);
-      return;
-    }
-    const text = sel.toString();
-    const range = sel.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    setSelection({
-      text,
-      start: manuscript.indexOf(text),
-      end: manuscript.indexOf(text) + text.length,
-      position: {
-        x: rect.left + rect.width / 2,
-        y: rect.top - 50 + window.scrollY,
-      }
-    });
-    setShowStylePicker(false);
-  }, [manuscript, showRewriteComparison]);
-
-  // ── Rewrite ────────────────────────────────────────────────────────────────
-  const handleRewriteStyle = async (style) => {
-    if (!selection) return;
-    setShowStylePicker(false);
-    setRewriting(true);
-
-    // Get surrounding context
-    const before = manuscript.slice(Math.max(0, selection.start - 500), selection.start);
-    const after = manuscript.slice(selection.end, Math.min(manuscript.length, selection.end + 500));
-
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a professional fiction ghostwriter. Rewrite ONLY the selected passage in the requested style. Keep the same characters, events, and plot points. Match the surrounding prose style. Return ONLY the rewritten text — no preamble, no explanation.
-
-BOOK GENRE: ${spec?.genre || "fiction"}
-BEAT STYLE: ${spec?.beat_style || spec?.tone_style || "not specified"}
-AUTHOR VOICE: ${spec?.author_voice || "not specified"}
-
-REWRITE STYLE: ${style.label} — ${style.desc}
-
-CONTEXT BEFORE:
-${before}
-
----SELECTED PASSAGE TO REWRITE---
-${selection.text}
----END SELECTED PASSAGE---
-
-CONTEXT AFTER:
-${after}
-
-Rewrite the selected passage now:`,
-      });
-      const newRewrites = [...rewrites, { style: style.label, text: result }];
-      setRewrites(newRewrites);
-      setActiveRewriteTab(newRewrites.length - 1);
-      setShowRewriteComparison(true);
-    } catch (err) {
-      console.error("Rewrite failed:", err);
-    } finally {
-      setRewriting(false);
-    }
-  };
-
-  const handleAcceptRewrite = (newText) => {
-    if (!selection || !newText) return;
-    const before = manuscript.slice(0, selection.start);
-    const after = manuscript.slice(selection.end);
-    const updated = before + newText + after;
-    setManuscript(updated);
-    setManuscriptModified(true);
-    setShowRewriteComparison(false);
-    setRewrites([]);
-    setSelection(null);
-    window.getSelection()?.removeAllRanges();
-    setFlashRange({ start: selection.start, end: selection.start + newText.length });
-    setTimeout(() => setFlashRange(null), 1200);
-  };
-
-  const handleCancelRewrite = () => {
-    setShowRewriteComparison(false);
-    setRewrites([]);
-    setShowStylePicker(false);
-    setSelection(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleTryAnother = () => {
-    setShowRewriteComparison(false);
-    setShowStylePicker(true);
-  };
-
-  // ── Save ───────────────────────────────────────────────────────────────────
-  const handleSave = () => {
-    const blob = new Blob([manuscript], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `manuscript_corrected.${saveFormat}`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ── Render ─────────────────────────────────────────────────────────────────
-
-  const sortedIssues = [...(analysis?.issues || [])].sort((a, b) => {
-    const order = { high: 0, medium: 1, low: 2 };
-    return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
-  });
-
-  const autoFixableCount = sortedIssues.filter(i => i.auto_fixable && fixStates[i.id] !== "fixed").length;
-  const fixedCount = Object.values(fixStates).filter(v => v === "fixed").length;
-  const selectedCount = Object.keys(selectedIssues).filter(id => selectedIssues[id] && fixStates[id] !== "fixed").length;
+  const leakCount = scanResults ? scanResults.allFindings.filter(f => f.category === "instruction_leak").reduce((s, f) => s + f.count, 0) : 0;
 
   return (
-    <div className="p-6 space-y-6" onClick={(e) => {
-      if (!e.target.closest("[data-selection-toolbar]") && !e.target.closest("[data-style-picker]")) {
-        if (!showRewriteComparison) {
-          setSelection(null);
-          setShowStylePicker(false);
-        }
-      }
-    }}>
-      {/* Load / Upload */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          onClick={handleLoadProject}
-          disabled={loading || generatedChapters.length === 0}
-          className="bg-indigo-600 hover:bg-indigo-700 gap-2"
-        >
-          <BookOpen className="w-4 h-4" />
-          Load Current Project ({generatedChapters.length} chapters)
-        </Button>
-        <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={loading} className="gap-2">
-          <Upload className="w-4 h-4" /> Upload Manuscript
-        </Button>
-        <input ref={fileInputRef} type="file" accept=".txt,.md,.docx" className="hidden" onChange={handleFileUpload} />
-        {manuscript && (
-          <span className="text-sm text-slate-500 ml-1">
-            {wordCount.toLocaleString()} words · {chapterCount} chapters
-          </span>
-        )}
+    <div className="p-6 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-100">Manuscript Scanner & Polisher</h2>
+          <p className="text-sm text-slate-400 mt-0.5">{generatedChapters.length} chapter{generatedChapters.length !== 1 ? "s" : ""} ready for review</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleScan} disabled={scanning || generatedChapters.length === 0} className="bg-violet-600 hover:bg-violet-700 gap-2">
+            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
+            {scanning ? "Scanning..." : scanResults ? "Re-Scan" : "Scan Manuscript"}
+          </Button>
+          {scanResults && scanResults.allFindings.length > 0 && (
+            <Button onClick={handlePolishAll} disabled={polishAll || scanning} className="bg-amber-600 hover:bg-amber-700 gap-2">
+              {polishAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              {polishAll ? "Polishing..." : "Polish All Issues"}
+            </Button>
+          )}
+        </div>
       </div>
 
-      {!manuscript && !loading && (
+      {generatedChapters.length === 0 && !scanning && (
         <div className="flex items-center justify-center py-20 text-center">
           <div>
-            <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">Load your project or upload a manuscript to get started</p>
+            <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400 font-medium">No generated chapters yet</p>
+            <p className="text-sm text-slate-500 mt-1">Generate chapters in the Write tab first</p>
           </div>
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center gap-3 py-8 justify-center">
-          <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
-          <p className="text-slate-600 font-medium">{loadingMsg}</p>
+      {scanning && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="w-16 h-16 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
+          <p className="text-slate-300 font-medium">Scanning {generatedChapters.length} chapters...</p>
+          <p className="text-xs text-slate-500">Checking instruction leaks, tense drift, interiority repetition, openers, clichés...</p>
         </div>
       )}
 
-      {manuscript && !loading && (
+      {scanResults && !scanning && (
         <>
-          {/* Analyze button */}
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleAnalyze}
-              className="bg-violet-600 hover:bg-violet-700 gap-2 px-6"
-              disabled={loading}
-            >
-              <Sparkles className="w-4 h-4" /> Analyze Manuscript
-            </Button>
-            {analyzed && (
-              <Button
-                variant="outline"
-                onClick={handleAnalyze}
-                className={cn("gap-2 relative", manuscriptChanged && "border-amber-400 text-amber-600")}
-                disabled={loading}
-              >
-                <RefreshCw className="w-4 h-4" /> Re-Analyze
-                {manuscriptChanged && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400" />
-                )}
-              </Button>
-            )}
-          </div>
-
-          {/* Main two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* LEFT — Manuscript preview */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Manuscript Preview</p>
-              <div className="relative">
-                <div
-                  ref={previewRef}
-                  className="border border-slate-200 rounded-xl p-4 h-[600px] overflow-y-auto font-mono text-xs leading-relaxed text-slate-700 bg-slate-50 whitespace-pre-wrap select-text cursor-text"
-                  onMouseUp={handleMouseUp}
-                >
-                  {manuscript}
-                </div>
-
-                {/* Floating rewrite toolbar */}
-                {selection && !rewriting && !showRewriteComparison && (
-                  <div
-                    data-selection-toolbar
-                    className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl px-3 py-2 flex items-center gap-2"
-                    style={{
-                      top: Math.max(10, selection.position.y),
-                      left: Math.min(window.innerWidth - 160, Math.max(80, selection.position.x)),
-                      transform: "translateX(-50%)"
-                    }}
-                  >
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs bg-violet-600 hover:bg-violet-700 gap-1.5"
-                      onClick={(e) => { e.stopPropagation(); setShowStylePicker(true); }}
-                    >
-                      <Wand2 className="w-3 h-3" /> Rewrite
-                    </Button>
-                  </div>
-                )}
-
-                {/* Rewriting spinner overlay */}
-                {rewriting && (
-                  <div className="absolute inset-0 bg-white/70 rounded-xl flex items-center justify-center">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
-                      <span className="text-sm font-medium text-violet-700">Rewriting…</span>
-                    </div>
-                  </div>
-                )}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-6 flex flex-col items-center justify-center">
+              <RTScoreGauge score={scanResults.score} />
+              <div className="mt-3 text-center">
+                <p className="text-xs text-slate-500">{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapters</p>
+                <p className="text-xs text-slate-500 mt-0.5">Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
               </div>
-
-              {/* Style picker popover */}
-              {showStylePicker && selection && (
-                <div data-style-picker className="mt-2">
-                  <RewriteStylePicker
-                    onSelect={handleRewriteStyle}
-                    onClose={() => { setShowStylePicker(false); setSelection(null); }}
-                  />
-                </div>
-              )}
-
-              {/* Rewrite comparison */}
-              {showRewriteComparison && rewrites.length > 0 && (
-                <div className="mt-2">
-                  <RewriteComparison
-                    original={selection?.text || ""}
-                    rewrites={rewrites}
-                    activeTab={activeRewriteTab}
-                    onTabChange={setActiveRewriteTab}
-                    onAccept={handleAcceptRewrite}
-                    onTryAnother={handleTryAnother}
-                    onCancel={handleCancelRewrite}
-                  />
-                </div>
-              )}
             </div>
-
-            {/* RIGHT — Analysis results */}
-            <div className="space-y-4">
-              {!analysis ? (
-                <div className="flex items-center justify-center h-full py-16 text-center">
-                  <div>
-                    <Sparkles className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">Run analysis to see quality scores and issues</p>
-                  </div>
+            <div className="lg:col-span-2 rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+              <h3 className="text-sm font-semibold text-slate-200 mb-3">Scanner Results</h3>
+              <div className="space-y-1.5">
+                {Object.keys(SCAN_CATEGORIES).map(key => (
+                  <CategoryRow key={key} category={key} findings={scanResults.allFindings.filter(f => f.category === key)} />
+                ))}
+              </div>
+              {leakCount > 0 && (
+                <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                  <p className="text-xs text-red-400 font-medium">🚨 {leakCount} instruction leak{leakCount !== 1 ? "s" : ""} detected — bot directives printed as prose. Regenerate affected chapters or manually edit.</p>
                 </div>
-              ) : (
-                <>
-                  {/* Overall score */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 text-center">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Overall Score</p>
-                    <ScoreGauge score={analysis.overall_score} />
-                  </div>
-
-                  {/* Category scores */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Category Scores</p>
-                    {Object.entries(analysis.scores || {}).map(([key, val]) => (
-                      <CategoryBar key={key} label={key} score={val.score} notes={val.notes} />
-                    ))}
-                  </div>
-
-                  {/* Issues */}
-                  {sortedIssues.length > 0 && (
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Issues ({sortedIssues.length}) · {fixedCount} fixed
-                        </p>
-                        {autoFixableCount > 0 && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={toggleSelectAll}
-                              className="text-xs text-violet-600 hover:text-violet-800 font-medium underline underline-offset-2"
-                            >
-                              {sortedIssues.filter(i => i.auto_fixable && fixStates[i.id] !== "fixed").every(i => selectedIssues[i.id]) ? "Deselect All" : "Select All"}
-                            </button>
-                            <Button
-                              size="sm"
-                              className="h-7 text-xs bg-violet-600 hover:bg-violet-700"
-                              onClick={handleFixSelected}
-                              disabled={!!fixAllProgress || selectedCount === 0}
-                            >
-                              {fixAllProgress
-                                ? `Fixing ${fixAllProgress.current} of ${fixAllProgress.total}…`
-                                : `Fix Selected (${selectedCount})`}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                        {sortedIssues.map(issue => (
-                          <div key={issue.id}>
-                            <IssueCard
-                              issue={issue}
-                              onFix={handleFix}
-                              fixing={fixStates[issue.id] === "fixing"}
-                              fixed={fixStates[issue.id] === "fixed"}
-                              selected={!!selectedIssues[issue.id]}
-                              onToggleSelect={toggleIssueSelection}
-                            />
-                            {fixStates[issue.id] === "comparing" && fixTexts[issue.id] && (
-                              <div className="mt-2">
-                                <FixComparison
-                                  issue={issue}
-                                  fixedText={fixTexts[issue.id]}
-                                  onApply={() => handleApplyFix(issue)}
-                                  onReject={() => handleRejectFix(issue.id)}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
+              )}
+              {scanResults.openerRatio > 0.5 && (
+                <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-xs text-amber-400 font-medium">👁 {Math.round(scanResults.openerRatio * 100)}% of chapters open with sensory atmosphere. Vary with dialogue, action, or thought openers.</p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Save footer */}
-          {manuscript && (
-            <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-              <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
-                <Download className="w-4 h-4" /> Save Corrected Manuscript
-              </Button>
-              <select
-                value={saveFormat}
-                onChange={e => setSaveFormat(e.target.value)}
-                className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              >
-                <option value="txt">.txt</option>
-                <option value="md">.md</option>
-                <option value="docx">.docx</option>
-              </select>
-              {(manuscriptModified || fixedCount > 0) && (
-                <span className="text-xs text-emerald-600 font-medium">
-                  {fixedCount > 0 ? `${fixedCount} fix${fixedCount > 1 ? "es" : ""} applied` : "Modified"}
-                </span>
-              )}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Chapter Breakdown</h3>
+            <div className="space-y-2">
+              {scanResults.chapterData.map(ch => (
+                <ChapterCard key={ch.number} chapter={ch} findings={scanResults.allFindings} words={ch.words} targetWords={targetWords} onPolish={handlePolishChapter} polishing={!!polishing[ch.number]} />
+              ))}
+            </div>
+          </div>
+
+          {Object.keys(polishResults).length > 0 && (
+            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+              <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4" /> Polish Results</h3>
+              <div className="space-y-2">
+                {Object.entries(polishResults).map(([chNum, result]) => (
+                  <div key={chNum} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-800/80">
+                    <span className="text-sm text-slate-300">Chapter {chNum}</span>
+                    {result.error ? (
+                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">Error: {result.error}</Badge>
+                    ) : result.changed ? (
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.violations_found} issues, {result.total_instances} instances fixed</Badge>
+                    ) : (
+                      <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes needed</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>
