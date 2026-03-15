@@ -175,6 +175,112 @@ function checkCapabilities(text, storyBible) {
   return violations;
 }
 
+// ═══ NONFICTION SOURCE INTEGRITY ═══
+
+function checkNonfictionSourceIntegrity(text, ctx) {
+  if (!ctx.isNonfiction) return [];
+  const violations = [];
+
+  // 1. Detect invented specifics: hyper-precise times without sourcing
+  const preciseTimeRx = /\b(\d{1,2}:\d{2}\s*(?:AM|PM|a\.m\.|p\.m\.))\b/gi;
+  const timeMatches = [...text.matchAll(preciseTimeRx)];
+  for (const m of timeMatches) {
+    // Check if nearby text has a source anchor
+    const start = Math.max(0, m.index - 200);
+    const end = Math.min(text.length, m.index + 200);
+    const nearby = text.slice(start, end);
+    const hasSource = /(?:according to|records show|testimony|court|document|report|log|dispatch|noted|stated|wrote|published)/i.test(nearby);
+    if (!hasSource) {
+      violations.push({
+        type: 'unsourced_specific',
+        severity: 'warning',
+        character: null,
+        description: `Precise time "${m[0]}" appears without source attribution. In documentary nonfiction, specific times must be anchored to records, testimony, or published accounts. Use [VERIFY: source needed] if unsourced.`,
+        location: text.slice(m.index, m.index + 80),
+        suggested_fix: `Add source: "According to [source], it was ${m[0]}..." or replace with approximate: "in the early hours" / "that afternoon"`,
+      });
+    }
+  }
+
+  // 2. Detect invented dollar amounts with suspicious precision
+  const dollarRx = /\$[\d,]+(?:\.\d{2})?|\b(?:forty-seven|sixty-three|twenty-eight|thirty-four|eighty-nine|ninety-one)\s+(?:dollars|cents|thousand|million)\b/gi;
+  const dollarMatches = [...text.matchAll(dollarRx)];
+  for (const m of dollarMatches) {
+    const start = Math.max(0, m.index - 200);
+    const end = Math.min(text.length, m.index + 200);
+    const nearby = text.slice(start, end);
+    const hasSource = /(?:according to|records|contract|ledger|invoice|receipt|budget|financial|audit|court|filing|reported|valued|assessed|appraised)/i.test(nearby);
+    if (!hasSource) {
+      violations.push({
+        type: 'unsourced_specific',
+        severity: 'warning',
+        character: null,
+        description: `Specific dollar amount "${m[0]}" appears without source attribution. Anchor to financial records, contracts, or published accounts.`,
+        location: text.slice(m.index, m.index + 80),
+        suggested_fix: `Add source: "According to [financial record/contract], the amount was ${m[0]}..." or use [VERIFY: source needed]`,
+      });
+    }
+  }
+
+  // 3. Detect invented dialogue (quoted speech without attribution context)
+  const dialogueRx = /"([^"]{15,120})"/g;
+  const dialogueMatches = [...text.matchAll(dialogueRx)];
+  let unanchoredDialogueCount = 0;
+  for (const m of dialogueMatches) {
+    const start = Math.max(0, m.index - 300);
+    const end = Math.min(text.length, m.index + m[0].length + 200);
+    const nearby = text.slice(start, end);
+    // Check for source anchoring near the quote
+    const hasSource = /(?:wrote|testified|told|said in|recalled|remembered|stated|according to|interview|deposition|memoir|autobiography|biography|letter|diary|journal|transcript|recording|published|article|reported|book)/i.test(nearby);
+    if (!hasSource) unanchoredDialogueCount++;
+  }
+  if (unanchoredDialogueCount > 3) {
+    violations.push({
+      type: 'unsourced_dialogue',
+      severity: 'critical',
+      character: null,
+      description: `${unanchoredDialogueCount} quoted dialogue passages without source attribution. In documentary nonfiction, dialogue must come from documented records: interviews, depositions, memoirs, letters, or published accounts. Do NOT invent dialogue.`,
+      location: dialogueMatches[0] ? text.slice(dialogueMatches[0].index, dialogueMatches[0].index + 80) : '',
+      suggested_fix: `Anchor each quote to a source: "...he told [publication]" / "...she wrote in her memoir" / "...according to court testimony". If no source exists, convert to indirect speech or paraphrase.`,
+    });
+  }
+
+  // 4. Detect unnamed composites presented as real individuals
+  const compositeRx = /\b(?:a young (?:actress|woman|man|girl|boy|worker|employee|secretary|dancer|singer)|an unnamed (?:source|witness|actress|woman)|a studio (?:girl|secretary|worker))\b[^.!?]{10,150}(?:walked|entered|sat|stood|said|whispered|looked|felt|thought|wondered|remembered)/gi;
+  const compositeMatches = [...text.matchAll(compositeRx)];
+  for (const m of compositeMatches) {
+    const nearby = text.slice(Math.max(0, m.index - 100), Math.min(text.length, m.index + m[0].length + 100));
+    const hasFraming = /(?:composite|representative|typical|contemporary accounts|records suggest|common pattern|historians note|based on)/i.test(nearby);
+    if (!hasFraming) {
+      violations.push({
+        type: 'unnamed_composite',
+        severity: 'critical',
+        character: null,
+        description: `Unnamed composite character doing specific actions: "${m[0].slice(0, 80)}..." — this is fiction, not nonfiction. Either name a documented individual with source, label as atmospheric reconstruction ("Contemporary accounts describe..."), or remove.`,
+        location: text.slice(m.index, m.index + 100),
+        suggested_fix: `Replace with a named, documented individual OR frame as reconstruction: "Contemporary accounts describe a pattern where..." / "Records from the period suggest..."`,
+      });
+    }
+  }
+
+  // 5. Detect atmospheric reconstruction without proper framing
+  const atmosphericRx = /\b(?:the (?:sun|moonlight|shadows|smoke|dust|rain|fog|mist|wind)\s+(?:fell|drifted|crept|hung|filtered|played|danced|settled)(?:[^.!?]{5,80}))|(?:(?:somewhere|outside|above|below|across the street)\s+[^.!?]{5,60}(?:hummed|buzzed|rattled|rumbled|echoed|whispered))/gi;
+  // Only flag if there's a LOT of it (some is fine)
+  const atmosphericMatches = [...text.matchAll(atmosphericRx)];
+  if (atmosphericMatches.length > 8) {
+    violations.push({
+      type: 'excessive_atmosphere',
+      severity: 'warning',
+      character: null,
+      description: `${atmosphericMatches.length} atmospheric/sensory reconstruction passages detected. Some is permitted but excessive atmospheric detail without sourcing risks crossing into fiction. Frame reconstructions: "Contemporary accounts describe..." or "According to period sources..."`,
+      location: atmosphericMatches[0] ? text.slice(atmosphericMatches[0].index, atmosphericMatches[0].index + 80) : '',
+      suggested_fix: `Reduce atmospheric passages by ~50% or anchor them to period sources. Prioritize documented events over sensory invention.`,
+    });
+  }
+
+  return violations;
+}
+
 // ═══ NONFICTION SUBJECT DEDUPLICATION ═══
 
 function checkNonfictionSubjectOverlap(text, ctx, chCtx) {
@@ -298,7 +404,17 @@ async function runAIConsistencyCheck(text, ctx, chCtx) {
   const outlineSummary = outlineEntry ? `Title: "${outlineEntry.title || chapter.title}"\nKey events: ${JSON.stringify(outlineEntry.key_events || outlineEntry.key_beats || [])}\nSummary: ${outlineEntry.summary || 'N/A'}` : 'No outline entry';
   const modelKey = resolveModel('consistency_check', ctx.spec);
 
-  const systemPrompt = `You are a manuscript continuity checker. Read the chapter and compare it against the verification document. List every contradiction, missing element, or continuity error.\n\nOutput ONLY a JSON array of violations. If no violations, return an empty array [].\n\nEach violation object:\n{\n  "type": "pronoun_mismatch|character_missing|timeline_break|backstory_contradiction|allegiance_unacknowledged|dead_character_appears|plot_deviation",\n  "severity": "critical|warning",\n  "character": "affected character name or null",\n  "description": "what's wrong",\n  "location": "first ~50 chars of the offending passage",\n  "suggested_fix": "how to fix it"\n}`;
+  const nonfictionSourceRules = ctx.isNonfiction ? `
+
+DOCUMENTARY NONFICTION SOURCE REQUIREMENTS (apply these STRICTLY):
+- Every factual claim must be anchored to at least ONE of: a specific document with date, a named person's testimony, a court case with ruling name, a published work with author/year, or a specific dated event
+- Flag any unanchored claims as: "unsourced_claim" severity "warning"
+- Flag invented specifics (precise times like "3:47 AM", exact dollar amounts, specific dialogue) without documented sources as: "fabricated_detail" severity "critical"
+- Flag unnamed composite characters doing specific things ("A young actress walked into...") as: "unnamed_composite" severity "critical" — this is fiction, not nonfiction
+- Atmospheric reconstruction is ONLY permitted when labeled: "Contemporary accounts describe..." or "Records from the period suggest..."
+- If a person mentioned has a dedicated chapter later in the outline, flag extensive coverage (more than 1-2 paragraphs) as: "subject_encroachment" severity "warning"` : '';
+
+  const systemPrompt = `You are a manuscript continuity checker. Read the chapter and compare it against the verification document. List every contradiction, missing element, or continuity error.${nonfictionSourceRules}\n\nOutput ONLY a JSON array of violations. If no violations, return an empty array [].\n\nEach violation object:\n{\n  "type": "pronoun_mismatch|character_missing|timeline_break|backstory_contradiction|allegiance_unacknowledged|dead_character_appears|plot_deviation|unsourced_claim|fabricated_detail|unnamed_composite|subject_encroachment",\n  "severity": "critical|warning",\n  "character": "affected character name or null",\n  "description": "what's wrong",\n  "location": "first ~50 chars of the offending passage",\n  "suggested_fix": "how to fix it"\n}`;
 
   const userMessage = `VERIFICATION DOCUMENT:\n\nCHARACTERS:\n${charSummary || 'No characters defined'}\n\nOUTLINE FOR THIS CHAPTER:\n${outlineSummary}\n\n${lastStateDoc ? `PREVIOUS CHAPTER STATE:\n${lastStateDoc}\n` : ''}\n\nCHAPTER ${chapter.chapter_number}: "${chapter.title}"\n${text.slice(0, 12000)}`;
 
@@ -333,6 +449,7 @@ async function runContinuityGuardian(base44, projectId, chapterId, rawProse) {
     ...checkActTransition(text, chCtx.lastStateDoc, chCtx.chapter.chapter_number),
     ...checkCapabilities(text, ctx.storyBible),
     ...checkNonfictionSubjectOverlap(text, ctx, chCtx),
+    ...checkNonfictionSourceIntegrity(text, ctx),
   ];
 
   const aiViolations = await runAIConsistencyCheck(text, ctx, chCtx);

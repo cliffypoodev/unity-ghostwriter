@@ -389,7 +389,21 @@ function buildProsePrompt(ctx, chCtx) {
     `\nWRITING RULES:`,
     `- Write ONLY prose. No meta-commentary, headers, or author notes.`,
     `- Target: ~${wordTarget} words. MINIMUM ${Math.round(wordTarget * 0.8)} words.`,
-    `- ${isNonfiction ? 'Use documented evidence, real research, and specific detail. No invented quotes or fabricated statistics.' : 'Show, don\'t tell. Concrete sensory detail. Dialogue advances plot.'}`,
+    `- ${isNonfiction ? `DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
+  Every factual claim must be anchored to at least ONE of:
+  • A specific document with date and archive location
+  • A named person's testimony with context  
+  • A court case with docket number or ruling name
+  • A published book/article with author and year
+  • A specific dated event with verifiable details
+  If you cannot anchor a claim, insert [VERIFY: source needed].
+  DO NOT invent specific times ("3:47 AM"), specific dollar amounts,
+  specific dialogue, or specific scenes unless sourced from documented record.
+  Atmospheric reconstruction is permitted ONLY when labeled:
+  "Contemporary accounts describe..." or "Records from the period suggest..."
+  DO NOT use unnamed composites as documented individuals. "A young actress"
+  doing specific things in a specific office is FICTION, not nonfiction.
+  Use real names with sources, or use clearly labeled reconstruction.` : 'Show, don\'t tell. Concrete sensory detail. Dialogue advances plot.'}`,
     `- Vary sentence length. No repetitive structure.`,
     `- Scene breaks: use "* * *" on its own line.`,
     isLastChapter ? '\n- THIS IS THE FINAL CHAPTER. Resolve all open threads. Deliver emotional payoff.' : '',
