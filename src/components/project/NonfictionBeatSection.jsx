@@ -10,6 +10,13 @@ function safeParse(str) {
   } catch { return null; }
 }
 
+const ARGUMENT_FIELDS = [
+  { key: "prior_chapter_endpoint", label: "PRIOR ENDPOINT", color: "text-slate-600 bg-slate-50 border-slate-300" },
+  { key: "this_chapter_advances", label: "ADVANCES", color: "text-emerald-700 bg-emerald-50 border-emerald-300" },
+  { key: "new_ground", label: "NEW GROUND", color: "text-green-700 bg-green-50 border-green-300" },
+  { key: "handoff", label: "HANDOFF", color: "text-sky-700 bg-sky-50 border-sky-300" },
+];
+
 const BEAT_FIELDS = [
   { key: "opening_hook", label: "HOOK", color: "text-orange-700 bg-orange-50 border-orange-200" },
   { key: "context_block", label: "CONTEXT", color: "text-slate-700 bg-slate-50 border-slate-200" },
@@ -126,6 +133,21 @@ export default function NonfictionBeatSection({ chapter, onScenesUpdated }) {
 
       {expanded && (
         <div className="space-y-1 bg-white rounded-lg border border-slate-200 p-3">
+          {/* Argument Progression */}
+          {beatSheet.argument_progression && (
+            <div className="mb-2 pb-2 border-b border-slate-100">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Argument Progression</p>
+              {ARGUMENT_FIELDS.map(field => (
+                <BeatRow key={field.key} field={field} value={beatSheet.argument_progression?.[field.key]} />
+              ))}
+              {beatSheet.argument_progression?.new_ground?.includes('[RESTRUCTURE NEEDED') && (
+                <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2 flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-red-700 font-medium">This chapter lacks distinct new ground and may overlap with another chapter. Revise the chapter concept before generating prose.</p>
+                </div>
+              )}
+            </div>
+          )}
           {BEAT_FIELDS.map(field => (
             <BeatRow key={field.key} field={field} value={beatSheet[field.key]} />
           ))}
