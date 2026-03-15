@@ -91,7 +91,7 @@ const FREQUENCY_CAPS = [
   [/\bresonat/gi, 'resonate', 2], [/\ba tapestry of\b/gi, 'tapestry of', 0],
   [/\bcareful(ly)?\b/gi, 'careful(ly)', 3], [/\bantiseptic\b/gi, 'antiseptic', 1],
   [/\bfluorescent\b/gi, 'fluorescent', 2], [/\bas if\b/gi, 'as if', 4],
-  [/\bsomething in\b/gi, 'something in', 3], [/\bthe kind of\b/gi, 'the kind of', 3],
+  [/\bsomething in\b/gi, 'something in', 3], [/\bsomething about\b/gi, 'something about', 2], [/\bthe kind of\b/gi, 'the kind of', 3],
   [/\bparticular\b/gi, 'particular', 3], [/\bsomehow\b/gi, 'somehow', 2],
   [/\bfamiliar\b/gi, 'familiar', 3],
 ];
