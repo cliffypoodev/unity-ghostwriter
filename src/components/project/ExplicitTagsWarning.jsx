@@ -3,13 +3,30 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Zap, Pencil, X } from "lucide-react";
 
-const INTIMACY_KEYWORDS = /\b(kiss|touch|bond|ceremony|restraint|submit|naked|bed|intimate|seduc|strip|undress|caress|thrust|moan|climax|orgasm|arousal|erotic|lust|desire|passion|embrace|skin\s+against|bare|uncloth|pleasure|sensual|carnal)\b/i;
+const INTIMACY_KEYWORDS = /\b(kiss|touch|bond|ceremony|restraint|submit|naked|bed|intimate|seduc|strip|undress|caress|thrust|moan|climax|orgasm|arousal|erotic|lust|desire|passion|embrace|skin\s+against|bare|uncloth|pleasure|sensual|carnal|romance|love|affair|night\s+together|physical|body|heat|tension|chemistry)\b/i;
 
 function autoPlaceExplicitTags(outlineData) {
   if (!outlineData?.chapters) return outlineData;
-  const updated = { ...outlineData, chapters: outlineData.chapters.map(ch => {
+  const totalChapters = outlineData.chapters.length;
+
+  // For erotica projects: if keyword matching tags fewer than half the chapters,
+  // tag ALL chapters except the first (which is typically setup/intro).
+  // This is the genre's core purpose — most chapters should have explicit content.
+  const keywordMatches = outlineData.chapters.filter(ch => {
     const text = ((ch.summary || '') + ' ' + (ch.prompt || '') + ' ' + (ch.title || '')).toLowerCase();
-    if (INTIMACY_KEYWORDS.test(text) && !/\[EXPLICIT\]/i.test(text)) {
+    return INTIMACY_KEYWORDS.test(text);
+  });
+
+  const tagAll = keywordMatches.length < Math.ceil(totalChapters / 2);
+
+  const updated = { ...outlineData, chapters: outlineData.chapters.map((ch, idx) => {
+    const text = ((ch.summary || '') + ' ' + (ch.prompt || '') + ' ' + (ch.title || '')).toLowerCase();
+    const alreadyTagged = /\[EXPLICIT\]/i.test(text);
+    if (alreadyTagged) return ch;
+
+    // Tag if keywords match OR if we're tagging all (skip chapter 1 for setup)
+    const shouldTag = INTIMACY_KEYWORDS.test(text) || (tagAll && idx > 0);
+    if (shouldTag) {
       return { ...ch, summary: `[EXPLICIT]\n${ch.summary || ''}\n[/EXPLICIT]` };
     }
     return ch;
