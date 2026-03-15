@@ -187,7 +187,40 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     qualityReport = styleResult.data.quality_report;
   }
 
-  // ── STEP 5: SAVE CHAPTER ──
+  // ── STEP 5b: PROSE POLISHER ──
+  try {
+    await base44.entities.Project.update(projectId, {
+      generation_status: JSON.stringify({
+        current_chapter: chapter.chapter_number,
+        current_bot: 'prose_polisher',
+      }),
+    });
+  } catch (e) {}
+
+  console.log(`Ch ${chapter.chapter_number}: Polishing prose...`);
+  try {
+    const polishResult = await invokeBot(base44, 'prosePolisher', {
+      project_id: projectId,
+      chapter_id: chapterId,
+      prose: finalProse,
+    });
+    timings.prose_polisher_ms = polishResult.duration_ms;
+
+    if (polishResult.success && polishResult.data.changed) {
+      const polishedChapters = await base44.entities.Chapter.filter({ id: chapterId });
+      const polishedContent = polishedChapters?.[0]?.content;
+      if (polishedContent && polishedContent.length > 100) {
+        finalProse = polishedContent;
+        console.log(`Ch ${chapter.chapter_number}: Polished — ${polishResult.data.violations_found} AI tells fixed (${polishResult.data.total_instances} instances)`);
+      }
+    } else if (polishResult.success && !polishResult.data.changed) {
+      console.log(`Ch ${chapter.chapter_number}: Prose clean — no AI tells detected`);
+    }
+  } catch (polishErr) {
+    console.warn(`Ch ${chapter.chapter_number}: Prose polisher failed (non-fatal):`, polishErr.message);
+  }
+
+  // ── STEP 6: SAVE CHAPTER ──
   const finalWordCount = finalProse.trim().split(/\s+/).length;
 
   // Handle large content — upload as file
@@ -208,7 +241,7 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     quality_scan: qualityReport ? JSON.stringify(qualityReport) : '',
   });
 
-  // ── STEP 6: STATE CHRONICLER (MUST complete before next chapter) ──
+  // ── STEP 7: STATE CHRONICLER (MUST complete before next chapter) ──
   try {
     await base44.entities.Project.update(projectId, {
       generation_status: JSON.stringify({
