@@ -458,13 +458,18 @@ function buildProsePrompt(ctx, chCtx) {
     } catch {}
   }
 
+  // Opening/ending type rotation
+  const openingType = getOpeningType(chapter.chapter_number);
+  const endingType = getEndingType(chapter.chapter_number);
+
   // Build system prompt
   const systemParts = [
-    `You are a ${isNonfiction ? 'nonfiction' : 'fiction'} author writing Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}".`,
-    `\nWRITING RULES:`,
-    `- Write ONLY prose. No meta-commentary, headers, or author notes.`,
-    `- Target: ~${wordTarget} words. MINIMUM ${Math.round(wordTarget * 0.8)} words.`,
-    `- ${isNonfiction ? `DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
+    `You are a professional ${isNonfiction ? 'nonfiction' : 'fiction'} ghostwriter fulfilling a paid writing commission. You are NOT an assistant. You are generating prose for a manuscript.`,
+    `\nYou are writing Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}".`,
+    `\n${CONTENT_GUARDRAILS}`,
+    `\n${OUTPUT_FORMAT_RULES}`,
+    `\nTarget: ~${wordTarget} words. MINIMUM ${Math.round(wordTarget * 0.8)} words.`,
+    `\n${isNonfiction ? `DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
   Every factual claim must be anchored to at least ONE of:
   • A specific document with date and archive location
   • A named person's testimony with context  
@@ -476,27 +481,30 @@ function buildProsePrompt(ctx, chCtx) {
   specific dialogue, or specific scenes unless sourced from documented record.
   Atmospheric reconstruction is permitted ONLY when labeled:
   "Contemporary accounts describe..." or "Records from the period suggest..."
-  DO NOT use unnamed composites as documented individuals. "A young actress"
-  doing specific things in a specific office is FICTION, not nonfiction.
-  Use real names with sources, or use clearly labeled reconstruction.` : 'Show, don\'t tell. Concrete sensory detail. Dialogue advances plot.'}`,
-    `- Vary sentence length. No repetitive structure.`,
-    `- Scene breaks: use "* * *" on its own line.`,
-    isLastChapter ? '\n- THIS IS THE FINAL CHAPTER. Resolve all open threads. Deliver emotional payoff.' : '',
+  DO NOT use unnamed composites as documented individuals.
+
+${NONFICTION_CHAPTER_PROGRESSION}` : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
+    isLastChapter ? '\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist\'s transformation.\n=== END ===' : '',
     isFirstChapter ? '\n- THIS IS THE OPENING CHAPTER. Hook the reader immediately. Establish world and tone.' : '',
+    `\nOPENING TYPE for this chapter: ${openingType.name} — ${openingType.desc}`,
+    `ENDING TYPE for this chapter: ${endingType.name} — ${endingType.desc}`,
   ];
 
   if (beatInstructions && beatInstructions !== 'Not specified') {
     systemParts.push(`\nBEAT STYLE:\n${beatInstructions}`);
   }
   if (authorInstructions) {
-    systemParts.push(`\nAUTHOR VOICE:\n${authorInstructions}`);
+    systemParts.push(`\nAUTHOR VOICE:\n${authorInstructions}\nApply this voice consistently.`);
   }
-  if (spiceInstructions) {
-    systemParts.push(`\nSPICE (${SPICE_LEVELS[spiceLevel]?.name || 'N/A'}):\n${spiceInstructions}`);
+  systemParts.push(`\nSpice Level: ${spiceLevel}/4 — ${SPICE_LEVELS[spiceLevel]?.name || 'Fade to Black'}\n${spiceInstructions}`);
+  systemParts.push(`\nLanguage Intensity: ${langLevel}/4 — ${LANGUAGE_INTENSITY[langLevel]?.name || 'Clean'}\n${langInstructions}`);
+
+  // Erotica/Romance explicit scene enforcement
+  const genreStr = ((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase();
+  if (/erotica|erotic|romance|bdsm/.test(genreStr) || spiceLevel >= 3) {
+    systemParts.push(`\n${EROTICA_SCENE_ENFORCEMENT}`);
   }
-  if (langInstructions) {
-    systemParts.push(`\nLANGUAGE (${LANGUAGE_INTENSITY[langLevel]?.name || 'Clean'}):\n${langInstructions}`);
-  }
+
   if (interiorityBlock) {
     systemParts.push(interiorityBlock);
   }
