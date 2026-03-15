@@ -585,14 +585,14 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   let storyBible = null;
   let nameRegistry = {};
   try {
-    const outlines = await base44.entities.Outline.filter({ project_id: projectId });
+    const outlines = await withRetry(() => base44.entities.Outline.filter({ project_id: projectId }));
     const outline = outlines[0];
     if (outline) {
       let bibleRaw = outline.story_bible || '';
       if (!bibleRaw && outline.story_bible_url) { try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {} }
       if (bibleRaw) { try { storyBible = JSON.parse(bibleRaw); } catch {} }
     }
-    const projects = await base44.entities.Project.filter({ id: projectId });
+    const projects = await withRetry(() => base44.entities.Project.filter({ id: projectId }));
     if (projects[0]?.name_registry) { let nrRaw = projects[0].name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
   } catch {}
 
