@@ -535,12 +535,54 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
     // Build research block from web search pre-pass (if available)
     const researchBlock = bookResearch ? `\n=== VERIFIED RESEARCH (from live web search) ===\nContext: ${bookResearch.contextSummary || ''}\n\nKey Facts:\n${(bookResearch.facts || []).map(f => '- ' + f).join('\n')}\n\nTimeline:\n${(bookResearch.timeline || []).map(t => '- ' + t.date + ': ' + t.event).join('\n')}\n\nKey Figures:\n${(bookResearch.keyFigures || []).map(f => '- ' + f.name + ': ' + f.role).join('\n')}\n\nINSTRUCTION: Ground the chapter outline in these verified facts. Each chapter's summary and prompt should reflect accurate dates, names, and events where relevant. Do not invent events that contradict these facts.\n=== END RESEARCH ===\n` : '';
 
-    const nfCtxHdr = `═══ PROJECT CONTEXT ═══\nTYPE: NONFICTION | GENRE: ${spec.genre||'General'}${spec.subgenre?' / '+spec.subgenre:''} | BEAT: ${(BEAT_STYLES[spec.beat_style||spec.tone_style||'']||{name:'Not specified'}).name||spec.beat_style||'Not specified'} | LANG: ${spec.language_intensity}/4${spec.author_voice&&spec.author_voice!=='basic'?' | VOICE: '+spec.author_voice:''}${spec.target_audience?' | AUDIENCE: '+spec.target_audience:''}\nPhase 1 settings MANDATORY.\n═══════════════════════`;
+    // ── KNOWLEDGE BASE from Research Chronicler topic_research ──
+    let knowledgeBaseBlock = '';
+    try {
+      const projects = await sr.entities.Project.filter({ id: project_id });
+      const project = projects?.[0];
+      let kbData = null;
+      if (project?.knowledge_base_url) {
+        try { const kbText = await (await fetch(project.knowledge_base_url)).text(); kbData = JSON.parse(kbText); } catch {}
+      } else if (project?.knowledge_base) {
+        try { kbData = JSON.parse(project.knowledge_base); } catch {}
+      }
+      if (kbData) {
+        knowledgeBaseBlock = `\n=== TOPIC KNOWLEDGE BASE (from deep research — USE THIS TO GROUND THE OUTLINE) ===`;
+        if (kbData.topic_analysis) {
+          knowledgeBaseBlock += `\nCORE SUBJECT: ${kbData.topic_analysis.core_subject || ''}`;
+          knowledgeBaseBlock += `\nSCOPE: ${kbData.topic_analysis.scope || ''}`;
+          if (kbData.topic_analysis.common_misconceptions?.length) knowledgeBaseBlock += `\nMISCONCEPTIONS TO ADDRESS: ${kbData.topic_analysis.common_misconceptions.join('; ')}`;
+        }
+        if (kbData.key_frameworks?.length) knowledgeBaseBlock += `\n\nKEY FRAMEWORKS:\n${kbData.key_frameworks.map(f => '- ' + f.name + ': ' + f.description).join('\n')}`;
+        if (kbData.major_themes?.length) knowledgeBaseBlock += `\n\nMAJOR THEMES (each must be covered):\n${kbData.major_themes.map(t => '- ' + t.theme + ': ' + t.description).join('\n')}`;
+        if (kbData.authoritative_sources?.length) knowledgeBaseBlock += `\n\nAUTHORITATIVE SOURCES:\n${kbData.authoritative_sources.slice(0, 10).map(s => '- ' + s.name + (s.author ? ' by ' + s.author : '') + ': ' + s.relevance).join('\n')}`;
+        if (kbData.suggested_chapters?.length) knowledgeBaseBlock += `\n\nRESEARCH-SUGGESTED CHAPTERS (use as starting guidance):\n${kbData.suggested_chapters.map(c => 'Ch ' + c.number + ': "' + c.title + '" — ' + c.description).join('\n')}`;
+        if (kbData.key_terms?.length) knowledgeBaseBlock += `\n\nKEY TERMS:\n${kbData.key_terms.slice(0, 10).map(t => '- ' + t.term + ': ' + t.definition).join('\n')}`;
+        knowledgeBaseBlock += `\n=== END KNOWLEDGE BASE ===\n`;
+      }
+    } catch (kbErr) { console.warn('Knowledge base loading failed:', kbErr.message); }
+
+    // ── NF STRUCTURE MODE ──
+    const NF_STRUCT = {
+      'prescriptive': 'PRESCRIPTIVE/HOW-TO: Each chapter teaches a principle or skill. Pattern: Framework → Evidence → Application → Takeaway. Write instructional prose, NOT narrative scenes.',
+      'narrative': 'NARRATIVE NONFICTION: Each chapter tells a true story cinematically. Pattern: Scene → Context → Tension → Resolution → Implication. Every scene must be sourced from real events.',
+      'reference': 'REFERENCE/ACADEMIC: Each chapter is a self-contained deep-dive. Pattern: Definition → Explanation → Case studies → Cross-references. Prioritize completeness over narrative.',
+      'investigative': 'INVESTIGATIVE/EXPOSÉ: Each chapter peels back a layer. Pattern: Evidence → Reconstruction → Analysis → Implications → Next lead. Build the case chapter by chapter.',
+    };
+    const structureMode = spec.nf_structure_mode || '';
+    const structureLine = NF_STRUCT[structureMode] || '';
+    const nfFrameworksCtx = spec.nf_key_frameworks ? `\nAUTHOR FRAMEWORKS: ${spec.nf_key_frameworks}` : '';
+    const nfAudienceCtx = spec.nf_audience_needs ? `\nAUDIENCE NEEDS: ${spec.nf_audience_needs}` : '';
+
+    const nfCtxHdr = `═══ PROJECT CONTEXT ═══\nTYPE: NONFICTION | GENRE: ${spec.genre||'General'}${spec.subgenre?' / '+spec.subgenre:''} | BEAT: ${(BEAT_STYLES[spec.beat_style||spec.tone_style||'']||{name:'Not specified'}).name||spec.beat_style||'Not specified'} | LANG: ${spec.language_intensity}/4${spec.author_voice&&spec.author_voice!=='basic'?' | VOICE: '+spec.author_voice:''}${spec.target_audience?' | AUDIENCE: '+spec.target_audience:''}${structureMode?' | STRUCTURE: '+structureMode.toUpperCase():''}\nPhase 1 settings MANDATORY.\n═══════════════════════`;
     const systemPrompt = `${nfCtxHdr}\n\n${buildAuthorModeBlock(spec)}\n\n${CONTENT_GUARDRAILS}\n\n${ANTI_REPETITION_RULES}\n\nYou are a professional nonfiction book architect specializing in research compilation and evidence-based narrative structure. You generate structured outlines for nonfiction books. Return only valid JSON. No prose outside the JSON.
 
 This book must contain exactly ${targetChapters} chapters. Generate an outline with exactly ${targetChapters} chapters — no more, no fewer.
 
 Genre: ${spec.genre || 'General'}${subgenreBlock}
+${structureLine ? '\n' + structureLine : ''}${knowledgeBaseBlock}${nfFrameworksCtx}${nfAudienceCtx}
+
+CRITICAL: This is NONFICTION. Do NOT generate fictional narrative chapters. Do NOT create characters, dialogue scenes, or story arcs. Organize chapters around RESEARCH, ARGUMENTS, FRAMEWORKS, and EVIDENCE.
 
 NONFICTION STRUCTURE RULES:
 - This is NONFICTION. Chapters are organized around ARGUMENTS, THEMES, or CHRONOLOGICAL PERIODS — not fictional plot arcs.
