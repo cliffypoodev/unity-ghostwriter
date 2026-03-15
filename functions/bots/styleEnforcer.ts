@@ -273,6 +273,11 @@ function scanInstructionLeaks(text) {
     /^(Begin|Show|Either establish|Continue from|Start with|Open with|Transition from|Describe how|Establish) /gm,
     /^(Begin|Show|Start|Continue|Open|Transition|Describe|Establish) (the |this |him |her |from |with |in |a )\w+.{0,60}(chapter|scene|kitchen|conversation|computer|leaving|moving|timeline|earlier)/gmi,
     /^(Begin|Show|Start|Continue) .{0,30}(or |, or |then )(show|continue|open|describe|transition|establish)/gmi,
+    // AI meta-comments about completing/continuing the text
+    /complete the (chapter|scene|story|section) or indicate/gi,
+    /indicate if this is intentional/gi,
+    /should (I|we) (continue|complete|finish|expand)/gi,
+    /this (section|chapter|scene) (is |appears |seems )?(incomplete|unfinished|truncated)/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
