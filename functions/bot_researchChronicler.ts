@@ -405,6 +405,109 @@ async function runBibliography(base44, ctx) {
   }
 }
 
+// ═══ MODE 4: TOPIC-LEVEL RESEARCH (PRE-OUTLINE) ═══
+
+const TOPIC_RESEARCH_SYSTEM = `You are a professional nonfiction research architect. A user wants to write a nonfiction book. Your job is to deeply research the TOPIC and produce a comprehensive knowledge base that will guide the entire book's structure.
+
+You will receive: topic, genre, subgenre, target audience.
+
+Return a structured JSON knowledge base with:
+
+1. TOPIC ANALYSIS — What this topic actually covers, common misconceptions, the current state of the field
+2. KEY FRAMEWORKS — The major theoretical frameworks, models, or organizing principles used by experts in this field (3-5 frameworks)
+3. MAJOR THEMES — The 8-12 distinct themes or subtopics that a comprehensive book on this subject MUST cover
+4. AUTHORITATIVE SOURCES — 15-20 real, verifiable books, journals, organizations, and experts that are the gold standard in this field
+5. TARGET AUDIENCE NEEDS — What readers of this genre/topic specifically need, their pain points, their knowledge gaps
+6. SUGGESTED CHAPTER STRUCTURE — A proposed 15-20 chapter outline with titles and 1-sentence descriptions, organized by the most logical progression for this topic
+7. COMPETING BOOKS — 5-8 existing books on this topic, what they do well, and what gaps remain for a new book to fill
+8. KEY TERMS — A glossary of 10-20 essential terms the author must use correctly
+
+OUTPUT FORMAT — respond ONLY with valid JSON:
+{
+  "topic_analysis": {
+    "core_subject": "What this book is really about",
+    "scope": "What it covers and what it deliberately excludes",
+    "current_state": "Where the field stands right now",
+    "common_misconceptions": ["misconception 1", "misconception 2"]
+  },
+  "key_frameworks": [
+    { "name": "Framework Name", "description": "What it is and why it matters", "source": "Who developed it" }
+  ],
+  "major_themes": [
+    { "theme": "Theme Name", "description": "Why this must be in the book", "subtopics": ["subtopic 1", "subtopic 2"] }
+  ],
+  "authoritative_sources": [
+    { "type": "book|journal|organization|expert|government", "name": "Full Name/Title", "author": "Author if applicable", "relevance": "Why this is authoritative", "url": "" }
+  ],
+  "target_audience_needs": {
+    "primary_reader": "Who this book is for",
+    "knowledge_level": "What they already know",
+    "pain_points": ["what frustrates them"],
+    "desired_outcomes": ["what they want to learn/achieve"]
+  },
+  "suggested_chapters": [
+    { "number": 1, "title": "Chapter Title", "description": "One-sentence description", "theme": "Which major theme this serves" }
+  ],
+  "competing_books": [
+    { "title": "Book Title", "author": "Author", "strength": "What it does well", "gap": "What it misses that your book can fill" }
+  ],
+  "key_terms": [
+    { "term": "Term", "definition": "Plain-language definition" }
+  ]
+}`;
+
+async function runTopicResearch(base44, projectId, spec) {
+  const topic = spec?.topic || '';
+  const genre = spec?.genre || 'General nonfiction';
+  const subgenre = spec?.subgenre || '';
+  const audience = spec?.target_audience || 'General readers';
+
+  if (!topic || topic.length < 10) {
+    return { success: false, error: 'Topic is too short or missing. Provide a detailed nonfiction topic/premise.' };
+  }
+
+  const userMessage = `NONFICTION BOOK RESEARCH REQUEST:
+TOPIC: ${topic}
+GENRE: ${genre}${subgenre ? ' / ' + subgenre : ''}
+TARGET AUDIENCE: ${audience}
+
+Research this topic thoroughly. Find real frameworks, real sources, real competing books. Do NOT fabricate any sources or experts. If you cannot find real sources for a specific subtopic, note it as a gap.
+
+This knowledge base will be used to generate the book's outline and guide every chapter's content. Be comprehensive.`;
+
+  try {
+    const raw = await callAI('claude-sonnet', TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const knowledgeBase = JSON.parse(cleaned);
+
+    // Store knowledge base on the project
+    const kbText = JSON.stringify(knowledgeBase, null, 2);
+    try {
+      const kbFile = new File([kbText], 'knowledge_base.json', { type: 'application/json' });
+      const uploaded = await base44.integrations.Core.UploadFile({ file: kbFile });
+      if (uploaded?.file_url) {
+        await base44.entities.Project.update(projectId, { knowledge_base_url: uploaded.file_url });
+      }
+    } catch (e) {
+      console.warn('Knowledge base upload failed, storing inline:', e.message);
+      try {
+        await base44.entities.Project.update(projectId, { knowledge_base: kbText.slice(0, 50000) });
+      } catch {}
+    }
+
+    return {
+      success: true,
+      knowledge_base: knowledgeBase,
+      source_count: knowledgeBase.authoritative_sources?.length || 0,
+      theme_count: knowledgeBase.major_themes?.length || 0,
+      chapter_suggestions: knowledgeBase.suggested_chapters?.length || 0,
+      competing_books: knowledgeBase.competing_books?.length || 0,
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 // ═══ DENO SERVE ═══
 
 Deno.serve(async (req) => {
@@ -417,11 +520,25 @@ Deno.serve(async (req) => {
     const { project_id, chapter_id, mode, prose, depth } = body;
 
     if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
-    if (!mode || !['research', 'verify', 'bibliography'].includes(mode)) {
-      return Response.json({ error: 'mode required: research | verify | bibliography' }, { status: 400 });
+    if (!mode || !['research', 'verify', 'bibliography', 'topic_research'].includes(mode)) {
+      return Response.json({ error: 'mode required: research | verify | bibliography | topic_research' }, { status: 400 });
     }
 
     const startMs = Date.now();
+
+    // topic_research doesn't need full project context — just the spec
+    if (mode === 'topic_research') {
+      const specs = await base44.entities.Specification.filter({ project_id });
+      const spec = specs?.[0];
+      if (!spec || spec.book_type !== 'nonfiction') {
+        return Response.json({ skipped: true, reason: 'topic_research requires a nonfiction project with a specification' });
+      }
+      const result = await runTopicResearch(base44, project_id, spec);
+      result.duration_ms = Date.now() - startMs;
+      result.mode = mode;
+      return Response.json(result);
+    }
+
     const ctx = await loadProjectContext(base44, project_id);
 
     if (!ctx.isNonfiction) {
