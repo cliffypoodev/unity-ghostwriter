@@ -1,30 +1,63 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Phase 1 metadata_generation — hardcoded to Claude Sonnet. Never changes.
+// Phase 1 metadata_generation — Gemini Flash primary (fast), Claude Sonnet fallback
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+
+async function callGemini(prompt, maxTokens = 2500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const response = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GOOGLE_AI_API_KEY,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens },
+        }),
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+    if (!response.ok) { const err = await response.text(); throw new Error(`Gemini: ${err}`); }
+    const data = await response.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+async function callClaude(prompt, maxTokens = 2500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!response.ok) { const err = await response.text(); throw new Error(`Claude: ${err}`); }
+    const data = await response.json();
+    return data.content?.[0]?.text || '';
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
 
 async function callAI(prompt) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic error: ${err}`);
+  // Try Gemini first (3-5x faster for structured JSON), fall back to Claude
+  try {
+    return await callGemini(prompt);
+  } catch (geminiErr) {
+    console.warn('Gemini failed, trying Claude:', geminiErr.message);
+    return await callClaude(prompt);
   }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || '';
 }
 
 Deno.serve(async (req) => {
