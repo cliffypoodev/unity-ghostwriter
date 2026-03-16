@@ -40,6 +40,7 @@ import { Save, Loader2, Send, ArrowRight, MessageSquare, Wand2, Search, X, Light
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SourceFilesCard from "./SourceFilesCard";
+import PromptSuggestions from "./PromptSuggestions";
 import PromptCatalogBrowser from "./PromptCatalogBrowser";
 import AuthorVoiceSelector, { ALL_AUTHOR_PROFILES, resolveAuthorId } from "./AuthorVoiceSelector";
 import { BeatStyleSelect, SpiceLevelSelect, LanguageIntensitySelect } from "./BeatStyleSelector";
@@ -660,7 +661,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const [showCatalogBrowser, setShowCatalogBrowser] = useState(false);
   const [subgenresData, setSubgenresData] = useState({});
   const [autoHints, setAutoHints] = useState({});  // { field: { reasoning, secondary } }
-  const [wizardStep, setWizardStep] = useState(0); // 0=Your Idea, 1=Style & Structure, 2=Advanced
   const pendingSubgenreRef = useRef(null);  // deferred subgenre from auto-extract
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
@@ -938,8 +938,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
       }
 
       toast.success("Premise expanded and settings auto-selected");
-      // Auto-advance wizard to Step 1 (Style & Structure) after successful expansion
-      setWizardStep(1);
     } catch (err) {
       console.error('Expand error:', err);
       toast.error("Failed to expand premise");
@@ -1079,7 +1077,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     : "";
 
   return (
-    <div className="phase1-wrap" style={{ display: 'block', maxWidth: 800, margin: '0 auto', padding: '24px' }}>
+    <div className="phase1-wrap">
       <style>{`
         @keyframes field-glow {
           0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
@@ -1087,57 +1085,36 @@ export default function SpecificationTab({ projectId, onProceed }) {
           100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
         }
         .field-highlight { animation: field-glow 1.8s ease-out; }
-        .wizard-step-bar { display: flex; align-items: center; margin-bottom: 28px; gap: 0; }
-        .wizard-step-item { display: flex; align-items: center; flex: 1; }
-        .wizard-step-dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #2a2d3a; background: #161923; color: #5a5c6a; transition: all 0.3s; flex-shrink: 0; }
-        .wizard-step-dot.active { border-color: #7c5cfc; background: #7c5cfc; color: #fff; }
-        .wizard-step-dot.done { border-color: #7c5cfc; background: #7c5cfc; color: #fff; }
-        .wizard-step-label { margin-left: 8px; font-size: 12px; font-weight: 500; color: #5a5c6a; white-space: nowrap; }
-        .wizard-step-label.active { color: #e4e5eb; font-weight: 600; }
-        .wizard-step-line { flex: 1; height: 2px; background: #2a2d3a; margin: 0 12px; border-radius: 1px; transition: all 0.3s; }
-        .wizard-step-line.done { background: #7c5cfc; }
-        .wizard-type-tile { flex: 1; padding: 28px 20px; border-radius: 14px; border: 2px solid #2a2d3a; background: #161923; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .wizard-type-tile:hover { border-color: #3a3d4a; background: #1a1d28; }
-        .wizard-type-tile.selected { border-color: #7c5cfc; background: rgba(124,92,252,0.08); box-shadow: 0 0 30px rgba(124,92,252,0.1); }
-        .wizard-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid #2a2d3a; }
       `}</style>
 
-      {/* ── Wizard Step Indicator ── */}
-      <div className="wizard-step-bar">
-        {['Your Idea', 'Style & Structure', 'Advanced'].map((label, i) => (
-          <div key={i} className="wizard-step-item">
-            <div className={`wizard-step-dot ${i < wizardStep ? 'done' : i === wizardStep ? 'active' : ''}`}>
-              {i < wizardStep ? '✓' : i + 1}
-            </div>
-            <span className={`wizard-step-label ${i === wizardStep ? 'active' : ''}`}>{label}</span>
-            {i < 2 && <div className={`wizard-step-line ${i < wizardStep ? 'done' : ''}`} />}
-          </div>
+      {/* ── LEFT: Section Nav ── */}
+      <nav className="phase1-nav">
+        <div className="phase1-nav-header">ON THIS PAGE</div>
+        {[
+          { id: 'sec-premise',   label: 'Premise'       },
+          { id: 'sec-basics',    label: 'Book Basics'   },
+          { id: 'sec-style',     label: 'Style & Tone'  },
+          { id: 'sec-voice',     label: 'Voice & Model' },
+          { id: 'sec-psych',     label: 'Psychology'    },
+          { id: 'sec-resources', label: 'Resources'     },
+        ].map(({ id, label }) => (
+          <a
+            key={id}
+            className={`phase1-nav-item${activeSection === id ? ' p1-active' : ''}`}
+            href={`#${id}`}
+            onClick={e => {
+              e.preventDefault();
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            <div className="phase1-nav-dot" />
+            {label}
+          </a>
         ))}
-      </div>
+      </nav>
 
-      {/* ── Book Type Selection (shows when no type selected) ── */}
-      {!form.book_type && wizardStep === 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: '#e4e5eb' }}>What kind of book are you writing?</h2>
-          <p style={{ fontSize: 13, color: '#8b8d9a', marginBottom: 16 }}>This determines which genres, styles, and settings are available.</p>
-          <div style={{ display: 'flex', gap: 14 }}>
-            <button className="wizard-type-tile" onClick={() => handleChange("book_type", "fiction")} type="button">
-              <div style={{ fontSize: 36, marginBottom: 10 }}>📖</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#e4e5eb', marginBottom: 6 }}>Fiction</div>
-              <div style={{ fontSize: 12, color: '#8b8d9a', lineHeight: 1.4 }}>Novels, short stories, romance, thriller, fantasy, horror, sci-fi...</div>
-            </button>
-            <button className="wizard-type-tile" onClick={() => handleChange("book_type", "nonfiction")} type="button">
-              <div style={{ fontSize: 36, marginBottom: 10 }}>📚</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#e4e5eb', marginBottom: 6 }}>Nonfiction</div>
-              <div style={{ fontSize: 12, color: '#8b8d9a', lineHeight: 1.4 }}>Self-help, memoir, history, biography, how-to, true crime, business...</div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 0: Your Idea ── */}
-      {wizardStep === 0 && (
-        <div className="phase1-form" style={{ padding: 0 }}>
+      {/* ── RIGHT: Form ── */}
+      <div className="phase1-form">
 
         {/* ══ SECTION 1 — PREMISE ══ */}
         <div className="p1-card" id="sec-premise">
@@ -1189,7 +1166,14 @@ export default function SpecificationTab({ projectId, onProceed }) {
               </div>
             )}
 
-
+            <div className="mt-3">
+              <PromptSuggestions
+                bookType={form.book_type}
+                genre={form.genre}
+                onSelect={handleSelectPrompt}
+                onBrowseAll={() => setShowCatalogBrowser(true)}
+              />
+            </div>
           </div>
         </div>
 
@@ -1326,30 +1310,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
             </div>
           </div>
         </div>
-
-          {/* Step 0 Navigation */}
-          <div className="wizard-nav">
-            <div />
-            <button
-              onClick={() => setWizardStep(1)}
-              disabled={!form.book_type || !form.topic?.trim()}
-              style={{
-                padding: '10px 28px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
-                cursor: form.book_type && form.topic?.trim() ? 'pointer' : 'not-allowed',
-                background: form.book_type && form.topic?.trim() ? '#7c5cfc' : '#2a2d3a',
-                color: form.book_type && form.topic?.trim() ? '#fff' : '#5a5c6a',
-                transition: 'all 0.2s',
-              }}
-            >
-              Style & Structure →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 1: Style & Structure ── */}
-      {wizardStep === 1 && (
-        <div className="phase1-form" style={{ padding: 0 }}>
 
         {/* ══ SECTION 3 — STYLE & TONE ══ */}
         <div className="p1-card" id="sec-style">
@@ -1663,26 +1623,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
         </div>
 
-          {/* Step 1 Navigation */}
-          <div className="wizard-nav">
-            <button onClick={() => setWizardStep(0)} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #2a2d3a', background: 'transparent', color: '#8b8d9a', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>← Back</button>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setWizardStep(2)} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #2a2d3a', background: 'transparent', color: '#8b8d9a', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Advanced ⚙️</button>
-              <button onClick={onProceed} disabled={!canProceed} style={{
-                padding: '10px 28px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
-                cursor: canProceed ? 'pointer' : 'not-allowed',
-                background: canProceed ? '#7c5cfc' : '#2a2d3a',
-                color: canProceed ? '#fff' : '#5a5c6a', transition: 'all 0.2s',
-              }}>Generate Outline →</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 2: Advanced ── */}
-      {wizardStep === 2 && (
-        <div className="phase1-form" style={{ padding: 0 }}>
-
         {/* ══ SECTION 5 — PROTAGONIST PSYCHOLOGY ══ */}
         {form.book_type === "fiction" && (
           <div className="p1-card" id="sec-psych">
@@ -1799,25 +1739,19 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
         </div>
 
-        {/* ══ STEP 2 NAVIGATION ══ */}
-        <div className="wizard-nav">
-          <button onClick={() => setWizardStep(1)} style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #2a2d3a', background: 'transparent', color: '#8b8d9a', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>← Back</button>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Save
-            </Button>
-            <Button disabled={!canProceed} onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700">
-              Generate Outline
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+        {/* ══ FOOTER BUTTONS ══ */}
+        <div className="flex justify-end gap-3 py-6 mt-4 border-t border-slate-200 bg-white rounded-xl px-4">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Specifications
+          </Button>
+          <Button disabled={!canProceed} onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700">
+            Proceed to Outline
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
 
-        {/* /phase1-form */}
-        </div>
-      )}
-      {/* /wizardStep === 2 */}
+      </div>{/* /phase1-form */}
 
       <PromptCatalogBrowser
         isOpen={showCatalogBrowser}
