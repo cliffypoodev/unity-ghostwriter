@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Layout from '@/components/Layout';
+import ErrorLogPanel from '@/components/ErrorLogPanel';
 
 // Page imports
 import Home from './pages/Home';
@@ -57,6 +58,7 @@ function App() {
         </Router>
         <Toaster />
         <SonnerToaster position="bottom-right" richColors />
+        <ErrorLogPanel />
       </QueryClientProvider>
     </AuthProvider>
   )
