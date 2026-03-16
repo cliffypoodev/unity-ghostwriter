@@ -391,11 +391,28 @@ You are writing NONFICTION. Every specific claim MUST be verifiable.
 - WRONG: "His handwritten notes in red ink read: 'Handle it.'"
 - RIGHT: "Contemporary accounts suggest the executive's response was dismissive."
 
-RULE 2 — NO EDITORIAL INSTRUCTIONS IN PROSE:
-If the chapter prompt or scene directions contain instructions like "Remove specific time," "Anchor to documented source," "Either cite or use general reference," or similar editorial notes — DO NOT print these as prose. They are directions for YOU. Execute them silently.
-- WRONG: "Remove specific day/time details or anchor to documented source with proper attribution, studying photographs..."
-- RIGHT: "Studio archives contain photographs of young women being evaluated..."
-Any text that reads like an instruction to a writer rather than prose for a reader is FORBIDDEN.
+RULE 2 — NO EDITORIAL INSTRUCTIONS IN PROSE (ZERO TOLERANCE):
+The chapter prompt, beat sheet, or scene directions may contain EDITING INSTRUCTIONS meant for you, the writer. These instructions tell you HOW to write — they are NOT prose to be printed.
+
+RECOGNITION: Any text that begins with these words/phrases is an INSTRUCTION, not prose:
+  "Remove specific..." / "Replace with..." / "Either cite..." / "Either identify..."
+  "Frame as..." / "Use general..." / "Provide documentary..." / "Label as..."
+  "Anchor to..." / "Anchor these..." / "Source to..." / "Source this..."
+  "Cite specific..." / "Rewrite to..." / "Address the..."
+
+ACTION: When you encounter an instruction, OBEY IT by writing prose that follows the instruction. NEVER print the instruction text itself. The reader must never see editing directions.
+
+WRONG (instruction printed as prose):
+  "Remove specific day/time details or anchor to documented source with proper attribution, studying photographs of young women..."
+  "Either identify the specific person with documentation or remove this fictional scene and begin with documented facts about contract terms later become synonymous..."
+  "Replace with documented historical example or clearly label as representative scenario based on contemporary accounts, Label as representative description..."
+
+RIGHT (instruction obeyed, prose written):
+  "Studio executives studied photographs of young women with methodical precision."
+  "The actress who would later become synonymous with Hollywood glamour sat in a dimly lit corner booth..."
+  "In an office high above Sunset Boulevard, a scene played out that was repeated thousands of times across Golden Age Hollywood."
+
+TEST: Before outputting any paragraph, scan its first 50 characters. If they contain ANY of the instruction prefixes listed above, you are printing an instruction instead of prose. DELETE IT and write actual prose instead.
 
 RULE 3 — FRAMING DIVERSITY (NO "ARCHIVE NARRATOR" IN EVERY CHAPTER):
 Do NOT use the same narrative framing device in every chapter. The following framings may be used AT MOST TWICE in a 20-chapter book:
@@ -433,6 +450,12 @@ The following phrases are BANNED or capped at 1 use per chapter:
 - "The psychological impact/toll" — MAX 1 per chapter
 - "The pattern becomes clear/extends beyond" — MAX 1 per chapter
 - "The financial implications" — MAX 1 per chapter
+- "You might assume" — MAX 1 per BOOK (do not use this in multiple chapters)
+- "Consider the case of..." — MAX 1 per BOOK
+- "This wasn't [X] — it was [stronger X]" rhetorical inversion — MAX 1 per chapter
+- "The most [superlative] aspect/element/dimension..." — MAX 1 per chapter
+- "I make myself coffee" / coffee-making scenes — BANNED (0 per book)
+- "Dawn/morning light breaks/filters through..." as chapter ending — BANNED (0 per book)
 Use SPECIFIC transitions that arise from the content instead.
 
 === END NONFICTION ABSOLUTE RULES ===
