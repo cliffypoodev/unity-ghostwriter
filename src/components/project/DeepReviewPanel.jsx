@@ -14,8 +14,12 @@ function severityBadge(severity) {
   return "bg-blue-500/20 text-blue-400 border-blue-500/30";
 }
 
-function ViolationItem({ v, index }) {
+function ViolationItem({ v, index, onDismiss, onFix, fixing }) {
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+
   return (
     <div className={cn("rounded-lg border p-3", v.severity === "critical" ? "border-red-500/30 bg-red-500/5" : "border-slate-700 bg-slate-800/40")}>
       <div className="flex items-start gap-2 cursor-pointer" onClick={() => setOpen(!open)}>
@@ -26,12 +30,10 @@ function ViolationItem({ v, index }) {
           <p className="text-sm text-slate-200">{v.description || v.label || "Unnamed issue"}</p>
           {v.character && <p className="text-xs text-slate-500 mt-0.5">Character: {v.character}</p>}
         </div>
-        {(v.location || v.suggested_fix) && (
-          open ? <ChevronUp className="w-3.5 h-3.5 text-slate-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-        )}
+        {open ? <ChevronUp className="w-3.5 h-3.5 text-slate-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
       </div>
       {open && (
-        <div className="mt-2 pt-2 border-t border-slate-700 space-y-1.5">
+        <div className="mt-2 pt-2 border-t border-slate-700 space-y-2">
           {v.location && (
             <div>
               <span className="text-[10px] text-slate-500 uppercase font-semibold">Location</span>
@@ -44,16 +46,39 @@ function ViolationItem({ v, index }) {
               <p className="text-xs text-slate-300 mt-0.5">{v.suggested_fix}</p>
             </div>
           )}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onFix && onFix(v); }}
+              disabled={fixing}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white transition-colors disabled:opacity-50"
+            >
+              {fixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+              Fix This
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setDismissed(true); onDismiss && onDismiss(v); }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+            >
+              Dismiss — Intentional
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-export default function DeepReviewPanel({ projectId, chapters }) {
+export default function DeepReviewPanel({ projectId, chapters, specs }) {
   const [reviewing, setReviewing] = useState(false);
   const [reviewProgress, setReviewProgress] = useState("");
   const [results, setResults] = useState(null);
+  const [fixing, setFixing] = useState({});
+  const [dismissedAll, setDismissedAll] = useState(false);
+  const [dismissedFlags, setDismissedFlags] = useState(new Set());
+
+  const spec = specs?.[0] || null;
+  const isNonfiction = spec?.book_type === "nonfiction";
+  const isHistoricalOrInvestigative = isNonfiction && /history|investigat|true.crime|biography|memoir/i.test((spec?.genre || "") + " " + (spec?.subgenre || "") + " " + (spec?.nf_structure_mode || ""));
 
   const generatedChapters = chapters.filter(c => c.status === "generated").sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
 
@@ -122,6 +147,34 @@ export default function DeepReviewPanel({ projectId, chapters }) {
     setReviewing(false);
   };
 
+  const handleFixViolation = async (chapterNumber, violation) => {
+    const ch = generatedChapters.find(c => c.chapter_number === chapterNumber);
+    if (!ch) return;
+    const key = `${chapterNumber}-${violation.description?.slice(0, 30)}`;
+    setFixing(prev => ({ ...prev, [key]: true }));
+    try {
+      await base44.functions.invoke("bot_styleEnforcer", {
+        project_id: projectId,
+        chapter_id: ch.id,
+      }, { timeout: 180000 });
+      // Mark as dismissed after fix attempt
+      setDismissedFlags(prev => new Set([...prev, key]));
+    } catch (err) {
+      console.error("Fix failed:", err.message);
+    } finally {
+      setFixing(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleDismissViolation = (chapterNumber, violation) => {
+    const key = `${chapterNumber}-${violation.description?.slice(0, 30)}`;
+    setDismissedFlags(prev => new Set([...prev, key]));
+  };
+
+  const handleDismissAllTimeline = () => {
+    setDismissedAll(true);
+  };
+
   const totalViolations = results ? results.reduce((sum, r) => sum + r.violations.length, 0) : 0;
   const criticalCount = results ? results.reduce((sum, r) => sum + r.violations.filter(v => v.severity === "critical").length, 0) : 0;
   const cleanCount = results ? results.filter(r => r.violations.length === 0 && !r.error).length : 0;
@@ -148,6 +201,26 @@ export default function DeepReviewPanel({ projectId, chapters }) {
       <p className="text-xs text-slate-500">
         Checks every chapter against the Story Bible for character contradictions, timeline violations, location errors, and name inconsistencies.
       </p>
+
+      {isHistoricalOrInvestigative && results && totalViolations > 0 && !dismissedAll && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-amber-300 font-medium">Historical/Investigative nonfiction detected</p>
+              <p className="text-xs text-amber-400/70 mt-1">
+                This book covers multiple time periods by design. Timeline flags comparing historical chapters (1940s, 1950s, etc.) against the Story Bible's final chapter position are likely intentional, not errors.
+              </p>
+              <button
+                onClick={handleDismissAllTimeline}
+                className="mt-2 px-3 py-1.5 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+              >
+                Dismiss All Timeline Flags — Intentional Structure
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {reviewing && (
         <div className="flex items-center gap-3 py-4">
@@ -199,11 +272,22 @@ export default function DeepReviewPanel({ projectId, chapters }) {
                 )}
               </div>
               {r.error && <p className="text-xs text-amber-400">{r.error}</p>}
-              {r.violations.length > 0 && (
+              {r.violations.length > 0 && !dismissedAll && (
                 <div className="mt-2 space-y-2">
-                  {r.violations.map((v, i) => (
-                    <ViolationItem key={i} v={v} index={i} />
-                  ))}
+                  {r.violations.map((v, i) => {
+                    const key = `${r.chapterNumber}-${v.description?.slice(0, 30)}`;
+                    if (dismissedFlags.has(key)) return null;
+                    return (
+                      <ViolationItem
+                        key={i}
+                        v={v}
+                        index={i}
+                        onFix={(violation) => handleFixViolation(r.chapterNumber, violation)}
+                        onDismiss={(violation) => handleDismissViolation(r.chapterNumber, violation)}
+                        fixing={!!fixing[key]}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
