@@ -89,6 +89,20 @@ async function loadProjectContext(base44, projectId) {
   return { project, chapters, spec, outline, outlineData, storyBible, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
 }
 
+// ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
+const NF_SANITIZE_RX = [
+  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Frame as|Use general|Provide documentary|Provide specific|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific)\b[^.!?\n]*[.!?\n]/gi,
+  /\bUse '([^']+)' or cite[^.!?\n]*[.!?\n]/gi,
+  /\bor (clearly |)label as[^.!?\n]*[.!?\n]/gi,
+  /\bor (remove|begin with|provide|cite|frame)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite)[^.!?\n]*[.!?\n]/gi,
+];
+function sanitizeNFPrompt(text) {
+  if (!text) return text;
+  let c = text;
+  for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
+  return c.replace(/\s{2,}/g, ' ').trim();
+}
+
 function getChapterContext(ctx, chapterId) {
   const chapter = ctx.chapters.find(c => c.id === chapterId);
   if (!chapter) throw new Error('Chapter not found: ' + chapterId);
@@ -245,8 +259,8 @@ FULL OUTLINE (for cross-reference — identify what is covered ELSEWHERE):
 ${outlineSummaryLines}
 
 Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"
-Summary: ${chapter.summary || outlineEntry.summary || 'No summary'}
-Prompt: ${chapter.prompt || outlineEntry.scene_prompt || ''}
+Summary: ${sanitizeNFPrompt(chapter.summary || outlineEntry.summary || 'No summary')}
+Prompt: ${sanitizeNFPrompt(chapter.prompt || outlineEntry.scene_prompt || '')}
 ${prevChapter ? `Previous chapter: Ch ${prevChapter.chapter_number}: "${prevChapter.title}" — ${(prevChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FIRST CHAPTER.'}
 ${nextChapter ? `Next chapter: Ch ${nextChapter.chapter_number}: "${nextChapter.title}" — ${(nextChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FINAL CHAPTER.'}
 ${prevChapter?.beat_data?.opening_framing ? `PREVIOUS CHAPTER OPENED WITH: ${prevChapter.beat_data.opening_framing} — THIS chapter MUST use a DIFFERENT opening framing.` : ''}
