@@ -48,6 +48,7 @@ import ModelSelector from "../ModelSelector";
 import CharacterInterviewPanel from "./CharacterInterviewPanel";
 import ProtagonistInterioritySection from "./ProtagonistInterioritySection";
 import ProtagonistInteriorityInferButton from "./ProtagonistInteriorityInferButton";
+import StoryBibleEditor from "./StoryBibleEditor";
 
 const FICTION_GENRES = ["Fantasy", "Science Fiction", "Mystery", "Thriller", "Romance", "Historical Fiction", "Horror", "Literary Fiction", "Adventure", "Dystopian", "Young Adult", "Crime", "Magical Realism", "Western", "Satire", "Erotica"];
 const NONFICTION_GENRES = ["Self-Help", "Business", "Biography", "History", "Science", "Technology", "Philosophy", "Psychology", "Health", "Travel", "Education", "Politics", "True Crime", "Memoir", "Cooking"];
@@ -653,6 +654,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
     protagonist_self_belief: "",
     protagonist_secret_desire: "",
     protagonist_behavioral_tells: "",
+    story_bible_data: "",
   });
   const [extracting, setExtracting] = useState(false);
   const [developingIdea, setDevelopingIdea] = useState(false);
@@ -718,6 +720,13 @@ export default function SpecificationTab({ projectId, onProceed }) {
         base44.entities.Project.update(projectId, {
           protagonist_interiority: JSON.stringify(interiority),
         }).catch(err => console.warn("Failed to persist interiority on project:", err.message));
+      }
+
+      // Persist story bible data on Project entity for cross-phase access
+      if (form.story_bible_data) {
+        base44.entities.Project.update(projectId, {
+          story_bible_user: form.story_bible_data,
+        }).catch(err => console.warn("Failed to persist story bible on project:", err.message));
       }
       
       if (spec) return base44.entities.Specification.update(spec.id, payload);
@@ -1095,7 +1104,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
           { id: 'sec-basics',    label: 'Book Basics'   },
           { id: 'sec-style',     label: 'Style & Tone'  },
           { id: 'sec-voice',     label: 'Voice & Model' },
-          { id: 'sec-psych',     label: 'Psychology'    },
+          { id: 'sec-psych',     label: 'Story Bible'   },
           { id: 'sec-resources', label: 'Resources'     },
         ].map(({ id, label }) => (
           <a
@@ -1623,95 +1632,27 @@ export default function SpecificationTab({ projectId, onProceed }) {
           </div>
         </div>
 
-        {/* ══ SECTION 5 — PROTAGONIST PSYCHOLOGY ══ */}
-        {form.book_type === "fiction" && (
-          <div className="p1-card" id="sec-psych">
-            <div className="p1-card-header">
-              <div className="p1-card-icon" style={{ background:'#fce7f3', color:'#9d174d' }}>🧠</div>
-              <div>
-                <div className="p1-card-title">Protagonist Psychology</div>
-                <div className="p1-card-subtitle">Deep interiority — injected into every chapter prompt</div>
-              </div>
-              <span className="p1-card-badge">Optional</span>
+        {/* ══ SECTION 5 — STORY BIBLE ══ */}
+        <div className="p1-card" id="sec-psych">
+          <div className="p1-card-header">
+            <div className="p1-card-icon" style={{ background: form.book_type === 'nonfiction' ? '#fef3c7' : '#fce7f3', color: form.book_type === 'nonfiction' ? '#92400e' : '#9d174d' }}>
+              {form.book_type === 'nonfiction' ? '📋' : '🧠'}
             </div>
-            <div className="p1-card-body">
-              <p style={{ fontSize:12, color:'#52516a', marginBottom:12, lineHeight:1.5 }}>
-                Define your protagonist's deep interior psychology. At least one scene beat per chapter will connect to one of these layers.
-              </p>
-
-              <div className="p1-psych-controls">
-                <ProtagonistInteriorityInferButton form={form} onChange={handleChange} />
-                <button
-                  className="p1-psych-toggle"
-                  onClick={() => setPsychOpen(o => !o)}
-                >
-                  {psychOpen ? 'Hide fields' : 'Show fields'}
-                  <span className={`p1-psych-arrow${psychOpen ? ' open' : ''}`}>▾</span>
-                </button>
+            <div>
+              <div className="p1-card-title">{form.book_type === 'nonfiction' ? 'Nonfiction Bible' : 'Story Bible'}</div>
+              <div className="p1-card-subtitle">
+                {form.book_type === 'nonfiction'
+                  ? 'Key figures, settings, timeline, argument structure — feeds into every chapter'
+                  : 'Characters, world, themes — enforced in every chapter\'s voice and structure'
+                }
               </div>
-
-              {psychOpen && (
-                <div className="p1-psych-fields">
-                  <div className="p1-field-group">
-                    <div className="p1-psych-num">1. Before Belief</div>
-                    <div className="p1-label">What did the protagonist believe their life was FOR before this story?</div>
-                    <Textarea
-                      className="text-sm"
-                      rows={2}
-                      placeholder="Their identity, role, what gave them meaning before the story upended everything..."
-                      value={form.protagonist_life_purpose || ""}
-                      onChange={e => handleChange("protagonist_life_purpose", e.target.value)}
-                    />
-                  </div>
-                  <div className="p1-field-group">
-                    <div className="p1-psych-num">2. Core Wound</div>
-                    <div className="p1-label">What failure or loss still defines how they see themselves?</div>
-                    <Textarea
-                      className="text-sm"
-                      rows={2}
-                      placeholder="A specific event or pattern, not vague — the wound that shaped their worldview..."
-                      value={form.protagonist_core_wound || ""}
-                      onChange={e => handleChange("protagonist_core_wound", e.target.value)}
-                    />
-                  </div>
-                  <div className="p1-field-group">
-                    <div className="p1-psych-num">3. Hidden Self-Belief</div>
-                    <div className="p1-label">What do they privately believe is WRONG with them?</div>
-                    <Textarea
-                      className="text-sm"
-                      rows={2}
-                      placeholder="The thing they've never said aloud — their deepest shame or inadequacy..."
-                      value={form.protagonist_self_belief || ""}
-                      onChange={e => handleChange("protagonist_self_belief", e.target.value)}
-                    />
-                  </div>
-                  <div className="p1-field-group">
-                    <div className="p1-psych-num">4. Secret Desire</div>
-                    <div className="p1-label">What does the supernatural/alien/fantasy element offer them?</div>
-                    <Textarea
-                      className="text-sm"
-                      rows={2}
-                      placeholder="What the bond/relationship offers that the human world never could..."
-                      value={form.protagonist_secret_desire || ""}
-                      onChange={e => handleChange("protagonist_secret_desire", e.target.value)}
-                    />
-                  </div>
-                  <div className="p1-field-group" style={{ marginBottom: 0 }}>
-                    <div className="p1-psych-num">5. Behavioral Tells</div>
-                    <div className="p1-label">Observable patterns that reveal interiority without stating it</div>
-                    <Textarea
-                      className="text-sm"
-                      rows={2}
-                      placeholder="e.g. Defers decisions, keeps exits available, can't commit, fidgets when cornered..."
-                      value={form.protagonist_behavioral_tells || ""}
-                      onChange={e => handleChange("protagonist_behavioral_tells", e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
+            <span className="p1-card-badge">Recommended</span>
           </div>
-        )}
+          <div className="p1-card-body">
+            <StoryBibleEditor form={form} onChange={handleChange} projectId={projectId} />
+          </div>
+        </div>
 
         {/* ══ SECTION 6 — RESOURCES & NOTES ══ */}
         <div className="p1-card" id="sec-resources">
