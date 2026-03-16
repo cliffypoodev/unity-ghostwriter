@@ -236,7 +236,7 @@ async function generateNonfictionBeatSheet(ctx, chCtx) {
     return `Ch ${num}: "${oc.title || 'Untitled'}" — ${(oc.summary || '').slice(0, 150)}`;
   }).join('\n');
 
-  const systemPrompt = `You are a nonfiction book architect. Generate a structural beat sheet for one chapter. Output ONLY valid JSON. No explanation.\n\n${contextHeader}\n\nThis is NONFICTION. No fictional scenes or invented characters.`;
+  const systemPrompt = `You are a nonfiction book architect. Generate a structural beat sheet for one chapter. Output ONLY valid JSON. No explanation.\n\n${contextHeader}\n\nThis is NONFICTION. No fictional scenes or invented characters.\n\nCRITICAL NF RULES:\n- Do NOT set every chapter's opening_framing to "archive_narrator" (author examining documents). This framing may be used AT MOST 3 times in a 20-chapter book.\n- ROTATE opening framings: reconstructed_scene, key_quote, startling_fact, present_day_consequence, in_media_res, rhetorical_question.\n- Do NOT set every chapter's closing to "archive_reflection" (author closing folder, making coffee). ROTATE endings: unresolved_question, resonant_detail, source_quote, next_chapter_bridge.\n- Do NOT include editorial instructions in any field. No "Remove specific time" or "Anchor to source" — those are instructions for the OUTLINE, not the beat sheet.\n- The section mode "vignette" means a documented scene reconstruction, NOT a fictional scene. It must be labeled as reconstruction.`;
 
   const userMessage = `Book: "${ctx.project.name || 'Untitled'}"
 Genre: ${spec?.genre || 'Nonfiction'} / ${spec?.subgenre || ''}
@@ -249,6 +249,8 @@ Summary: ${chapter.summary || outlineEntry.summary || 'No summary'}
 Prompt: ${chapter.prompt || outlineEntry.scene_prompt || ''}
 ${prevChapter ? `Previous chapter: Ch ${prevChapter.chapter_number}: "${prevChapter.title}" — ${(prevChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FIRST CHAPTER.'}
 ${nextChapter ? `Next chapter: Ch ${nextChapter.chapter_number}: "${nextChapter.title}" — ${(nextChapter.summary || '').slice(0, 200)}` : 'THIS IS THE FINAL CHAPTER.'}
+${prevChapter?.beat_data?.opening_framing ? `PREVIOUS CHAPTER OPENED WITH: ${prevChapter.beat_data.opening_framing} — THIS chapter MUST use a DIFFERENT opening framing.` : ''}
+${prevChapter?.beat_data?.closing_type ? `PREVIOUS CHAPTER CLOSED WITH: ${prevChapter.beat_data.closing_type} — THIS chapter MUST use a DIFFERENT closing type.` : ''}
 
 Target: ~${targetWords} words
 
@@ -258,6 +260,9 @@ Return JSON with this structure:
   "beat_function": "SETUP|DISRUPTION|ESCALATION|CLIMAX|RESOLUTION|CONNECTIVE_TISSUE",
   "beat_scene_type": "exposition|case_study|analysis|how_to|mixed",
   "beat_tempo": "fast|medium|slow",
+  "opening_framing": "reconstructed_scene|key_quote|startling_fact|present_day_consequence|in_media_res|rhetorical_question|archive_narrator",
+  "closing_type": "unresolved_question|resonant_detail|source_quote|next_chapter_bridge|archive_reflection",
+  "chapter_structure": "chronological|thematic|case_study_deep_dive|comparative|investigation_trail",
   "argument_progression": {
     "prior_chapter_endpoint": "What the previous chapter established. For Ch 1, state the book's starting premise.",
     "this_chapter_advances": "The specific NEW claim or evidence this chapter adds.",
@@ -270,7 +275,7 @@ Return JSON with this structure:
       "title": "Section title",
       "mode": "vignette|analysis|case_study|how_to|exposition",
       "content_focus": "What this section covers",
-      "key_evidence": "Real research, stats, or examples to include",
+      "key_evidence": "Real research, stats, or examples to include — DO NOT fabricate specific file names, dates, or quotes",
       "word_target": ${Math.round(targetWords / 4)},
       "fabrication_warnings": ["Any claims needing verification"]
     }
@@ -278,7 +283,11 @@ Return JSON with this structure:
   "word_target": ${targetWords}
 }
 
-CRITICAL VALIDATION: The "new_ground" field must identify material NOT covered in any other chapter listed in the outline above. If you cannot identify distinct new ground, set "new_ground" to "[RESTRUCTURE NEEDED: overlaps with Ch X]" so the chapter concept can be revised before generation.`;
+CRITICAL VALIDATION: 
+1. The "new_ground" field must identify material NOT covered in any other chapter listed in the outline above. If you cannot identify distinct new ground, set "new_ground" to "[RESTRUCTURE NEEDED: overlaps with Ch X]".
+2. The "opening_framing" MUST differ from the previous chapter's opening_framing.
+3. The "closing_type" MUST differ from the previous chapter's closing_type.
+4. Do NOT include editorial instructions like "Remove specific..." or "Anchor to..." in any field.`;
 
   let raw;
   try {
