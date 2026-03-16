@@ -33,6 +33,14 @@ const SCAN_CATEGORIES = {
   recap_bloat: { label: "Recap Bloat", icon: "♻️", weight: 5, color: "blue" },
   generic_conclusion: { label: "Generic Conclusions", icon: "🔚", weight: 5, color: "blue" },
   word_count: { label: "Word Count Issues", icon: "📏", weight: 4, color: "blue" },
+  nf_fiction_trap: { label: "NF Crutch / Fiction Trap", icon: "📖", weight: 10, color: "amber" },
+  nf_thesis_ending: { label: "NF Thesis Restatement", icon: "🔄", weight: 5, color: "amber" },
+  nf_padding: { label: "NF Repetitive Padding", icon: "📋", weight: 8, color: "amber" },
+  nf_unlabeled_reconstruction: { label: "NF Unlabeled Reconstruction", icon: "🎭", weight: 12, color: "red" },
+  nf_polish: { label: "NF Polish Target", icon: "✨", weight: 5, color: "blue" },
+  gemini_nf_cap: { label: "NF Frequency Cap", icon: "🔢", weight: 5, color: "amber" },
+  gemini_nf_ban: { label: "NF Banned Phrase", icon: "🚫", weight: 10, color: "red" },
+  gemini_nf_manuscript_cap: { label: "NF Manuscript Cap", icon: "📊", weight: 5, color: "amber" },
 };
 
 const PATTERNS = {
@@ -51,6 +59,18 @@ const PATTERNS = {
     [/\[TODO[:\s]/gi, "[TODO]"],
     [/as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi, "as instructed by the prompt"],
     [/per the (outline|beat sheet|specification)/gi, "per the outline/beat sheet"],
+    // NF editorial instruction leaks (v11.6)
+    [/\bRemove specific (day|time|date|location|details?|sensory|first-person|atmospheric)/gi, "Remove specific [X]..."],
+    [/\b(Anchor|anchor) (these|this|the) (detail|fact|claim)s? to/gi, "Anchor details to..."],
+    [/\bEither (cite|source|reference|identify) (the |a )?(specific|actual|real)/gi, "Either cite/identify the specific..."],
+    [/\bReplace with documented (examples?|historical|facts|evidence)/gi, "Replace with documented..."],
+    [/\bUse general (timeframe|terms|reference|description)/gi, "Use general [X]..."],
+    [/\bProvide (documentary|specific|archival) source/gi, "Provide documentary source..."],
+    [/\bLabel as (representative|illustrative|composite|general)/gi, "Label as representative..."],
+    [/\bFrame as (hypothetical|composite|reconstructed|general)/gi, "Frame as [X]..."],
+    [/\bor (clearly |)label as (representative|composite|illustrative)/gi, "or label as representative..."],
+    [/\bor (remove|begin with|provide|cite) (this |)(fictional|specific|actual|documented)/gi, "or remove/cite fictional/documented..."],
+    [/\bCite specific (memoir|interview|archive|document|published)/gi, "Cite specific [source]..."],
   ],
   tense_past_drift: [
     [/\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi, "present-tense verb in past-tense narrative"],
