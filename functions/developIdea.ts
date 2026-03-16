@@ -1,6 +1,39 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+
+async function callGemini(systemPrompt, userPrompt) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GOOGLE_AI_API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: 1024 } }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!r.ok) throw new Error('Gemini: ' + await r.text());
+    const d = await r.json();
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (e) { clearTimeout(timeout); throw e; }
+}
+
+async function callClaude(systemPrompt, userPrompt) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1024, messages: [{ role: "user", content: userPrompt }], system: systemPrompt }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!r.ok) throw new Error('Claude: ' + await r.text());
+    const d = await r.json();
+    return d.content?.[0]?.text || '';
+  } catch (e) { clearTimeout(timeout); throw e; }
+}
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -40,33 +73,14 @@ ${genre ? `Genre: ${genre}` : "Determine the best genre fit."}
 Transform this into a tight, pitch-ready premise. Named characters, vivid settings, concrete conflicts.`;
   }
 
-  // callType: metadata_generation → resolves to Claude Sonnet
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      // resolveDevelopIdeaModel: always 'claude' regardless of project prose model setting.
-      // Phase 1 metadata_generation — hardcoded to Claude Sonnet. Never changes.
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      messages: [
-        { role: "user", content: userPrompt }
-      ],
-      system: systemPrompt,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    return Response.json({ error: `Anthropic API error: ${errText}` }, { status: 500 });
+  // Gemini primary (faster), Claude fallback
+  let text;
+  try {
+    text = await callGemini(systemPrompt, userPrompt);
+  } catch (geminiErr) {
+    console.warn('Gemini failed, trying Claude:', geminiErr.message);
+    text = await callClaude(systemPrompt, userPrompt);
   }
-
-  const result = await response.json();
-  const text = result.content?.[0]?.text || "";
 
   // Parse JSON from response, stripping any accidental markdown fences
   const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
