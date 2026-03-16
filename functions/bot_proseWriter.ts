@@ -107,7 +107,29 @@ async function loadProjectContext(base44, projectId) {
   let nameRegistry = {}; if (project.name_registry) { let nrRaw = project.name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
   let bannedPhrases = []; if (project.banned_phrases_log) { let bpRaw = project.banned_phrases_log; if (typeof bpRaw === 'string' && bpRaw.startsWith('http')) { try { bpRaw = await (await fetch(bpRaw)).text(); } catch { bpRaw = '[]'; } } try { bannedPhrases = JSON.parse(bpRaw); } catch {} }
   let chapterStateLog = ''; if (project.chapter_state_log) { chapterStateLog = await resolveContent(project.chapter_state_log); }
-  return { project, chapters, spec, outline, outlineData, storyBible, sourceFiles, globalSourceFiles, nameRegistry, bannedPhrases, chapterStateLog, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isFiction: spec?.book_type !== 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
+  // Load user-defined story bible (from Phase 1 Story Bible Editor)
+  let userStoryBible = null;
+  if (project.story_bible_user) {
+    let ubRaw = project.story_bible_user;
+    if (typeof ubRaw === 'string' && ubRaw.startsWith('http')) { try { ubRaw = await (await fetch(ubRaw)).text(); } catch { ubRaw = ''; } }
+    try { userStoryBible = ubRaw ? JSON.parse(ubRaw) : null; } catch {}
+  }
+  return { project, chapters, spec, outline, outlineData, storyBible, userStoryBible, sourceFiles, globalSourceFiles, nameRegistry, bannedPhrases, chapterStateLog, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isFiction: spec?.book_type !== 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
+}
+
+// ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
+// CODE-LEVEL: Strips editorial directions from chapter prompts/summaries BEFORE the AI sees them.
+const NF_SANITIZE_RX = [
+  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Frame as|Use general|Provide documentary|Provide specific|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific)\b[^.!?\n]*[.!?\n]/gi,
+  /\bUse '([^']+)' or cite[^.!?\n]*[.!?\n]/gi,
+  /\bor (clearly |)label as[^.!?\n]*[.!?\n]/gi,
+  /\bor (remove|begin with|provide|cite|frame)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite)[^.!?\n]*[.!?\n]/gi,
+];
+function sanitizeNFPrompt(text) {
+  if (!text) return text;
+  let c = text;
+  for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
+  return c.replace(/\s{2,}/g, ' ').trim();
 }
 
 function getChapterContext(ctx, chapterId) {
@@ -550,6 +572,110 @@ function buildCharacterContext(storyBible) {
   }).join('\n');
 }
 
+// ═══ USER STORY BIBLE CONTEXT ═══
+function buildUserStoryBibleContext(userBible, isNonfiction) {
+  if (!userBible) return '';
+  const parts = [];
+
+  if (!isNonfiction) {
+    // FICTION: Character Voice DNA, World, Themes
+    const chars = userBible.characters || [];
+    if (chars.length > 0) {
+      parts.push('=== CHARACTER VOICE DNA (MANDATORY — enforce in all dialogue and interiority) ===');
+      for (const c of chars) {
+        if (!c.name) continue;
+        const lines = [`CHARACTER: ${c.name} (${c.role || 'character'})`];
+        if (c.core_wound) lines.push(`  Core Wound: ${c.core_wound}`);
+        if (c.desire) lines.push(`  Desire: ${c.desire}`);
+        if (c.fear) lines.push(`  Fear: ${c.fear}`);
+        if (c.misbelief) lines.push(`  Misbelief/Lie: ${c.misbelief}`);
+        if (c.ghost) lines.push(`  Ghost (backstory): ${c.ghost}`);
+        if (c.arc_direction) lines.push(`  Arc: ${c.arc_direction}`);
+        const v = c.voice_dna || {};
+        if (v.vocabulary) lines.push(`  VOICE — Vocabulary: ${v.vocabulary}`);
+        if (v.speech_pattern) lines.push(`  VOICE — Speech pattern: ${v.speech_pattern}`);
+        if (v.verbal_tic) lines.push(`  VOICE — Verbal tic: ${v.verbal_tic}`);
+        if (v.never_says) lines.push(`  VOICE — Never says: ${v.never_says}`);
+        if (v.internal_voice) lines.push(`  VOICE — Internal voice: ${v.internal_voice}`);
+        if (c.physical_tells) lines.push(`  Physical tells: ${c.physical_tells}`);
+        if (c.relationships?.length > 0) {
+          lines.push(`  Relationships: ${c.relationships.map(r => `${r.to}: ${r.dynamic}`).join('; ')}`);
+        }
+        parts.push(lines.join('\n'));
+      }
+      parts.push('ENFORCEMENT: Each character MUST speak in their defined voice. Use their verbal tics. Respect their "never says" list. Their internal voice should differ from their speech. Physical tells should appear in action beats.\n=== END CHARACTER VOICE DNA ===');
+    }
+
+    const w = userBible.world;
+    if (w && (w.time_period || w.primary_setting || w.social_hierarchy)) {
+      parts.push('=== WORLD & SETTING ===');
+      if (w.time_period) parts.push(`Time Period: ${w.time_period}`);
+      if (w.primary_setting) parts.push(`Primary Setting: ${w.primary_setting}`);
+      if (w.social_hierarchy) parts.push(`Social Structure: ${w.social_hierarchy}`);
+      if (w.sensory_palette) parts.push(`Sensory Palette: ${w.sensory_palette}`);
+      if (w.world_rules?.length > 0) parts.push(`World Rules:\n${w.world_rules.map(r => `  • ${r}`).join('\n')}`);
+      if (w.locations?.length > 0) parts.push(`Key Locations:\n${w.locations.map(l => `  • ${l.name}: ${l.significance}`).join('\n')}`);
+      parts.push('=== END WORLD ===');
+    }
+
+    const t = userBible.themes;
+    if (t && (t.central_theme || t.thematic_question)) {
+      parts.push('=== THEMES ===');
+      if (t.central_theme) parts.push(`Central Theme: ${t.central_theme}`);
+      if (t.thematic_question) parts.push(`Thematic Question: ${t.thematic_question}`);
+      if (t.motifs?.length > 0) parts.push(`Motifs: ${t.motifs.join(', ')}`);
+      parts.push('Each chapter should touch at least ONE motif and connect to the thematic question.\n=== END THEMES ===');
+    }
+  } else {
+    // NONFICTION: Key Figures, Timeline, Argument, Sources
+    const figs = userBible.key_figures || [];
+    if (figs.length > 0) {
+      parts.push('=== KEY FIGURES (use these as primary subjects) ===');
+      for (const f of figs) {
+        if (!f.name) continue;
+        parts.push(`  ${f.name} (${f.role || 'subject'}${f.era ? ', ' + f.era : ''}): ${f.significance || ''}`);
+        if (f.known_sources) parts.push(`    Sources: ${f.known_sources}`);
+      }
+      parts.push('=== END KEY FIGURES ===');
+    }
+
+    const tl = userBible.timeline || [];
+    if (tl.length > 0) {
+      parts.push('=== TIMELINE (verified chronology — use for accuracy) ===');
+      for (const t of tl) {
+        parts.push(`  ${t.date}: ${t.event}${t.significance ? ' — ' + t.significance : ''}`);
+      }
+      parts.push('=== END TIMELINE ===');
+    }
+
+    const arg = userBible.argument;
+    if (arg?.central_thesis) {
+      parts.push('=== ARGUMENT STRUCTURE ===');
+      parts.push(`Central Thesis: ${arg.central_thesis}`);
+      if (arg.supporting_arguments?.length > 0) {
+        parts.push('Supporting Arguments:');
+        arg.supporting_arguments.forEach((a, i) => parts.push(`  ${i + 1}. ${a}`));
+      }
+      if (arg.counter_arguments?.length > 0) {
+        parts.push('Counter-Arguments to Address:');
+        arg.counter_arguments.forEach((a, i) => parts.push(`  ${i + 1}. ${a}`));
+      }
+      parts.push('=== END ARGUMENT ===');
+    }
+
+    const src = userBible.source_strategy;
+    if (src?.primary_sources?.length > 0) {
+      parts.push('=== SOURCE STRATEGY ===');
+      if (src.primary_sources.length > 0) parts.push(`Primary: ${src.primary_sources.join('; ')}`);
+      if (src.secondary_sources?.length > 0) parts.push(`Secondary: ${src.secondary_sources.join('; ')}`);
+      if (src.source_limitations) parts.push(`Limitations: ${src.source_limitations}`);
+      parts.push('=== END SOURCES ===');
+    }
+  }
+
+  return parts.length > 0 ? parts.join('\n') : '';
+}
+
 function buildSceneContext(scenes) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) return '';
   return 'SCENE BREAKDOWN:\n' + scenes.map((s, i) => {
@@ -790,10 +916,12 @@ Under no circumstances is an editorial note permitted inside prose.`);
     '',
     buildCharacterContext(storyBible),
     '',
+    buildUserStoryBibleContext(ctx.userStoryBible, isNonfiction),
+    '',
     `CHAPTER ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"`,
-    `Summary: ${chapter.summary || outlineEntry?.summary || 'No summary'}`,
+    `Summary: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.summary || outlineEntry?.summary || 'No summary') : (chapter.summary || outlineEntry?.summary || 'No summary')}`,
     `Key events: ${JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
-    chapter.prompt ? `Prompt: ${chapter.prompt}` : '',
+    chapter.prompt ? `Prompt: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.prompt) : chapter.prompt}` : '',
     argumentProgression,
     '',
     buildSceneContext(scenes),
