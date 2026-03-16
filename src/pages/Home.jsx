@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, Trash2, Clock, BookOpenText, Loader2, Settings, CheckSquare, Square } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, BookOpen, Trash2, Clock, BookOpenText, Loader2, Settings, CheckSquare, Square, FolderOpen, Folder, FolderPlus, X, Pencil, ChevronRight } from "lucide-react";
 import SelectionToolbar from "../components/projects/SelectionToolbar";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -19,6 +20,12 @@ export default function Home() {
   const [deletingId, setDeletingId] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [activeFolder, setActiveFolder] = useState(null); // null = all, "" = unfiled, string = folder name
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [renamingFolder, setRenamingFolder] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [movingProjectId, setMovingProjectId] = useState(null);
 
   const toggleSelect = (id, e) => {
     e.stopPropagation();
@@ -61,6 +68,68 @@ export default function Home() {
     queryKey: ["all-chapters"],
     queryFn: () => base44.entities.Chapter.list(),
   });
+
+  // ── FOLDER MANAGEMENT ──
+  // Derive folder list from project.folder fields
+  const folders = [...new Set(projects.filter(p => p.folder).map(p => p.folder))].sort();
+  const unfiledCount = projects.filter(p => !p.folder).length;
+
+  // Filter projects by active folder
+  const filteredProjects = activeFolder === null
+    ? projects // "All" — show everything
+    : activeFolder === ""
+      ? projects.filter(p => !p.folder) // "Unfiled"
+      : projects.filter(p => p.folder === activeFolder); // Specific folder
+
+  const handleCreateFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    if (folders.includes(name)) { setNewFolderName(""); setCreatingFolder(false); return; }
+    // Create folder by assigning it — pick an unfiled project or just set state
+    setCreatingFolder(false);
+    setNewFolderName("");
+    setActiveFolder(name);
+    // The folder exists once a project is moved to it
+  };
+
+  const handleMoveToFolder = async (projectId, folderName) => {
+    try {
+      await base44.entities.Project.update(projectId, { folder: folderName || "" });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setMovingProjectId(null);
+    } catch (err) {
+      console.error("Failed to move project:", err);
+    }
+  };
+
+  const handleMoveSelectedToFolder = async (folderName) => {
+    for (const id of selectedIds) {
+      await base44.entities.Project.update(id, { folder: folderName || "" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    exitSelectMode();
+  };
+
+  const handleRenameFolder = async (oldName, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) { setRenamingFolder(null); return; }
+    const projectsInFolder = projects.filter(p => p.folder === oldName);
+    for (const p of projectsInFolder) {
+      await base44.entities.Project.update(p.id, { folder: trimmed });
+    }
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    if (activeFolder === oldName) setActiveFolder(trimmed);
+    setRenamingFolder(null);
+  };
+
+  const handleDeleteFolder = async (folderName) => {
+    const projectsInFolder = projects.filter(p => p.folder === folderName);
+    for (const p of projectsInFolder) {
+      await base44.entities.Project.update(p.id, { folder: "" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    if (activeFolder === folderName) setActiveFolder(null);
+  };
 
   const SEED_BANNED_PHRASES = `tapestry\ntapestry of\nshimmered\nshimmering\nunbeknownst\nvisceral\nviscerally\na stark reminder\nit was a reminder that\nin the grand tapestry\nweaving together\nwhispering\nthe weight of\nthe weight of it all\na mix of emotions\nflooded with emotion\nwashed over\nwashed over him\nwashed over her\na wave of\ncascade of\ncascading\nit dawned on\nrealization dawned\ndawned on him\ndawned on her\nsearing\nsearing pain\na chill ran\nshivers ran\na shiver ran down\nsent a shiver\ntapestry of emotions\neyes glistened\neyes shimmered\ncouldn't help but\ncouldn't help but feel\ncouldn't help but notice\ncouldn't help but smile\na testament to\ntestament to their\nit was clear that\nit was evident that\nneedless to say\nin the blink of an eye\nat the end of the day\nat this point in time\nlittle did he know\nlittle did she know\nlittle did they know\nfor a moment\nfor a brief moment\nin that moment\nin this moment\nthe silence was deafening\nthe air was thick\nthe room felt heavy\nheart pounded in his chest\nheart pounded in her chest\nheart hammered\npulse quickened\nbreath caught in\nbreath caught in his\nbreath caught in her\nstomach dropped\nstomach lurched\nthroat tightened\nchest tightened\ntime seemed to stop\ntime stood still\nthe world fell away\nthe world around him\nthe world around her\nall at once\nsuddenly\nsuddenly he\nsuddenly she\nsuddenly they\nas if on cue\na mix of\nswirled\nswirled within\netched in\netched on\nseared into\nburned into his\nburned into her\nthe thought nagged\nnagged at him\nnagged at her\nelectric\nelectricity between\ntension crackled\ncrackled between\na knot formed\nknot in his stomach\nknot in her stomach\ndespite himself\ndespite herself\na part of him\na part of her\nsome part of him\nsome part of her\nthe look on\nthe look in his\nthe look in her\nsomething shifted\nsomething changed\nhe wasn't sure\nshe wasn't sure\nhe couldn't be sure\nshe couldn't be sure\nin the distance\noff in the distance\nloomed in the\nloomed ahead\nacrid\nacrid smell\nacrid taste\nacrid scent\nmetallic taste\nlike a physical blow\nhit him like\nhit her like\nsucker punch\ngut punch\nlike a punch\nthe familiar\nall too familiar\npainfully familiar\npainfully aware\nhyperaware\nhyper-aware`;
 
@@ -160,6 +229,118 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ── FOLDER TABS ── */}
+      {(folders.length > 0 || projects.length > 3) && (
+        <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+          <button
+            onClick={() => setActiveFolder(null)}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              activeFolder === null
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" /> All ({projects.length})
+          </button>
+
+          {folders.map(f => {
+            const count = projects.filter(p => p.folder === f).length;
+            return (
+              <div key={f} className="shrink-0 flex items-center group">
+                {renamingFolder === f ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(f, renameValue); if (e.key === 'Escape') setRenamingFolder(null); }}
+                      className="h-8 w-32 text-sm"
+                      autoFocus
+                    />
+                    <button onClick={() => handleRenameFolder(f, renameValue)} className="text-emerald-600 text-xs">✓</button>
+                    <button onClick={() => setRenamingFolder(null)} className="text-slate-400 text-xs">✗</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setActiveFolder(activeFolder === f ? null : f)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      activeFolder === f
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Folder className="w-3.5 h-3.5" /> {f} ({count})
+                  </button>
+                )}
+                {/* Rename / Delete on hover */}
+                <div className="opacity-0 group-hover:opacity-100 flex items-center ml-1 transition-opacity">
+                  <button onClick={(e) => { e.stopPropagation(); setRenamingFolder(f); setRenameValue(f); }}
+                    className="text-slate-400 hover:text-indigo-600 p-0.5" title="Rename">
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Remove folder "${f}"? Projects will be moved to Unfiled.`)) handleDeleteFolder(f); }}
+                    className="text-slate-400 hover:text-red-500 p-0.5" title="Delete folder">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {unfiledCount > 0 && folders.length > 0 && (
+            <button
+              onClick={() => setActiveFolder(activeFolder === "" ? null : "")}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeFolder === ""
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <FolderOpen className="w-3.5 h-3.5" /> Unfiled ({unfiledCount})
+            </button>
+          )}
+
+          {/* Create folder */}
+          {creatingFolder ? (
+            <div className="shrink-0 flex items-center gap-1">
+              <Input
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(""); } }}
+                placeholder="Folder name..."
+                className="h-8 w-32 text-sm"
+                autoFocus
+              />
+              <button onClick={handleCreateFolder} className="text-emerald-600 text-xs font-medium">Create</button>
+              <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }} className="text-slate-400 text-xs">Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setCreatingFolder(true)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-dashed border-slate-300 hover:border-indigo-300"
+            >
+              <FolderPlus className="w-3.5 h-3.5" /> New Folder
+            </button>
+          )}
+
+          {/* Move selected to folder */}
+          {selectMode && selectedIds.size > 0 && (
+            <div className="shrink-0 flex items-center gap-1 ml-2 pl-2 border-l border-slate-300">
+              <span className="text-xs text-slate-500">Move to:</span>
+              {folders.map(f => (
+                <button key={f} onClick={() => handleMoveSelectedToFolder(f)}
+                  className="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700">
+                  {f}
+                </button>
+              ))}
+              <button onClick={() => handleMoveSelectedToFolder("")}
+                className="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-700">
+                Unfiled
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
@@ -210,7 +391,7 @@ export default function Home() {
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => {
+          {filteredProjects.map((project) => {
             const chapterCount = getChapterCount(project.id);
             const isSelected = selectedIds.has(project.id);
             return (
@@ -253,6 +434,11 @@ export default function Home() {
                     <BookOpenText className="w-3.5 h-3.5 text-indigo-400" />
                     {chapterCount} chapter{chapterCount !== 1 ? "s" : ""}
                   </span>
+                  {project.folder && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium flex items-center gap-1">
+                      <Folder className="w-3 h-3" /> {project.folder}
+                    </span>
+                  )}
                   {(() => {
                     const sp = getProjectSpec(project.id);
                     const beatKey = sp?.beat_style || sp?.tone_style;
@@ -271,7 +457,36 @@ export default function Home() {
                     Updated {moment(project.updated_date).fromNow()}
                   </span>
 
-                  {!selectMode && (
+                  <div className="flex items-center gap-1">
+                    {/* Move to folder */}
+                    {!selectMode && folders.length > 0 && (
+                      <div className="relative">
+                        {movingProjectId === project.id ? (
+                          <div className="absolute right-0 bottom-8 z-10 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]" onClick={e => e.stopPropagation()}>
+                            {folders.map(f => (
+                              <button key={f} onClick={() => handleMoveToFolder(project.id, f)}
+                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-indigo-50 flex items-center gap-1.5 ${project.folder === f ? 'text-indigo-600 font-medium' : 'text-slate-600'}`}>
+                                <Folder className="w-3 h-3" /> {f} {project.folder === f ? '✓' : ''}
+                              </button>
+                            ))}
+                            <div className="border-t border-slate-100 my-0.5" />
+                            <button onClick={() => handleMoveToFolder(project.id, "")}
+                              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 flex items-center gap-1.5 ${!project.folder ? 'text-amber-600 font-medium' : 'text-slate-500'}`}>
+                              <FolderOpen className="w-3 h-3" /> Unfiled {!project.folder ? '✓' : ''}
+                            </button>
+                          </div>
+                        ) : null}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setMovingProjectId(movingProjectId === project.id ? null : project.id); }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Move to folder"
+                        >
+                          <Folder className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    {!selectMode && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
