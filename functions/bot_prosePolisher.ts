@@ -117,6 +117,18 @@ const FICTION_TELLS = [
   [/\bDarkness (claimed|consumed|swallowed|took) (him|her|them)\b/gi, '"Darkness claimed him/her"'],
 ];
 
+// Nonfiction-specific polish targets
+const NF_POLISH_TARGETS = [
+  // Instruction leaks that survived generation
+  [/\b(Remove|Replace|Either identify|Either cite|Frame as|Use general|Provide documentary|Label as|Anchor to|Source to|Cite specific) .{10,120}?(,\s|\.\s|$)/gm, 'INSTRUCTION LEAK in prose'],
+  // Padding phrases — say the same thing multiple ways
+  [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
+  [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
+  [/\bThe (human|personal|psychological|emotional) (cost|toll|price|burden) (of this|cannot|should not|extends)/gi, '"The human cost of..." repetitive framing'],
+  // Filler transitions
+  [/\bThis (development|transformation|shift|change|evolution|arrangement|dynamic) (represented|constituted|marked|signaled|reflected)/gi, '"This development represented..." filler transition'],
+];
+
 function runRegexScan(text, isNonfiction) {
   const violations = [];
   const scanGroup = (patterns, category) => {
@@ -134,6 +146,7 @@ function runRegexScan(text, isNonfiction) {
   scanGroup(LIST_AS_PROSE, 'list_as_prose');
   scanGroup(GENERIC_CONCLUSIONS, 'generic_conclusion');
   if (!isNonfiction) { scanGroup(FICTION_TELLS, 'fiction_cliche'); }
+  if (isNonfiction) { scanGroup(NF_POLISH_TARGETS, 'nf_polish'); }
   return violations;
 }
 
@@ -155,6 +168,9 @@ SPECIFIC FIXES:
 - LIST-AS-PROSE: Restructure First/Second/Third sequences into flowing paragraphs with varied sentence structure.
 - GENERIC CONCLUSIONS: Replace formulaic endings with specific, surprising final images or observations that arise organically from the chapter's content.
 - FICTION CLICHES: Replace stock phrases ("a chill ran down his spine," "breath they didn't know they were holding") with specific, character-grounded sensory details unique to this scene.
+- NF INSTRUCTION LEAKS: If you find sentences starting with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide," "Label as" — these are editorial instructions that leaked into prose. DELETE the instruction text entirely and rewrite as actual prose that follows the instruction's intent.
+- NF PADDING: If you find 2-3 consecutive paragraphs that make the same "impact/toll/cost" point with synonym substitution, MERGE them into one tighter paragraph. Cut the redundancy ruthlessly.
+- NF FILLER TRANSITIONS: Replace "This represented..." / "This development constituted..." / "This transformation marked..." with specific content-driven transitions.
 
 OUTPUT: Return the COMPLETE chapter text with your fixes applied. Do NOT add any commentary, notes, or markup. Just the clean, polished prose.`;
 
