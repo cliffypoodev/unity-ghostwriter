@@ -388,7 +388,7 @@ function scanInstructionLeaks(text) {
     /\bEither identify the specific (person|individual|source|document)/gi,
     /\bLabel as (representative|illustrative|composite|general)/gi,
     /\bProvide (documentary|specific|archival) source (for|documenting)/gi,
-    /\bReplace with documented (example|historical|facts|evidence)/gi,
+    /\bReplace with documented (examples?|historical|facts|evidence)/gi,
     /\bUse general (timeframe|terms|reference|description)/gi,
     /\bRemove specific (time|sensory|first-person|atmospheric)/gi,
     /\bor (clearly |)label as (representative|composite|illustrative|reconstructed)/gi,
@@ -397,6 +397,14 @@ function scanInstructionLeaks(text) {
     /\bor present as (illustrative|representative)/gi,
     /\bcite (actual |)(archival|interview|memoir|court) (source|testimony|document)/gi,
     /\bRecords indicate .{1,30}(likely|probably|may have|might have) maintained/gi,
+    // v11.6 — patterns found in Hollywood Unhinged v3
+    /\bEither identify \w+ as a real (person|individual)/gi,
+    /\bReplace with documented examples of/gi,
+    /\bUse documented examples of/gi,
+    /\bRemove (specific |)(time|invented|fabricated) and (use|frame|replace|provide)/gi,
+    /\bRemove invented physical details/gi,
+    /\bCite specific (memoir|interview|archive|document|published)/gi,
+    /\bUse general terms?.{0,10}(like|such as|:) '/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
@@ -568,12 +576,37 @@ function scanNonfictionPatterns(text) {
     [/\bThis (wasn't|isn't|weren't) .{3,30}(—|–) it was/gi, '"This wasn\'t X — it was Y" rhetorical inversion', 1],
     [/\bWhat they (hadn't|didn't|failed to|never) (anticipat|realiz|understand|grasp|recogniz)/gi, '"What they hadn\'t anticipated..." hindsight framing', 1],
     [/\bThe (irony|paradox) (was|is|wasn't|proved)/gi, '"The irony was..." editorial commentary', 1],
+    // v11.6 additions
+    [/\bThis represented /gi, '"This represented..." transition filler', 2],
+    [/\bThe \w+ proved (particularly|especially|remarkably|devastatingly|extraordinarily)/gi, '"The [noun] proved [adverb]..." filler', 1],
+    [/\bThe (system|machine|machinery|apparatus|infrastructure) (that |which |)(had |)(created|built|designed|constructed|produced)/gi, '"The system that had created..." repetitive framing', 2],
   ];
   for (const [rx, label, max] of NF_CRUTCH_CAPS) {
     const m = text.match(rx);
     if (m && m.length > max) {
       warnings.push({ type: 'nf_fiction_trap', label: `NF CRUTCH: ${label} appears ${m.length}x (max ${max})`, count: m.length, max, fixed: false });
     }
+  }
+
+  // NF PADDING DETECTION: flag chapters where consecutive paragraphs make the same point
+  const paraTexts = text.trim().split(/\n\n+/).filter(p => p.length > 100);
+  const impactSynonyms = /\b(impact|toll|cost|consequences?|effect|damage|destruction|devastation|implications?)\b/gi;
+  let consecutiveImpactParas = 0;
+  for (const p of paraTexts) {
+    const hits = (p.match(impactSynonyms) || []).length;
+    if (hits >= 3) { consecutiveImpactParas++; } else { consecutiveImpactParas = 0; }
+    if (consecutiveImpactParas >= 3) {
+      warnings.push({ type: 'nf_padding', label: 'PADDING: 3+ consecutive paragraphs making the same "impact/toll/cost" point — trim or diversify', count: 1, max: 0, fixed: false });
+      break;
+    }
+  }
+
+  // NF RECONSTRUCTION LABELING: flag scene openings that present reconstructions as documented fact
+  const firstPara = paraTexts[0] || '';
+  const hasSceneReconstruction = /\b(The |A |His |Her |She |He )(limousine|telephone|needle|silk|burgundy|mahogany|fluorescent|morning|afternoon|evening)\b/.test(firstPara) && firstPara.length > 200;
+  const hasReconstructionLabel = /\b(contemporary accounts|reconstructed from|testimony from the period|witnesses (later )?described|based on (court |legal )?records|accounts from the era)\b/i.test(firstPara);
+  if (hasSceneReconstruction && !hasReconstructionLabel) {
+    warnings.push({ type: 'nf_unlabeled_reconstruction', label: 'UNLABELED RECONSTRUCTION: Opening scene reads as fiction. Add "Contemporary accounts describe..." or "Based on testimony from the period..." label', count: 1, max: 0, fixed: false });
   }
 
   return warnings;
@@ -659,7 +692,7 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
-  const systemPrompt = `You are a prose editor. Fix ONLY the violations listed below. Do NOT rewrite prose that isn't flagged. Preserve the author's voice, sentence structure, and word count. Output ONLY the corrected chapter text — no commentary.\n\n${isNonfiction ? 'NONFICTION RULES: No melodrama, no journey metaphors, no thesis restatements in endings. Replace with documented evidence or specific detail.' : ''}`;
+  const systemPrompt = `You are a prose editor. Fix ONLY the violations listed below. Do NOT rewrite prose that isn't flagged. Preserve the author's voice, sentence structure, and word count. Output ONLY the corrected chapter text — no commentary.\n\n${isNonfiction ? 'NONFICTION RULES:\n- No melodrama, no journey metaphors, no thesis restatements in endings. Replace with documented evidence or specific detail.\n- INSTRUCTION LEAKS: If any sentence begins with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide," or "Label as" — DELETE that sentence entirely and replace it with actual prose that follows the instruction.\n- UNLABELED RECONSTRUCTIONS: If a scene presents a historical reconstruction as if it were documented fact, add framing like "Contemporary accounts describe..." or "Based on testimony from the period..."\n- PADDING: If consecutive paragraphs repeat the same point with synonym substitution, merge them into a single tighter paragraph.\n- REAL PERSON FACTS: Do NOT fabricate deaths, suicides, medical records, or legal events for named real people. If unsure, use general language.' : ''}`;
 
   const userMessage = `VIOLATIONS TO FIX:\n${violationBrief}\n\nCHAPTER TEXT:\n${prose}`;
 
