@@ -30,6 +30,20 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
 }
 function isRefusal(text) { if (!text) return false; const f = text.slice(0, 300).toLowerCase(); return ['i cannot','i can\'t','i\'m unable','as an ai'].some(m => f.includes(m)); }
 
+// CODE-LEVEL: Strip any editorial instructions that survived AI generation/rewrite
+const STRIP_LEAK_RX = [
+  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Frame as|Use general|Provide documentary|Provide specific|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific)\b[^.!?\n]*[.!?\n]/gi,
+  /\bUse '([^']+)' or cite[^.!?\n]*[.!?\n]/gi,
+  /\bor (clearly |)label as[^.!?\n]*(representative|composite|illustrative|reconstructed)[^.!?\n]*[.!?\n]/gi,
+  /\bor (remove|begin with|provide|cite|frame)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite)[^.!?\n]*[.!?\n]/gi,
+];
+function stripLeakedInstructions(text) {
+  if (!text) return text;
+  let c = text;
+  for (const rx of STRIP_LEAK_RX) c = c.replace(rx, '');
+  return c.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 // ═══ INLINED: shared/resolveModel ═══
 function resolveModel(callType) { return 'claude-sonnet'; }
 
@@ -700,7 +714,9 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     const fixed = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 16384, temperature: 0.3 });
     if (isRefusal(fixed)) return { text: prose, fixed: 0 };
     if (fixed.length < prose.length * 0.5) return { text: prose, fixed: 0 };
-    return { text: fixed, fixed: violations.length };
+    // CODE-LEVEL: Strip any instruction leaks that survived the AI rewrite
+    const finalText = isNonfiction ? stripLeakedInstructions(fixed) : fixed;
+    return { text: finalText, fixed: violations.length };
   } catch (err) {
     console.warn('AI fix pass failed:', err.message);
     return { text: prose, fixed: 0 };
@@ -835,8 +851,11 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     scan_details: allViolations.slice(0, 20),
   };
 
+  // FINAL CODE-LEVEL STRIP: Catch any instruction leaks that survived all AI passes
+  const finalProse = isNonfiction ? stripLeakedInstructions(cleanProse) : cleanProse;
+
   return {
-    clean_prose: cleanProse,
+    clean_prose: finalProse,
     quality_report: qualityReport,
     violations_found: allViolations.length,
     violations_remaining: remaining,
