@@ -373,19 +373,69 @@ ${tenseLine}
 Never refer to subjects as "the human," "the man," "the subject," or similar clinical descriptors. Use their NAME or role.
 === END POV & TENSE ===
 
-DOCUMENTARY NONFICTION SOURCE REQUIREMENTS:
-  Every factual claim must be anchored to at least ONE of:
-  • A specific document with date and archive location
-  • A named person's testimony with context
-  • A court case with docket number or ruling name
-  • A published book/article with author and year
-  • A specific dated event with verifiable details
-  If you cannot anchor a claim, insert [VERIFY: source needed].
-  DO NOT invent specific times ("3:47 AM"), specific dollar amounts,
-  specific dialogue, or specific scenes unless sourced from documented record.
-  Atmospheric reconstruction is permitted ONLY when labeled:
-  "Contemporary accounts describe..." or "Records from the period suggest..."
-  DO NOT use unnamed composites as documented individuals.
+=== NONFICTION ABSOLUTE RULES — VIOLATIONS WILL FAIL THE CHAPTER ===
+
+RULE 1 — SOURCE INTEGRITY (ZERO TOLERANCE FOR FABRICATION):
+You are writing NONFICTION. Every specific claim MUST be verifiable.
+- DO NOT invent specific archive file names, box numbers, or folder labels.
+- DO NOT invent specific dates for documents (e.g., "March 15, 1934").
+- DO NOT invent specific dollar amounts, statistics, or percentages unless from the knowledge base.
+- DO NOT invent specific dialogue or quotes and attribute them to real people.
+- DO NOT invent specific recordings, wiretap transcripts, or surveillance logs.
+- DO NOT invent specific medical records, psychiatric evaluations, or diagnoses.
+- DO NOT create fictional composite characters and present them as real sources.
+- If the knowledge base or chapter prompt provides a real source, USE IT with proper attribution.
+- If you need a source but don't have one, write: "According to [general description of source type]..." NOT a fabricated specific citation.
+- WRONG: "A memo dated March 15, 1948, marked CONFIDENTIAL, states..."
+- RIGHT: "Internal studio memos from the late 1940s document..."
+- WRONG: "His handwritten notes in red ink read: 'Handle it.'"
+- RIGHT: "Contemporary accounts suggest the executive's response was dismissive."
+
+RULE 2 — NO EDITORIAL INSTRUCTIONS IN PROSE:
+If the chapter prompt or scene directions contain instructions like "Remove specific time," "Anchor to documented source," "Either cite or use general reference," or similar editorial notes — DO NOT print these as prose. They are directions for YOU. Execute them silently.
+- WRONG: "Remove specific day/time details or anchor to documented source with proper attribution, studying photographs..."
+- RIGHT: "Studio archives contain photographs of young women being evaluated..."
+Any text that reads like an instruction to a writer rather than prose for a reader is FORBIDDEN.
+
+RULE 3 — FRAMING DIVERSITY (NO "ARCHIVE NARRATOR" IN EVERY CHAPTER):
+Do NOT use the same narrative framing device in every chapter. The following framings may be used AT MOST TWICE in a 20-chapter book:
+- "I sit in the archives examining a folder/box/document..."
+- "The manila folder sits heavy in my hands..."
+- "I discovered this while researching at [archive]..."
+- "Dawn breaks through the archive windows as I close the file..."
+- "I make myself coffee in the hallway..."
+Instead, ROTATE between these framing approaches:
+A) Open with a reconstructed historical scene (labeled as reconstruction)
+B) Open with a key quote from a documented source
+C) Open with a startling statistic or fact
+D) Open with the present-day consequences of what you're about to describe
+E) Open in media res — drop the reader into the action
+F) Open with a question that the chapter will answer
+Do NOT close every chapter with the narrator reflecting in the archive. End chapters with:
+- An unresolved question
+- A specific documented detail that resonates
+- A direct connection to the next chapter's subject
+- A quote from a source that encapsulates the chapter's argument
+
+RULE 4 — CHAPTER STRUCTURE DIVERSITY:
+Do NOT use the same structure in every chapter. Rotate between:
+- Chronological narrative (events in order)
+- Thematic analysis (organized by argument, not timeline)
+- Case study deep-dive (one person/event examined thoroughly)
+- Comparative analysis (two subjects contrasted)
+- Investigation narrative (following a trail of evidence)
+Each chapter MUST differ structurally from the chapter before it.
+
+RULE 5 — TRANSITION DIVERSITY:
+The following phrases are BANNED or capped at 1 use per chapter:
+- "Contemporary accounts describe/from the period" — MAX 1 per chapter
+- "The evidence suggests/reveals" — MAX 1 per chapter
+- "The psychological impact/toll" — MAX 1 per chapter
+- "The pattern becomes clear/extends beyond" — MAX 1 per chapter
+- "The financial implications" — MAX 1 per chapter
+Use SPECIFIC transitions that arise from the content instead.
+
+=== END NONFICTION ABSOLUTE RULES ===
 
 ${NONFICTION_CHAPTER_PROGRESSION}`;
 }
