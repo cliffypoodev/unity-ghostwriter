@@ -384,6 +384,19 @@ function scanInstructionLeaks(text) {
     /\bSource (to actual|this to|financial details)/gi,
     /\bEither source this to specific/gi,
     /\bFrame as (hypothetical|composite|reconstructed) example/gi,
+    // v11.4 — patterns found in Hollywood Unhinged v2
+    /\bEither identify the specific (person|individual|source|document)/gi,
+    /\bLabel as (representative|illustrative|composite|general)/gi,
+    /\bProvide (documentary|specific|archival) source (for|documenting)/gi,
+    /\bReplace with documented (example|historical|facts|evidence)/gi,
+    /\bUse general (timeframe|terms|reference|description)/gi,
+    /\bRemove specific (time|sensory|first-person|atmospheric)/gi,
+    /\bor (clearly |)label as (representative|composite|illustrative|reconstructed)/gi,
+    /\bor (remove|begin with|provide|cite) (this |)(fictional|specific|actual|documented)/gi,
+    /\bor frame as.{1,20}(general|illustrative|representative|hypothetical)/gi,
+    /\bor present as (illustrative|representative)/gi,
+    /\bcite (actual |)(archival|interview|memoir|court) (source|testimony|document)/gi,
+    /\bRecords indicate .{1,30}(likely|probably|may have|might have) maintained/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
@@ -549,6 +562,12 @@ function scanNonfictionPatterns(text) {
     [/\bThe manila folder/gi, '"The manila folder..."', 1],
     [/\b(dawn|morning|afternoon) (breaks?|light|sun) .{0,20}(through|across|filter|stream)/gi, 'Dawn/morning light scene ending', 1],
     [/\bmake (myself|me) (a |)(cup of |)coffee/gi, '"I make myself coffee..." archive scene', 0],
+    // v11.4 additions
+    [/\bYou might assume/gi, '"You might assume..." rhetorical opener', 1],
+    [/\bConsider the case of/gi, '"Consider the case of..." transition', 1],
+    [/\bThis (wasn't|isn't|weren't) .{3,30}(—|–) it was/gi, '"This wasn\'t X — it was Y" rhetorical inversion', 1],
+    [/\bWhat they (hadn't|didn't|failed to|never) (anticipat|realiz|understand|grasp|recogniz)/gi, '"What they hadn\'t anticipated..." hindsight framing', 1],
+    [/\bThe (irony|paradox) (was|is|wasn't|proved)/gi, '"The irony was..." editorial commentary', 1],
   ];
   for (const [rx, label, max] of NF_CRUTCH_CAPS) {
     const m = text.match(rx);
