@@ -1,18 +1,41 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// BOT 8 — PROSE POLISHER
+// BOT 8 — PROSE POLISHER (ACTIVE DEPLOYED)
 // ═══════════════════════════════════════════════════════════════════════════════
 // Runs AFTER styleEnforcer, BEFORE stateChronicler.
 // Detects and rewrites AI-generated prose tells: mechanical transitions,
-// placeholder scaffolding, hedging fog, recap bloat, list-as-prose, and
-// generic conclusions. Applies to ALL genres.
+// placeholder scaffolding, hedging fog, recap bloat, list-as-prose, generic
+// conclusions, and fiction clichés. Applies to ALL genres.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { callAI, isRefusal } from '../shared/aiRouter.ts';
-import { resolveModel } from '../shared/resolveModel.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+
+// ═══ INLINED: shared/aiRouter (compact) ═══
+const MODEL_MAP = {
+  "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
+};
+async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const { provider, modelId, defaultTemp, maxTokensLimit } = config;
+  const temperature = options.temperature ?? defaultTemp;
+  let maxTokens = options.maxTokens ?? 8192;
+  if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
+  if (provider === "anthropic") {
+    const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status)); return d.content[0].text;
+  }
+  if (provider === "google") {
+    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
+    const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status)); return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+  throw new Error('Unknown provider: ' + provider);
+}
+function isRefusal(text) { if (!text) return false; const f = text.slice(0, 300).toLowerCase(); return ['i cannot','i can\'t','i\'m unable','as an ai'].some(m => f.includes(m)); }
 
 // ═══ PHASE 1: REGEX SCAN — flag AI tells without AI cost ═══
 
-// Transition crutches — mechanical connectors that signal "AI wrote this"
+// Transition crutches
 const TRANSITION_CRUTCHES = [
   [/\bFurthermore\b/g, '"Furthermore"'],
   [/\bMoreover\b/g, '"Moreover"'],
@@ -31,7 +54,7 @@ const TRANSITION_CRUTCHES = [
   [/\bWith this (understanding|context|background|foundation),?\b/gi, '"With this understanding/context"'],
 ];
 
-// Placeholder scaffolding — the writer announcing what they're about to write
+// Placeholder scaffolding
 const SCAFFOLDING = [
   [/\bThis (chapter|section|part) (will )?(explore|examine|discuss|investigate|look at|delve into|unpack)\b/gi, 'Chapter/section self-reference'],
   [/\bIn this (chapter|section|part),? we (will|shall|are going to)\b/gi, '"In this chapter, we will..."'],
@@ -42,7 +65,7 @@ const SCAFFOLDING = [
   [/\bWhat (follows|comes next) is\b/gi, '"What follows is..."'],
 ];
 
-// Hedging fog — AI refusing to commit to a claim
+// Hedging fog
 const HEDGING = [
   [/\bIt could be argued that\b/gi, '"It could be argued that"'],
   [/\bOne (might|could|may) (suggest|argue|say|think|wonder|contend) that\b/gi, '"One might suggest that"'],
@@ -54,7 +77,7 @@ const HEDGING = [
   [/\bThere (is|are) (no doubt|little doubt|some who argue|those who believe)\b/gi, '"There is no doubt"'],
 ];
 
-// Recap/summary bloat — restating what was just said
+// Recap/summary bloat
 const RECAP_BLOAT = [
   [/\bAs (we'?ve?|I'?ve?) (discussed|seen|explored|examined|noted|mentioned|established)\b/gi, '"As we\'ve discussed"'],
   [/\bTo (summarize|recap|sum up|review) (what we'?ve?|the above|our discussion)\b/gi, '"To summarize what we\'ve..."'],
@@ -64,13 +87,13 @@ const RECAP_BLOAT = [
   [/\bUltimately\b/g, '"Ultimately"'],
 ];
 
-// List-as-prose — numbered sequences disguised as paragraphs
+// List-as-prose
 const LIST_AS_PROSE = [
   [/\bFirst(ly)?,?\s.{20,120}\bSecond(ly)?,?\s.{20,120}\bThird(ly)?,?\b/gs, 'First/Second/Third sequence'],
   [/\bOn (the )?one hand\b.{10,200}\bOn the other hand\b/gs, '"On one hand... on the other hand"'],
 ];
 
-// Generic conclusions — every chapter ending sounds the same
+// Generic conclusions
 const GENERIC_CONCLUSIONS = [
   [/\bThe (story|tale|saga|history|legacy) of .{5,60} (reminds|teaches|shows|tells|demonstrates) us that\b/gi, '"The story of X reminds us that"'],
   [/\b(This|These) (event|moment|episode|incident|development)s? (would|will|shall) (prove|turn out) to be\b/gi, '"This would prove to be"'],
@@ -94,40 +117,40 @@ const FICTION_TELLS = [
   [/\bDarkness (claimed|consumed|swallowed|took) (him|her|them)\b/gi, '"Darkness claimed him/her"'],
 ];
 
+// Nonfiction-specific polish targets
+const NF_POLISH_TARGETS = [
+  // Instruction leaks that survived generation
+  [/\b(Remove|Replace|Either identify|Either cite|Frame as|Use general|Provide documentary|Label as|Anchor to|Source to|Cite specific) .{10,120}?(,\s|\.\s|$)/gm, 'INSTRUCTION LEAK in prose'],
+  // Padding phrases — say the same thing multiple ways
+  [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
+  [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
+  [/\bThe (human|personal|psychological|emotional) (cost|toll|price|burden) (of this|cannot|should not|extends)/gi, '"The human cost of..." repetitive framing'],
+  // Filler transitions
+  [/\bThis (development|transformation|shift|change|evolution|arrangement|dynamic) (represented|constituted|marked|signaled|reflected)/gi, '"This development represented..." filler transition'],
+];
+
 function runRegexScan(text, isNonfiction) {
   const violations = [];
-
   const scanGroup = (patterns, category) => {
     for (const [rx, label] of patterns) {
       const matches = text.match(rx);
       if (matches && matches.length > 0) {
-        violations.push({
-          category,
-          label,
-          count: matches.length,
-          samples: matches.slice(0, 3).map(m => m.slice(0, 80)),
-        });
+        violations.push({ category, label, count: matches.length, samples: matches.slice(0, 3).map(m => m.slice(0, 80)) });
       }
     }
   };
-
-  // Universal scans (all genres)
   scanGroup(TRANSITION_CRUTCHES, 'transition_crutch');
   scanGroup(SCAFFOLDING, 'scaffolding');
   scanGroup(HEDGING, 'hedging');
   scanGroup(RECAP_BLOAT, 'recap_bloat');
   scanGroup(LIST_AS_PROSE, 'list_as_prose');
   scanGroup(GENERIC_CONCLUSIONS, 'generic_conclusion');
-
-  // Fiction-specific
-  if (!isNonfiction) {
-    scanGroup(FICTION_TELLS, 'fiction_cliche');
-  }
-
+  if (!isNonfiction) { scanGroup(FICTION_TELLS, 'fiction_cliche'); }
+  if (isNonfiction) { scanGroup(NF_POLISH_TARGETS, 'nf_polish'); }
   return violations;
 }
 
-// ═══ PHASE 2: AI REWRITE — targeted fixes for flagged sections ═══
+// ═══ PHASE 2: AI REWRITE ═══
 
 const POLISH_SYSTEM = `You are a professional prose editor specializing in making AI-generated text sound authentically human. You will receive chapter text with flagged problem areas. Your job is to REWRITE the flagged sections while preserving all factual content, narrative structure, and voice.
 
@@ -138,19 +161,16 @@ RULES:
 4. Your fixes should be invisible — a reader should not be able to tell which parts you touched.
 
 SPECIFIC FIXES:
-- TRANSITION CRUTCHES: Replace mechanical connectors ("Furthermore," "Moreover," "In addition") with organic transitions that arise from the content itself. Sometimes the best fix is simply deleting the transition and letting the paragraph flow naturally from the previous one. Vary your approach: use a callback to the previous idea, a contrasting observation, a question, or just cut the connector entirely.
-
-- SCAFFOLDING: Delete any sentence where the writer announces what they're about to write. "This chapter explores..." → just start exploring. "Let us now turn to..." → just turn to it. The content speaks for itself.
-
-- HEDGING: Commit to the claim or cut it. "It could be argued that X" → "X." If genuine uncertainty exists, express it specifically: "The evidence for X is contested" not "One might suggest that X."
-
-- RECAP BLOAT: Delete any paragraph that merely restates what was said in the previous 2-3 paragraphs. If a brief recap is needed for structural reasons, compress it to a single clause within a forward-moving sentence.
-
-- LIST-AS-PROSE: Restructure First/Second/Third sequences into flowing paragraphs with varied sentence structure. The points should feel like a natural argument building, not a numbered checklist.
-
-- GENERIC CONCLUSIONS: Replace formulaic endings ("The story of X reminds us that...") with specific, surprising final images or observations that arise organically from the chapter's content. The last paragraph should feel earned, not templated.
-
-- FICTION CLICHES: Replace stock phrases ("a chill ran down his spine," "breath they didn't know they were holding," "darkness claimed them") with specific, character-grounded sensory details unique to this scene.
+- TRANSITION CRUTCHES: Replace mechanical connectors ("Furthermore," "Moreover," "In addition") with organic transitions that arise from the content itself. Sometimes the best fix is simply deleting the transition and letting the paragraph flow naturally. Vary your approach: callback to previous idea, contrasting observation, question, or just cut the connector entirely.
+- SCAFFOLDING: Delete any sentence where the writer announces what they're about to write. "This chapter explores..." → just start exploring. The content speaks for itself.
+- HEDGING: Commit to the claim or cut it. "It could be argued that X" → "X." If genuine uncertainty exists, express it specifically.
+- RECAP BLOAT: Delete any paragraph that merely restates what was said in the previous 2-3 paragraphs. If a brief recap is needed, compress it to a single clause within a forward-moving sentence.
+- LIST-AS-PROSE: Restructure First/Second/Third sequences into flowing paragraphs with varied sentence structure.
+- GENERIC CONCLUSIONS: Replace formulaic endings with specific, surprising final images or observations that arise organically from the chapter's content.
+- FICTION CLICHES: Replace stock phrases ("a chill ran down his spine," "breath they didn't know they were holding") with specific, character-grounded sensory details unique to this scene.
+- NF INSTRUCTION LEAKS: If you find sentences starting with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide," "Label as" — these are editorial instructions that leaked into prose. DELETE the instruction text entirely and rewrite as actual prose that follows the instruction's intent.
+- NF PADDING: If you find 2-3 consecutive paragraphs that make the same "impact/toll/cost" point with synonym substitution, MERGE them into one tighter paragraph. Cut the redundancy ruthlessly.
+- NF FILLER TRANSITIONS: Replace "This represented..." / "This development constituted..." / "This transformation marked..." with specific content-driven transitions.
 
 OUTPUT: Return the COMPLETE chapter text with your fixes applied. Do NOT add any commentary, notes, or markup. Just the clean, polished prose.`;
 
@@ -163,8 +183,7 @@ async function runAIPolish(text, violations, isNonfiction) {
 
   const userMessage = `FLAGGED VIOLATIONS:\n${violationBrief}\n\n────────────────────\n\nCHAPTER TEXT TO POLISH:\n${text}`;
 
-  const modelKey = 'claude-sonnet';
-  const result = await callAI(modelKey, POLISH_SYSTEM, userMessage, {
+  const result = await callAI('claude-sonnet', POLISH_SYSTEM, userMessage, {
     maxTokens: 8192,
     temperature: 0.5,
   });
@@ -174,7 +193,7 @@ async function runAIPolish(text, violations, isNonfiction) {
     return { polished: text, changed: false };
   }
 
-  // Basic validation: polished text should be within 15% of original length
+  // Validation: polished text should be within 15% of original length
   const originalLen = text.length;
   const polishedLen = result.length;
   if (polishedLen < originalLen * 0.7 || polishedLen > originalLen * 1.15) {
@@ -185,35 +204,75 @@ async function runAIPolish(text, violations, isNonfiction) {
   return { polished: result, changed: true };
 }
 
-// ═══ MAIN EXPORT ═══
+// ═══ DENO SERVE ═══
 
-export async function runProsePolisher(text, isNonfiction) {
-  const startMs = Date.now();
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Phase 1: regex scan
-  const violations = runRegexScan(text, isNonfiction);
+    const body = await req.json();
+    const { project_id, chapter_id, prose } = body;
 
-  if (violations.length === 0) {
-    return {
+    if (!project_id || !chapter_id) {
+      return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
+    }
+
+    const startMs = Date.now();
+
+    // Load project context to determine genre
+    const specs = await base44.entities.Specification.filter({ project_id });
+    const spec = specs?.[0];
+    const isNonfiction = spec?.book_type === 'nonfiction';
+
+    // Get chapter prose — from body or from DB
+    let chapterProse = prose;
+    if (!chapterProse) {
+      const chapters = await base44.entities.Chapter.filter({ id: chapter_id });
+      chapterProse = chapters?.[0]?.content || '';
+    }
+    if (!chapterProse) {
+      return Response.json({ error: 'No prose to polish — provide prose in body or ensure chapter has content' }, { status: 400 });
+    }
+
+    // Phase 1: Regex scan
+    const violations = runRegexScan(chapterProse, isNonfiction);
+
+    if (violations.length === 0) {
+      return Response.json({
+        success: true,
+        changed: false,
+        violations_found: 0,
+        message: 'No AI tells detected — prose is clean',
+        duration_ms: Date.now() - startMs,
+      });
+    }
+
+    // Phase 2: AI polish
+    const { polished, changed, rejected } = await runAIPolish(chapterProse, violations, isNonfiction);
+
+    // Save polished prose back to chapter if changed
+    if (changed) {
+      try {
+        await base44.entities.Chapter.update(chapter_id, { content: polished });
+      } catch (e) {
+        console.warn('Failed to save polished prose:', e.message);
+      }
+    }
+
+    return Response.json({
       success: true,
-      polished: text,
-      changed: false,
-      violations_found: 0,
+      changed,
+      rejected: rejected || null,
+      violations_found: violations.length,
+      total_instances: violations.reduce((sum, v) => sum + v.count, 0),
+      violations: violations.map(v => ({ category: v.category, label: v.label, count: v.count })),
       duration_ms: Date.now() - startMs,
-    };
+    });
+
+  } catch (error) {
+    console.error('prosePolisher error:', error.message);
+    return Response.json({ error: error.message }, { status: 500 });
   }
-
-  // Phase 2: AI rewrite
-  const { polished, changed, rejected } = await runAIPolish(text, violations, isNonfiction);
-
-  return {
-    success: true,
-    polished,
-    changed,
-    rejected: rejected || null,
-    violations_found: violations.length,
-    violations,
-    total_instances: violations.reduce((sum, v) => sum + v.count, 0),
-    duration_ms: Date.now() - startMs,
-  };
-}
+});
