@@ -223,7 +223,7 @@ function CategoryRow({ category, findings }) {
   );
 }
 
-function ChapterCard({ chapter, findings, words, targetWords, onPolish, polishing }) {
+function ChapterCard({ chapter, findings, words, targetWords, onPolish, onFix, onRegenerate, polishing, fixing }) {
   const [expanded, setExpanded] = useState(false);
   const chFindings = findings.filter(f => f.chapter === chapter.number);
   const totalInstances = chFindings.reduce((sum, f) => sum + f.count, 0);
@@ -231,6 +231,7 @@ function ChapterCard({ chapter, findings, words, targetWords, onPolish, polishin
   const hasLeaks = chFindings.some(f => f.category === "instruction_leak");
   const hasTenseDrift = chFindings.some(f => f.category === "tense_drift");
   const statusColor = hasLeaks ? "border-red-500/50 bg-red-500/5" : hasTenseDrift ? "border-amber-500/50 bg-amber-500/5" : chFindings.length > 0 ? "border-slate-600" : "border-emerald-500/30 bg-emerald-500/5";
+  const isWorking = polishing || fixing;
 
   return (
     <div className={cn("rounded-xl border p-4 transition-all", statusColor)}>
@@ -248,32 +249,67 @@ function ChapterCard({ chapter, findings, words, targetWords, onPolish, polishin
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {chFindings.length > 0 && (
-            <Button size="sm" variant="outline" disabled={polishing}
-              className="text-xs h-7 border-violet-500/40 text-violet-300 hover:bg-violet-500/10"
-              onClick={(e) => { e.stopPropagation(); onPolish(chapter.number); }}>
-              {polishing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-              <span className="ml-1">Polish</span>
-            </Button>
-          )}
           {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </div>
       </div>
-      {expanded && chFindings.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-slate-700 space-y-2">
-          {chFindings.map((f, i) => {
-            const cat = SCAN_CATEGORIES[f.category];
-            return (
-              <div key={i} className="flex items-start gap-2 text-xs">
-                <span className="shrink-0">{cat?.icon || "•"}</span>
-                <div>
-                  <span className={cn("font-medium", f.category === "instruction_leak" ? "text-red-400" : f.category === "tense_drift" ? "text-amber-400" : "text-slate-300")}>{cat?.label}:</span>{" "}
-                  <span className="text-slate-400">{f.label} ({f.count}x)</span>
-                  {f.samples && <div className="mt-1 space-y-1">{f.samples.map((s, j) => <div key={j} className="pl-3 border-l-2 border-slate-700 text-slate-500 italic">"{s}"</div>)}</div>}
-                </div>
-              </div>
-            );
-          })}
+
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-slate-700">
+          {/* ── Action buttons ── */}
+          {chFindings.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {/* Polish — fixes transition crutches, clichés, hedging, etc */}
+              <Button size="sm" disabled={isWorking}
+                className="text-xs h-8 bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+                onClick={(e) => { e.stopPropagation(); onPolish(chapter.number); }}>
+                {polishing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                Polish Prose
+              </Button>
+
+              {/* Fix — runs style enforcer on this chapter */}
+              <Button size="sm" disabled={isWorking}
+                className="text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                onClick={(e) => { e.stopPropagation(); onFix(chapter.number); }}>
+                {fixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                Fix Issues
+              </Button>
+
+              {/* Regenerate — for instruction leaks that can't be patched */}
+              {hasLeaks && (
+                <Button size="sm" disabled={isWorking} variant="outline"
+                  className="text-xs h-8 border-red-500/40 text-red-400 hover:bg-red-500/10 gap-1.5"
+                  onClick={(e) => { e.stopPropagation(); onRegenerate(chapter.number); }}>
+                  <RefreshCw className="w-3 h-3" />
+                  Regenerate Chapter
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* ── Issue list ── */}
+          {chFindings.length > 0 && (
+            <div className="space-y-2">
+              {chFindings.map((f, i) => {
+                const cat = SCAN_CATEGORIES[f.category];
+                return (
+                  <div key={i} className={cn("flex items-start gap-2 text-xs p-2 rounded-lg",
+                    f.category === "instruction_leak" ? "bg-red-500/10" : "bg-slate-800/50"
+                  )}>
+                    <span className="shrink-0 mt-0.5">{cat?.icon || "•"}</span>
+                    <div className="flex-1">
+                      <span className={cn("font-medium", f.category === "instruction_leak" ? "text-red-400" : f.category === "tense_drift" ? "text-amber-400" : "text-slate-300")}>{cat?.label}:</span>{" "}
+                      <span className="text-slate-400">{f.label} ({f.count}×)</span>
+                      {f.samples && <div className="mt-1 space-y-1">{f.samples.map((s, j) => <div key={j} className="pl-3 border-l-2 border-slate-700 text-slate-500 italic truncate max-w-full">"{s}"</div>)}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {chFindings.length === 0 && (
+            <p className="text-xs text-emerald-400/70 py-2">No issues detected in this chapter.</p>
+          )}
         </div>
       )}
     </div>
@@ -288,6 +324,8 @@ export default function ReviewPolishTab({ projectId }) {
   const [polishing, setPolishing] = useState({});
   const [polishAll, setPolishAll] = useState(false);
   const [polishResults, setPolishResults] = useState({});
+  const [fixing, setFixing] = useState({});
+  const [fixResults, setFixResults] = useState({});
   const [uploadedText, setUploadedText] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState(null);
 
@@ -368,6 +406,65 @@ export default function ReviewPolishTab({ projectId }) {
     setPolishAll(false);
   };
 
+  // Fix — runs the style enforcer to fix detected violations
+  const handleFixChapter = async (chapterNum) => {
+    const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
+    if (!ch) return;
+    setFixing(prev => ({ ...prev, [chapterNum]: true }));
+    try {
+      const result = await base44.functions.invoke("bot_styleEnforcer", {
+        project_id: projectId,
+        chapter_id: ch.id,
+      }, { timeout: 180000 });
+      const data = result?.data || result;
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: data?.violations_fixed || 0, total: data?.violations_found || 0 } }));
+      // Re-scan after fix
+      setTimeout(() => handleScan(), 1500);
+    } catch (err) {
+      setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
+    } finally {
+      setFixing(prev => ({ ...prev, [chapterNum]: false }));
+    }
+  };
+
+  // Regenerate — re-runs the full write pipeline for chapters with instruction leaks
+  const handleRegenerateChapter = async (chapterNum) => {
+    const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
+    if (!ch) return;
+    if (!window.confirm(`Regenerate Chapter ${chapterNum}? This will re-run the full write pipeline and replace the current content.`)) return;
+    setFixing(prev => ({ ...prev, [chapterNum]: true }));
+    try {
+      // Reset chapter status so the orchestrator picks it up
+      await base44.entities.Chapter.update(ch.id, { status: "pending" });
+      // Fire the orchestrator
+      await base44.functions.invoke("bot_orchestrator", {
+        action: "write_chapter",
+        project_id: projectId,
+        chapter_id: ch.id,
+      }, { timeout: 600000 });
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, regenerated: true } }));
+      setTimeout(() => handleScan(), 2000);
+    } catch (err) {
+      setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
+    } finally {
+      setFixing(prev => ({ ...prev, [chapterNum]: false }));
+    }
+  };
+
+  // Fix All — runs style enforcer on all chapters with issues (not leaks)
+  const handleFixAll = async () => {
+    if (!scanResults) return;
+    setPolishAll(true);
+    const chaptersWithIssues = scanResults.chapterData.filter(ch =>
+      scanResults.allFindings.some(f => f.chapter === ch.number && f.category !== "instruction_leak")
+    );
+    for (const ch of chaptersWithIssues) {
+      await handleFixChapter(ch.number);
+      await new Promise(r => setTimeout(r, 3000)); // Rate limit spacing
+    }
+    setPolishAll(false);
+  };
+
   const leakCount = scanResults ? scanResults.allFindings.filter(f => f.category === "instruction_leak").reduce((s, f) => s + f.count, 0) : 0;
 
   return (
@@ -383,10 +480,16 @@ export default function ReviewPolishTab({ projectId }) {
             {scanning ? "Scanning..." : scanResults ? "Re-Scan" : "Scan Manuscript"}
           </Button>
           {scanResults && scanResults.allFindings.length > 0 && (
-            <Button onClick={handlePolishAll} disabled={polishAll || scanning} className="bg-amber-600 hover:bg-amber-700 gap-2">
-              {polishAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              {polishAll ? "Polishing..." : "Polish All Issues"}
-            </Button>
+            <>
+              <Button onClick={handleFixAll} disabled={polishAll || scanning} className="bg-amber-600 hover:bg-amber-700 gap-2">
+                {polishAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                {polishAll ? "Fixing..." : "Fix All Issues"}
+              </Button>
+              <Button onClick={handlePolishAll} disabled={polishAll || scanning} variant="outline" className="gap-2 border-violet-500/40 text-violet-300 hover:bg-violet-500/10">
+                <Wand2 className="w-4 h-4" />
+                Polish All
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -468,7 +571,7 @@ export default function ReviewPolishTab({ projectId }) {
             <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Chapter Breakdown</h3>
             <div className="space-y-2">
               {scanResults.chapterData.map(ch => (
-                <ChapterCard key={ch.number} chapter={ch} findings={scanResults.allFindings} words={ch.words} targetWords={targetWords} onPolish={handlePolishChapter} polishing={!!polishing[ch.number]} />
+                <ChapterCard key={ch.number} chapter={ch} findings={scanResults.allFindings} words={ch.words} targetWords={targetWords} onPolish={handlePolishChapter} onFix={handleFixChapter} onRegenerate={handleRegenerateChapter} polishing={!!polishing[ch.number]} fixing={!!fixing[ch.number]} />
               ))}
             </div>
           </div>
@@ -486,6 +589,28 @@ export default function ReviewPolishTab({ projectId }) {
                       <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.violations_found} issues, {result.total_instances} instances fixed</Badge>
                     ) : (
                       <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes needed</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {Object.keys(fixResults).length > 0 && (
+            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+              <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2"><Zap className="w-4 h-4" /> Fix Results</h3>
+              <div className="space-y-2">
+                {Object.entries(fixResults).map(([chNum, result]) => (
+                  <div key={chNum} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-800/80">
+                    <span className="text-sm text-slate-300">Chapter {chNum}</span>
+                    {result.error ? (
+                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">Error: {result.error}</Badge>
+                    ) : result.regenerated ? (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">✓ Chapter regenerated</Badge>
+                    ) : result.success ? (
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed</Badge>
+                    ) : (
+                      <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes</Badge>
                     )}
                   </div>
                 ))}
