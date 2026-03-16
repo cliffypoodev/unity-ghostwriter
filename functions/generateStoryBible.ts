@@ -7,26 +7,37 @@ const MODEL_MAP = {
 };
 
 async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
-  if (provider === 'anthropic' || provider === 'claude-sonnet') {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    if (provider === 'anthropic' || provider === 'claude-sonnet') {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, temperature: 0.7, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const d = await r.json();
+      if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status));
+      return d.content[0].text;
+    }
+    // Gemini
+    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
-      headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, temperature: 0.7, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     const d = await r.json();
-    if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status));
-    return d.content[0].text;
+    if (!r.ok) throw new Error('Gemini: ' + (d.error?.message || r.status));
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
   }
-  // Gemini fallback
-  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
-  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
-  });
-  const d = await r.json();
-  if (!r.ok) throw new Error('Gemini: ' + (d.error?.message || r.status));
-  return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 function safeParseJSON(raw) {
@@ -173,13 +184,13 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    // Try Claude first, fall back to Gemini
+    // Try Gemini first (faster), fall back to Claude
     let raw;
     try {
-      raw = await callAI('claude-sonnet', systemPrompt, userMessage);
-    } catch (primaryErr) {
-      console.warn('Claude failed, trying Gemini:', primaryErr.message);
       raw = await callAI('gemini', systemPrompt, userMessage);
+    } catch (primaryErr) {
+      console.warn('Gemini failed, trying Claude:', primaryErr.message);
+      raw = await callAI('claude-sonnet', systemPrompt, userMessage);
     }
 
     const storyBible = safeParseJSON(raw);
