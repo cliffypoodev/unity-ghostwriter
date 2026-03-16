@@ -372,6 +372,18 @@ function scanInstructionLeaks(text) {
     /indicate if this is intentional/gi,
     /should (I|we) (continue|complete|finish|expand)/gi,
     /this (section|chapter|scene) (is |appears |seems )?(incomplete|unfinished|truncated)/gi,
+    // Nonfiction editorial instructions leaked into prose
+    /\bRemove specific (day|time|date|location|details?)/gi,
+    /\b(Anchor|anchor) (these|this|the) (detail|fact|claim)s? to/gi,
+    /\bEither (cite|source|reference) (the |a )?(specific|actual)/gi,
+    /\bor (preface|prefix) with '?Contemporary accounts/gi,
+    /\bor anchor to documented source/gi,
+    /\bprovide archival source documenting/gi,
+    /\bUse general reference (like|to|instead)/gi,
+    /\bCite (specific )?source for (financial|statistical|numerical)/gi,
+    /\bSource (to actual|this to|financial details)/gi,
+    /\bEither source this to specific/gi,
+    /\bFrame as (hypothetical|composite|reconstructed) example/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
@@ -524,6 +536,27 @@ function scanNonfictionPatterns(text) {
   const paras = text.trim().split(/\n\n+/);
   const lastPara = paras[paras.length - 1] || '';
   if (NF_ENDING_BANS.some(p => p.test(lastPara))) { warnings.push({ type: 'nf_thesis_ending', label: 'Final paragraph restates thesis', count: 1, max: 0, fixed: false }); }
+
+  // NF transition crutch caps (per chapter)
+  const NF_CRUTCH_CAPS = [
+    [/\bContemporary accounts (describe|from the period|suggest|indicate)/gi, '"Contemporary accounts describe..."', 1],
+    [/\bThe (evidence|documents?|records?|files?) (suggest|reveal|show|indicate|demonstrate)/gi, '"The evidence suggests/reveals..."', 2],
+    [/\bThe psychological (impact|toll|damage|cost|effect)/gi, '"The psychological impact/toll..."', 1],
+    [/\bThe (pattern|dynamic) (becomes? clear|extend|persist|repeat|continu)/gi, '"The pattern becomes clear..."', 1],
+    [/\bThe financial (implication|cost|impact|consequence)/gi, '"The financial implications..."', 1],
+    [/\bThe (most )?(disturbing|troubling|sinister|insidious|devastating|tragic) (aspect|part|element|dimension)/gi, '"The most disturbing aspect..."', 1],
+    [/\b(I|I've|I'd) (discovered?|found|encountered|spent|examined|sat|sit|stand|stood) .{0,30}(archive|library|folder|document|file|box|basement|reading room)/gi, '"I discovered in the archives..."', 2],
+    [/\bThe manila folder/gi, '"The manila folder..."', 1],
+    [/\b(dawn|morning|afternoon) (breaks?|light|sun) .{0,20}(through|across|filter|stream)/gi, 'Dawn/morning light scene ending', 1],
+    [/\bmake (myself|me) (a |)(cup of |)coffee/gi, '"I make myself coffee..." archive scene', 0],
+  ];
+  for (const [rx, label, max] of NF_CRUTCH_CAPS) {
+    const m = text.match(rx);
+    if (m && m.length > max) {
+      warnings.push({ type: 'nf_fiction_trap', label: `NF CRUTCH: ${label} appears ${m.length}x (max ${max})`, count: m.length, max, fixed: false });
+    }
+  }
+
   return warnings;
 }
 
