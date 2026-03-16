@@ -563,6 +563,62 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
       }
     } catch (kbErr) { console.warn('Knowledge base loading failed:', kbErr.message); }
 
+    // ── USER STORY BIBLE from Phase 1 Story Bible Editor ──
+    let userBibleBlock = '';
+    try {
+      const projects = await sr.entities.Project.filter({ id: project_id });
+      const project = projects?.[0];
+      let ubData = null;
+      if (project?.story_bible_user) {
+        let ubRaw = project.story_bible_user;
+        if (typeof ubRaw === 'string' && ubRaw.startsWith('http')) { try { ubRaw = await (await fetch(ubRaw)).text(); } catch { ubRaw = ''; } }
+        try { ubData = ubRaw ? JSON.parse(ubRaw) : null; } catch {}
+      }
+      if (ubData) {
+        userBibleBlock = '\n=== USER-DEFINED STORY BIBLE (from Phase 1 — incorporate into outline) ===';
+        if (ubData.key_figures?.length > 0) {
+          userBibleBlock += '\nKEY FIGURES (use these as primary chapter subjects):';
+          for (const f of ubData.key_figures) {
+            if (!f.name) continue;
+            userBibleBlock += `\n- ${f.name} (${f.role || 'subject'}${f.era ? ', ' + f.era : ''}): ${f.significance || ''}`;
+          }
+        }
+        if (ubData.timeline?.length > 0) {
+          userBibleBlock += '\n\nTIMELINE (use for chronological accuracy):';
+          for (const t of ubData.timeline) {
+            userBibleBlock += `\n- ${t.date}: ${t.event}`;
+          }
+        }
+        if (ubData.argument?.central_thesis) {
+          userBibleBlock += `\n\nCENTRAL THESIS: ${ubData.argument.central_thesis}`;
+          if (ubData.argument.supporting_arguments?.length > 0) {
+            userBibleBlock += '\nSUPPORTING ARGUMENTS:';
+            ubData.argument.supporting_arguments.forEach((a, i) => { userBibleBlock += `\n  ${i + 1}. ${a}`; });
+          }
+        }
+        if (ubData.settings?.length > 0) {
+          userBibleBlock += '\n\nKEY SETTINGS:';
+          for (const s of ubData.settings) {
+            if (!s.name) continue;
+            userBibleBlock += `\n- ${s.name} (${s.era || ''}): ${s.significance || ''}`;
+          }
+        }
+        // For fiction
+        if (ubData.characters?.length > 0) {
+          userBibleBlock += '\nCHARACTERS (incorporate into outline):';
+          for (const c of ubData.characters) {
+            if (!c.name) continue;
+            userBibleBlock += `\n- ${c.name} (${c.role || 'character'}): wound=${c.core_wound || 'N/A'}, desire=${c.desire || 'N/A'}, arc=${c.arc_direction || 'N/A'}`;
+          }
+        }
+        if (ubData.themes?.central_theme) {
+          userBibleBlock += `\n\nCENTRAL THEME: ${ubData.themes.central_theme}`;
+          if (ubData.themes.thematic_question) userBibleBlock += `\nTHEMATIC QUESTION: ${ubData.themes.thematic_question}`;
+        }
+        userBibleBlock += '\n=== END USER STORY BIBLE ===\n';
+      }
+    } catch (ubErr) { console.warn('User story bible loading failed:', ubErr.message); }
+
     // ── NF STRUCTURE MODE ──
     const NF_STRUCT = {
       'prescriptive': 'PRESCRIPTIVE/HOW-TO: Each chapter teaches a principle or skill. Pattern: Framework → Evidence → Application → Takeaway. Write instructional prose, NOT narrative scenes.',
@@ -581,7 +637,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
 This book must contain exactly ${targetChapters} chapters. Generate an outline with exactly ${targetChapters} chapters — no more, no fewer.
 
 Genre: ${spec.genre || 'General'}${subgenreBlock}
-${structureLine ? '\n' + structureLine : ''}${knowledgeBaseBlock}${nfFrameworksCtx}${nfAudienceCtx}
+${structureLine ? '\n' + structureLine : ''}${knowledgeBaseBlock}${userBibleBlock}${nfFrameworksCtx}${nfAudienceCtx}
 
 CRITICAL: This is NONFICTION. Do NOT generate fictional narrative chapters. Do NOT create characters, dialogue scenes, or story arcs. Organize chapters around RESEARCH, ARGUMENTS, FRAMEWORKS, and EVIDENCE.
 
@@ -665,7 +721,7 @@ Return ONLY JSON.`;
 
       const chunkPrompt = `Generate ${chunkCount} detailed nonfiction chapters (chapters ${chunkStart}-${chunkEnd} of ${targetChapters}) for: "${truncatedTopic}"
 Genre: ${spec.genre || 'General'}${spec.subgenre ? `\nSubgenre: ${spec.subgenre}\nAll chapters must be relevant to the subgenre "${spec.subgenre}". Do not generate chapters that fall outside the subgenre focus.` : ''}
-This book must contain exactly ${targetChapters} chapters total.${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${researchBlock}${prevContext}
+This book must contain exactly ${targetChapters} chapters total.${beatInstructions}${authorVoiceInfo}${nfScopeCtx}${researchBlock}${userBibleBlock}${prevContext}
 
 Each chapter MUST have these fields:
 - number, title, summary (1-2 sentences on the chapter's argument/focus)
@@ -1066,6 +1122,38 @@ Return ONLY the JSON object.`;
     console.log(`Generating ${targetChapters} detailed chapters...`);
     const CHUNK_SIZE = 4;
 
+    // Load user story bible for injection into chapter prompts
+    let fictionUserBibleBlock = '';
+    try {
+      const projectsForBible = await sr.entities.Project.filter({ id: project_id });
+      const proj = projectsForBible?.[0];
+      let ubData = null;
+      if (proj?.story_bible_user) {
+        let ubRaw = proj.story_bible_user;
+        if (typeof ubRaw === 'string' && ubRaw.startsWith('http')) { try { ubRaw = await (await fetch(ubRaw)).text(); } catch { ubRaw = ''; } }
+        try { ubData = ubRaw ? JSON.parse(ubRaw) : null; } catch {}
+      }
+      if (ubData) {
+        fictionUserBibleBlock = '\n=== USER STORY BIBLE (from Phase 1 — incorporate into outline) ===';
+        if (ubData.characters?.length > 0) {
+          fictionUserBibleBlock += '\nCHARACTERS:';
+          for (const c of ubData.characters) {
+            if (!c.name) continue;
+            fictionUserBibleBlock += `\n- ${c.name} (${c.role || 'character'}): wound=${c.core_wound || 'N/A'}, desire=${c.desire || 'N/A'}, fear=${c.fear || 'N/A'}, arc=${c.arc_direction || 'N/A'}`;
+          }
+        }
+        if (ubData.world?.time_period || ubData.world?.primary_setting) {
+          fictionUserBibleBlock += `\nWORLD: ${ubData.world.time_period || ''} — ${ubData.world.primary_setting || ''}`;
+          if (ubData.world.world_rules?.length > 0) fictionUserBibleBlock += `\nRULES: ${ubData.world.world_rules.join('; ')}`;
+        }
+        if (ubData.themes?.central_theme) {
+          fictionUserBibleBlock += `\nTHEME: ${ubData.themes.central_theme}`;
+          if (ubData.themes.thematic_question) fictionUserBibleBlock += ` | QUESTION: ${ubData.themes.thematic_question}`;
+        }
+        fictionUserBibleBlock += '\n=== END USER STORY BIBLE ===\n';
+      }
+    } catch (ubErr) { console.warn('User story bible load failed:', ubErr.message); }
+
     async function generateBatch(chunkStart, previousChapterEnding) {
       const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, targetChapters);
       const chunkCount = chunkEnd - chunkStart + 1;
@@ -1096,6 +1184,7 @@ ${authorVoiceInfo}
 ${CONTENT_GUARDRAILS}
 ${ANTI_REPETITION_RULES}
 ${scopeCtx}
+${fictionUserBibleBlock}
 ${prevContext}
 
 ${beatSheetBlock ? beatSheetBlock : ''}
