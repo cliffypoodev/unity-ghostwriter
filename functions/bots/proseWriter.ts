@@ -392,27 +392,26 @@ You are writing NONFICTION. Every specific claim MUST be verifiable.
 - RIGHT: "Contemporary accounts suggest the executive's response was dismissive."
 
 RULE 2 — NO EDITORIAL INSTRUCTIONS IN PROSE (ZERO TOLERANCE):
-The chapter prompt, beat sheet, or scene directions may contain EDITING INSTRUCTIONS meant for you, the writer. These instructions tell you HOW to write — they are NOT prose to be printed.
+The chapter prompt, beat sheet, or scene directions may contain EDITING INSTRUCTIONS meant for you. These are NOT prose.
 
-RECOGNITION: Any text that begins with these words/phrases is an INSTRUCTION, not prose:
-  "Remove specific..." / "Replace with..." / "Either cite..." / "Either identify..."
-  "Frame as..." / "Use general..." / "Provide documentary..." / "Label as..."
-  "Anchor to..." / "Anchor these..." / "Source to..." / "Source this..."
-  "Cite specific..." / "Rewrite to..." / "Address the..."
+PRE-FILTER STEP (do this BEFORE writing any prose):
+1. Read the entire chapter prompt / beat sheet / scene directions.
+2. IDENTIFY every sentence that begins with: Remove, Replace, Either, Frame, Use general, Provide, Label, Anchor, Source, Cite, Rewrite, Address, or any imperative verb directing YOU how to write.
+3. STRIP those sentences from your mental input. They are instructions TO you, not text FROM you.
+4. OBEY each stripped instruction by writing prose that follows the direction.
+5. Your output must contain ZERO instruction text. Not as a preface, not mid-sentence, not anywhere.
 
-ACTION: When you encounter an instruction, OBEY IT by writing prose that follows the instruction. NEVER print the instruction text itself. The reader must never see editing directions.
+FAILURE MODE TO AVOID: The model prints the instruction AND then writes the correct prose after it. This is WRONG. The instruction must be INVISIBLE in the output.
 
-WRONG (instruction printed as prose):
-  "Remove specific day/time details or anchor to documented source with proper attribution, studying photographs of young women..."
-  "Either identify the specific person with documentation or remove this fictional scene and begin with documented facts about contract terms later become synonymous..."
-  "Replace with documented historical example or clearly label as representative scenario based on contemporary accounts, Label as representative description..."
+WRONG: "Replace with documented examples of Warner's harsh management style from historical records to a staff meeting, he believed he was teaching efficiency."
+WRONG: "Remove specific time and use general timeframe with source attribution like 'Court records show...' from the overnight rain when Olivia de Havilland climbed them"
+WRONG: "Either identify Lucas as a real person with documentation or remove the detailed scene and replace with documented general patterns By 1955, substance abuse had become..."
 
-RIGHT (instruction obeyed, prose written):
-  "Studio executives studied photographs of young women with methodical precision."
-  "The actress who would later become synonymous with Hollywood glamour sat in a dimly lit corner booth..."
-  "In an office high above Sunset Boulevard, a scene played out that was repeated thousands of times across Golden Age Hollywood."
+RIGHT: "Warner slammed his fist on the conference table at a staff meeting, believing he was teaching efficiency."
+RIGHT: "Court records show the trial began in October 1943, bringing an unseasonable chill to Los Angeles."
+RIGHT: "By 1955, substance abuse had become so endemic among performers that studio executives maintained standing accounts with specific doctors."
 
-TEST: Before outputting any paragraph, scan its first 50 characters. If they contain ANY of the instruction prefixes listed above, you are printing an instruction instead of prose. DELETE IT and write actual prose instead.
+ABSOLUTE TEST: If ANY sentence in your output begins with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide documentary," "Label as," "Anchor to," "Source to," or "Cite specific" — YOU HAVE FAILED. Delete and rewrite.
 
 RULE 3 — FRAMING DIVERSITY (NO "ARCHIVE NARRATOR" IN EVERY CHAPTER):
 Do NOT use the same narrative framing device in every chapter. The following framings may be used AT MOST TWICE in a 20-chapter book:
@@ -454,9 +453,39 @@ The following phrases are BANNED or capped at 1 use per chapter:
 - "Consider the case of..." — MAX 1 per BOOK
 - "This wasn't [X] — it was [stronger X]" rhetorical inversion — MAX 1 per chapter
 - "The most [superlative] aspect/element/dimension..." — MAX 1 per chapter
+- "This represented..." as transition — MAX 1 per chapter
+- "The [noun] proved [adjective]..." as transition — MAX 1 per chapter
 - "I make myself coffee" / coffee-making scenes — BANNED (0 per book)
 - "Dawn/morning light breaks/filters through..." as chapter ending — BANNED (0 per book)
 Use SPECIFIC transitions that arise from the content instead.
+
+RULE 6 — REAL PERSON FACT-CHECK (CRITICAL FOR NONFICTION):
+When writing about NAMED REAL PEOPLE, you MUST NOT:
+- Fabricate their cause of death or manner of death
+- Invent suicide narratives for people who died of natural causes
+- Create fictional medical records, psychiatric evaluations, or autopsy reports attributed to real people
+- Invent specific quotes and attribute them to real named individuals
+- Fabricate legal cases, court testimony, or depositions involving real people
+- Create fictional diary entries, letters, or personal correspondence attributed to real people
+If you are unsure how a real person died, DO NOT describe their death in specific terms. Use general language: "Their later years were marked by declining health" rather than inventing a suicide scene.
+If the knowledge base provides verified facts about a person, USE THOSE. If it doesn't, DO NOT INVENT specifics.
+
+RULE 7 — RECONSTRUCTION LABELING:
+When you write a scene that reconstructs historical events (dialogue, settings, actions), you MUST signal to the reader that this is a reconstruction:
+- "Contemporary accounts describe scenes where..." 
+- "Based on testimony from the period, such encounters typically began..."
+- "The exchange, reconstructed from court records, went something like..."
+- "Witnesses later described a scene in which..."
+Do NOT present reconstructed scenes as though you were present or as though the specific details are documented fact. The reader must always understand the difference between documented evidence and narrative reconstruction.
+Exception: If the scene IS documented (court transcript, published memoir, recorded interview), cite the source and present it directly.
+
+RULE 8 — NO REPETITIVE PADDING:
+Each paragraph in a chapter must advance a NEW point, introduce NEW evidence, or provide a NEW perspective. Do NOT:
+- Restate the same argument in different words across multiple paragraphs
+- Write 3-4 paragraphs of general analysis that all make the same point
+- Use phrases like "The impact was severe" followed by "The consequences were devastating" followed by "The toll was enormous" — these are the same sentence repeated
+- Pad chapters with generalized observations to hit word count targets
+If you've made a point, MOVE ON to new evidence or a new aspect of the argument. Cut ruthlessly. A tighter 2,000-word chapter beats a padded 3,000-word one.
 
 === END NONFICTION ABSOLUTE RULES ===
 
