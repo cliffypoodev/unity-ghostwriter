@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   Loader2, RefreshCw, Sparkles, Check, X, AlertCircle,
   AlertTriangle, ChevronDown, ChevronUp, Wand2, BookOpen, Zap,
-  FileText, Target, Eye, MessageSquare, Clock, BarChart3
+  FileText, Target, Eye, MessageSquare, Clock, BarChart3, Download
 } from "lucide-react";
 import ManuscriptUploader from "./ManuscriptUploader";
 import DeepReviewPanel from "./DeepReviewPanel";
@@ -487,6 +487,68 @@ export default function ReviewPolishTab({ projectId }) {
 
   const leakCount = scanResults ? scanResults.allFindings.filter(f => f.category === "instruction_leak").reduce((s, f) => s + f.count, 0) : 0;
 
+  // ── EXPORT SCAN RESULTS ──
+  const handleExportScanResults = () => {
+    if (!scanResults) return;
+    const now = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const lines = [];
+    lines.push(`═══ MANUSCRIPT SCAN REPORT ═══`);
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push(`Project: ${projectId}`);
+    lines.push(`Chapters scanned: ${scanResults.chapterData.length}`);
+    lines.push(`Total issues: ${scanResults.allFindings.reduce((s, f) => s + f.count, 0)}`);
+    lines.push(`Instruction leaks: ${leakCount}`);
+    lines.push(`\n═══ SCORE BREAKDOWN ═══`);
+
+    // Category summary
+    const catCounts = {};
+    for (const f of scanResults.allFindings) {
+      const key = f.category || 'unknown';
+      if (!catCounts[key]) catCounts[key] = { count: 0, instances: 0 };
+      catCounts[key].count++;
+      catCounts[key].instances += f.count;
+    }
+    for (const [cat, data] of Object.entries(catCounts).sort((a, b) => b[1].instances - a[1].instances)) {
+      const catInfo = SCAN_CATEGORIES[cat];
+      lines.push(`  ${catInfo?.icon || '•'} ${catInfo?.label || cat}: ${data.count} findings, ${data.instances} total instances`);
+    }
+
+    // Per-chapter details
+    lines.push(`\n═══ PER-CHAPTER DETAILS ═══`);
+    for (const ch of scanResults.chapterData) {
+      const chFindings = scanResults.allFindings.filter(f => f.chapter === ch.number);
+      const totalInstances = chFindings.reduce((s, f) => s + f.count, 0);
+      lines.push(`\n── Ch ${ch.number}: ${ch.title} ──`);
+      lines.push(`   Words: ${ch.words.toLocaleString()}`);
+      if (chFindings.length === 0) {
+        lines.push(`   ✓ Clean — no issues detected`);
+      } else {
+        lines.push(`   Issues: ${totalInstances}`);
+        for (const f of chFindings) {
+          const catInfo = SCAN_CATEGORIES[f.category];
+          lines.push(`   ${catInfo?.icon || '•'} [${catInfo?.label || f.category}] ${f.label} (${f.count}×)`);
+          if (f.samples) {
+            for (const s of f.samples) {
+              lines.push(`      → "${s.slice(0, 120)}${s.length > 120 ? '...' : ''}"`);
+            }
+          }
+        }
+      }
+    }
+
+    lines.push(`\n═══ END REPORT ═══`);
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scan-report-${now}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -510,6 +572,12 @@ export default function ReviewPolishTab({ projectId }) {
                 Polish All
               </Button>
             </>
+          )}
+          {scanResults && (
+            <Button onClick={handleExportScanResults} variant="outline" className="gap-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10">
+              <Download className="w-4 h-4" />
+              Export Report
+            </Button>
           )}
         </div>
       </div>
