@@ -59,14 +59,26 @@ const PATTERNS = {
     [/\[TODO[:\s]/gi, "[TODO]"],
     [/as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi, "as instructed by the prompt"],
     [/per the (outline|beat sheet|specification)/gi, "per the outline/beat sheet"],
-    // NF editorial instruction leaks — SYNCED with code-level sanitizer (v12.8)
-    [/\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]{5,}/gi, "NF instruction leak: editorial directive in prose"],
-    [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, "NF instruction leak: Use quoted example or..."],
-    [/\bor (clearly |)label as (representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi, "NF instruction leak: or label as..."],
-    [/\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, "NF instruction leak: or remove/cite..."],
-    [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, "NF instruction leak: meta-framing"],
-    // Fusion pattern: instruction flows into prose via comma
-    [/\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Label as|Anchor to|Source to|Cite specific|Use documented|Remove atmospheric|Remove fictional|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*[a-z]/gi, "NF instruction leak: fused instruction-prose"],
+    // NF editorial instruction leaks — prose-safe patterns (v12.9b)
+    // These require editorial context words AFTER the trigger to avoid false positives on common English
+    [/\bRemove specific \w+ or (cite|provide|anchor|source|use)/gi, "NF leak: Remove specific X or cite/provide..."],
+    [/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)/gi, "NF leak: Remove atmospheric/invented..."],
+    [/\bEither (identify|cite|name|source|provide|use) (the |a )?(specific|actual|real|documentary|documented)/gi, "NF leak: Either cite/provide specific..."],
+    [/\bProvide (documentary|specific|archival|real) (source|evidence|documentation)/gi, "NF leak: Provide documentary source..."],
+    [/\bReplace with documented (examples?|case stud|evidence|facts)/gi, "NF leak: Replace with documented..."],
+    [/\bUse general (timeframe|terms?|reference|description|language)/gi, "NF leak: Use general timeframe..."],
+    [/\bUse documented (examples?|case stud|evidence|sources)/gi, "NF leak: Use documented examples..."],
+    [/\bLabel as (representative|illustrative|composite|general|reconstructed)/gi, "NF leak: Label as composite..."],
+    [/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)/gi, "NF leak: Frame as hypothetical..."],
+    [/\bAnchor (to|these|this) (documented|real|specific|actual|verifiable)/gi, "NF leak: Anchor to documented..."],
+    [/\bSource (to|this to) (actual|specific|documented|real)/gi, "NF leak: Source to actual..."],
+    [/\bCite (specific|actual) (memoir|interview|archive|document|source|published)/gi, "NF leak: Cite specific source..."],
+    [/\bVerify and cite\b/gi, "NF leak: Verify and cite..."],
+    [/\bInsert documented\b/gi, "NF leak: Insert documented..."],
+    [/\bor (clearly |)label as (representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi, "NF leak: or label as composite..."],
+    [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, "NF leak: or remove/cite fictional..."],
+    [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, "NF leak: meta-framing instruction"],
+    [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, "NF leak: Use quoted example or..."],
   ],
   tense_past_drift: [
     [/\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi, "present-tense verb in past-tense narrative"],
@@ -467,12 +479,12 @@ export default function ReviewPolishTab({ projectId }) {
     }
   };
 
-  // Fix All — runs style enforcer on all chapters with issues (not leaks)
+  // Fix All — runs style enforcer on all chapters with issues
   const handleFixAll = async () => {
     if (!scanResults) return;
     setPolishAll(true);
     const chaptersWithIssues = scanResults.chapterData.filter(ch =>
-      scanResults.allFindings.some(f => f.chapter === ch.number && f.category !== "instruction_leak")
+      scanResults.allFindings.some(f => f.chapter === ch.number)
     );
     for (const ch of chaptersWithIssues) {
       await handleFixChapter(ch.number);
