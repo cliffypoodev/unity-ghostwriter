@@ -213,7 +213,13 @@ Deno.serve(async (req) => {
       raw = await callOpenRouter(systemPrompt, userMessage);
     }
 
-    const storyBible = safeParseJSON(raw);
+    let storyBible;
+    try {
+      storyBible = safeParseJSON(raw);
+    } catch (parseErr) {
+      console.error('Parse failed. Raw response (first 1000 chars):', raw?.slice(0, 1000));
+      throw parseErr;
+    }
 
     return Response.json({ story_bible: storyBible });
   } catch (err) {
