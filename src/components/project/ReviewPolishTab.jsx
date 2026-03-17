@@ -375,13 +375,23 @@ export default function ReviewPolishTab({ projectId }) {
   const generatedChapters = chapters.filter(c => c.status === "generated").sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
 
   const handleScan = useCallback(async () => {
-    if (generatedChapters.length === 0) return;
+    // Always fetch fresh chapter data to pick up any fixes/polishes
+    let freshChapters;
+    try {
+      freshChapters = await base44.entities.Chapter.filter({ project_id: projectId });
+    } catch {
+      freshChapters = generatedChapters;
+    }
+    const scanChapters = freshChapters
+      .filter(c => c.status === "generated")
+      .sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+    if (scanChapters.length === 0) return;
     setScanning(true);
     setScanResults(null);
     try {
       const chapterData = [];
       const allFindings = [];
-      for (const ch of generatedChapters) {
+      for (const ch of scanChapters) {
         let content = ch.content || "";
         if (content.startsWith("http")) { try { content = await (await fetch(content)).text(); } catch { content = ""; } }
         if (!content || content.length < 50) continue;
