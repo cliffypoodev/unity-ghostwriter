@@ -21,7 +21,7 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
   // callType: outline → shell generation resolves to Gemini Pro
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent?key=' + apiKey,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: userMessage }] }],
@@ -32,7 +32,9 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
   );
   const data = await response.json();
   if (!response.ok) throw new Error('Gemini error: ' + (data.error?.message || response.status));
-  return data.candidates[0].content.parts[0].text;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini returned empty response (blocked or overloaded). Try again.');
+  return text;
 }
 
 Deno.serve(async (req) => {

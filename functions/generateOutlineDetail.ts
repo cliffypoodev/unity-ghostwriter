@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 // Inline AI router — same as generateOutline
 const MODEL_MAP = {
-  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro", defaultTemp: 0.6 },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.6 },
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.6 },
 };
 
@@ -20,7 +20,9 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     );
     const d = await r.json();
     if (!r.ok) throw new Error('Gemini error: ' + (d.error?.message || r.status));
-    return d.candidates[0].content.parts[0].text;
+    const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Gemini returned empty response (blocked or overloaded). Try again.');
+    return text;
   }
   if (config.provider === "anthropic") {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
