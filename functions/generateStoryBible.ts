@@ -22,9 +22,9 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
       if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status));
       return d.content[0].text;
     }
-    // Gemini
+    // Gemini Pro (structural/research tasks always use Pro)
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
