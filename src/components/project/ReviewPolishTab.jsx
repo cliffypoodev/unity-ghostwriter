@@ -480,6 +480,7 @@ export default function ReviewPolishTab({ projectId }) {
         chapter_id: ch.id,
       }, { timeout: 600000 });
       setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, regenerated: true } }));
+      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       setTimeout(() => handleScan(), 2000);
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
