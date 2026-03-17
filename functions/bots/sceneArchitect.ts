@@ -97,6 +97,7 @@ const NF_SANITIZE_RX = [
   /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi,
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
+  /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
 ];
 function sanitizeNFPrompt(text) {
   if (!text) return text;
@@ -104,6 +105,19 @@ function sanitizeNFPrompt(text) {
   let c = text;
   for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
   return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
+}
+
+// Recursively sanitize all string values in any data structure
+function sanitizeNFData(data) {
+  if (!data) return data;
+  if (typeof data === 'string') return sanitizeNFPrompt(data);
+  if (Array.isArray(data)) return data.map(item => sanitizeNFData(item));
+  if (typeof data === 'object') {
+    const cleaned = {};
+    for (const [k, v] of Object.entries(data)) cleaned[k] = sanitizeNFData(v);
+    return cleaned;
+  }
+  return data;
 }
 
 function getChapterContext(ctx, chapterId) {
@@ -331,9 +345,10 @@ async function runSceneArchitect(base44, projectId, chapterId) {
     result = await generateFictionScenes(ctx, chCtx);
   }
 
-  // Save scenes to chapter
+  // Save scenes to chapter — sanitize NF output to kill instructions at the source
+  const scenesToSave = ctx.isNonfiction ? sanitizeNFData(result.scenes) : result.scenes;
   await base44.entities.Chapter.update(chapterId, {
-    scenes: JSON.stringify(result.scenes),
+    scenes: JSON.stringify(scenesToSave),
   });
 
   return { success: true, chapter_id: chapterId, scene_count: Array.isArray(result.scenes) ? result.scenes.length : 1, type: result.type };
