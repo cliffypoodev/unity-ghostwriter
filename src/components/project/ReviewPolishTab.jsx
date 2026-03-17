@@ -449,9 +449,14 @@ export default function ReviewPolishTab({ projectId }) {
         chapter_id: ch.id,
       }, { timeout: 180000 });
       const data = result?.data || result;
-      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: data?.violations_fixed || 0, total: data?.violations_found || 0 } }));
+      const fixed = data?.quality_report?.violations_fixed || data?.violations_fixed || 0;
+      const total = data?.violations_found || 0;
+      const saved = data?.saved || false;
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed, total, saved } }));
+      // Invalidate chapter cache so rescan picks up the saved content
+      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       // Re-scan after fix
-      setTimeout(() => handleScan(), 1500);
+      setTimeout(() => handleScan(), 2000);
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally {
