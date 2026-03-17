@@ -89,7 +89,19 @@ async function loadProjectContext(base44, projectId) {
   return { project, chapters, spec, outline, outlineData, storyBible, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
 }
 
-// ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
+// ═══ GENERAL INSTRUCTION SANITIZER (FICTION + NF) ═══
+const GENERAL_SANITIZE_RX = [
+  /^(Begin with|Show the|Continue from|Start with|Open with|Transition to|Transition from|Describe how|Establish the|Adjust the|Rewrite to|Address the|Include a|Ensure that|Note that|End with) [^.!?\n]*([.!?\n]|$)/gim,
+  /\b(I'll|I will) (now |)(write|continue|complete|finish) (this |the |)(chapter|scene|section)[^.!?\n]*([.!?\n]|$)/gi,
+  /\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^.!?\n]*([.!?\n]|$)/gi,
+  /\[TODO[:\s][^\]]*\]/gi,
+  /\bas (instructed|requested|specified) (in|by) the (prompt|system|user|outline|beat)[^.!?\n]*([.!?\n]|$)/gi,
+  /\bper the (outline|beat sheet|specification|chapter prompt)[^.!?\n]*([.!?\n]|$)/gi,
+  /\b(Adjust|Rewrite|Address|Revise) the (year|name|time|date|setting|location|chapter|scene|timeline) to (be |match |reflect |align )[^.!?\n]*([.!?\n]|$)/gi,
+  /\bEnsure (this|the|that) (aligns|matches|is consistent) with[^.!?\n]*([.!?\n]|$)/gi,
+];
+
+// ═══ NF EDITORIAL INSTRUCTION SANITIZER (NF-SPECIFIC PATTERNS) ═══
 const NF_SANITIZE_RX = [
   /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gi,
   /\bUse '([^']+)' or [^.!?\n]*([.!?\n]|$)/gi,
@@ -98,18 +110,18 @@ const NF_SANITIZE_RX = [
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
   /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
-  // NO-COMMA FUSION: instruction flows directly into prose (e.g., "Remove specific age or cite the documented")
   /\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi,
 ];
 function sanitizeNFPrompt(text) {
   if (!text) return text;
   if (typeof text !== 'string') { try { return JSON.stringify(text); } catch { return String(text); } }
   let c = text;
+  for (const rx of GENERAL_SANITIZE_RX) c = c.replace(rx, '');
   for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
   return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
 }
 
-// Recursively sanitize all string values in any data structure
+// Recursively sanitize all string values in any data structure (runs BOTH general + NF patterns)
 function sanitizeNFData(data) {
   if (!data) return data;
   if (typeof data === 'string') return sanitizeNFPrompt(data);
@@ -347,8 +359,8 @@ async function runSceneArchitect(base44, projectId, chapterId) {
     result = await generateFictionScenes(ctx, chCtx);
   }
 
-  // Save scenes to chapter — sanitize NF output to kill instructions at the source
-  const scenesToSave = ctx.isNonfiction ? sanitizeNFData(result.scenes) : result.scenes;
+  // Save scenes to chapter — sanitize output for BOTH genres to kill instructions at the source
+  const scenesToSave = sanitizeNFData(result.scenes);
   await base44.entities.Chapter.update(chapterId, {
     scenes: JSON.stringify(scenesToSave),
   });
