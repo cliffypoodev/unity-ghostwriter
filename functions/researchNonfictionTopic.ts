@@ -44,7 +44,6 @@ Return 8-12 facts, 4-8 timeline entries, 3-6 key figures, and 3-5 sources. Retur
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: researchPrompt }] }],
-        tools: [{ google_search: {} }],
         generationConfig: {
           temperature: 0.4,
           maxOutputTokens: 4096,
