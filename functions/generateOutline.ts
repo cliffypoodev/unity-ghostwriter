@@ -11,7 +11,7 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4, maxTokensLimit: null },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9, maxTokensLimit: null },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7, maxTokensLimit: null },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro", defaultTemp: 0.6, maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.0-flash",         defaultTemp: 0.6, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.7, maxTokensLimit: 8192 },
 };
 
@@ -54,9 +54,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     );
     const data = await response.json();
     if (!response.ok) throw new Error('Google AI error: ' + (data.error?.message || response.status));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Google AI returned empty response (blocked or overloaded). Try again.');
-    return text;
+    return data.candidates[0].content.parts[0].text;
   }
 
   if (provider === "deepseek") {
@@ -506,7 +504,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
   async function callGemini(systemPrompt, userMessage, maxTokens = 12000) {
     // callType: outline → nonfiction Gemini path
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -519,9 +517,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
     );
     const data = await response.json();
     if (!response.ok) throw new Error('Gemini API error: ' + (data.error?.message || response.status));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Gemini returned empty response (blocked or overloaded). Try again.');
-    return text;
+    return data.candidates[0].content.parts[0].text;
   }
 
   try {
