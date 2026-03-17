@@ -418,7 +418,10 @@ export default function ReviewPolishTab({ projectId }) {
       const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id }, { timeout: 120000 });
       const data = result?.data || result;
       setPolishResults(prev => ({ ...prev, [chapterNum]: data }));
-      if (data?.changed) setTimeout(() => handleScan(), 1000);
+      if (data?.changed) {
+        await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+        setTimeout(() => handleScan(), 1500);
+      }
     } catch (err) {
       setPolishResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally { setPolishing(prev => ({ ...prev, [chapterNum]: false })); }
