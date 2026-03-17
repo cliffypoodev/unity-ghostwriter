@@ -134,6 +134,8 @@ const NF_SANITIZE_RX = [
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
   // FUSION PATTERN: instruction flows into prose via comma (e.g., "Use general timeframes..., her fifteenth day")
   /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
+  // NO-COMMA FUSION: instruction flows into prose without any separator (e.g., "Remove specific age or cite the documented photograph with date hair catching")
+  /\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi,
 ];
 
 function sanitizeNFPrompt(text) {
@@ -564,6 +566,40 @@ Instead, the final chapter should:
 - Reflect on what the investigation revealed
 - Give voice to survivors
 - Leave the reader with a resonant image or question, not a to-do list
+
+RULE 10 — NO NAMED COMPOSITE CHARACTERS (ZERO TOLERANCE):
+When writing nonfiction narrative chapters, you may describe PATTERNS and TYPICAL EXPERIENCES. You may NOT create named characters with specific biographical details to represent those patterns.
+- Do NOT invent characters with full names (first AND last) who are presented as real historical figures.
+- Do NOT give composite characters specific biographical details: universities attended, exact dollar amounts earned, family member names, specific addresses, job titles with dates.
+- If a person is not documented in the chapter prompt, story bible, or your knowledge base as a REAL person, do NOT name them.
+- Use ROLE descriptions instead: "a studio fixer," "a young actress from the Midwest," "a Beverly Hills psychiatrist."
+WRONG: "Arthur Madison, a junior publicist from Northwestern, witnessed the scene from the doorway of his third-floor office."
+WRONG: "Dr. Margaret Hoffman published her findings in the Journal of Clinical Psychology in 1958."
+WRONG: "Patricia Morrison's arrest file remains sealed in Los Angeles County Superior Court, case number 56-4429."
+RIGHT: "A junior publicist who later described the scene recalled watching from the doorway."
+RIGHT: "A psychiatrist treating entertainment industry clients documented these patterns in clinical notes."
+RIGHT: "One secretary's attempt to expose the system ended with her arrest on fabricated charges."
+EXCEPTION: If a real documented person appears in the story bible or chapter prompt (e.g., Frank Orsatti, Eddie Mannix, Howard Strickling), use their REAL name and VERIFIED facts only.
+
+RULE 11 — NO FABRICATED CITATIONS OR REFERENCE NUMBERS:
+Do NOT invent specific citations, document numbers, or archival references that a reader could attempt to verify.
+- Do NOT invent case numbers (e.g., "case number 56-4429")
+- Do NOT invent journal article citations (e.g., "published in the Journal of Clinical Psychology in 1958")
+- Do NOT invent specific FBI memo dates or FOIA document references
+- Do NOT invent specific archive box/folder numbers
+- Do NOT invent specific dollar amounts for settlements, budgets, or payments unless from the knowledge base
+Use GENERAL sourcing: "court records from the period," "psychiatric case files discovered decades later," "internal studio memos," "FBI surveillance files released under FOIA."
+
+RULE 12 — STUDIO ATTRIBUTION ACCURACY:
+When discussing real performers, attribute them to the CORRECT studio. Key attributions from the knowledge base:
+- Marilyn Monroe: 20th Century Fox (NOT Columbia — she had only a brief 6-month stint at Columbia in 1948)
+- Rita Hayworth: Columbia Pictures
+- Joan Crawford: MGM (1920s-1940s), then Warner Brothers, then freelance
+- Judy Garland: MGM
+- Rock Hudson: Universal Pictures
+- Kim Novak: Columbia Pictures
+- Loretta Young: Various studios (not exclusively any one)
+Do NOT default to Columbia Pictures for every performer. Check the chapter prompt and story bible for correct attribution.
 
 === END NONFICTION ABSOLUTE RULES ===
 
