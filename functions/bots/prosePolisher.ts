@@ -138,6 +138,8 @@ const NF_POLISH_TARGETS = [
   [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, 'INSTRUCTION LEAK: or remove/cite...'],
   [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: meta-framing instruction'],
   [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: Use quoted example or...'],
+  // No-comma fusion: instruction flows directly into prose
+  [/\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi, 'INSTRUCTION LEAK: fused instruction-prose'],
   // Padding phrases
   [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
   [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
