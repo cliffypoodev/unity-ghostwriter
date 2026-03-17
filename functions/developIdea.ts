@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
 
 async function callGemini(systemPrompt, userPrompt) {
   const controller = new AbortController();
@@ -21,92 +20,78 @@ async function callGemini(systemPrompt, userPrompt) {
 
 async function callClaude(systemPrompt, userPrompt) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 55000);
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1024, messages: [{ role: "user", content: userPrompt }], system: systemPrompt }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    if (!r.ok) throw new Error('Claude: ' + await r.text());
     const d = await r.json();
-    return d.content?.[0]?.text || '';
+    if (!r.ok) throw new Error('Claude: ' + (d.error?.message || r.status));
+    return d.content[0].text;
   } catch (e) { clearTimeout(timeout); throw e; }
 }
 
 Deno.serve(async (req) => {
-  const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
-  if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { idea = "", book_type = "fiction", genre = "" } = await req.json();
-
-  const hasIdea = idea.trim().length > 0;
-
-  const systemPrompt = `You are a top literary agent and book development expert. You create compelling, marketable book premises.
-
-RULES:
-- Output ONLY valid JSON. No markdown fences, no commentary.
-- The developed_premise must be 200-400 words, pitch-style: tight, vivid, compelling.
-- For fiction: include named characters, specific settings, concrete conflicts, stakes.
-- For nonfiction: include a sharp thesis, target reader, unique angle, concrete takeaways.
-- market_notes should be 2-3 sentences with comp titles and market positioning.
-- Return JSON with exactly these keys: developed_premise, book_type, market_notes`;
-
-  let userPrompt;
-  if (!hasIdea) {
-    userPrompt = `Generate a fresh, highly marketable book concept from scratch.
-Book type: ${book_type}
-${genre ? `Genre: ${genre}` : "Pick a genre with strong current market potential."}
-
-Create something original, specific, and immediately compelling. Not generic — give it a hook that would make an agent request the full manuscript.`;
-  } else {
-    userPrompt = `Develop this rough idea into a compelling, specific book premise. Find the strongest marketable angle. Sharpen with specifics.
-
-Raw idea: "${idea}"
-Book type: ${book_type}
-${genre ? `Genre: ${genre}` : "Determine the best genre fit."}
-
-Transform this into a tight, pitch-ready premise. Named characters, vivid settings, concrete conflicts.`;
-  }
-
-  // Gemini primary (faster), Claude fallback
-  let text;
   try {
-    text = await callGemini(systemPrompt, userPrompt);
-  } catch (geminiErr) {
-    console.warn('Gemini failed, trying Claude:', geminiErr.message);
-    text = await callClaude(systemPrompt, userPrompt);
-  }
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Parse JSON from response, stripping any accidental markdown fences
-  const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  let parsed;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch (parseErr) {
-    console.error("JSON parse failed. Raw text:", text);
-    // Attempt to extract fields from malformed output
-    const premiseMatch = cleaned.match(/"developed_premise"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
-    const marketMatch = cleaned.match(/"market_notes"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
-    const typeMatch = cleaned.match(/"book_type"\s*:\s*"(\w+)"/);
-    if (premiseMatch) {
-      parsed = {
-        developed_premise: premiseMatch[1],
-        book_type: typeMatch ? typeMatch[1] : book_type,
-        market_notes: marketMatch ? marketMatch[1] : "",
-      };
-    } else {
-      return Response.json({ error: "Failed to parse AI response" }, { status: 500 });
+    const { premise, genre, book_type } = await req.json();
+    if (!premise) return Response.json({ error: 'Premise is required' }, { status: 400 });
+
+    const systemPrompt = `You are a book development consultant. Given a premise, generate creative development ideas that expand and deepen the concept. Return a JSON object with these fields:
+- "expanded_premise": A richer, more detailed version of the premise (2-3 paragraphs)
+- "themes": Array of 3-5 major themes to explore
+- "unique_angles": Array of 3-4 unique angles or perspectives that make this story stand out
+- "potential_conflicts": Array of 3-4 central conflicts
+- "target_audience": Description of the ideal reader
+- "comparable_titles": Array of 2-3 published books with similar appeal
+- "development_notes": Brief notes on what makes this concept commercially viable
+
+Return ONLY valid JSON. No markdown, no backticks, no explanation.`;
+
+    const userPrompt = `Develop this ${book_type || 'fiction'} book concept:
+
+PREMISE: ${premise}
+${genre ? `GENRE: ${genre}` : ''}
+
+Generate detailed development ideas as JSON.`;
+
+    let text;
+    try {
+      text = await callGemini(systemPrompt, userPrompt);
+    } catch (geminiErr) {
+      console.warn('Gemini failed, trying Claude:', geminiErr.message);
+      text = await callClaude(systemPrompt, userPrompt);
     }
-  }
 
-  return Response.json({
-    developed_premise: parsed.developed_premise,
-    book_type: parsed.book_type || book_type,
-    market_notes: parsed.market_notes,
-  });
+    // Clean and parse JSON
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+    }
+
+    let result;
+    try {
+      result = JSON.parse(cleaned);
+    } catch (parseErr) {
+      // Try to extract JSON from the response
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        return Response.json({ error: 'Failed to parse AI response', raw: cleaned.slice(0, 500) }, { status: 500 });
+      }
+    }
+
+    return Response.json({ success: true, data: result });
+  } catch (error) {
+    console.error('developIdea error:', error.message);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 });
