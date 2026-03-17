@@ -389,39 +389,14 @@ function scanInstructionLeaks(text) {
     /indicate if this is intentional/gi,
     /should (I|we) (continue|complete|finish|expand)/gi,
     /this (section|chapter|scene) (is |appears |seems )?(incomplete|unfinished|truncated)/gi,
-    // Nonfiction editorial instructions leaked into prose
-    /\bRemove specific (day|time|date|location|details?)/gi,
-    /\b(Anchor|anchor) (these|this|the) (detail|fact|claim)s? to/gi,
-    /\bEither (cite|source|reference) (the |a )?(specific|actual)/gi,
-    /\bor (preface|prefix) with '?Contemporary accounts/gi,
-    /\bor anchor to documented source/gi,
-    /\bprovide archival source documenting/gi,
-    /\bUse general reference (like|to|instead)/gi,
-    /\bCite (specific )?source for (financial|statistical|numerical)/gi,
-    /\bSource (to actual|this to|financial details)/gi,
-    /\bEither source this to specific/gi,
-    /\bFrame as (hypothetical|composite|reconstructed) example/gi,
-    // v11.4 — patterns found in Hollywood Unhinged v2
-    /\bEither identify the specific (person|individual|source|document)/gi,
-    /\bLabel as (representative|illustrative|composite|general)/gi,
-    /\bProvide (documentary|specific|archival) source (for|documenting)/gi,
-    /\bReplace with documented (examples?|historical|facts|evidence)/gi,
-    /\bUse general (timeframe|terms|reference|description)/gi,
-    /\bRemove specific (time|sensory|first-person|atmospheric)/gi,
-    /\bor (clearly |)label as (representative|composite|illustrative|reconstructed)/gi,
-    /\bor (remove|begin with|provide|cite) (this |)(fictional|specific|actual|documented)/gi,
-    /\bor frame as.{1,20}(general|illustrative|representative|hypothetical)/gi,
-    /\bor present as (illustrative|representative)/gi,
-    /\bcite (actual |)(archival|interview|memoir|court) (source|testimony|document)/gi,
-    /\bRecords indicate .{1,30}(likely|probably|may have|might have) maintained/gi,
-    // v11.6 — patterns found in Hollywood Unhinged v3
-    /\bEither identify \w+ as a real (person|individual)/gi,
-    /\bReplace with documented examples of/gi,
-    /\bUse documented examples of/gi,
-    /\bRemove (specific |)(time|invented|fabricated) and (use|frame|replace|provide)/gi,
-    /\bRemove invented physical details/gi,
-    /\bCite specific (memoir|interview|archive|document|published)/gi,
-    /\bUse general terms?.{0,10}(like|such as|:) '/gi,
+    // Nonfiction editorial instructions leaked into prose — SYNCED with code-level sanitizer (v12.9)
+    /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]{5,}/gi,
+    /\bUse '([^']+)' or [^.!?\n]{5,}/gi,
+    /\bor (clearly |)label as[^.!?\n]*(representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi,
+    /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi,
+    /\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi,
+    // Fusion pattern: instruction flows into prose via comma
+    /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Label as|Anchor to|Source to|Cite specific|Use documented|Remove atmospheric|Remove fictional|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*[a-z]/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
@@ -709,7 +684,7 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
-  const systemPrompt = `You are a prose editor. Fix ONLY the violations listed below. Do NOT rewrite prose that isn't flagged. Preserve the author's voice, sentence structure, and word count. Output ONLY the corrected chapter text — no commentary.\n\n${isNonfiction ? 'NONFICTION RULES:\n- No melodrama, no journey metaphors, no thesis restatements in endings. Replace with documented evidence or specific detail.\n- INSTRUCTION LEAKS: If any sentence begins with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide," or "Label as" — DELETE that sentence entirely and replace it with actual prose that follows the instruction.\n- UNLABELED RECONSTRUCTIONS: If a scene presents a historical reconstruction as if it were documented fact, add framing like "Contemporary accounts describe..." or "Based on testimony from the period..."\n- PADDING: If consecutive paragraphs repeat the same point with synonym substitution, merge them into a single tighter paragraph.\n- REAL PERSON FACTS: Do NOT fabricate deaths, suicides, medical records, or legal events for named real people. If unsure, use general language.' : ''}`;
+  const systemPrompt = `You are a prose editor. Fix ONLY the violations listed below. Do NOT rewrite prose that isn't flagged. Preserve the author's voice, sentence structure, and word count. Output ONLY the corrected chapter text — no commentary.\n\n${isNonfiction ? 'NONFICTION RULES:\n- No melodrama, no journey metaphors, no thesis restatements in endings. Replace with documented evidence or specific detail.\n- INSTRUCTION LEAKS: If any sentence contains these trigger phrases, DELETE the instruction and replace with actual prose: "Remove specific," "Remove atmospheric," "Remove invented," "Remove fictional," "Replace with documented," "Either identify," "Either cite," "Either provide," "Either name," "Either source," "Either use," "Frame as," "Use general," "Use documented," "Provide documentary," "Provide specific," "Provide real," "Label as," "Anchor to," "Source to," "Cite specific," "Cite actual," "Verify and cite," "Insert documented." Also catch fused instructions where editorial text flows into prose without punctuation.\n- UNLABELED RECONSTRUCTIONS: If a scene presents a historical reconstruction as if it were documented fact, add framing like "Contemporary accounts describe..." or "Based on testimony from the period..."\n- PADDING: If consecutive paragraphs repeat the same point with synonym substitution, merge them into a single tighter paragraph.\n- REAL PERSON FACTS: Do NOT fabricate deaths, suicides, medical records, or legal events for named real people. If unsure, use general language.' : ''}`;
 
   const userMessage = `VIOLATIONS TO FIX:\n${violationBrief}\n\nCHAPTER TEXT:\n${prose}`;
 
