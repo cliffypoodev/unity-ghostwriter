@@ -877,6 +877,18 @@ Deno.serve(async (req) => {
     if (!project_id || !chapter_id) return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
 
     const result = await runStyleEnforcer(base44, project_id, chapter_id, prose, continuity_fixes);
+
+    // Save corrected prose back to chapter if violations were fixed
+    if (result.clean_prose && result.violations_found > 0) {
+      try {
+        await base44.entities.Chapter.update(chapter_id, { content: result.clean_prose });
+        result.saved = true;
+      } catch (saveErr) {
+        console.warn('Failed to save fixed prose:', saveErr.message);
+        result.saved = false;
+      }
+    }
+
     return Response.json(result);
   } catch (error) {
     console.error('styleEnforcer error:', error.message);
