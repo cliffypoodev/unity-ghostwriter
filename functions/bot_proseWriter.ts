@@ -18,15 +18,14 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4,  maxTokensLimit: null },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9,  maxTokensLimit: null },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7,  maxTokensLimit: 4096 },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.0-flash", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
-  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
@@ -68,12 +67,12 @@ function isRefusal(text) {
 }
 
 // ═══ INLINED: shared/resolveModel ═══
-const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'trinity', consistency_check:'trinity', style_rewrite:'trinity', chapter_state:'trinity', sfw_handoff_check:'trinity' };
+const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'claude-sonnet', consistency_check:'claude-sonnet', style_rewrite:'claude-sonnet', chapter_state:'claude-sonnet', sfw_handoff_check:'claude-sonnet' };
 function resolveModel(callType, spec) {
   if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
   if (callType === 'explicit_scene') return 'deepseek-chat';
-  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'trinity';
-  return spec?.writing_model || spec?.ai_model || 'trinity';
+  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
+  return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
 }
 
 // ═══ INLINED: shared/dataLoader ═══
@@ -897,7 +896,7 @@ function buildProsePrompt(ctx, chCtx) {
   const { chapter, outlineEntry, previousChapters, lastStateDoc, scenes, isLastChapter, isFirstChapter } = chCtx;
 
   const targetLength = spec?.target_length || 'medium';
-  const wordTarget = WORDS_PER_CHAPTER[targetLength] || 1600;
+  const wordTarget = WORDS_PER_CHAPTER[targetLength] || 3500;
   const beatInstructions = getBeatStyleInstructions(spec?.beat_style || spec?.tone_style || '');
 
   const spiceLevel = parseInt(spec?.spice_level) || 0;
@@ -1078,7 +1077,7 @@ async function runProseWriter(base44, projectId, chapterId) {
   const chCtx = getChapterContext(ctx, chapterId);
 
   // Determine model
-  const isExplicit = Array.isArray(chCtx.scenes) && chCtx.scenes.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
+  const isExplicit = chCtx.scenes?.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
   const callType = isExplicit ? 'explicit_scene' : 'sfw_prose';
   const modelKey = resolveModel(callType, ctx.spec);
 
@@ -1098,6 +1097,31 @@ async function runProseWriter(base44, projectId, chapterId) {
   } catch (err) {
     console.error(`ProseWriter primary call failed: ${err.message}`);
     throw err;
+  }
+
+  // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
+  // If model returns less than 60% of target, ask it to continue (up to 3 times)
+  const minAcceptable = Math.round(wordTarget * 0.6);
+  for (let contAttempt = 0; contAttempt < 3; contAttempt++) {
+    const currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
+    if (currentWords >= minAcceptable) break;
+    console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation attempt ${contAttempt + 1}...`);
+    try {
+      const continueMessage = `You wrote ${currentWords} words but the target is ${wordTarget} words. You are only ${Math.round(currentWords/wordTarget*100)}% done. Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${wordTarget - currentWords} more words.`;
+      const continuation = await callAI(modelKey, systemPrompt, continueMessage + '\n\nSTORY SO FAR (continue from the end):\n' + rawProse.slice(-500), {
+        maxTokens: 16384,
+        temperature: 0.72,
+      });
+      if (continuation && !isRefusal(continuation)) {
+        const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing)[^\n]*\n+/i, '').trim();
+        rawProse = rawProse + '\n\n' + cleanCont;
+      } else {
+        break;
+      }
+    } catch (contErr) {
+      console.warn(`Continuation ${contAttempt + 1} failed:`, contErr.message);
+      break;
+    }
   }
 
   // Check for refusal — retry once with fallback model
