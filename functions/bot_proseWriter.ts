@@ -118,18 +118,41 @@ async function loadProjectContext(base44, projectId) {
 }
 
 // ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
-// CODE-LEVEL: Strips editorial directions from chapter prompts/summaries BEFORE the AI sees them.
+// CODE-LEVEL: Strips editorial directions from ALL data BEFORE the AI sees them AND from output.
 const NF_SANITIZE_RX = [
-  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Frame as|Use general|Provide documentary|Provide specific|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific)\b[^.!?\n]*[.!?\n]/gi,
-  /\bUse '([^']+)' or cite[^.!?\n]*[.!?\n]/gi,
-  /\bor (clearly |)label as[^.!?\n]*[.!?\n]/gi,
-  /\bor (remove|begin with|provide|cite|frame)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite)[^.!?\n]*[.!?\n]/gi,
+  // Primary triggers — sentences starting with editorial verbs
+  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gi,
+  // "Use 'X' or cite..." pattern
+  /\bUse '([^']+)' or [^.!?\n]*([.!?\n]|$)/gi,
+  // "or label as" / "or clearly label"
+  /\bor (clearly |)label as[^.!?\n]*([.!?\n]|$)/gi,
+  // "or remove/provide/cite..." with documentary/fictional qualifiers
+  /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi,
+  // Catch standalone sentences that are pure instructions
+  /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
+  // Catch "Contemporary accounts describe similar offices as..." meta-framing instructions
+  /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
 ];
+
 function sanitizeNFPrompt(text) {
   if (!text) return text;
+  if (typeof text !== 'string') { try { return JSON.stringify(text); } catch { return String(text); } }
   let c = text;
   for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
-  return c.replace(/\s{2,}/g, ' ').trim();
+  return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
+}
+
+// Sanitize any JSON-serializable data (arrays, objects) recursively
+function sanitizeNFData(data) {
+  if (!data) return data;
+  if (typeof data === 'string') return sanitizeNFPrompt(data);
+  if (Array.isArray(data)) return data.map(item => sanitizeNFData(item));
+  if (typeof data === 'object') {
+    const cleaned = {};
+    for (const [k, v] of Object.entries(data)) cleaned[k] = sanitizeNFData(v);
+    return cleaned;
+  }
+  return data;
 }
 
 function getChapterContext(ctx, chapterId) {
@@ -489,17 +512,23 @@ When writing about NAMED REAL PEOPLE, you MUST NOT:
 - Invent specific quotes and attribute them to real named individuals
 - Fabricate legal cases, court testimony, or depositions involving real people
 - Create fictional diary entries, letters, or personal correspondence attributed to real people
-If you are unsure how a real person died, DO NOT describe their death in specific terms. Use general language: "Their later years were marked by declining health" rather than inventing a suicide scene.
+This rule applies to ALL named individuals — not just famous people. Do NOT invent specific judges, doctors, detectives, or other minor figures with full names and fabricated career details. If you need a supporting figure and don't have a real documented name, use their ROLE only: "a studio physician," "a Los Angeles judge," "a private investigator employed by the studio."
+WRONG: "Judge William Harrison presided over seventeen cases with a zero percent conviction rate."
+RIGHT: "Judges hearing cases involving major studios faced pressure from multiple directions."
 If the knowledge base provides verified facts about a person, USE THOSE. If it doesn't, DO NOT INVENT specifics.
 
-RULE 7 — RECONSTRUCTION LABELING:
+RULE 7 — RECONSTRUCTION AND COMPOSITE LABELING:
 When you write a scene that reconstructs historical events (dialogue, settings, actions), you MUST signal to the reader that this is a reconstruction:
 - "Contemporary accounts describe scenes where..." 
 - "Based on testimony from the period, such encounters typically began..."
 - "The exchange, reconstructed from court records, went something like..."
 - "Witnesses later described a scene in which..."
-Do NOT present reconstructed scenes as though you were present or as though the specific details are documented fact. The reader must always understand the difference between documented evidence and narrative reconstruction.
-Exception: If the scene IS documented (court transcript, published memoir, recorded interview), cite the source and present it directly.
+COMPOSITE CHARACTERS: If you create a composite character to represent documented patterns (e.g., a typical aspiring actress, a generic fixer), you MUST label them as composites:
+- "Betty Anne Kowalski is a composite figure, drawn from the documented experiences of dozens of young women who arrived in Hollywood during this period."
+- "The following case study combines elements from multiple documented incidents."
+Do NOT present composite characters with specific identifying details (exact dollar amounts, specific addresses, named family members) that make them appear to be real documented individuals.
+WRONG: presenting "Arthur Madison, Legal Counsel" as a real person with a brass nameplate and specific career history
+RIGHT: "Fixers like the ones studios retained operated from unmarked offices..." or clearly labeling: "Arthur Madison is a composite based on documented studio fixers of the era."
 
 RULE 8 — NO REPETITIVE PADDING:
 Each paragraph in a chapter must advance a NEW point, introduce NEW evidence, or provide a NEW perspective. Do NOT:
@@ -507,7 +536,18 @@ Each paragraph in a chapter must advance a NEW point, introduce NEW evidence, or
 - Write 3-4 paragraphs of general analysis that all make the same point
 - Use phrases like "The impact was severe" followed by "The consequences were devastating" followed by "The toll was enormous" — these are the same sentence repeated
 - Pad chapters with generalized observations to hit word count targets
-If you've made a point, MOVE ON to new evidence or a new aspect of the argument. Cut ruthlessly. A tighter 2,000-word chapter beats a padded 3,000-word one.
+If you've made a point, MOVE ON to new evidence or a new aspect of the argument.
+
+RULE 9 — FINAL CHAPTER TONE:
+The final chapter of a nonfiction book should NOT read like a policy white paper or think-tank report. Do NOT:
+- List specific technological solutions (blockchain, AI monitoring, etc.)
+- Write prescriptive policy recommendations with bullet points
+- Shift into a completely different voice from the rest of the book
+Instead, the final chapter should:
+- Connect back to the opening chapter's themes and imagery
+- Reflect on what the investigation revealed
+- Give voice to survivors
+- Leave the reader with a resonant image or question, not a to-do list
 
 === END NONFICTION ABSOLUTE RULES ===
 
@@ -676,18 +716,19 @@ function buildUserStoryBibleContext(userBible, isNonfiction) {
   return parts.length > 0 ? parts.join('\n') : '';
 }
 
-function buildSceneContext(scenes) {
+function buildSceneContext(scenes, isNonfiction) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) return '';
+  const sf = (v) => isNonfiction ? sanitizeNFPrompt(v) : v; // sanitize field
   return 'SCENE BREAKDOWN:\n' + scenes.map((s, i) => {
     let line = `Scene ${i + 1}: "${s.title || 'Untitled'}"`;
-    if (s.location) line += ` — ${s.location}`;
+    if (s.location) line += ` — ${sf(s.location)}`;
     if (s.pov) line += ` [POV: ${s.pov}]`;
-    if (s.purpose) line += `\n  Purpose: ${s.purpose}`;
-    if (s.key_action) line += `\n  Key action: ${s.key_action}`;
-    if (s.emotional_arc) line += `\n  Arc: ${s.emotional_arc}`;
-    if (s.sensory_anchor) line += `\n  Open with: ${s.sensory_anchor}`;
-    if (s.dialogue_focus) line += `\n  Dialogue: ${s.dialogue_focus}`;
-    if (s.extra_instructions) line += `\n  Notes: ${s.extra_instructions}`;
+    if (s.purpose) line += `\n  Purpose: ${sf(s.purpose)}`;
+    if (s.key_action) line += `\n  Key action: ${sf(s.key_action)}`;
+    if (s.emotional_arc) line += `\n  Arc: ${sf(s.emotional_arc)}`;
+    if (s.sensory_anchor) line += `\n  Open with: ${sf(s.sensory_anchor)}`;
+    if (s.dialogue_focus) line += `\n  Dialogue: ${sf(s.dialogue_focus)}`;
+    if (s.extra_instructions) line += `\n  Notes: ${sf(s.extra_instructions)}`;
     if (s.word_target) line += `\n  Word target: ~${s.word_target}`;
     return line;
   }).join('\n\n');
@@ -920,11 +961,11 @@ Under no circumstances is an editorial note permitted inside prose.`);
     '',
     `CHAPTER ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"`,
     `Summary: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.summary || outlineEntry?.summary || 'No summary') : (chapter.summary || outlineEntry?.summary || 'No summary')}`,
-    `Key events: ${JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
+    `Key events: ${ctx.isNonfiction ? sanitizeNFPrompt(JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])) : JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
     chapter.prompt ? `Prompt: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.prompt) : chapter.prompt}` : '',
-    argumentProgression,
+    ctx.isNonfiction ? sanitizeNFPrompt(argumentProgression || '') : argumentProgression,
     '',
-    buildSceneContext(scenes),
+    buildSceneContext(scenes, ctx.isNonfiction),
     '',
     lastStateDoc ? `PREVIOUS STATE DOCUMENT:\n${lastStateDoc.slice(0, 3000)}` : '',
     '',
@@ -999,6 +1040,12 @@ async function runProseWriter(base44, projectId, chapterId) {
       .replace(/^#{1,4}\s*CHAPTER\s*\d+[:\-—]?\s*[^\n]*/gmi, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+  }
+
+  // ═══ OUTPUT-SIDE NF SANITIZER ═══
+  // Final belt: strip any editorial instructions that survived the AI generation
+  if (rawProse && ctx.isNonfiction) {
+    rawProse = sanitizeNFPrompt(rawProse);
   }
 
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
