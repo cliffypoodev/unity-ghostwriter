@@ -389,14 +389,25 @@ function scanInstructionLeaks(text) {
     /indicate if this is intentional/gi,
     /should (I|we) (continue|complete|finish|expand)/gi,
     /this (section|chapter|scene) (is |appears |seems )?(incomplete|unfinished|truncated)/gi,
-    // Nonfiction editorial instructions leaked into prose — SYNCED with code-level sanitizer (v12.9)
-    /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]{5,}/gi,
-    /\bUse '([^']+)' or [^.!?\n]{5,}/gi,
+    // Nonfiction editorial instructions — prose-safe patterns requiring editorial context (v12.9b)
+    /\bRemove specific \w+ or (cite|provide|anchor|source|use)/gi,
+    /\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)/gi,
+    /\bEither (identify|cite|name|source|provide|use) (the |a )?(specific|actual|real|documentary|documented)/gi,
+    /\bProvide (documentary|specific|archival|real) (source|evidence|documentation)/gi,
+    /\bReplace with documented (examples?|case stud|evidence|facts)/gi,
+    /\bUse general (timeframe|terms?|reference|description|language)/gi,
+    /\bUse documented (examples?|case stud|evidence|sources)/gi,
+    /\bLabel as (representative|illustrative|composite|general|reconstructed)/gi,
+    /\bFrame as (hypothetical|composite|reconstructed|general|illustrative)/gi,
+    /\bAnchor (to|these|this) (documented|real|specific|actual|verifiable)/gi,
+    /\bSource (to|this to) (actual|specific|documented|real)/gi,
+    /\bCite (specific|actual) (memoir|interview|archive|document|source|published)/gi,
+    /\bVerify and cite\b/gi,
+    /\bInsert documented\b/gi,
     /\bor (clearly |)label as[^.!?\n]*(representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi,
-    /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi,
+    /\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi,
     /\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi,
-    // Fusion pattern: instruction flows into prose via comma
-    /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Label as|Anchor to|Source to|Cite specific|Use documented|Remove atmospheric|Remove fictional|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*[a-z]/gi,
+    /\bUse '([^']+)' or [^.!?\n]{5,}/gi,
   ];
   for (const rx of LEAK_PATTERNS) {
     const m = text.match(rx);
