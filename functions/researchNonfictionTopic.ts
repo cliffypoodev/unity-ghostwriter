@@ -1,12 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Anthropic web_search native tool for nonfiction research grounding.
+// Gemini Pro with grounding (web search) for nonfiction research.
 // Input: { topic, subject, genre, subgenre, scope }
 // Output: { facts, timeline, keyFigures, sources, contextSummary }
 
 async function doResearch(topic, subject, genre, subgenre, scope) {
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
 
   const researchPrompt = `You are a research assistant preparing factual grounding for a nonfiction book.
 
@@ -16,7 +16,7 @@ Topic: ${topic || 'Not specified'}
 ${subject ? `Chapter Focus: ${subject}` : ''}
 ${scope ? `Scope: ${scope}` : ''}
 
-Use web search to gather accurate, current facts. Then return ONLY a JSON object with no preamble, no markdown fences, in this exact structure:
+Use your knowledge and grounding to gather accurate, current facts. Then return ONLY a JSON object with no preamble, no markdown fences, in this exact structure:
 
 {
   "facts": [
@@ -37,55 +37,63 @@ Use web search to gather accurate, current facts. Then return ONLY a JSON object
 
 Return 8-12 facts, 4-8 timeline entries, 3-6 key figures, and 3-5 sources. Return ONLY the JSON object.`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-        }
-      ],
-      messages: [{ role: 'user', content: researchPrompt }],
-    }),
-  });
+  const response = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: researchPrompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 4096,
+        },
+      }),
+    }
+  );
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error('Anthropic web search error: ' + (data.error?.message || response.status));
+    throw new Error('Gemini Pro error: ' + (data.error?.message || response.status));
   }
 
-  // Extract the final text block (Claude returns tool_use blocks + final text)
-  const textBlock = (data.content || [])
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('');
+  // Extract text from response
+  const textBlock = data?.candidates?.[0]?.content?.parts
+    ?.filter(p => p.text)
+    ?.map(p => p.text)
+    ?.join('') || '';
 
   if (!textBlock) {
-    throw new Error('No text response from web search');
+    throw new Error('No text response from Gemini Pro');
   }
 
   // Strip any accidental markdown fences
   const clean = textBlock.replace(/```json|```/g, '').trim();
 
+  // Extract JSON object
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.warn('Research JSON extraction failed, returning contextSummary only');
+    return {
+      facts: [],
+      timeline: [],
+      keyFigures: [],
+      sources: [],
+      contextSummary: clean.slice(0, 500),
+    };
+  }
+
   try {
-    return JSON.parse(clean);
+    return JSON.parse(jsonMatch[0]);
   } catch {
-    // Fallback: return partial data rather than crash
     console.warn('Research JSON parse failed, returning contextSummary only');
     return {
       facts: [],
       timeline: [],
       keyFigures: [],
       sources: [],
-      contextSummary: textBlock.slice(0, 500),
+      contextSummary: clean.slice(0, 500),
     };
   }
 }
