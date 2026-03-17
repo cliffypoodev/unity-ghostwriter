@@ -1078,7 +1078,7 @@ async function runProseWriter(base44, projectId, chapterId) {
   const chCtx = getChapterContext(ctx, chapterId);
 
   // Determine model
-  const isExplicit = chCtx.scenes?.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
+  const isExplicit = Array.isArray(chCtx.scenes) && chCtx.scenes.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
   const callType = isExplicit ? 'explicit_scene' : 'sfw_prose';
   const modelKey = resolveModel(callType, ctx.spec);
 
