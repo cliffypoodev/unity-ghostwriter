@@ -13,10 +13,11 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4,  maxTokensLimit: null },
   "gemini-pro":        { provider: "google",    modelId: "gemini-2.0-flash", defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
+  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
@@ -39,6 +40,11 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
     const d = await r.json(); if (!r.ok) throw new Error('DeepSeek: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
   }
+  if (provider === "openrouter") {
+    const orKey = Deno.env.get('OPENROUTER_API_KEY');
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('OpenRouter: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
+  }
   throw new Error('Unknown provider: ' + provider);
 }
 
@@ -49,12 +55,12 @@ function isRefusal(text) {
 }
 
 // ═══ INLINED: shared/resolveModel ═══
-const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'claude-sonnet', consistency_check:'claude-sonnet', style_rewrite:'claude-sonnet', chapter_state:'claude-sonnet' };
+const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'trinity', consistency_check:'trinity', style_rewrite:'trinity', chapter_state:'trinity' };
 function resolveModel(callType, spec) {
   if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
   if (callType === 'explicit_scene') return 'deepseek-chat';
-  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
-  return 'claude-sonnet';
+  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'trinity';
+  return 'trinity';
 }
 
 // ═══ RETRY HELPER for SDK rate limits ═══

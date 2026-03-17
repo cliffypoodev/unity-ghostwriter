@@ -10,9 +10,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 const MODEL_MAP = {
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-pro": { provider: "google", modelId: "gemini-2.0-flash", defaultTemp: 0.72, maxTokensLimit: null },
+  "trinity": { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
@@ -25,6 +26,11 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
     const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status)); return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+  if (provider === "openrouter") {
+    const orKey = Deno.env.get('OPENROUTER_API_KEY');
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
+    const d = await r.json(); if (!r.ok) throw new Error('OpenRouter: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
   }
   throw new Error('Unknown provider: ' + provider);
 }
@@ -59,7 +65,7 @@ function stripLeakedInstructions(text) {
 }
 
 // ═══ INLINED: shared/resolveModel ═══
-function resolveModel(callType) { return 'claude-sonnet'; }
+function resolveModel(callType) { return 'trinity'; }
 
 // ═══ RETRY HELPER for SDK rate limits ═══
 async function withRetry(fn, retries = 3) {
