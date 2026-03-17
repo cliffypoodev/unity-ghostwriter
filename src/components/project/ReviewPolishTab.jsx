@@ -418,7 +418,7 @@ export default function ReviewPolishTab({ projectId }) {
         scannedAt: new Date().toISOString(),
       });
     } finally { setScanning(false); }
-  }, [generatedChapters, tense]);
+  }, [projectId, tense]);
 
   const handlePolishChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
