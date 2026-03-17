@@ -22,10 +22,11 @@ const MODEL_MAP = {
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: null },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
@@ -67,12 +68,12 @@ function isRefusal(text) {
 }
 
 // ═══ INLINED: shared/resolveModel ═══
-const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'claude-sonnet', consistency_check:'claude-sonnet', style_rewrite:'claude-sonnet', chapter_state:'claude-sonnet', sfw_handoff_check:'claude-sonnet' };
+const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'trinity', consistency_check:'trinity', style_rewrite:'trinity', chapter_state:'trinity', sfw_handoff_check:'trinity' };
 function resolveModel(callType, spec) {
   if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
   if (callType === 'explicit_scene') return 'deepseek-chat';
-  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
-  return spec?.writing_model || spec?.ai_model || 'claude-sonnet';
+  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'trinity';
+  return spec?.writing_model || spec?.ai_model || 'trinity';
 }
 
 // ═══ INLINED: shared/dataLoader ═══
@@ -1126,10 +1127,10 @@ async function runProseWriter(base44, projectId, chapterId) {
 
   // Check for refusal — retry once with fallback model
   if (isRefusal(rawProse)) {
-    console.warn(`ProseWriter: Refusal detected from ${modelKey} — retrying with claude-sonnet`);
+    console.warn(`ProseWriter: Refusal detected from ${modelKey} — retrying with gemini-pro`);
     refusalDetected = true;
     try {
-      rawProse = await callAI('claude-sonnet', systemPrompt, userMessage, {
+      rawProse = await callAI('gemini-pro', systemPrompt, userMessage, {
         maxTokens: 16384,
         temperature: 0.72,
       });
