@@ -11,16 +11,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 // ═══ INLINED: shared/aiRouter ═══
 const MODEL_MAP = {
   "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
+  "claude-haiku":      { provider: "anthropic", modelId: "claude-haiku-4-5-20251001", defaultTemp: 0.72, maxTokensLimit: null },
   "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514",   defaultTemp: 0.72, maxTokensLimit: null },
   "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5",          defaultTemp: 0.72, maxTokensLimit: null },
   "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5",        defaultTemp: 0.72, maxTokensLimit: null },
   "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5",         defaultTemp: 0.72, maxTokensLimit: null },
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4,  maxTokensLimit: null },
+  "gpt-4o-mini":       { provider: "openai",    modelId: "gpt-4o-mini",              defaultTemp: 0.4,  maxTokensLimit: null },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9,  maxTokensLimit: null },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7,  maxTokensLimit: 4096 },
   "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
+  "deepseek":          { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "lumimaid":          { provider: "openrouter", modelId: "neversleep/llama-3-lumimaid-70b", defaultTemp: 0.72, maxTokensLimit: 8192 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
