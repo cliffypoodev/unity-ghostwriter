@@ -208,9 +208,11 @@ Deno.serve(async (req) => {
     let raw;
     try {
       raw = await callAI('gemini', systemPrompt, userMessage);
+      console.log('Gemini raw length:', raw?.length, 'first 300:', raw?.slice(0, 300));
     } catch (primaryErr) {
       console.warn('Gemini failed, trying OpenRouter DeepSeek:', primaryErr.message);
       raw = await callOpenRouter(systemPrompt, userMessage);
+      console.log('OpenRouter raw length:', raw?.length, 'first 300:', raw?.slice(0, 300));
     }
 
     let storyBible;
