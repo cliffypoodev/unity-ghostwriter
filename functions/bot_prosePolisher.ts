@@ -119,14 +119,25 @@ const FICTION_TELLS = [
 
 // Nonfiction-specific polish targets
 const NF_POLISH_TARGETS = [
-  // Instruction leaks — MUST match the same patterns as the code-level sanitizer
-  [/\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gim, 'INSTRUCTION LEAK: editorial directive in prose'],
-  [/\bUse '([^']+)' or [^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: Use quoted example or...'],
-  [/\bor (clearly |)label as[^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: or label as...'],
-  [/\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: or remove/cite fictional/documented...'],
-  [/\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: meta-framing instruction'],
-  // Fusion pattern: instruction flows into prose via comma
-  [/\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi, 'INSTRUCTION LEAK: fused instruction-prose'],
+  // Instruction leaks — prose-safe patterns requiring editorial context (v12.9b)
+  [/\bRemove specific \w+ or (cite|provide|anchor|source|use)/gi, 'INSTRUCTION LEAK: Remove specific X or cite...'],
+  [/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)/gi, 'INSTRUCTION LEAK: Remove atmospheric/invented...'],
+  [/\bEither (identify|cite|name|source|provide|use) (the |a )?(specific|actual|real|documentary|documented)/gi, 'INSTRUCTION LEAK: Either cite/provide specific...'],
+  [/\bProvide (documentary|specific|archival|real) (source|evidence|documentation)/gi, 'INSTRUCTION LEAK: Provide documentary source...'],
+  [/\bReplace with documented (examples?|case stud|evidence|facts)/gi, 'INSTRUCTION LEAK: Replace with documented...'],
+  [/\bUse general (timeframe|terms?|reference|description|language)/gi, 'INSTRUCTION LEAK: Use general timeframe...'],
+  [/\bUse documented (examples?|case stud|evidence|sources)/gi, 'INSTRUCTION LEAK: Use documented examples...'],
+  [/\bLabel as (representative|illustrative|composite|general|reconstructed)/gi, 'INSTRUCTION LEAK: Label as composite...'],
+  [/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)/gi, 'INSTRUCTION LEAK: Frame as hypothetical...'],
+  [/\bAnchor (to|these|this) (documented|real|specific|actual|verifiable)/gi, 'INSTRUCTION LEAK: Anchor to documented...'],
+  [/\bSource (to|this to) (actual|specific|documented|real)/gi, 'INSTRUCTION LEAK: Source to actual...'],
+  [/\bCite (specific|actual) (memoir|interview|archive|document|source|published)/gi, 'INSTRUCTION LEAK: Cite specific source...'],
+  [/\bVerify and cite\b/gi, 'INSTRUCTION LEAK: Verify and cite...'],
+  [/\bInsert documented\b/gi, 'INSTRUCTION LEAK: Insert documented...'],
+  [/\bor (clearly |)label as[^.!?\n]*(representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi, 'INSTRUCTION LEAK: or label as composite...'],
+  [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, 'INSTRUCTION LEAK: or remove/cite...'],
+  [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: meta-framing instruction'],
+  [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: Use quoted example or...'],
   // Padding phrases
   [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
   [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
