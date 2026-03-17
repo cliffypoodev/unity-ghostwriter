@@ -40,6 +40,26 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
   }
 }
 
+async function callOpenRouter(systemPrompt, userMessage, maxTokens = 4096) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000);
+  try {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + Deno.env.get('OPENROUTER_API_KEY') },
+      body: JSON.stringify({ model: 'deepseek/deepseek-chat', max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!r.ok) { const err = await r.text(); throw new Error('OpenRouter: ' + err); }
+    const d = await r.json();
+    return d.choices?.[0]?.message?.content || '';
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
 function safeParseJSON(raw) {
   let cleaned = raw.trim();
   // Strip markdown code fences
