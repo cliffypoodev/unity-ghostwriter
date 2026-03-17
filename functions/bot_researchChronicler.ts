@@ -10,19 +10,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 // ═══ INLINED: shared/aiRouter (compact) ═══
 const MODEL_MAP = {
-  "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
-  "gemini-pro": { provider: "google", modelId: "gemini-2.0-flash", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro", defaultTemp: 0.72, maxTokensLimit: null },
 };
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-pro"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
   if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
-  if (provider === "anthropic") {
-    const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }) });
-    const d = await r.json(); if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status)); return d.content[0].text;
-  }
   if (provider === "google") {
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
