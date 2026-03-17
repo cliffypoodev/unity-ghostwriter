@@ -88,6 +88,9 @@ export default function Layout({ children }) {
                 >
                   Delete Project
                 </DropdownMenuItem>
+                <div className="px-2 py-1.5 border-t border-slate-100 mt-1">
+                  <span className="text-[10px] text-slate-400 font-mono">v13.0</span>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
