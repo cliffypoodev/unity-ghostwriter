@@ -118,8 +118,8 @@ const FICTION_TELLS = [
 ];
 
 // Nonfiction-specific polish targets
-const NF_POLISH_TARGETS = [
-  // Instruction leaks — prose-safe patterns requiring editorial context (v12.9b)
+// General instruction leak patterns — run for ALL genres
+const GENERAL_INSTRUCTION_LEAKS = [
   [/\bRemove specific \w+ or (cite|provide|anchor|source|use)/gi, 'INSTRUCTION LEAK: Remove specific X or cite...'],
   [/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)/gi, 'INSTRUCTION LEAK: Remove atmospheric/invented...'],
   [/\bEither (identify|cite|name|source|provide|use) (the |a )?(specific|actual|real|documentary|documented)/gi, 'INSTRUCTION LEAK: Either cite/provide specific...'],
@@ -138,13 +138,20 @@ const NF_POLISH_TARGETS = [
   [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, 'INSTRUCTION LEAK: or remove/cite...'],
   [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: meta-framing instruction'],
   [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, 'INSTRUCTION LEAK: Use quoted example or...'],
-  // No-comma fusion: instruction flows directly into prose
   [/\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi, 'INSTRUCTION LEAK: fused instruction-prose'],
-  // Padding phrases
+  // General fiction/NF leaks — scene directions printed verbatim
+  [/^(Begin with|Open with|Start with|Transition to|Transition from|Continue from|Describe how|Establish the) [^.!?\n]{10,}/gim, 'INSTRUCTION LEAK: scene direction printed as prose'],
+  [/\bas (instructed|requested|specified) (in|by) the (prompt|system|outline|beat)/gi, 'INSTRUCTION LEAK: meta-reference to prompt/system'],
+  [/\bper the (outline|beat sheet|specification|chapter prompt)/gi, 'INSTRUCTION LEAK: meta-reference to outline'],
+  [/\bcomplete the (chapter|scene|story|section) or indicate/gi, 'INSTRUCTION LEAK: AI continuation request'],
+  [/\bshould (I|we) (continue|complete|finish|expand)/gi, 'INSTRUCTION LEAK: AI asking to continue'],
+];
+
+// NF-specific polish targets — padding and filler (NF only)
+const NF_POLISH_TARGETS = [
   [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
   [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
   [/\bThe (human|personal|psychological|emotional) (cost|toll|price|burden) (of this|cannot|should not|extends)/gi, '"The human cost of..." repetitive framing'],
-  // Filler transitions
   [/\bThis (development|transformation|shift|change|evolution|arrangement|dynamic) (represented|constituted|marked|signaled|reflected)/gi, '"This development represented..." filler transition'],
 ];
 
@@ -164,6 +171,8 @@ function runRegexScan(text, isNonfiction) {
   scanGroup(RECAP_BLOAT, 'recap_bloat');
   scanGroup(LIST_AS_PROSE, 'list_as_prose');
   scanGroup(GENERIC_CONCLUSIONS, 'generic_conclusion');
+  // Instruction leaks — run for ALL genres
+  scanGroup(GENERAL_INSTRUCTION_LEAKS, 'instruction_leak');
   if (!isNonfiction) { scanGroup(FICTION_TELLS, 'fiction_cliche'); }
   if (isNonfiction) { scanGroup(NF_POLISH_TARGETS, 'nf_polish'); }
   return violations;
