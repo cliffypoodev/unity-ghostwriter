@@ -11,21 +11,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 // ═══ INLINED: shared/aiRouter ═══
 const MODEL_MAP = {
   "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
-  "claude-haiku":      { provider: "anthropic", modelId: "claude-haiku-4-5-20251001", defaultTemp: 0.72, maxTokensLimit: null },
   "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514",   defaultTemp: 0.72, maxTokensLimit: null },
   "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5",          defaultTemp: 0.72, maxTokensLimit: null },
   "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5",        defaultTemp: 0.72, maxTokensLimit: null },
   "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5",         defaultTemp: 0.72, maxTokensLimit: null },
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4,  maxTokensLimit: null },
-  "gpt-4o-mini":       { provider: "openai",    modelId: "gpt-4o-mini",              defaultTemp: 0.4,  maxTokensLimit: null },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9,  maxTokensLimit: null },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7,  maxTokensLimit: 4096 },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
-  "deepseek":          { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
-  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
-  "lumimaid":          { provider: "openrouter", modelId: "neversleep/llama-3-lumimaid-70b", defaultTemp: 0.72, maxTokensLimit: 8192 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
@@ -122,8 +117,29 @@ async function loadProjectContext(base44, projectId) {
   return { project, chapters, spec, outline, outlineData, storyBible, userStoryBible, sourceFiles, globalSourceFiles, nameRegistry, bannedPhrases, chapterStateLog, totalChapters: chapters.length, isNonfiction: spec?.book_type === 'nonfiction', isFiction: spec?.book_type !== 'nonfiction', isErotica: /erotica|erotic/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) };
 }
 
-// ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
-// CODE-LEVEL: Strips editorial directions from ALL data BEFORE the AI sees them AND from output.
+// ═══ GENERAL INSTRUCTION SANITIZER (FICTION + NF) ═══
+// Catches scene directions, meta-comments, and structural instructions that appear in BOTH pipelines.
+const GENERAL_SANITIZE_RX = [
+  // Line-start scene directions printed verbatim
+  /^(Begin with|Show the|Continue from|Start with|Open with|Transition to|Transition from|Describe how|Establish the|Adjust the|Rewrite to|Address the|Include a|Ensure that|Note that|End with) [^.!?\n]*([.!?\n]|$)/gim,
+  // AI meta-comments
+  /\b(I'll|I will) (now |)(write|continue|complete|finish) (this |the |)(chapter|scene|section)[^.!?\n]*([.!?\n]|$)/gi,
+  /\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^.!?\n]*([.!?\n]|$)/gi,
+  /\[TODO[:\s][^\]]*\]/gi,
+  /\[VERIFY[:\s][^\]]*\]/gi,
+  // Structural directives
+  /\bas (instructed|requested|specified) (in|by) the (prompt|system|user|outline|beat)[^.!?\n]*([.!?\n]|$)/gi,
+  /\bper the (outline|beat sheet|specification|chapter prompt)[^.!?\n]*([.!?\n]|$)/gi,
+  /\bcomplete the (chapter|scene|story|section) or indicate[^.!?\n]*([.!?\n]|$)/gi,
+  /\bindicate if this is intentional[^.!?\n]*([.!?\n]|$)/gi,
+  /\bshould (I|we) (continue|complete|finish|expand)[^.!?\n]*([.!?\n]|$)/gi,
+  // Revision directives embedded in prose
+  /\b(Adjust|Rewrite|Address|Revise) the (year|name|time|date|setting|location|chapter|scene|timeline) to (be |match |reflect |align )[^.!?\n]*([.!?\n]|$)/gi,
+  /\bEnsure (this|the|that) (aligns|matches|is consistent) with[^.!?\n]*([.!?\n]|$)/gi,
+];
+
+// ═══ NF EDITORIAL INSTRUCTION SANITIZER (NF-ONLY PATTERNS) ═══
+// CODE-LEVEL: Strips NF-specific editorial directions from ALL data BEFORE the AI sees them AND from output.
 const NF_SANITIZE_RX = [
   // Primary triggers — sentences starting with editorial verbs
   /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gi,
@@ -137,32 +153,46 @@ const NF_SANITIZE_RX = [
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   // Catch "Contemporary accounts describe similar offices as..." meta-framing instructions
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
-  // FUSION PATTERN: instruction flows into prose via comma (e.g., "Use general timeframes..., her fifteenth day")
+  // FUSION PATTERN: instruction flows into prose via comma
   /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
-  // NO-COMMA FUSION: instruction flows into prose without any separator (e.g., "Remove specific age or cite the documented photograph with date hair catching")
+  // NO-COMMA FUSION: instruction flows into prose without any separator
   /\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi,
 ];
+
+function sanitizeGeneral(text) {
+  if (!text) return text;
+  if (typeof text !== 'string') { try { return JSON.stringify(text); } catch { return String(text); } }
+  let c = text;
+  for (const rx of GENERAL_SANITIZE_RX) c = c.replace(rx, '');
+  return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
+}
 
 function sanitizeNFPrompt(text) {
   if (!text) return text;
   if (typeof text !== 'string') { try { return JSON.stringify(text); } catch { return String(text); } }
   let c = text;
+  // Apply general first, then NF-specific
+  for (const rx of GENERAL_SANITIZE_RX) c = c.replace(rx, '');
   for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
   return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
 }
 
-// Sanitize any JSON-serializable data (arrays, objects) recursively
-function sanitizeNFData(data) {
+// Sanitize any JSON-serializable data (arrays, objects) recursively — uses genre-appropriate sanitizer
+function sanitizeData(data, isNonfiction) {
   if (!data) return data;
-  if (typeof data === 'string') return sanitizeNFPrompt(data);
-  if (Array.isArray(data)) return data.map(item => sanitizeNFData(item));
+  const fn = isNonfiction ? sanitizeNFPrompt : sanitizeGeneral;
+  if (typeof data === 'string') return fn(data);
+  if (Array.isArray(data)) return data.map(item => sanitizeData(item, isNonfiction));
   if (typeof data === 'object') {
     const cleaned = {};
-    for (const [k, v] of Object.entries(data)) cleaned[k] = sanitizeNFData(v);
+    for (const [k, v] of Object.entries(data)) cleaned[k] = sanitizeData(v, isNonfiction);
     return cleaned;
   }
   return data;
 }
+
+// Legacy alias for NF recursive sanitizer
+function sanitizeNFData(data) { return sanitizeData(data, true); }
 
 function getChapterContext(ctx, chapterId) {
   const chapter = ctx.chapters.find(c => c.id === chapterId);
@@ -182,18 +212,17 @@ function getChapterContext(ctx, chapterId) {
   let chapterBeat = null;
   if (ctx.outlineData?.beat_sheet) { const bs = ctx.outlineData.beat_sheet; const beats = Array.isArray(bs) ? bs : bs?.beats || []; chapterBeat = beats.find(b => (b.chapter_number || b.chapter) === chapter.chapter_number) || null; }
 
-  // ═══ BULK NF SANITIZATION — Kill instructions at load time across ALL data ═══
-  if (ctx.isNonfiction) {
-    // Sanitize chapter fields
-    if (chapter.summary) chapter.summary = sanitizeNFPrompt(chapter.summary);
-    if (chapter.prompt) chapter.prompt = sanitizeNFPrompt(chapter.prompt);
-    // Sanitize outline entry (all string fields)
-    outlineEntry = sanitizeNFData(outlineEntry);
-    // Sanitize scenes (entire object tree)
-    if (scenes) scenes = sanitizeNFData(scenes);
-    // Sanitize chapter beat
-    if (chapterBeat) chapterBeat = sanitizeNFData(chapterBeat);
-  }
+  // ═══ BULK SANITIZATION — Kill instructions at load time across ALL data (fiction + NF) ═══
+  const sanitizeFn = ctx.isNonfiction ? sanitizeNFPrompt : sanitizeGeneral;
+  // Sanitize chapter fields
+  if (chapter.summary) chapter.summary = sanitizeFn(chapter.summary);
+  if (chapter.prompt) chapter.prompt = sanitizeFn(chapter.prompt);
+  // Sanitize outline entry (all string fields)
+  outlineEntry = sanitizeData(outlineEntry, ctx.isNonfiction);
+  // Sanitize scenes (entire object tree)
+  if (scenes) scenes = sanitizeData(scenes, ctx.isNonfiction);
+  // Sanitize chapter beat
+  if (chapterBeat) chapterBeat = sanitizeData(chapterBeat, ctx.isNonfiction);
 
   return { chapter, chapterIndex, prevChapter, nextChapter, isLastChapter, isFirstChapter, outlineEntry, previousChapters, lastStateDoc, scenes, chapterBeat };
 }
@@ -775,7 +804,7 @@ function buildUserStoryBibleContext(userBible, isNonfiction) {
 
 function buildSceneContext(scenes, isNonfiction) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) return '';
-  const sf = (v) => isNonfiction ? sanitizeNFPrompt(v) : v; // sanitize field
+  const sf = (v) => isNonfiction ? sanitizeNFPrompt(v) : sanitizeGeneral(v); // sanitize for both genres
   return 'SCENE BREAKDOWN:\n' + scenes.map((s, i) => {
     let line = `Scene ${i + 1}: "${s.title || 'Untitled'}"`;
     if (s.location) line += ` — ${sf(s.location)}`;
@@ -1017,10 +1046,10 @@ Under no circumstances is an editorial note permitted inside prose.`);
     buildUserStoryBibleContext(ctx.userStoryBible, isNonfiction),
     '',
     `CHAPTER ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}"`,
-    `Summary: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.summary || outlineEntry?.summary || 'No summary') : (chapter.summary || outlineEntry?.summary || 'No summary')}`,
-    `Key events: ${ctx.isNonfiction ? sanitizeNFPrompt(JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])) : JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
-    chapter.prompt ? `Prompt: ${ctx.isNonfiction ? sanitizeNFPrompt(chapter.prompt) : chapter.prompt}` : '',
-    ctx.isNonfiction ? sanitizeNFPrompt(argumentProgression || '') : argumentProgression,
+    `Summary: ${chapter.summary || outlineEntry?.summary || 'No summary'}`,
+    `Key events: ${JSON.stringify(outlineEntry?.key_events || outlineEntry?.key_beats || [])}`,
+    chapter.prompt ? `Prompt: ${chapter.prompt}` : '',
+    argumentProgression || '',
     '',
     buildSceneContext(scenes, ctx.isNonfiction),
     '',
@@ -1048,8 +1077,7 @@ async function runProseWriter(base44, projectId, chapterId) {
   const chCtx = getChapterContext(ctx, chapterId);
 
   // Determine model
-  const scenesArr = Array.isArray(chCtx.scenes) ? chCtx.scenes : [];
-  const isExplicit = scenesArr.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
+  const isExplicit = chCtx.scenes?.some(s => s.extra_instructions?.includes('[EXPLICIT]'));
   const callType = isExplicit ? 'explicit_scene' : 'sfw_prose';
   const modelKey = resolveModel(callType, ctx.spec);
 
@@ -1100,10 +1128,10 @@ async function runProseWriter(base44, projectId, chapterId) {
       .trim();
   }
 
-  // ═══ OUTPUT-SIDE NF SANITIZER ═══
-  // Final belt: strip any editorial instructions that survived the AI generation
-  if (rawProse && ctx.isNonfiction) {
-    rawProse = sanitizeNFPrompt(rawProse);
+  // ═══ OUTPUT-SIDE SANITIZER (FICTION + NF) ═══
+  // Final belt: strip any instruction leaks that survived the AI generation
+  if (rawProse) {
+    rawProse = ctx.isNonfiction ? sanitizeNFPrompt(rawProse) : sanitizeGeneral(rawProse);
   }
 
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
