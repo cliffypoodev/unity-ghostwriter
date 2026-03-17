@@ -157,7 +157,7 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     status: 'generated',
     word_count: finalWordCount,
     generated_at: new Date().toISOString(),
-    quality_scan: qualityReport ? JSON.stringify(qualityReport) : '',
+    quality_scan: '',
   };
   try {
     await base44.entities.Chapter.update(chapterId, chapterUpdate);
