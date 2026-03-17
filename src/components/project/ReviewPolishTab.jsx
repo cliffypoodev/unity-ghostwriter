@@ -59,18 +59,14 @@ const PATTERNS = {
     [/\[TODO[:\s]/gi, "[TODO]"],
     [/as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi, "as instructed by the prompt"],
     [/per the (outline|beat sheet|specification)/gi, "per the outline/beat sheet"],
-    // NF editorial instruction leaks (v11.6)
-    [/\bRemove specific (day|time|date|location|details?|sensory|first-person|atmospheric)/gi, "Remove specific [X]..."],
-    [/\b(Anchor|anchor) (these|this|the) (detail|fact|claim)s? to/gi, "Anchor details to..."],
-    [/\bEither (cite|source|reference|identify) (the |a )?(specific|actual|real)/gi, "Either cite/identify the specific..."],
-    [/\bReplace with documented (examples?|historical|facts|evidence)/gi, "Replace with documented..."],
-    [/\bUse general (timeframe|terms|reference|description)/gi, "Use general [X]..."],
-    [/\bProvide (documentary|specific|archival) source/gi, "Provide documentary source..."],
-    [/\bLabel as (representative|illustrative|composite|general)/gi, "Label as representative..."],
-    [/\bFrame as (hypothetical|composite|reconstructed|general)/gi, "Frame as [X]..."],
-    [/\bor (clearly |)label as (representative|composite|illustrative)/gi, "or label as representative..."],
-    [/\bor (remove|begin with|provide|cite) (this |)(fictional|specific|actual|documented)/gi, "or remove/cite fictional/documented..."],
-    [/\bCite specific (memoir|interview|archive|document|published)/gi, "Cite specific [source]..."],
+    // NF editorial instruction leaks — SYNCED with code-level sanitizer (v12.8)
+    [/\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]{5,}/gi, "NF instruction leak: editorial directive in prose"],
+    [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, "NF instruction leak: Use quoted example or..."],
+    [/\bor (clearly |)label as (representative|composite|illustrative|reconstructed|atmospheric|hypothetical)/gi, "NF instruction leak: or label as..."],
+    [/\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, "NF instruction leak: or remove/cite..."],
+    [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, "NF instruction leak: meta-framing"],
+    // Fusion pattern: instruction flows into prose via comma
+    [/\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Label as|Anchor to|Source to|Cite specific|Use documented|Remove atmospheric|Remove fictional|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*[a-z]/gi, "NF instruction leak: fused instruction-prose"],
   ],
   tense_past_drift: [
     [/\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi, "present-tense verb in past-tense narrative"],
