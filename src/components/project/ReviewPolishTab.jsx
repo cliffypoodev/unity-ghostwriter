@@ -347,6 +347,7 @@ function ChapterCard({ chapter, findings, words, targetWords, onPolish, onFix, o
 // ═══ MAIN COMPONENT ═══
 
 export default function ReviewPolishTab({ projectId }) {
+  const queryClient = useQueryClient();
   const [scanResults, setScanResults] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [polishing, setPolishing] = useState({});
