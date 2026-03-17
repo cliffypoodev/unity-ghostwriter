@@ -39,6 +39,8 @@ const STRIP_LEAK_RX = [
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
   /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
+  // NO-COMMA FUSION: instruction flows directly into prose
+  /\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi,
 ];
 function stripLeakedInstructions(text) {
   if (!text) return text;
@@ -667,6 +669,60 @@ function scanMetaResponse(text) {
   return [];
 }
 
+// ═══ NF FABRICATED CITATION SCANNER ═══
+function scanFabricatedCitations(text) {
+  const violations = [];
+  const FABRICATED_PATTERNS = [
+    [/\bcase (?:number|no\.?|#)\s*\d{2,}[-–]\d+/gi, 'Fabricated case number'],
+    [/\bpublished in (?:the )?(?:Journal|Bulletin|Review|Quarterly|Annals) of [A-Z][a-z]+ [A-Z][a-z]+(?:\s+in \d{4})/gi, 'Fabricated journal citation'],
+    [/\bFBI (?:memo|file|report|document) (?:dated|from|of) (?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2},?\s*\d{4}/gi, 'Fabricated FBI document with specific date'],
+    [/\b(?:FOIA|Freedom of Information) (?:request|release)s? (?:in|from|of) (?:the )?\d{4}s?\b/gi, 'Potentially fabricated FOIA reference'],
+    [/\barchive (?:box|folder|file) (?:number|no\.?|#)\s*\d+/gi, 'Fabricated archive reference number'],
+    [/\b\d+ interconnected operations?\b.*\b(?:FBI|federal|LAPD)\b/gi, 'Fabricated law enforcement statistic'],
+  ];
+  for (const [rx, label] of FABRICATED_PATTERNS) {
+    const m = text.match(rx);
+    if (m) violations.push({ type: 'nf_fabricated_citation', label: `FABRICATED CITATION: ${label}: "${m[0].slice(0, 80)}"`, count: m.length, max: 0, fixed: false, severity: 'critical' });
+  }
+  return violations;
+}
+
+// ═══ NF COMPOSITE CHARACTER SCANNER ═══
+// Detects full names (First Last) that appear multiple times but are NOT in the story bible
+function scanCompositeCharacters(text, storyBible) {
+  const violations = [];
+  // Build list of known real names from story bible
+  const knownNames = new Set();
+  if (storyBible) {
+    const chars = storyBible.characters || storyBible.key_figures || [];
+    for (const c of chars) {
+      if (c.name) knownNames.add(c.name.toLowerCase().trim());
+    }
+  }
+  // Also add well-known historical figures that appear frequently in NF
+  const KNOWN_FIGURES = ['harry cohn','louis b. mayer','louis mayer','jack warner','irving thalberg','rita hayworth','marilyn monroe','norma jeane','joan crawford','hedda hopper','louella parsons','clark gable','loretta young','judy garland','rock hudson','henry willson','kim novak','frank orsatti','eddie mannix','howard strickling','dalton trumbo','ring lardner','elia kazan','otto preminger','bette davis','frank capra','orson welles','joseph breen','will hays','charlie chaplin','montgomery clift','elizabeth taylor','sammy davis','dorothy dandridge','lana turner','errol flynn','gale sondergaard','john garfield','clifford odets','larry parks','harvey weinstein','rose mcgowan','ashley judd','judy lewis','phyllis gates','jack navaar','joe brandt','willie bioff','george browne','frank nitti','johnny roselli','robert harrison','david thomson','neal gabler','mark griffin','christina crawford','cheryl crane','david bret','roy newquist','james stewart','burt lancaster','doris day','jane wyman','arthur miller','joe dimaggio','roberto rossellini','ingrid bergman','ben lyon','tom lewis','william desmond taylor','wallace reid','fatty arbuckle','alyssa milano','tarana burke','jodi kantor','megan twohey','bill cosby','billy wilder','howard hawks'];
+  for (const name of KNOWN_FIGURES) knownNames.add(name);
+
+  // Find all "First Last" patterns (capitalized first + capitalized last) appearing 2+ times
+  const fullNameRx = /\b([A-Z][a-z]{2,})\s+([A-Z][a-z]{2,})\b/g;
+  const nameCounts = {};
+  let match;
+  while ((match = fullNameRx.exec(text)) !== null) {
+    const name = `${match[1]} ${match[2]}`;
+    const lower = name.toLowerCase();
+    if (!knownNames.has(lower)) {
+      nameCounts[name] = (nameCounts[name] || 0) + 1;
+    }
+  }
+  // Flag names appearing 3+ times that aren't in the known list
+  for (const [name, count] of Object.entries(nameCounts)) {
+    if (count >= 3) {
+      violations.push({ type: 'nf_composite_character', label: `POSSIBLE COMPOSITE: "${name}" appears ${count}x but is not in the story bible. If composite, label as such. If real, verify.`, count, max: 0, fixed: false, severity: 'warning' });
+    }
+  }
+  return violations;
+}
+
 // ═══ AI-POWERED FIX PASS ═══
 
 async function applyAIFixes(prose, violations, spec, isNonfiction) {
@@ -692,6 +748,9 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
     if (v.type === 'dialogue_pattern') return `DIALOGUE PATTERN: ${v.label}. This character needs different conversational modes — mundane exchanges, genuine questions, uncertainty, humor.`;
     if (v.type === 'sensory_opener') return `SENSORY OPENER: ${v.label}. Rewrite the opening sentence to use a DIFFERENT approach: dialogue, action, internal thought, a question, or a time/place stamp. Do NOT open with "The [adjective] [sensory detail]..."`;
     if (v.type === 'word_count_excess') return `WORD COUNT: Chapter is ${v.count} words, target is ${v.max} max. Trim redundant paragraphs, compress recap sections, and cut any passages that don't advance plot or character. Do NOT cut dialogue or climactic scenes.`;
+    if (v.type === 'nf_fabricated_citation') return `FABRICATED CITATION: ${v.label}. Replace with general sourcing language. WRONG: "case number 56-4429" → RIGHT: "court records from the period." WRONG: "published in the Journal of Clinical Psychology in 1958" → RIGHT: "a psychiatrist's clinical notes from the era." WRONG: "FBI memo dated March 15, 1951" → RIGHT: "FBI surveillance files from the period." Do NOT invent verifiable reference numbers.`;
+    if (v.type === 'nf_composite_character') return `COMPOSITE CHARACTER: ${v.label}. Either (a) replace this named character with a role description ("a studio publicist," "a Beverly Hills psychiatrist"), OR (b) if the character serves a narrative purpose, add an explicit label: "The following account is a composite drawn from multiple documented cases." Do NOT present composite figures as real documented individuals.`;
+    if (v.type === 'nf_padding') return `NF PADDING: ${v.label}. Merge the redundant paragraphs into one tighter paragraph.`;
     return `${v.type}: ${v.label}`;
   }).join('\n');
 
@@ -776,6 +835,8 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...(isNonfiction ? scanNonfictionPatterns(text) : []),
     ...(isNonfiction ? scanGeminiNonfictionBans(text) : []),
     ...(isNonfiction ? scanGeminiEndingEnforcement(text) : []),
+    ...(isNonfiction ? scanFabricatedCitations(text) : []),
+    ...(isNonfiction ? scanCompositeCharacters(text, storyBible) : []),
   ];
 
   // Word count enforcement — flag chapters exceeding 130% of target
@@ -831,12 +892,12 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   ];
 
   // Build quality report
-  const finalWordCount = cleanProse.trim().split(/\s+/).length;
+  const wordCount = cleanProse.trim().split(/\s+/).length;
   const qualityReport = {
     total_violations_found: allViolations.length,
     violations_fixed: fixedCount,
     violations_remaining: remaining.length,
-    word_count: finalWordCount,
+    word_count: wordCount,
     scan_details: allViolations.slice(0, 20),
   };
 
