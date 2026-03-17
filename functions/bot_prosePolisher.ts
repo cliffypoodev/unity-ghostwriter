@@ -119,9 +119,15 @@ const FICTION_TELLS = [
 
 // Nonfiction-specific polish targets
 const NF_POLISH_TARGETS = [
-  // Instruction leaks that survived generation
-  [/\b(Remove|Replace|Either identify|Either cite|Frame as|Use general|Provide documentary|Label as|Anchor to|Source to|Cite specific) .{10,120}?(,\s|\.\s|$)/gm, 'INSTRUCTION LEAK in prose'],
-  // Padding phrases — say the same thing multiple ways
+  // Instruction leaks — MUST match the same patterns as the code-level sanitizer
+  [/\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gim, 'INSTRUCTION LEAK: editorial directive in prose'],
+  [/\bUse '([^']+)' or [^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: Use quoted example or...'],
+  [/\bor (clearly |)label as[^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: or label as...'],
+  [/\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: or remove/cite fictional/documented...'],
+  [/\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi, 'INSTRUCTION LEAK: meta-framing instruction'],
+  // Fusion pattern: instruction flows into prose via comma
+  [/\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi, 'INSTRUCTION LEAK: fused instruction-prose'],
+  // Padding phrases
   [/\bThe (impact|toll|cost|damage|consequences?) (was|were|proved|remained) (devastating|severe|profound|enormous|staggering|immeasurable)/gi, '"The impact was devastating" padding phrase'],
   [/\bThe (true|full|real|actual) (extent|scope|scale|magnitude|nature) of/gi, '"The true extent of..." padding opener'],
   [/\bThe (human|personal|psychological|emotional) (cost|toll|price|burden) (of this|cannot|should not|extends)/gi, '"The human cost of..." repetitive framing'],
@@ -168,7 +174,10 @@ SPECIFIC FIXES:
 - LIST-AS-PROSE: Restructure First/Second/Third sequences into flowing paragraphs with varied sentence structure.
 - GENERIC CONCLUSIONS: Replace formulaic endings with specific, surprising final images or observations that arise organically from the chapter's content.
 - FICTION CLICHES: Replace stock phrases ("a chill ran down his spine," "breath they didn't know they were holding") with specific, character-grounded sensory details unique to this scene.
-- NF INSTRUCTION LEAKS: If you find sentences starting with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide," "Label as" — these are editorial instructions that leaked into prose. DELETE the instruction text entirely and rewrite as actual prose that follows the instruction's intent.
+- NF INSTRUCTION LEAKS: If you find sentences containing ANY of these editorial trigger phrases, they are instructions that leaked into prose. DELETE the instruction text entirely and rewrite as actual prose:
+  Triggers: "Remove specific," "Remove atmospheric," "Remove invented," "Remove fictional," "Replace with documented," "Either identify," "Either cite," "Either provide," "Either name," "Either source," "Either use," "Frame as," "Use general," "Use documented," "Provide documentary," "Provide specific," "Provide real," "Label as," "Anchor to," "Source to," "Cite specific," "Cite actual," "Verify and cite," "Insert documented."
+  ALSO catch FUSED instructions where the editorial text flows directly into narrative via comma (e.g., "Remove specific age or cite the documented photograph with date hair catching studio lights" — the instruction runs into prose without punctuation). DELETE everything from the trigger word through the instruction, keeping only the valid prose that follows.
+  When you delete an instruction, write actual prose that FOLLOWS what the instruction was asking for. If it says "Remove specific age or cite..." then write the scene WITHOUT the specific age.
 - NF PADDING: If you find 2-3 consecutive paragraphs that make the same "impact/toll/cost" point with synonym substitution, MERGE them into one tighter paragraph. Cut the redundancy ruthlessly.
 - NF FILLER TRANSITIONS: Replace "This represented..." / "This development constituted..." / "This transformation marked..." with specific content-driven transitions.
 
