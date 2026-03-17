@@ -132,6 +132,8 @@ const NF_SANITIZE_RX = [
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   // Catch "Contemporary accounts describe similar offices as..." meta-framing instructions
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
+  // FUSION PATTERN: instruction flows into prose via comma (e.g., "Use general timeframes..., her fifteenth day")
+  /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
 ];
 
 function sanitizeNFPrompt(text) {
@@ -164,14 +166,28 @@ function getChapterContext(ctx, chapterId) {
   const isLastChapter = chapterIndex === ctx.chapters.length - 1;
   const isFirstChapter = chapterIndex === 0;
   const outlineChapters = ctx.outlineData?.chapters || [];
-  const outlineEntry = outlineChapters.find(c => (c.number || c.chapter_number) === chapter.chapter_number) || {};
+  let outlineEntry = outlineChapters.find(c => (c.number || c.chapter_number) === chapter.chapter_number) || {};
   const previousChapters = ctx.chapters.slice(0, chapterIndex).filter(c => c.content && c.status === 'generated');
   let lastStateDoc = null;
   for (let i = chapterIndex - 1; i >= 0; i--) { if (ctx.chapters[i].state_document) { lastStateDoc = ctx.chapters[i].state_document; break; } }
   let scenes = null;
-  if (chapter.scenes) { try { const parsed = typeof chapter.scenes === 'string' ? JSON.parse(chapter.scenes) : chapter.scenes; if (Array.isArray(parsed) && parsed.length > 0) scenes = parsed; } catch {} }
+  if (chapter.scenes) { try { const parsed = typeof chapter.scenes === 'string' ? JSON.parse(chapter.scenes) : chapter.scenes; if (Array.isArray(parsed) && parsed.length > 0) scenes = parsed; else if (parsed && typeof parsed === 'object') scenes = parsed; } catch {} }
   let chapterBeat = null;
   if (ctx.outlineData?.beat_sheet) { const bs = ctx.outlineData.beat_sheet; const beats = Array.isArray(bs) ? bs : bs?.beats || []; chapterBeat = beats.find(b => (b.chapter_number || b.chapter) === chapter.chapter_number) || null; }
+
+  // ═══ BULK NF SANITIZATION — Kill instructions at load time across ALL data ═══
+  if (ctx.isNonfiction) {
+    // Sanitize chapter fields
+    if (chapter.summary) chapter.summary = sanitizeNFPrompt(chapter.summary);
+    if (chapter.prompt) chapter.prompt = sanitizeNFPrompt(chapter.prompt);
+    // Sanitize outline entry (all string fields)
+    outlineEntry = sanitizeNFData(outlineEntry);
+    // Sanitize scenes (entire object tree)
+    if (scenes) scenes = sanitizeNFData(scenes);
+    // Sanitize chapter beat
+    if (chapterBeat) chapterBeat = sanitizeNFData(chapterBeat);
+  }
+
   return { chapter, chapterIndex, prevChapter, nextChapter, isLastChapter, isFirstChapter, outlineEntry, previousChapters, lastStateDoc, scenes, chapterBeat };
 }
 
