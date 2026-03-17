@@ -18,10 +18,10 @@ function cleanJSON(text) {
 }
 
 async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
-  // callType: outline → shell generation resolves to Gemini
+  // callType: outline → shell generation resolves to Gemini Pro
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent?key=' + apiKey,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: userMessage }] }],
