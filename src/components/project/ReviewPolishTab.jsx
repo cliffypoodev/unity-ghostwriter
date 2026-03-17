@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -79,6 +79,8 @@ const PATTERNS = {
     [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, "NF leak: or remove/cite fictional..."],
     [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, "NF leak: meta-framing instruction"],
     [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, "NF leak: Use quoted example or..."],
+    // No-comma fusion: instruction flows directly into prose
+    [/\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi, "NF leak: fused instruction-prose"],
   ],
   tense_past_drift: [
     [/\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks|cuts|fills|takes|sets|picks|drops|begins|starts|stops|grabs|holds|catches|lifts|places)\b/gi, "present-tense verb in past-tense narrative"],
@@ -347,7 +349,6 @@ function ChapterCard({ chapter, findings, words, targetWords, onPolish, onFix, o
 // ═══ MAIN COMPONENT ═══
 
 export default function ReviewPolishTab({ projectId }) {
-  const queryClient = useQueryClient();
   const [scanResults, setScanResults] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [polishing, setPolishing] = useState({});
@@ -375,23 +376,13 @@ export default function ReviewPolishTab({ projectId }) {
   const generatedChapters = chapters.filter(c => c.status === "generated").sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
 
   const handleScan = useCallback(async () => {
-    // Always fetch fresh chapter data to pick up any fixes/polishes
-    let freshChapters;
-    try {
-      freshChapters = await base44.entities.Chapter.filter({ project_id: projectId });
-    } catch {
-      freshChapters = generatedChapters;
-    }
-    const scanChapters = freshChapters
-      .filter(c => c.status === "generated")
-      .sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
-    if (scanChapters.length === 0) return;
+    if (generatedChapters.length === 0) return;
     setScanning(true);
     setScanResults(null);
     try {
       const chapterData = [];
       const allFindings = [];
-      for (const ch of scanChapters) {
+      for (const ch of generatedChapters) {
         let content = ch.content || "";
         if (content.startsWith("http")) { try { content = await (await fetch(content)).text(); } catch { content = ""; } }
         if (!content || content.length < 50) continue;
@@ -418,7 +409,7 @@ export default function ReviewPolishTab({ projectId }) {
         scannedAt: new Date().toISOString(),
       });
     } finally { setScanning(false); }
-  }, [projectId, tense]);
+  }, [generatedChapters, tense]);
 
   const handlePolishChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
@@ -428,10 +419,7 @@ export default function ReviewPolishTab({ projectId }) {
       const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id }, { timeout: 120000 });
       const data = result?.data || result;
       setPolishResults(prev => ({ ...prev, [chapterNum]: data }));
-      if (data?.changed) {
-        await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
-        setTimeout(() => handleScan(), 1500);
-      }
+      if (data?.changed) setTimeout(() => handleScan(), 1000);
     } catch (err) {
       setPolishResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally { setPolishing(prev => ({ ...prev, [chapterNum]: false })); }
@@ -459,14 +447,9 @@ export default function ReviewPolishTab({ projectId }) {
         chapter_id: ch.id,
       }, { timeout: 180000 });
       const data = result?.data || result;
-      const fixed = data?.quality_report?.violations_fixed || data?.violations_fixed || 0;
-      const total = data?.violations_found || 0;
-      const saved = data?.saved || false;
-      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed, total, saved } }));
-      // Invalidate chapter cache so rescan picks up the saved content
-      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: data?.violations_fixed || 0, total: data?.violations_found || 0 } }));
       // Re-scan after fix
-      setTimeout(() => handleScan(), 2000);
+      setTimeout(() => handleScan(), 1500);
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally {
@@ -490,7 +473,6 @@ export default function ReviewPolishTab({ projectId }) {
         chapter_id: ch.id,
       }, { timeout: 600000 });
       setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, regenerated: true } }));
-      await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       setTimeout(() => handleScan(), 2000);
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
@@ -724,7 +706,7 @@ export default function ReviewPolishTab({ projectId }) {
                     ) : result.regenerated ? (
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">✓ Chapter regenerated</Badge>
                     ) : result.success ? (
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed{result.saved ? " & saved" : ""}</Badge>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed</Badge>
                     ) : (
                       <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes</Badge>
                     )}
