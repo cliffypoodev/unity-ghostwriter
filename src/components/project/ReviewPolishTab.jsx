@@ -714,7 +714,7 @@ export default function ReviewPolishTab({ projectId }) {
                     ) : result.regenerated ? (
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">✓ Chapter regenerated</Badge>
                     ) : result.success ? (
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed</Badge>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed{result.saved ? " & saved" : ""}</Badge>
                     ) : (
                       <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes</Badge>
                     )}
