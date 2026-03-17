@@ -54,7 +54,9 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     );
     const data = await response.json();
     if (!response.ok) throw new Error('Google AI error: ' + (data.error?.message || response.status));
-    return data.candidates[0].content.parts[0].text;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Google AI returned empty response (blocked or overloaded). Try again.');
+    return text;
   }
 
   if (provider === "deepseek") {
