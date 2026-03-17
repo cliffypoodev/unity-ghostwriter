@@ -178,36 +178,14 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     }
   }
 
-  // ── STEP 7: STATE CHRONICLER ──
-  try {
-    await base44.entities.Project.update(projectId, {
-      generation_status: JSON.stringify({
-        current_chapter: chapter.chapter_number,
-        current_bot: 'state_chronicler',
-      }),
-    });
-  } catch (e) {}
-
-  console.log(`Ch ${chapter.chapter_number}: Building state document...`);
-  const stateResult = await invokeBot(base44, 'bot_stateChronicler', {
-    project_id: projectId,
-    chapter_id: chapterId,
-    final_prose: finalProse,
-  });
-  timings.state_chronicler_ms = stateResult.duration_ms;
-
-  if (!stateResult.success) {
-    console.warn(`Ch ${chapter.chapter_number}: State chronicler failed — chapter still saved`);
-  }
-
   const totalMs = Date.now() - startMs;
   console.log(`Ch ${chapter.chapter_number}: COMPLETE in ${Math.round(totalMs / 1000)}s — ${finalWordCount} words`);
 
   return {
     success: true, chapter_id: chapterId,
-    word_count: finalWordCount, quality_report: qualityReport,
-    violations_remaining: styleResult.success ? (styleResult.data.violations_remaining?.length || 0) : 0,
-    continuity_violations: guardianResult.success ? (guardianResult.data.violations?.length || 0) : 0,
+    word_count: finalWordCount, quality_report: null,
+    violations_remaining: 0,
+    continuity_violations: 0,
     generation_time_ms: totalMs, bot_timings: timings,
   };
 }
