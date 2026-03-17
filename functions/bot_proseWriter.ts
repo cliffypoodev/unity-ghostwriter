@@ -1101,14 +1101,13 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 60% of target, ask it to continue (up to 3 times)
-  const minAcceptable = Math.round(wordTarget * 0.6);
-  for (let contAttempt = 0; contAttempt < 3; contAttempt++) {
-    const currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
-    if (currentWords >= minAcceptable) break;
-    console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation attempt ${contAttempt + 1}...`);
+  // If model returns less than 50% of target, ask it to continue (1 attempt max to avoid timeout)
+  const minAcceptable = Math.round(wordTarget * 0.5);
+  const currentWordsCheck = rawProse ? rawProse.trim().split(/\s+/).length : 0;
+  if (currentWordsCheck < minAcceptable && currentWordsCheck > 100) {
+    console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWordsCheck}/${wordTarget} words. Requesting continuation...`);
     try {
-      const continueMessage = `You wrote ${currentWords} words but the target is ${wordTarget} words. You are only ${Math.round(currentWords/wordTarget*100)}% done. Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${wordTarget - currentWords} more words.`;
+      const continueMessage = `You wrote ${currentWordsCheck} words but the target is ${wordTarget} words. You are only ${Math.round(currentWordsCheck/wordTarget*100)}% done. Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${wordTarget - currentWordsCheck} more words.`;
       const continuation = await callAI(modelKey, systemPrompt, continueMessage + '\n\nSTORY SO FAR (continue from the end):\n' + rawProse.slice(-500), {
         maxTokens: 16384,
         temperature: 0.72,
@@ -1116,12 +1115,10 @@ async function runProseWriter(base44, projectId, chapterId) {
       if (continuation && !isRefusal(continuation)) {
         const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing)[^\n]*\n+/i, '').trim();
         rawProse = rawProse + '\n\n' + cleanCont;
-      } else {
-        break;
+        console.log(`ProseWriter: Continuation added — now ${rawProse.trim().split(/\s+/).length} words`);
       }
     } catch (contErr) {
-      console.warn(`Continuation ${contAttempt + 1} failed:`, contErr.message);
-      break;
+      console.warn(`Continuation failed:`, contErr.message);
     }
   }
 
