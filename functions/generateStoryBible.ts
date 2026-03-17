@@ -204,15 +204,13 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    // Try Gemini first (faster), fall back to OpenRouter DeepSeek
+    // Try Gemini Pro first, fall back to OpenRouter DeepSeek
     let raw;
     try {
       raw = await callAI('gemini', systemPrompt, userMessage);
-      console.log('Gemini raw length:', raw?.length, 'first 300:', raw?.slice(0, 300));
     } catch (primaryErr) {
-      console.warn('Gemini failed, trying OpenRouter DeepSeek:', primaryErr.message);
+      console.warn('Gemini Pro failed, trying OpenRouter DeepSeek:', primaryErr.message);
       raw = await callOpenRouter(systemPrompt, userMessage);
-      console.log('OpenRouter raw length:', raw?.length, 'first 300:', raw?.slice(0, 300));
     }
 
     let storyBible;
