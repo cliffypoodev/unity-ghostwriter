@@ -91,16 +91,19 @@ async function loadProjectContext(base44, projectId) {
 
 // ═══ NF EDITORIAL INSTRUCTION SANITIZER ═══
 const NF_SANITIZE_RX = [
-  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Frame as|Use general|Provide documentary|Provide specific|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific)\b[^.!?\n]*[.!?\n]/gi,
-  /\bUse '([^']+)' or cite[^.!?\n]*[.!?\n]/gi,
-  /\bor (clearly |)label as[^.!?\n]*[.!?\n]/gi,
-  /\bor (remove|begin with|provide|cite|frame)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite)[^.!?\n]*[.!?\n]/gi,
+  /\b(Remove|Replace|Either identify|Either cite|Either name|Either source|Either provide|Either use|Frame as|Use general|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Anchor these|Source to|Source this|Cite specific|Cite actual|Use documented|Remove invented|Remove fictional|Remove specific|Remove atmospheric|Verify and cite|Insert documented)\b[^.!?\n]*([.!?\n]|$)/gi,
+  /\bUse '([^']+)' or [^.!?\n]*([.!?\n]|$)/gi,
+  /\bor (clearly |)label as[^.!?\n]*([.!?\n]|$)/gi,
+  /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi,
+  /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
+  /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
 ];
 function sanitizeNFPrompt(text) {
   if (!text) return text;
+  if (typeof text !== 'string') { try { return JSON.stringify(text); } catch { return String(text); } }
   let c = text;
   for (const rx of NF_SANITIZE_RX) c = c.replace(rx, '');
-  return c.replace(/\s{2,}/g, ' ').trim();
+  return c.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
 }
 
 function getChapterContext(ctx, chapterId) {
