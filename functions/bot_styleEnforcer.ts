@@ -856,7 +856,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
 
   // Word count enforcement — flag chapters exceeding 130% of target
   const wordCount = text.trim().split(/\s+/).length;
-  const TARGET_WORDS = { short: 2500, medium: 2500, long: 2800, epic: 3000 };
+  const TARGET_WORDS = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
   const targetWords = TARGET_WORDS[ctx.spec?.target_length || 'medium'] || 2500;
   const maxWords = Math.round(targetWords * 1.3);
   if (wordCount > maxWords) {

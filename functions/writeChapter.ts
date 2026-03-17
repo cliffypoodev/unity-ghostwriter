@@ -1183,7 +1183,8 @@ async function generateChapterAsync(base44, projectId, chapterId, projectSpec, o
     }
 
     const _isNF = (projectSpec?.book_type || 'fiction') === 'nonfiction';
-    const TARGET_WORDS = (isGptModel(modelKey) || (isDeepseekModel(modelKey) && _isNF) || (isGeminiModel(modelKey) && _isNF)) ? 2500 : 1600;
+    const _targetLengthMap = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
+    const TARGET_WORDS = _targetLengthMap[projectSpec?.target_length] || 3500;
 
     // callAI wrapper using conversation messages array
     async function callAIConversation(messages, maxTokens = 8192) {

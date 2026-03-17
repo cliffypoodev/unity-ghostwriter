@@ -678,7 +678,7 @@ function getEndingType(chNum) {
 // PROMPT BUILDERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const WORDS_PER_CHAPTER = { short: 1200, medium: 1600, long: 2200, epic: 3000 };
+const WORDS_PER_CHAPTER = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
 
 function buildContextHeader(spec) {
   const bs = spec?.beat_style || spec?.tone_style || '';
