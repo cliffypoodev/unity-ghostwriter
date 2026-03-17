@@ -2,7 +2,6 @@
 // Called by StoryBibleEditor's "Generate Story Bible from Premise" button
 
 const MODEL_MAP = {
-  'claude-sonnet': { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
   'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro' },
 };
 
