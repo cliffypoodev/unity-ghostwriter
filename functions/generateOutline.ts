@@ -54,9 +54,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     );
     const data = await response.json();
     if (!response.ok) throw new Error('Google AI error: ' + (data.error?.message || response.status));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Google AI returned empty response (blocked or overloaded). Try again.');
-    return text;
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
   if (provider === "deepseek") {
@@ -519,9 +517,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
     );
     const data = await response.json();
     if (!response.ok) throw new Error('Gemini API error: ' + (data.error?.message || response.status));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Gemini returned empty response (blocked or overloaded). Try again.');
-    return text;
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
   try {
