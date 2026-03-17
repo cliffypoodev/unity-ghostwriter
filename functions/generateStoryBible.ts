@@ -6,23 +6,10 @@ const MODEL_MAP = {
   'gemini-pro': { provider: 'google', model: 'gemini-2.0-flash' },
 };
 
-async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
+async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 55000);
   try {
-    if (provider === 'anthropic' || provider === 'claude-sonnet') {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, temperature: 0.7, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const d = await r.json();
-      if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status));
-      return d.content[0].text;
-    }
-    // Gemini Pro (structural/research tasks always use Pro)
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
@@ -34,26 +21,6 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
     const d = await r.json();
     if (!r.ok) throw new Error('Gemini: ' + (d.error?.message || r.status));
     return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  } catch (e) {
-    clearTimeout(timeout);
-    throw e;
-  }
-}
-
-async function callOpenRouter(systemPrompt, userMessage, maxTokens = 4096) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-  try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + Deno.env.get('OPENROUTER_API_KEY') },
-      body: JSON.stringify({ model: 'deepseek/deepseek-chat', max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!r.ok) { const err = await r.text(); throw new Error('OpenRouter: ' + err); }
-    const d = await r.json();
-    return d.choices?.[0]?.message?.content || '';
   } catch (e) {
     clearTimeout(timeout);
     throw e;
@@ -204,14 +171,7 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    // Try Gemini Pro first, fall back to OpenRouter DeepSeek
-    let raw;
-    try {
-      raw = await callAI('gemini', systemPrompt, userMessage);
-    } catch (primaryErr) {
-      console.warn('Gemini Pro failed, trying OpenRouter DeepSeek:', primaryErr.message);
-      raw = await callOpenRouter(systemPrompt, userMessage);
-    }
+    const raw = await callGemini(systemPrompt, userMessage);
 
     let storyBible;
     try {

@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Phase 1 metadata_generation — Gemini Flash primary (fast), Claude Sonnet fallback
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
 
 async function callGemini(prompt, maxTokens = 2500) {
@@ -27,56 +25,6 @@ async function callGemini(prompt, maxTokens = 2500) {
   } catch (e) {
     clearTimeout(timeout);
     throw e;
-  }
-}
-
-async function callClaude(prompt, maxTokens = 2500) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!response.ok) { const err = await response.text(); throw new Error(`Claude: ${err}`); }
-    const data = await response.json();
-    return data.content?.[0]?.text || '';
-  } catch (e) {
-    clearTimeout(timeout);
-    throw e;
-  }
-}
-
-async function callOpenRouter(prompt, maxTokens = 2500) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + Deno.env.get('OPENROUTER_API_KEY') },
-      body: JSON.stringify({ model: 'deepseek/deepseek-chat', max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'user', content: prompt }] }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!response.ok) { const err = await response.text(); throw new Error(`OpenRouter: ${err}`); }
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  } catch (e) {
-    clearTimeout(timeout);
-    throw e;
-  }
-}
-
-async function callAI(prompt) {
-  // Try Gemini first (3-5x faster for structured JSON), fall back to OpenRouter DeepSeek
-  try {
-    return await callGemini(prompt);
-  } catch (geminiErr) {
-    console.warn('Gemini failed, trying OpenRouter DeepSeek:', geminiErr.message);
-    return await callOpenRouter(prompt);
   }
 }
 
@@ -181,7 +129,7 @@ INFERENCE RULES:
 - The expanded_brief must be rich, detailed prose — not bullet points.
 - Do not invent plot details not present or strongly implied by the premise.`;
 
-    const response = await callAI(prompt);
+    const response = await callGemini(prompt);
 
     // Parse JSON, stripping accidental markdown fences
     const cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();

@@ -18,23 +18,6 @@ async function callGemini(systemPrompt, userPrompt) {
   } catch (e) { clearTimeout(timeout); throw e; }
 }
 
-async function callClaude(systemPrompt, userPrompt) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1024, messages: [{ role: "user", content: userPrompt }], system: systemPrompt }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    const d = await r.json();
-    if (!r.ok) throw new Error('Claude: ' + (d.error?.message || r.status));
-    return d.content[0].text;
-  } catch (e) { clearTimeout(timeout); throw e; }
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -62,13 +45,7 @@ ${genre ? `GENRE: ${genre}` : ''}
 
 Generate detailed development ideas as JSON.`;
 
-    let text;
-    try {
-      text = await callGemini(systemPrompt, userPrompt);
-    } catch (geminiErr) {
-      console.warn('Gemini failed, trying Claude:', geminiErr.message);
-      text = await callClaude(systemPrompt, userPrompt);
-    }
+    const text = await callGemini(systemPrompt, userPrompt);
 
     // Clean and parse JSON
     let cleaned = text.trim();
