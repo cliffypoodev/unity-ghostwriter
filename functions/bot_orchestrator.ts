@@ -136,104 +136,10 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     };
   }
 
-  // ── STEP 3: CONTINUITY GUARDIAN ──
-  try {
-    await base44.entities.Project.update(projectId, {
-      generation_status: JSON.stringify({
-        current_chapter: chapter.chapter_number,
-        current_bot: 'continuity_guardian',
-      }),
-    });
-  } catch (e) {}
-
-  console.log(`Ch ${chapter.chapter_number}: Checking continuity...`);
-  const guardianResult = await invokeBot(base44, 'bot_continuityGuardian', {
-    project_id: projectId,
-    chapter_id: chapterId,
-    raw_prose: currentProse,
-  });
-  timings.continuity_guardian_ms = guardianResult.duration_ms;
-
-  let continuityFixes = [];
-  if (guardianResult.success && !guardianResult.data.passed) {
-    const criticalViolations = (guardianResult.data.violations || []).filter(v => v.severity === 'critical');
-    continuityFixes = guardianResult.data.suggested_fixes || [];
-
-    if (criticalViolations.length > 0 && continuityFixes.filter(f => f.confidence === 'high').length === 0) {
-      console.log(`Ch ${chapter.chapter_number}: ${criticalViolations.length} critical violations — requesting rewrite...`);
-      const rewriteResult = await invokeBot(base44, 'bot_proseWriter', {
-        project_id: projectId,
-        chapter_id: chapterId,
-      });
-      if (rewriteResult.success && rewriteResult.data.raw_prose?.length > 100) {
-        currentProse = rewriteResult.data.raw_prose;
-        timings.prose_writer_retry_ms = rewriteResult.duration_ms;
-      }
-    }
-  }
-
-  // ── STEP 4: STYLE ENFORCER ──
-  try {
-    await base44.entities.Project.update(projectId, {
-      generation_status: JSON.stringify({
-        current_chapter: chapter.chapter_number,
-        current_bot: 'style_enforcer',
-      }),
-    });
-  } catch (e) {}
-
-  console.log(`Ch ${chapter.chapter_number}: Enforcing style...`);
-  const styleResult = await invokeBot(base44, 'bot_styleEnforcer', {
-    project_id: projectId,
-    chapter_id: chapterId,
-    prose: currentProse,
-    continuity_fixes: continuityFixes,
-  });
-  timings.style_enforcer_ms = styleResult.duration_ms;
-
-  let finalProse = currentProse;
-  let qualityReport = null;
-  if (styleResult.success) {
-    finalProse = styleResult.data.clean_prose || currentProse;
-    qualityReport = styleResult.data.quality_report;
-  }
-
-  // ── STEP 5b: PROSE POLISHER ──
-  try {
-    await base44.entities.Project.update(projectId, {
-      generation_status: JSON.stringify({
-        current_chapter: chapter.chapter_number,
-        current_bot: 'prose_polisher',
-      }),
-    });
-  } catch (e) {}
-
-  console.log(`Ch ${chapter.chapter_number}: Polishing prose...`);
-  try {
-    const polishResult = await invokeBot(base44, 'bot_prosePolisher', {
-      project_id: projectId,
-      chapter_id: chapterId,
-      prose: finalProse,
-    });
-    timings.prose_polisher_ms = polishResult.duration_ms;
-
-    if (polishResult.success && polishResult.data.changed) {
-      // Re-fetch chapter to get polished content (polisher saves directly)
-      const polishedChapters = await base44.entities.Chapter.filter({ id: chapterId });
-      const polishedContent = polishedChapters?.[0]?.content;
-      if (polishedContent && polishedContent.length > 100) {
-        finalProse = polishedContent;
-        console.log(`Ch ${chapter.chapter_number}: Polished — ${polishResult.data.violations_found} AI tells fixed (${polishResult.data.total_instances} instances)`);
-      }
-    } else if (polishResult.success && !polishResult.data.changed) {
-      console.log(`Ch ${chapter.chapter_number}: Prose clean — no AI tells detected`);
-    }
-  } catch (polishErr) {
-    console.warn(`Ch ${chapter.chapter_number}: Prose polisher failed (non-fatal):`, polishErr.message);
-    // Polisher failure is non-fatal — we still have clean prose from styleEnforcer
-  }
-
-  // ── STEP 6: SAVE CHAPTER ──
+  // ── STEP 3: SAVE CHAPTER ──
+  // Post-generation bots (continuity guardian, style enforcer, prose polisher, state chronicler)
+  // are deferred to Phase 4 (Review & Polish) and are NOT run during chapter generation.
+  const finalProse = currentProse;
   const finalWordCount = finalProse.trim().split(/\s+/).length;
 
   let contentValue = finalProse;
