@@ -892,12 +892,12 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   ];
 
   // Build quality report
-  const wordCount = cleanProse.trim().split(/\s+/).length;
+  const finalWordCount = cleanProse.trim().split(/\s+/).length;
   const qualityReport = {
     total_violations_found: allViolations.length,
     violations_fixed: fixedCount,
     violations_remaining: remaining.length,
-    word_count: wordCount,
+    word_count: finalWordCount,
     scan_details: allViolations.slice(0, 20),
   };
 
