@@ -3,7 +3,7 @@
 
 const MODEL_MAP = {
   'claude-sonnet': { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
-  'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro-preview-03-25' },
+  'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro' },
 };
 
 async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
