@@ -38,6 +38,7 @@ const STRIP_LEAK_RX = [
   /\bor (remove|begin with|provide|cite|frame|preface)[^.!?\n]*(fictional|specific|actual|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)[^.!?\n]*([.!?\n]|$)/gi,
   /^(Remove|Replace|Provide|Either|Verify|Insert|Label|Anchor|Source|Frame|Cite)\b[^.!?\n]*(documentary|documented|specific|source|archive|reconstruct|composite|fictional|atmospheric|hypothetical)[^.!?\n]*([.!?\n]|$)/gim,
   /\bContemporary accounts (describe|suggest) similar [^.!?\n]*([.!?\n]|$)/gi,
+  /\b(Use general|Remove specific|Either provide|Either cite|Either identify|Either name|Either source|Either use|Frame as|Provide documentary|Provide specific|Provide real|Label as|Anchor to|Source to|Cite specific|Cite actual|Use documented|Remove atmospheric|Remove fictional|Remove invented|Verify and cite|Insert documented)\b[^.!?\n]*?,\s*(?=[a-z])/gi,
 ];
 function stripLeakedInstructions(text) {
   if (!text) return text;
