@@ -83,17 +83,28 @@ Return 8-12 facts, 4-8 timeline entries, 3-6 key figures, and 3-5 sources. Retur
     };
   }
 
+  // Attempt to repair common Gemini JSON issues (unterminated strings, trailing commas)
+  let jsonStr = jsonMatch[0];
   try {
-    return JSON.parse(jsonMatch[0]);
-  } catch {
-    console.warn('Research JSON parse failed, returning contextSummary only');
-    return {
-      facts: [],
-      timeline: [],
-      keyFigures: [],
-      sources: [],
-      contextSummary: clean.slice(0, 500),
-    };
+    return JSON.parse(jsonStr);
+  } catch (firstErr) {
+    console.warn('Research JSON first parse failed, attempting repair:', firstErr.message);
+    // Fix trailing commas before } or ]
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+    // Fix unterminated strings: find lines ending with unmatched quote
+    jsonStr = jsonStr.replace(/:\s*"([^"]*?)(\n)/g, ': "$1"$2');
+    try {
+      return JSON.parse(jsonStr);
+    } catch {
+      console.warn('Research JSON repair failed, returning contextSummary only');
+      return {
+        facts: [],
+        timeline: [],
+        keyFigures: [],
+        sources: [],
+        contextSummary: clean.slice(0, 500),
+      };
+    }
   }
 }
 

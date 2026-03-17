@@ -1,55 +1,24 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-const MODEL_MAP = {
-  "claude-sonnet":     { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
-  "claude-opus":       { provider: "anthropic", modelId: "claude-opus-4-20250514" },
-  "claude-opus-4-5":   { provider: "anthropic", modelId: "claude-opus-4-5" },
-  "claude-sonnet-4-5": { provider: "anthropic", modelId: "claude-sonnet-4-5" },
-  "claude-haiku-4-5":  { provider: "anthropic", modelId: "claude-haiku-4-5" },
-  "gpt-4o":            { provider: "openai",    modelId: "gpt-4o" },
-  "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo" },
-  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat" },
-};
+async function callChat(systemPrompt, messages) {
+  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
 
-async function callChat(modelKey, systemPrompt, messages) {
-  // callType: consultant_chat → resolves to Claude Sonnet (uses spec's ai_model for now)
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
-  const { provider, modelId } = config;
+  // Gemini expects a single user turn or alternating roles — flatten history into one user message
+  const historyText = messages.map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`).join('\n\n');
 
-  if (provider === "anthropic") {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, system: systemPrompt, messages }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error('Anthropic error: ' + (data.error?.message || response.status));
-    return data.content[0].text;
-  }
-
-  if (provider === "openai") {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + Deno.env.get('OPENAI_API_KEY'), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error('OpenAI error: ' + (data.error?.message || response.status));
-    return data.choices[0].message.content;
-  }
-
-  if (provider === "deepseek") {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelId, max_tokens: 1024, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error('DeepSeek error: ' + (data.error?.message || response.status));
-    return data.choices[0].message.content;
-  }
-
-  throw new Error('Unknown provider: ' + provider);
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: historyText }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+    }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error('Google: ' + (data.error?.message || r.status));
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 Deno.serve(async (req) => {
@@ -70,9 +39,6 @@ Deno.serve(async (req) => {
       base44.entities.SourceFile.filter({ project_id }),
       base44.entities.Specification.filter({ project_id }),
     ]);
-
-    // callType: consultant_chat → always resolves to Claude Sonnet (never user's prose model)
-    const modelKey = 'claude-sonnet';
 
     // Build source files context
     const sourceFilesContext = sourceFiles.length > 0
@@ -108,11 +74,11 @@ ${specContext}
 
 Keep responses concise and conversational. Focus on one or two key suggestions or questions at a time.${sourceFilesContext}`;
 
-    // Build messages for Claude (exclude the message we just saved, only history before)
+    // Build messages for Gemini
     const priorMessages = history.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
     priorMessages.push({ role: 'user', content: message });
 
-    const assistantContent = await callChat(modelKey, systemPrompt, priorMessages);
+    const assistantContent = await callChat(systemPrompt, priorMessages);
 
     // Save assistant message
     await base44.entities.Conversation.create({ project_id, role: 'assistant', content: assistantContent });
