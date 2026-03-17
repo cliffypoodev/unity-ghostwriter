@@ -3,7 +3,7 @@
 
 const MODEL_MAP = {
   'claude-sonnet': { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
-  'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro-preview-03-25' },
+  'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro' },
 };
 
 async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
@@ -24,7 +24,7 @@ async function callAI(provider, systemPrompt, userMessage, maxTokens = 4096) {
     }
     // Gemini Pro (structural/research tasks always use Pro)
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent?key=' + apiKey, {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
