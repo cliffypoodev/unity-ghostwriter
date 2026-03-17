@@ -20,9 +20,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     );
     const d = await r.json();
     if (!r.ok) throw new Error('Gemini error: ' + (d.error?.message || r.status));
-    const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Gemini returned empty response (blocked or overloaded). Try again.');
-    return text;
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   if (config.provider === "anthropic") {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
