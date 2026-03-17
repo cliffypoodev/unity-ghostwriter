@@ -11,7 +11,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 // ═══ INLINED: shared/aiRouter (compact) ═══
 const MODEL_MAP = {
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
-  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro-preview-03-25", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro", defaultTemp: 0.72, maxTokensLimit: null },
 };
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
@@ -34,10 +34,11 @@ function isRefusal(text) { if (!text) return false; const f = text.slice(0, 300)
 
 // ═══ INLINED: shared/resolveModel ═══
 function resolveModel(callType) {
-  if (callType === 'research') return 'claude-sonnet';
-  if (callType === 'verify') return 'claude-sonnet';
-  if (callType === 'bibliography') return 'claude-sonnet';
-  return 'claude-sonnet';
+  if (callType === 'research') return 'gemini-pro';
+  if (callType === 'verify') return 'gemini-pro';
+  if (callType === 'bibliography') return 'gemini-pro';
+  if (callType === 'topic_research') return 'gemini-pro';
+  return 'gemini-pro';
 }
 
 // ═══ INLINED: shared/dataLoader ═══
@@ -476,7 +477,7 @@ Research this topic thoroughly. Find real frameworks, real sources, real competi
 This knowledge base will be used to generate the book's outline and guide every chapter's content. Be comprehensive.`;
 
   try {
-    const raw = await callAI('claude-sonnet', TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
+    const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
     const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     const knowledgeBase = JSON.parse(cleaned);
 
