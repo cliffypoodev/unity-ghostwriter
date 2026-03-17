@@ -980,7 +980,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const result = await base44.functions.invoke('bot_researchChronicler', {
         project_id: projectId,
         mode: 'topic_research',
-      }, { timeout: 120000 });
+      });
 
       const data = result?.data || result;
       if (data?.success && data?.knowledge_base) {
