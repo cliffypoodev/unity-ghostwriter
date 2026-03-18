@@ -57,7 +57,7 @@ export default function ChapterReviewCard({
     if (!refreshed) return;
     const content = await resolveChapterContent(refreshed);
     if (!content || content.length < 50) return;
-    const { findings: newFindings, words: newWords } = scanChapter(content, chapterNum, tense);
+    const { findings: newFindings, words: newWords } = scanChapter(content, chapterNum, tense, targetWords);
     onScanUpdated(chapterNum, newFindings, newWords);
     return newFindings;
   }
