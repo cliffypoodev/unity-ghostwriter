@@ -1071,7 +1071,7 @@ Under no circumstances is an editorial note permitted inside prose.`);
     '',
     buildBannedPhrasesContext(bannedPhrases),
     '',
-    `Write Chapter ${chapter.chapter_number} now. ~${wordTarget} words. Prose only.`,
+    `Write Chapter ${chapter.chapter_number} now. You MUST write at least ${Math.round(wordTarget * 0.85)} words (target: ${wordTarget}). Do not stop early. Prose only.`,
   ];
 
   const userMessage = userParts.filter(Boolean).join('\n');
