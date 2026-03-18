@@ -1101,24 +1101,31 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 50% of target, ask it to continue (1 attempt max to avoid timeout)
-  const minAcceptable = Math.round(wordTarget * 0.5);
+  // If model returns less than 40% of target, ask it to continue (1 attempt max to avoid timeout)
+  const minAcceptable = Math.round(wordTarget * 0.4);
   const currentWordsCheck = rawProse ? rawProse.trim().split(/\s+/).length : 0;
   if (currentWordsCheck < minAcceptable && currentWordsCheck > 100) {
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWordsCheck}/${wordTarget} words. Requesting continuation...`);
     try {
-      const continueMessage = `You wrote ${currentWordsCheck} words but the target is ${wordTarget} words. You are only ${Math.round(currentWordsCheck/wordTarget*100)}% done. Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${wordTarget - currentWordsCheck} more words.`;
-      const continuation = await callAI(modelKey, systemPrompt, continueMessage + '\n\nSTORY SO FAR (continue from the end):\n' + rawProse.slice(-500), {
-        maxTokens: 16384,
-        temperature: 0.72,
-      });
+      // Use a shorter context window to reduce latency and avoid timeouts
+      const lastContext = rawProse.slice(-300);
+      const continueMessage = `Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${Math.min(wordTarget - currentWordsCheck, 4000)} more words.\n\nLAST PARAGRAPH (continue from here):\n${lastContext}`;
+      
+      // Race against a 50s timeout to avoid function-level timeout
+      const continuation = await Promise.race([
+        callAI(modelKey, systemPrompt, continueMessage, {
+          maxTokens: 12000,
+          temperature: 0.72,
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('continuation_timeout')), 50000)),
+      ]);
       if (continuation && !isRefusal(continuation)) {
         const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing)[^\n]*\n+/i, '').trim();
         rawProse = rawProse + '\n\n' + cleanCont;
         console.log(`ProseWriter: Continuation added — now ${rawProse.trim().split(/\s+/).length} words`);
       }
     } catch (contErr) {
-      console.warn(`Continuation failed:`, contErr.message);
+      console.warn(`Continuation skipped (${contErr.message}) — accepting ${currentWordsCheck} words`);
     }
   }
 
