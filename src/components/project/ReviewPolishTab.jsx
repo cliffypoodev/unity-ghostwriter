@@ -16,7 +16,7 @@ import DeepReviewPanel from "./DeepReviewPanel";
 import ScoreGauge from "./review/ScoreGauge";
 import ChapterReviewCard from "./review/ChapterReviewCard";
 import {
-  SCAN_CATEGORIES, PATTERNS, scanChapter, computeScore, resolveChapterContent
+  SCAN_CATEGORIES, PATTERNS, scanChapter, computeScore, resolveChapterContent, scanManuscriptWideCaps
 } from "./review/ScanPatterns";
 
 // ── Category summary row ──
