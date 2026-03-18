@@ -977,6 +977,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Don't return full prose in response — it's already saved to the DB
+    delete result.clean_prose;
     return Response.json(result);
   } catch (error) {
     console.error('styleEnforcer error:', error.message);
