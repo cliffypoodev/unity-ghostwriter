@@ -848,7 +848,7 @@ async function loadLightContext(base44, projectId, chapterId) {
   return { chapter, spec, project, isNonfiction, bannedPhrases, storyBible, nameRegistry, previousChapter };
 }
 
-async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityFixes) {
+async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityFixes, frontendFindings) {
   const startMs = Date.now();
   const ctx = await loadLightContext(base44, projectId, chapterId);
   const { chapter, spec, isNonfiction, bannedPhrases, storyBible, nameRegistry, previousChapter } = ctx;
@@ -887,6 +887,24 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...(isNonfiction ? scanFabricatedCitations(text) : []),
     ...(isNonfiction ? scanCompositeCharacters(text, storyBible) : []),
   ];
+
+  // Merge frontend findings (from Phase 4 scanner) so AI knows what the UI detected
+  if (frontendFindings && Array.isArray(frontendFindings)) {
+    for (const ff of frontendFindings) {
+      // Avoid exact duplicates — only add if no backend violation has the same label
+      const isDup = allViolations.some(v => v.label === ff.label);
+      if (!isDup) {
+        allViolations.push({
+          type: ff.category || 'frontend_finding',
+          label: ff.label || 'Frontend-detected issue',
+          count: ff.count || 1,
+          max: 0,
+          fixed: false,
+          severity: 'warning',
+        });
+      }
+    }
+  }
 
   // Word count enforcement — flag chapters exceeding 130% of target
   const wordCount = text.trim().split(/\s+/).length;
@@ -970,16 +988,16 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { project_id, chapter_id, prose, continuity_fixes } = await req.json();
+    const { project_id, chapter_id, prose, continuity_fixes, frontend_findings } = await req.json();
     if (!project_id || !chapter_id) return Response.json({ error: 'project_id and chapter_id required' }, { status: 400 });
 
-    const result = await runStyleEnforcer(base44, project_id, chapter_id, prose, continuity_fixes);
+    const result = await runStyleEnforcer(base44, project_id, chapter_id, prose, continuity_fixes, frontend_findings);
 
     // If prose was passed in the payload, this is an in-pipeline call from the orchestrator.
     // Return the clean prose directly so the next bot can use it. Don't save yet.
     const isPipelineCall = !!prose;
 
-    if (!isPipelineCall && result.clean_prose && result.violations_found > 0) {
+    if (!isPipelineCall && result.clean_prose) {
       // Manual/standalone call — save corrected prose back to chapter
       try {
         // Always upload as file URL for large chapters to avoid field size limits

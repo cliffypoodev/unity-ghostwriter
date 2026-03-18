@@ -72,6 +72,7 @@ export default function ChapterReviewCard({
       const response = await base44.functions.invoke("bot_styleEnforcer", {
         project_id: projectId,
         chapter_id: chapterEntity.id,
+        frontend_findings: chFindings.map(f => ({ category: f.category, label: f.label, count: f.count })),
       });
       const result = response.data;
 

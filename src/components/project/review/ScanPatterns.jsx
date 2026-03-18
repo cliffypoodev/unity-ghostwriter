@@ -130,7 +130,7 @@ function stripDialogue(text) {
 // ── Duplicate paragraph detection ──
 function scanDuplicateParagraphs(text, chapterNum) {
   const findings = [];
-  const paras = text.split(/\n\n+/).filter(p => p.trim().split(/\s+/).length > 50);
+  const paras = text.split(/\n\n+/).filter(p => p.trim().split(/\s+/).length > 40);
   for (let i = 0; i < paras.length; i++) {
     const wordsA = new Set(paras[i].toLowerCase().match(/\b[a-z]{3,}\b/g) || []);
     if (wordsA.size === 0) continue;
