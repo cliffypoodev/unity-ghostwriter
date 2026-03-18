@@ -1199,7 +1199,7 @@ async function runProseWriter(base44, projectId, chapterId) {
     raw_prose: rawProse,
     word_count: wordCount,
     word_target: wordTarget,
-    model_used: modelKey,
+    model_used: actualModel,
     call_type: callType,
     refusal_detected: refusalDetected,
     duration_ms: Date.now() - startMs,
