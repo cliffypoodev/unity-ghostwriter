@@ -1221,8 +1221,33 @@ ${lastContext}`;
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
   console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — ${wordCount} words in ${Math.round((Date.now() - startMs) / 1000)}s`);
 
+  // Save prose directly in the backend to avoid response size limits
+  if (rawProse && rawProse.length > 0) {
+    try {
+      await base44.entities.Chapter.update(chapterId, {
+        content: rawProse,
+        word_count: wordCount,
+        generated_at: new Date().toISOString(),
+      });
+    } catch (saveErr) {
+      if (saveErr.message?.includes('exceeds the maximum allowed size')) {
+        console.log(`ProseWriter: Content too large — uploading as file URL`);
+        const blob = new Blob([rawProse], { type: 'text/plain' });
+        const file = new File([blob], `chapter_${chapterId}_prose.txt`, { type: 'text/plain' });
+        const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+        await base44.entities.Chapter.update(chapterId, {
+          content: file_url,
+          word_count: wordCount,
+          generated_at: new Date().toISOString(),
+        });
+      } else {
+        throw saveErr;
+      }
+    }
+  }
+
   return {
-    raw_prose: rawProse,
+    saved: true,
     word_count: wordCount,
     word_target: wordTarget,
     model_used: actualModel,
