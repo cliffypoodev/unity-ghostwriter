@@ -802,38 +802,70 @@ function applyContinuityFixes(prose, fixes) {
 
 // ═══ MAIN BOT ═══
 
-async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityFixes) {
-  const startMs = Date.now();
-  const ctx = await loadProjectContext(base44, projectId);
+// Lightweight loader: only fetch the target chapter + minimal context (not all 20 chapters)
+async function loadLightContext(base44, projectId, chapterId) {
+  // Fetch target chapter, spec, project, and outline in parallel
+  const [chapters, specs, projects, outlines] = await Promise.all([
+    withRetry(() => base44.entities.Chapter.filter({ id: chapterId })),
+    withRetry(() => base44.entities.Specification.filter({ project_id: projectId })),
+    withRetry(() => base44.entities.Project.filter({ id: projectId })).catch(() => []),
+    withRetry(() => base44.entities.Outline.filter({ project_id: projectId })).catch(() => []),
+  ]);
 
-  // Ensure the target chapter is in the loaded context — bulk loads can drop chapters
-  // with large content fields, so fetch it individually and merge if missing
-  if (!ctx.chapters.find(c => c.id === chapterId)) {
-    const [targetChapter] = await base44.entities.Chapter.filter({ id: chapterId });
-    if (!targetChapter) throw new Error('Chapter not found: ' + chapterId);
-    ctx.chapters.push(targetChapter);
-    ctx.chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+  const chapter = chapters[0];
+  if (!chapter) throw new Error('Chapter not found: ' + chapterId);
+
+  const project = projects[0] || {};
+  const rawSpec = specs[0];
+  const outline = outlines[0];
+  const spec = rawSpec ? { ...rawSpec, beat_style: rawSpec.beat_style || rawSpec.tone_style || "", spice_level: Math.max(0, Math.min(4, parseInt(rawSpec.spice_level) || 0)), language_intensity: Math.max(0, Math.min(4, parseInt(rawSpec.language_intensity) || 0)) } : null;
+  const isNonfiction = spec?.book_type === 'nonfiction';
+
+  // Load banned phrases
+  let bannedPhrases = [];
+  if (project.banned_phrases_log) {
+    let bpRaw = project.banned_phrases_log;
+    if (typeof bpRaw === 'string' && bpRaw.startsWith('http')) { try { bpRaw = await (await fetch(bpRaw)).text(); } catch { bpRaw = '[]'; } }
+    try { bannedPhrases = JSON.parse(bpRaw); } catch {}
   }
 
-  const chCtx = getChapterContext(ctx, chapterId);
-  const isNonfiction = ctx.isNonfiction;
-
-  // Load story bible + name registry for character validation
+  // Load story bible from outline
   let storyBible = null;
-  let nameRegistry = {};
-  try {
-    const outlines = await withRetry(() => base44.entities.Outline.filter({ project_id: projectId }));
-    const outline = outlines[0];
-    if (outline) {
-      let bibleRaw = outline.story_bible || '';
-      if (!bibleRaw && outline.story_bible_url) { try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {} }
-      if (bibleRaw) { try { storyBible = JSON.parse(bibleRaw); } catch {} }
-    }
-    const projects = await withRetry(() => base44.entities.Project.filter({ id: projectId }));
-    if (projects[0]?.name_registry) { let nrRaw = projects[0].name_registry; if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } } try { nameRegistry = JSON.parse(nrRaw); } catch {} }
-  } catch {}
+  if (outline) {
+    let bibleRaw = outline.story_bible || '';
+    if (!bibleRaw && outline.story_bible_url) { try { bibleRaw = await (await fetch(outline.story_bible_url)).text(); } catch {} }
+    if (bibleRaw) { try { storyBible = JSON.parse(bibleRaw); } catch {} }
+  }
 
-  let text = prose || await resolveContent(chCtx.chapter.content);
+  // Load name registry from project
+  let nameRegistry = {};
+  if (project.name_registry) {
+    let nrRaw = project.name_registry;
+    if (typeof nrRaw === 'string' && nrRaw.startsWith('http')) { try { nrRaw = await (await fetch(nrRaw)).text(); } catch { nrRaw = '{}'; } }
+    try { nameRegistry = JSON.parse(nrRaw); } catch {}
+  }
+
+  // Only fetch the previous chapter for dynamic caps (not all chapters)
+  let previousChapter = null;
+  if (chapter.chapter_number > 1) {
+    try {
+      const prevChapters = await withRetry(() => base44.entities.Chapter.filter({
+        project_id: projectId,
+        chapter_number: chapter.chapter_number - 1,
+      }));
+      previousChapter = prevChapters[0] || null;
+    } catch {}
+  }
+
+  return { chapter, spec, project, isNonfiction, bannedPhrases, storyBible, nameRegistry, previousChapter };
+}
+
+async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityFixes) {
+  const startMs = Date.now();
+  const ctx = await loadLightContext(base44, projectId, chapterId);
+  const { chapter, spec, isNonfiction, bannedPhrases, storyBible, nameRegistry, previousChapter } = ctx;
+
+  let text = prose || await resolveContent(chapter.content);
   if (!text || text.length < 100) throw new Error('No prose to enforce');
 
   // Apply high-confidence continuity fixes first
