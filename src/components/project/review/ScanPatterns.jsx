@@ -305,10 +305,15 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
 export function computeScore(allFindings) {
   let deductions = 0;
   for (const f of allFindings) {
-    if (f.category === "instruction_leak") deductions += f.count * 8;
+    if (f.category === "duplicate_paragraph") deductions += f.count * 15;
+    else if (f.category === "instruction_leak") deductions += f.count * 8;
+    else if (f.category === "nf_banned_phrase") deductions += f.count * 3;
     else if (f.category === "tense_drift") deductions += Math.min(f.count * 0.5, 15);
-    else if (f.category === "interiority_repetition") deductions += f.count * 0.3;
+    else if (f.category === "interiority_repetition") deductions += f.count * 1;
     else if (f.category === "sensory_opener") deductions += f.count * 1.5;
+    else if (f.category === "repetitive_padding") deductions += f.count * 2;
+    else if (f.category === "nf_manuscript_cap") deductions += f.count * 2;
+    else if (f.category === "word_count") deductions += f.count * 2;
     else deductions += f.count * 0.5;
   }
   return Math.max(0, Math.min(100, Math.round(100 - deductions)));
