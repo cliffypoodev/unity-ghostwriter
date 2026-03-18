@@ -79,7 +79,12 @@ export default function ChapterReviewCard({
 
       if (fixedContent !== content) {
         setActionStep("Saving…");
-        await base44.entities.Chapter.update(chapterEntity.id, { content: fixedContent });
+        const blob = new Blob([fixedContent], { type: 'text/plain' });
+        const file = new File([blob], `chapter_${chapterEntity.id}_fixed.txt`, { type: 'text/plain' });
+        const uploadResult = await base44.integrations.Core.UploadFile({ file });
+        const fileUrl = uploadResult?.file_url;
+        if (!fileUrl) throw new Error('File upload failed — no URL returned');
+        await base44.entities.Chapter.update(chapterEntity.id, { content: fileUrl });
         const { findings: newFindings, words: newWords } = scanChapter(fixedContent, chapterNum, tense, targetWords);
         onScanUpdated(chapterNum, newFindings, newWords);
         const issuesAfter = newFindings.reduce((s, f) => s + f.count, 0);

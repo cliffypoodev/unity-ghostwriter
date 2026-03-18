@@ -159,7 +159,12 @@ export default function ReviewPolishTab({ projectId }) {
         if (!content || content.length < 100) continue;
         const fixedContent = autoFixChapter(content);
         if (fixedContent !== content) {
-          await base44.entities.Chapter.update(ch.id, { content: fixedContent });
+          const blob = new Blob([fixedContent], { type: 'text/plain' });
+          const file = new File([blob], `chapter_${ch.id}_fixed.txt`, { type: 'text/plain' });
+          const uploadResult = await base44.integrations.Core.UploadFile({ file });
+          const fileUrl = uploadResult?.file_url;
+          if (!fileUrl) throw new Error('File upload failed');
+          await base44.entities.Chapter.update(ch.id, { content: fileUrl });
           const { findings, words } = scanChapter(fixedContent, cd.number, tense, targetWords);
           handleChapterScanUpdated(cd.number, findings, words);
         }
