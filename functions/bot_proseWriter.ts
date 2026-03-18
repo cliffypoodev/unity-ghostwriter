@@ -1087,14 +1087,17 @@ async function runProseWriter(base44, projectId, chapterId) {
   // Build prompt
   const { systemPrompt, userMessage, wordTarget } = buildProsePrompt(ctx, chCtx);
 
-  // Generate prose
+  // Generate prose — race against 90s timeout to avoid function-level timeout
   let rawProse;
   let refusalDetected = false;
   try {
-    rawProse = await callAI(modelKey, systemPrompt, userMessage, {
-      maxTokens: 16384,
-      temperature: 0.72,
-    });
+    rawProse = await Promise.race([
+      callAI(modelKey, systemPrompt, userMessage, {
+        maxTokens: 16384,
+        temperature: 0.72,
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_90s')), 90000)),
+    ]);
   } catch (err) {
     console.error(`ProseWriter primary call failed: ${err.message}`);
     throw err;
