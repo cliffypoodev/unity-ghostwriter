@@ -774,7 +774,7 @@ async function applyAIFixes(prose, violations, spec, isNonfiction) {
   const userMessage = `VIOLATIONS TO FIX:\n${violationBrief}\n\nCHAPTER TEXT:\n${prose}`;
 
   try {
-    const fixed = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 16384, temperature: 0.3 });
+    const fixed = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 32768, temperature: 0.3 });
     if (isRefusal(fixed)) return { text: prose, fixed: 0 };
     if (fixed.length < prose.length * 0.5) return { text: prose, fixed: 0 };
     // CODE-LEVEL: Strip any instruction leaks that survived the AI rewrite (runs for ALL genres)
