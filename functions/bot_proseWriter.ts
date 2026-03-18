@@ -940,7 +940,12 @@ function buildProsePrompt(ctx, chCtx) {
     `\nYou are writing Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}".`,
     `\n${CONTENT_GUARDRAILS}`,
     `\n${OUTPUT_FORMAT_RULES}`,
-    `\nTarget: ~${wordTarget} words. MINIMUM ${Math.round(wordTarget * 0.8)} words.`,
+    `\n═══ WORD COUNT REQUIREMENT (NON-NEGOTIABLE) ═══
+Target: ${wordTarget} words. ABSOLUTE MINIMUM: ${Math.round(wordTarget * 0.85)} words.
+You MUST write at least ${Math.round(wordTarget * 0.85)} words of prose. Chapters under ${Math.round(wordTarget * 0.7)} words are UNACCEPTABLE and will be rejected.
+Do NOT stop early. Do NOT summarize remaining scenes. Write EVERY scene in full detail with dialogue, action, sensory description, and interiority.
+If you feel the chapter is "done" but you're under ${wordTarget} words, you are NOT done — expand scenes, add dialogue exchanges, deepen character moments, add transitional beats.
+═══ END WORD COUNT ═══`,
     `\n${isNonfiction ? buildNonfictionBlock(spec) : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
     isLastChapter ? '\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist\'s transformation.\n=== END ===' : '',
     isFirstChapter ? '\n- THIS IS THE OPENING CHAPTER. Hook the reader immediately. Establish world and tone.' : '',
