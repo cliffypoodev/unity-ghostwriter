@@ -4,7 +4,7 @@
 // Coordinates the other 5 bots for single-chapter or full-book generation.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ── Inlined from shared/dataLoader ──
 async function resolveContent(content) {
