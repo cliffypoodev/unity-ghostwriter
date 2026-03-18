@@ -4,7 +4,7 @@
 // Fix every style violation in-place. Return clean prose. ONE AI call for fixes.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ═══ INLINED: shared/aiRouter (compact) ═══
 const MODEL_MAP = {
