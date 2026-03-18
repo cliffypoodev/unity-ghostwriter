@@ -292,7 +292,19 @@ Deno.serve(async (req) => {
     // Save polished prose back to chapter if changed
     if (changed) {
       try {
-        await base44.entities.Chapter.update(chapter_id, { content: polished });
+        try {
+          await base44.entities.Chapter.update(chapter_id, { content: polished });
+        } catch (directSaveErr) {
+          if (directSaveErr.message?.includes('exceeds the maximum allowed size')) {
+            console.log('Content too large for direct save — uploading as file URL');
+            const blob = new Blob([polished], { type: 'text/plain' });
+            const file = new File([blob], `chapter_${chapter_id}_polished.txt`, { type: 'text/plain' });
+            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+            await base44.entities.Chapter.update(chapter_id, { content: file_url });
+          } else {
+            throw directSaveErr;
+          }
+        }
       } catch (e) {
         console.warn('Failed to save polished prose:', e.message);
       }

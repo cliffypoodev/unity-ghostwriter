@@ -944,8 +944,23 @@ Deno.serve(async (req) => {
     // Save corrected prose back to chapter if violations were fixed
     if (result.clean_prose && result.violations_found > 0) {
       try {
-        await base44.entities.Chapter.update(chapter_id, { content: result.clean_prose });
-        result.saved = true;
+        // Try direct save first; if content is too large, upload as file
+        try {
+          await base44.entities.Chapter.update(chapter_id, { content: result.clean_prose });
+          result.saved = true;
+        } catch (directSaveErr) {
+          if (directSaveErr.message?.includes('exceeds the maximum allowed size')) {
+            console.log('Content too large for direct save — uploading as file URL');
+            const blob = new Blob([result.clean_prose], { type: 'text/plain' });
+            const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
+            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+            await base44.entities.Chapter.update(chapter_id, { content: file_url });
+            result.saved = true;
+            result.saved_as_url = true;
+          } else {
+            throw directSaveErr;
+          }
+        }
       } catch (saveErr) {
         console.warn('Failed to save fixed prose:', saveErr.message);
         result.saved = false;
