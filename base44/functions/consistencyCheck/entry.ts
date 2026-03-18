@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const MODEL_MAP = {
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
