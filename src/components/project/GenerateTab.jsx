@@ -384,18 +384,22 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
     }
   };
 
+  // Detect error-but-has-content — treat as "generated" with warnings
+  const hasContentDespiteError = chapter.status === "error" && chapter.word_count > 100;
+
   // Status label + color
   const statusConfig = {
     generated:  { label: "COMPLETE",  color: "text-green-700",  dot: "bg-green-500",  row: "bg-green-50" },
     generating: { label: "WRITING…",  color: "text-blue-600",   dot: "bg-blue-500",   row: "bg-blue-50" },
     error:      { label: "ERROR",     color: "text-red-600",    dot: "bg-red-500",    row: "bg-red-50" },
+    error_with_content: { label: "NEEDS REVIEW", color: "text-amber-700", dot: "bg-amber-500", row: "bg-amber-50" },
     pending:    { label: "PENDING",   color: "text-gray-400",   dot: "bg-gray-300",   row: "bg-gray-50" },
   };
-  const effectiveStatus = isWriting ? "generating" : chapter.status;
+  const effectiveStatus = isWriting ? "generating" : hasContentDespiteError ? "error_with_content" : chapter.status;
   const st = statusConfig[effectiveStatus] || statusConfig.pending;
 
-  const isComplete = chapter.status === "generated";
-  const isPendingOrError = chapter.status === "error" || chapter.status === "pending";
+  const isComplete = chapter.status === "generated" || hasContentDespiteError;
+  const isPendingOrError = (chapter.status === "error" && !hasContentDespiteError) || chapter.status === "pending";
 
   return (
     <div className={cn(
