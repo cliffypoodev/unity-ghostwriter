@@ -949,14 +949,41 @@ export default function GenerateTab({ projectId, onProceed }) {
       }
 
       // ── Step 2: Prose Writer (saves content directly on the backend) ──
+      // The prose writer can take 60-120s. If the HTTP call times out,
+      // the backend is still running. We fire-and-forget, then poll for completion.
       if (onProgress) onProgress(`Writing prose… (${elapsed()})`);
-      const proseResult = await base44.functions.invoke('bot_proseWriter', {
-        project_id: projectId,
-        chapter_id: chapterId,
-      });
-      const proseData = proseResult?.data || proseResult;
-      const wordCount = proseData?.word_count || 0;
+      let proseData = null;
+      try {
+        const proseResult = await base44.functions.invoke('bot_proseWriter', {
+          project_id: projectId,
+          chapter_id: chapterId,
+        });
+        proseData = proseResult?.data || proseResult;
+      } catch (proseErr) {
+        // HTTP timeout or 500 — backend may still be running. Poll for content.
+        console.warn(`Ch ${chapterNumber}: Prose writer HTTP error (${proseErr.message}) — polling for content…`);
+        if (onProgress) onProgress(`Waiting for prose writer… (${elapsed()})`);
+      }
 
+      // If the invoke failed or timed out, poll the chapter entity for content
+      if (!proseData?.saved) {
+        let pollAttempts = 0;
+        const maxPollAttempts = 40; // 40 × 5s = 200s max wait
+        while (pollAttempts < maxPollAttempts) {
+          await new Promise(r => setTimeout(r, 5000));
+          pollAttempts++;
+          if (onProgress) onProgress(`Waiting for prose… ${pollAttempts * 5}s (${elapsed()})`);
+          const polledCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
+          if (polledCh?.word_count > 50) {
+            proseData = { saved: true, word_count: polledCh.word_count };
+            break;
+          }
+          // If status changed to error on backend side, stop polling
+          if (polledCh?.status === 'error') break;
+        }
+      }
+
+      const wordCount = proseData?.word_count || 0;
       if (!proseData?.saved || wordCount < 50) {
         console.error(`Ch ${chapterNumber}: Prose writer failed or returned empty output`);
         await base44.entities.Chapter.update(chapterId, { status: 'error' });
