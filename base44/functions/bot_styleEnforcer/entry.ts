@@ -993,33 +993,10 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     });
   }
 
-  // If violations found, do ONE AI fix pass
-  let cleanProse = text;
-  let fixedCount = 0;
-  if (allViolations.length > 0) {
-    const result = await applyAIFixes(text, allViolations, spec, isNonfiction);
-    cleanProse = result.text;
-    fixedCount = result.fixed;
-  }
-
-  // Nonfiction ending fix (dedicated AI pass)
-  if (isNonfiction) {
-    const paras = cleanProse.trim().split(/\n\n+/);
-    const lastPara = paras[paras.length - 1] || '';
-    if (NF_ENDING_BANS.some(p => p.test(lastPara))) {
-      try {
-        const endingFix = await callAI(resolveModel('style_rewrite'),
-          'You are a nonfiction editor. Rewrite the final 2-3 sentences ONLY. End on specific documented detail, concrete image, or unresolved question. No thesis, no morals, no verse.',
-          `CURRENT ENDING (VIOLATING):\n${lastPara}\n\nReturn only replacement sentences.`,
-          { maxTokens: 512, temperature: 0.4 }
-        );
-        if (endingFix?.trim().length > 20 && !isRefusal(endingFix)) {
-          paras[paras.length - 1] = endingFix.trim();
-          cleanProse = paras.join('\n\n');
-        }
-      } catch (e) { console.warn('NF ending fix failed:', e.message); }
-    }
-  }
+  // Code-level fixes only — no AI calls, executes in milliseconds
+  const codeFixResult = applyCodeFixes(text);
+  let cleanProse = codeFixResult.text;
+  let fixedCount = codeFixResult.fixed;
 
   // Re-scan to report remaining violations
   const remaining = [
