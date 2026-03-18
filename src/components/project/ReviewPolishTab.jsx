@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// PHASE 4 — REVIEW & POLISH (v10)
+// PHASE 4 — REVIEW & POLISH (v11 - fire-and-poll fix)
 // ═══════════════════════════════════════════════════════════════════════════════
 // Scanner dashboard (Rotten Tomatoes score), per-chapter quality cards,
 // on-demand Prose Polisher. Uses the same regex patterns as the bot pipeline.
@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -59,8 +59,6 @@ const PATTERNS = {
     [/\[TODO[:\s]/gi, "[TODO]"],
     [/as (instructed|requested|specified) (in|by) the (prompt|system|user)/gi, "as instructed by the prompt"],
     [/per the (outline|beat sheet|specification)/gi, "per the outline/beat sheet"],
-    // NF editorial instruction leaks — prose-safe patterns (v12.9b)
-    // These require editorial context words AFTER the trigger to avoid false positives on common English
     [/\bRemove specific \w+ or (cite|provide|anchor|source|use)/gi, "NF leak: Remove specific X or cite/provide..."],
     [/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)/gi, "NF leak: Remove atmospheric/invented..."],
     [/\bEither (identify|cite|name|source|provide|use) (the |a )?(specific|actual|real|documentary|documented)/gi, "NF leak: Either cite/provide specific..."],
@@ -79,7 +77,6 @@ const PATTERNS = {
     [/\bor (remove|begin with|provide|cite|frame|preface).{1,40}(fictional|documented|general|representative|composite|atmospheric|reconstructed|hypothetical)/gi, "NF leak: or remove/cite fictional..."],
     [/\bContemporary accounts (describe|suggest) similar [^.!?\n]{5,}/gi, "NF leak: meta-framing instruction"],
     [/\bUse '([^']+)' or [^.!?\n]{5,}/gi, "NF leak: Use quoted example or..."],
-    // No-comma fusion: instruction flows directly into prose
     [/\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w/gi, "NF leak: fused instruction-prose"],
   ],
   tense_past_drift: [
@@ -359,7 +356,9 @@ export default function ReviewPolishTab({ projectId }) {
   const [uploadedText, setUploadedText] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState(null);
 
-  const { data: chapters = [] } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: chapters = [], refetch: refetchChapters } = useQuery({
     queryKey: ["chapters", projectId],
     queryFn: () => base44.entities.Chapter.filter({ project_id: projectId }),
     enabled: !!projectId,
@@ -418,34 +417,42 @@ export default function ReviewPolishTab({ projectId }) {
     if (!ch) return;
     setPolishing(prev => ({ ...prev, [chapterNum]: true }));
     
-    const originalContent = ch.content;
-    const originalUpdated = ch.updated_date;
+    // Get current state before invoking
+    let originalUpdated;
+    try {
+      const [current] = await base44.entities.Chapter.filter({ id: ch.id });
+      originalUpdated = current?.updated_date;
+    } catch { originalUpdated = ch.updated_date; }
     
     try {
-      // Fire the function — may timeout but backend continues
-      await base44.functions.invoke("bot_prosePolisher", { 
+      // Fire the function — don't await, it may timeout
+      base44.functions.invoke("bot_prosePolisher", { 
         project_id: projectId, 
         chapter_id: ch.id 
       }).catch(err => {
         console.warn(`Prose polisher HTTP error (expected): ${err.message}`);
       });
       
+      // Initial wait before polling
+      await new Promise(r => setTimeout(r, 5000));
+      
       // Poll for content change
       let pollAttempts = 0;
-      const maxPolls = 40;
+      const maxPolls = 60;
       while (pollAttempts < maxPolls) {
-        await new Promise(r => setTimeout(r, 3000));
-        pollAttempts++;
         try {
           const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
-          if (updated && (updated.content !== originalContent || updated.updated_date !== originalUpdated)) {
+          if (updated && updated.updated_date && updated.updated_date !== originalUpdated) {
             setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: true, violations_found: 1, total_instances: 1 } }));
+            await refetchChapters();
             setTimeout(() => handleScan(), 1000);
             return;
           }
         } catch (pollErr) {
           console.warn('Poll error:', pollErr.message);
         }
+        await new Promise(r => setTimeout(r, 3000));
+        pollAttempts++;
       }
       setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: false } }));
     } catch (err) {
@@ -473,13 +480,16 @@ export default function ReviewPolishTab({ projectId }) {
     if (!ch) return;
     setFixing(prev => ({ ...prev, [chapterNum]: true }));
     
-    // Track the content URL/hash before invoking to detect when it changes
-    const originalContent = ch.content;
-    const originalUpdated = ch.updated_date;
+    // Get the chapter's current state before invoking
+    let originalUpdated;
+    try {
+      const [current] = await base44.entities.Chapter.filter({ id: ch.id });
+      originalUpdated = current?.updated_date;
+    } catch { originalUpdated = ch.updated_date; }
     
     try {
-      // Fire the function — may timeout but backend continues
-      await base44.functions.invoke("bot_styleEnforcer", {
+      // Fire the function — don't await, it may timeout
+      base44.functions.invoke("bot_styleEnforcer", {
         project_id: projectId,
         chapter_id: ch.id,
       }).catch(err => {
@@ -487,26 +497,30 @@ export default function ReviewPolishTab({ projectId }) {
         console.warn(`Style enforcer HTTP error (expected): ${err.message}`);
       });
       
+      // Initial wait before polling
+      await new Promise(r => setTimeout(r, 5000));
+      
       // Poll for content change (backend saves directly)
       let pollAttempts = 0;
-      const maxPolls = 40; // 40 × 3s = 120s max wait
+      const maxPolls = 60; // 60 × 3s = 180s max wait
       while (pollAttempts < maxPolls) {
-        await new Promise(r => setTimeout(r, 3000));
-        pollAttempts++;
         try {
           const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
-          if (updated && (updated.content !== originalContent || updated.updated_date !== originalUpdated)) {
+          if (updated && updated.updated_date && updated.updated_date !== originalUpdated) {
             // Content changed — fix was applied
             setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: 1, total: 1 } }));
+            await refetchChapters();
             setTimeout(() => handleScan(), 1000);
             return;
           }
         } catch (pollErr) {
           console.warn('Poll error:', pollErr.message);
         }
+        await new Promise(r => setTimeout(r, 3000));
+        pollAttempts++;
       }
       // Timeout — no change detected
-      setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: 'No changes detected (may have timed out)' } }));
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: 'Timed out waiting for changes' } }));
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally {
@@ -764,6 +778,8 @@ export default function ReviewPolishTab({ projectId }) {
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">✓ Chapter regenerated</Badge>
                     ) : result.success ? (
                       <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">✓ {result.fixed}/{result.total} violations fixed</Badge>
+                    ) : result.message ? (
+                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">{result.message}</Badge>
                     ) : (
                       <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30 text-xs">No changes</Badge>
                     )}
