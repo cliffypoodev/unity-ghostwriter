@@ -210,7 +210,7 @@ async function orchestrateChapter(base44, projectId, chapterId) {
   if (finalProse.length > 15000) {
     try {
       const contentFile = new File([finalProse], `chapter_${chapterId}.txt`, { type: 'text/plain' });
-      const uploadResult = await base44.integrations.Core.UploadFile({ file: contentFile });
+      const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: contentFile });
       if (uploadResult?.file_url) contentValue = uploadResult.file_url;
     } catch (e) { console.warn('File upload failed, storing directly:', e.message); }
   }
