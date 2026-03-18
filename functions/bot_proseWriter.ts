@@ -6,7 +6,7 @@
 // Downstream bots (Continuity Guardian, Style Enforcer) handle quality.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ═══ INLINED: shared/aiRouter ═══
 const MODEL_MAP = {
@@ -1118,7 +1118,7 @@ async function runProseWriter(base44, projectId, chapterId) {
         maxTokens: 32768,
         temperature: 0.72,
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_90s')), 90000)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_240s')), 240000)),
     ]);
   } catch (err) {
     // If primary model (e.g. gemini-flash) fails, fallback to trinity
@@ -1131,7 +1131,7 @@ async function runProseWriter(base44, projectId, chapterId) {
             maxTokens: 16384,
             temperature: 0.72,
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('fallback_timeout_90s')), 90000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('fallback_timeout_180s')), 180000)),
         ]);
       } catch (fallbackErr) {
         console.error(`ProseWriter fallback also failed: ${fallbackErr.message}`);
@@ -1165,7 +1165,7 @@ Write at least ${Math.min(wordsNeeded, 4000)} more words of prose. Expand scenes
 LAST PARAGRAPH (continue from here):
 ${lastContext}`;
       
-      const timeoutMs = continuationCount === 1 ? 60000 : 50000;
+      const timeoutMs = continuationCount === 1 ? 120000 : 90000;
       const continuation = await Promise.race([
         callAI(actualModel, systemPrompt, continueMessage, {
           maxTokens: 12000,
