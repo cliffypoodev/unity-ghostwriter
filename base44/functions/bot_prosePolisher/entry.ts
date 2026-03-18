@@ -297,18 +297,17 @@ Deno.serve(async (req) => {
     // Save to DB so the orchestrator can reload it (orchestrator does its own final save too).
     if (changed) {
       try {
-        try {
-          await base44.entities.Chapter.update(chapter_id, { content: polished });
-        } catch (directSaveErr) {
-          if (directSaveErr.message?.includes('exceeds the maximum allowed size')) {
-            console.log('Content too large for direct save — uploading as file URL');
-            const blob = new Blob([polished], { type: 'text/plain' });
-            const file = new File([blob], `chapter_${chapter_id}_polished.txt`, { type: 'text/plain' });
-            const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-            await base44.entities.Chapter.update(chapter_id, { content: file_url });
-          } else {
-            throw directSaveErr;
-          }
+        // Always upload as file URL for large chapters to avoid field size limits
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(polished);
+        const blob = new Blob([bytes], { type: 'text/plain' });
+        const file = new File([blob], `chapter_${chapter_id}_polished.txt`, { type: 'text/plain' });
+        const uploadResult = await base44.integrations.Core.UploadFile({ file });
+        const fileUrl = uploadResult?.file_url;
+        if (fileUrl) {
+          await base44.entities.Chapter.update(chapter_id, { content: fileUrl });
+        } else {
+          console.warn('Upload returned no file_url:', JSON.stringify(uploadResult));
         }
       } catch (e) {
         console.warn('Failed to save polished prose:', e.message);
