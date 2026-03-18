@@ -80,7 +80,7 @@ export default function ReviewPolishTab({ projectId }) {
     for (const ch of generatedChapters) {
       const content = await resolveChapterContent(ch);
       if (!content || content.length < 50) continue;
-      const { findings, words } = scanChapter(content, ch.chapter_number, tense);
+      const { findings, words } = scanChapter(content, ch.chapter_number, tense, targetWords);
       allFindings.push(...findings);
       chapterData.push({
         number: ch.chapter_number,
@@ -91,11 +91,12 @@ export default function ReviewPolishTab({ projectId }) {
       });
     }
 
-    // Manuscript-wide interiority checks
+    // Manuscript-wide checks
     const fullText = await Promise.all(
       generatedChapters.map(ch => resolveChapterContent(ch))
     ).then(texts => texts.join("\n\n"));
 
+    // Manuscript-wide interiority checks
     for (const [rx, label, manuscriptCap] of PATTERNS.interiority_repetition) {
       const m = fullText.match(rx);
       const manuscriptMax = manuscriptCap * Math.max(1, Math.floor(chapterData.length / 5));
@@ -103,6 +104,9 @@ export default function ReviewPolishTab({ projectId }) {
         allFindings.push({ category: "interiority_repetition", label: `MANUSCRIPT-WIDE: "${label}" x${m.length} (max ~${manuscriptMax})`, count: m.length - manuscriptMax, chapter: 0 });
       }
     }
+
+    // Manuscript-wide NF phrase caps
+    allFindings.push(...scanManuscriptWideCaps(fullText));
 
     const sensoryOpeners = allFindings.filter(f => f.category === "sensory_opener").length;
     const openerRatio = chapterData.length > 0 ? sensoryOpeners / chapterData.length : 0;
