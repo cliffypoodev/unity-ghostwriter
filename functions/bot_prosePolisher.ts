@@ -293,7 +293,8 @@ Deno.serve(async (req) => {
     // Phase 2: AI polish
     const { polished, changed, rejected } = await runAIPolish(chapterProse, violations, isNonfiction);
 
-    // Save polished prose back to chapter if changed
+    // If prose was passed in the payload, this is an in-pipeline call from the orchestrator.
+    // Save to DB so the orchestrator can reload it (orchestrator does its own final save too).
     if (changed) {
       try {
         try {
