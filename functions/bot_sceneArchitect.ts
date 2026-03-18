@@ -356,6 +356,16 @@ CRITICAL VALIDATION:
 
 async function runSceneArchitect(base44, projectId, chapterId) {
   const ctx = await loadProjectContext(base44, projectId);
+
+  // Ensure the target chapter is in the loaded context — bulk loads can drop chapters
+  // with large content fields, so fetch it individually and merge if missing
+  if (!ctx.chapters.find(c => c.id === chapterId)) {
+    const [targetChapter] = await base44.entities.Chapter.filter({ id: chapterId });
+    if (!targetChapter) throw new Error('Chapter not found: ' + chapterId);
+    ctx.chapters.push(targetChapter);
+    ctx.chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+  }
+
   const chCtx = getChapterContext(ctx, chapterId);
 
   let result;
