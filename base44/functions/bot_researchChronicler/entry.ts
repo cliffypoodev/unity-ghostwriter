@@ -1,10 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// BOT 7 — RESEARCH CHRONICLER (ACTIVE DEPLOYED)
-// ═══════════════════════════════════════════════════════════════════════════════
-// Pre-chapter: finds real sources via web search, compiles structured source docs.
-// Post-prose: verifies factual claims against gathered sources.
-// End-of-book: compiles Chicago 17th ed. bibliography from all chapter sources.
-// ═══════════════════════════════════════════════════════════════════════════════
+// BOT 7 — RESEARCH CHRONICLER (v2 — redeployed)
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
