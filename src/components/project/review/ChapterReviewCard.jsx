@@ -12,35 +12,68 @@ import { SCAN_CATEGORIES, scanChapter, resolveChapterContent, autoFixChapter } f
 // CHAPTER REVIEW CARD — self-contained fix/polish with inline status updates
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Only poll on actual timeout errors, not 4xx/5xx/network failures
 function isTimeoutError(err) {
-  const msg = (err?.message || "").toLowerCase();
-  // Network errors usually mean the request never reached the server — don't poll
-  return msg.includes("timeout") || msg.includes("econnaborted") || msg.includes("aborted");
+  var msg = (err && err.message ? err.message : "").toLowerCase();
+  return msg.indexOf("timeout") >= 0 || msg.indexOf("econnaborted") >= 0 || msg.indexOf("aborted") >= 0;
+}
+
+// Save chapter content — tries file upload first, falls back to direct save
+async function saveChapterContent(chapterId, content) {
+  console.log("[saveChapter] Saving chapter", chapterId, "content length:", content.length);
+
+  // Approach 1: Try file upload via integrations API
+  try {
+    console.log("[saveChapter] Trying file upload approach...");
+    var blob = new Blob([content], { type: "text/plain" });
+    var file = new File([blob], "chapter_" + chapterId + "_fixed.txt", { type: "text/plain" });
+    var uploadResult = await base44.integrations.Core.UploadFile({ file: file });
+    console.log("[saveChapter] Upload result:", JSON.stringify(uploadResult));
+    if (uploadResult && uploadResult.file_url) {
+      await base44.entities.Chapter.update(chapterId, { content: uploadResult.file_url });
+      console.log("[saveChapter] Saved via file upload. URL:", uploadResult.file_url);
+      return true;
+    }
+    console.warn("[saveChapter] Upload returned no file_url");
+  } catch (uploadErr) {
+    console.warn("[saveChapter] File upload failed:", uploadErr.message || uploadErr);
+  }
+
+  // Approach 2: Try direct save (works if content is small enough)
+  try {
+    console.log("[saveChapter] Trying direct save...");
+    await base44.entities.Chapter.update(chapterId, { content: content });
+    console.log("[saveChapter] Direct save succeeded");
+    return true;
+  } catch (directErr) {
+    console.error("[saveChapter] Direct save also failed:", directErr.message || directErr);
+  }
+
+  throw new Error("Could not save — both file upload and direct save failed. Check browser console.");
 }
 
 export default function ChapterReviewCard({
-  chapterEntity, // raw chapter entity from DB
-  findings,      // current scan findings for this chapter
-  words,         // current word count
+  chapterEntity,
+  findings,
+  words,
   targetWords,
   tense,
-  onScanUpdated, // callback(chapterNum, newFindings, newWords) — updates parent scan state
+  onScanUpdated,
   projectId,
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [action, setAction] = useState(null); // null | 'fixing' | 'polishing' | 'regenerating'
-  const [actionStep, setActionStep] = useState(""); // human-readable progress
-  const [lastResult, setLastResult] = useState(null); // { type, issuesBefore, issuesAfter, error }
+  const [action, setAction] = useState(null);
+  const [actionStep, setActionStep] = useState("");
+  const [lastResult, setLastResult] = useState(null);
 
-  const chapterNum = chapterEntity.chapter_number;
-  const chFindings = findings;
-  const totalInstances = chFindings.reduce((sum, f) => sum + f.count, 0);
-  const hasLeaks = chFindings.some(f => f.category === "instruction_leak");
-  const hasTenseDrift = chFindings.some(f => f.category === "tense_drift");
-  const isWorking = !!action;
+  var chapterNum = chapterEntity.chapter_number;
+  var chFindings = findings;
+  var totalInstances = chFindings.reduce(function(sum, f) { return sum + f.count; }, 0);
+  var hasLeaks = chFindings.some(function(f) { return f.category === "instruction_leak"; });
+  var hasTenseDrift = chFindings.some(function(f) { return f.category === "tense_drift"; });
+  var hasDupes = chFindings.some(function(f) { return f.category === "duplicate_paragraph"; });
+  var isWorking = !!action;
 
-  const statusColor = hasLeaks
+  var statusColor = hasLeaks || hasDupes
     ? "border-red-500/50 bg-red-500/5"
     : hasTenseDrift
     ? "border-amber-500/50 bg-amber-500/5"
@@ -48,88 +81,98 @@ export default function ChapterReviewCard({
     ? "border-slate-600"
     : "border-emerald-500/30 bg-emerald-500/5";
 
-  // ── CORE FLOW: action → wait for backend → re-fetch content → re-scan → update parent ──
-
   async function rescanAndUpdate() {
-    setActionStep("Re-scanning chapter…");
-    // Re-fetch the chapter entity from DB to get updated content
-    const [refreshed] = await base44.entities.Chapter.filter({ id: chapterEntity.id });
-    if (!refreshed) return;
-    const content = await resolveChapterContent(refreshed);
-    if (!content || content.length < 50) return;
-    const { findings: newFindings, words: newWords } = scanChapter(content, chapterNum, tense, targetWords);
-    onScanUpdated(chapterNum, newFindings, newWords);
-    return newFindings;
+    setActionStep("Re-scanning chapter...");
+    try {
+      var results = await base44.entities.Chapter.filter({ id: chapterEntity.id });
+      var refreshed = results[0];
+      if (!refreshed) return null;
+      var content = await resolveChapterContent(refreshed);
+      if (!content || content.length < 50) return null;
+      var scanResult = scanChapter(content, chapterNum, tense, targetWords);
+      onScanUpdated(chapterNum, scanResult.findings, scanResult.words);
+      return scanResult.findings;
+    } catch (err) {
+      console.error("[rescanAndUpdate] Error:", err);
+      return null;
+    }
   }
 
+  // FIX ISSUES — pure frontend, no backend bot call
   async function handleFix() {
-    const issuesBefore = totalInstances;
+    var issuesBefore = totalInstances;
     setAction("fixing");
     setLastResult(null);
-    setActionStep("Fixing issues…");
+    setActionStep("Loading chapter content...");
 
     try {
-      const content = await resolveChapterContent(chapterEntity);
+      console.log("[handleFix] Starting fix for chapter", chapterNum);
+
+      var content = await resolveChapterContent(chapterEntity);
+      console.log("[handleFix] Loaded content, length:", content ? content.length : 0);
+
       if (!content || content.length < 100) {
-        setLastResult({ type: "fix", error: "No content to fix" });
+        setLastResult({ type: "fix", error: "No content to fix (length: " + (content ? content.length : 0) + ")" });
         return;
       }
 
-      const fixedContent = autoFixChapter(content);
+      setActionStep("Running fixes...");
+      var fixedContent = autoFixChapter(content);
+      console.log("[handleFix] Fix complete. Original:", content.length, "Fixed:", fixedContent.length, "Changed:", content !== fixedContent);
 
       if (fixedContent !== content) {
-        setActionStep("Saving…");
-        const blob = new Blob([fixedContent], { type: 'text/plain' });
-        const file = new File([blob], `chapter_${chapterEntity.id}_fixed.txt`, { type: 'text/plain' });
-        const uploadResult = await base44.integrations.Core.UploadFile({ file });
-        const fileUrl = uploadResult?.file_url;
-        if (!fileUrl) throw new Error('File upload failed — no URL returned');
-        await base44.entities.Chapter.update(chapterEntity.id, { content: fileUrl });
-        const { findings: newFindings, words: newWords } = scanChapter(fixedContent, chapterNum, tense, targetWords);
-        onScanUpdated(chapterNum, newFindings, newWords);
-        const issuesAfter = newFindings.reduce((s, f) => s + f.count, 0);
-        setLastResult({ type: "fix", issuesBefore, issuesAfter, fixed: issuesBefore - issuesAfter });
+        setActionStep("Saving fixed content...");
+        await saveChapterContent(chapterEntity.id, fixedContent);
+
+        setActionStep("Re-scanning...");
+        var scanResult = scanChapter(fixedContent, chapterNum, tense, targetWords);
+        onScanUpdated(chapterNum, scanResult.findings, scanResult.words);
+        var issuesAfter = scanResult.findings.reduce(function(s, f) { return s + f.count; }, 0);
+        console.log("[handleFix] Done. Issues before:", issuesBefore, "after:", issuesAfter);
+        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: issuesBefore - issuesAfter });
       } else {
-        setLastResult({ type: "fix", issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No fixable issues found" });
+        console.log("[handleFix] No changes made by autoFixChapter");
+        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No fixable issues found" });
       }
     } catch (err) {
-      console.error("Fix failed:", err);
-      setLastResult({ type: "fix", error: err.message });
+      console.error("[handleFix] Error:", err);
+      setLastResult({ type: "fix", error: err.message || "Unknown error" });
     } finally {
       setAction(null);
       setActionStep("");
     }
   }
 
+  // POLISH PROSE — calls backend bot
   async function handlePolish() {
-    const issuesBefore = totalInstances;
+    var issuesBefore = totalInstances;
     setAction("polishing");
     setLastResult(null);
-    setActionStep("Sending to prose polisher…");
+    setActionStep("Sending to prose polisher...");
 
     try {
-      const response = await base44.functions.invoke("bot_prosePolisher", {
+      var response = await base44.functions.invoke("bot_prosePolisher", {
         project_id: projectId,
         chapter_id: chapterEntity.id,
       });
-      const result = response.data;
+      var result = response.data;
 
-      if (result?.error) {
+      if (result && result.error) {
         setLastResult({ type: "polish", error: result.error });
         return;
       }
 
-      if (result?.changed) {
-        const newFindings = await rescanAndUpdate();
-        const issuesAfter = newFindings ? newFindings.reduce((s, f) => s + f.count, 0) : issuesBefore;
-        setLastResult({ type: "polish", issuesBefore, issuesAfter, fixed: issuesBefore - issuesAfter });
+      if (result && result.changed) {
+        var newFindings = await rescanAndUpdate();
+        var issuesAfter = newFindings ? newFindings.reduce(function(s, f) { return s + f.count; }, 0) : issuesBefore;
+        setLastResult({ type: "polish", issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: issuesBefore - issuesAfter });
       } else {
-        setLastResult({ type: "polish", issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No changes needed" });
+        setLastResult({ type: "polish", issuesBefore: issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No changes needed" });
       }
     } catch (err) {
       if (isTimeoutError(err)) {
-        console.warn("Polish invoke timed out, polling…", err.message);
-        setActionStep("Waiting for backend…");
+        console.warn("Polish invoke timed out, polling...", err.message);
+        setActionStep("Waiting for backend...");
         await pollForUpdate(issuesBefore, "polish");
       } else {
         console.error("Polish invoke failed:", err.message);
@@ -141,28 +184,29 @@ export default function ChapterReviewCard({
     }
   }
 
+  // REGENERATE — calls backend orchestrator
   async function handleRegenerate() {
-    if (!window.confirm(`Regenerate Chapter ${chapterNum}? This will re-run the full write pipeline.`)) return;
-    const issuesBefore = totalInstances;
+    if (!window.confirm("Regenerate Chapter " + chapterNum + "? This will re-run the full write pipeline.")) return;
+    var issuesBefore = totalInstances;
     setAction("regenerating");
     setLastResult(null);
-    setActionStep("Resetting chapter…");
+    setActionStep("Resetting chapter...");
 
     try {
       await base44.entities.Chapter.update(chapterEntity.id, { status: "pending" });
-      setActionStep("Running full write pipeline…");
+      setActionStep("Running full write pipeline...");
       await base44.functions.invoke("bot_orchestrator", {
         action: "write_chapter",
         project_id: projectId,
         chapter_id: chapterEntity.id,
       });
-      const newFindings = await rescanAndUpdate();
-      const issuesAfter = newFindings ? newFindings.reduce((s, f) => s + f.count, 0) : 0;
-      setLastResult({ type: "regenerate", issuesBefore, issuesAfter });
+      var newFindings = await rescanAndUpdate();
+      var issuesAfter = newFindings ? newFindings.reduce(function(s, f) { return s + f.count; }, 0) : 0;
+      setLastResult({ type: "regenerate", issuesBefore: issuesBefore, issuesAfter: issuesAfter });
     } catch (err) {
       if (isTimeoutError(err)) {
-        console.warn("Regenerate timed out, polling…", err.message);
-        setActionStep("Waiting for pipeline…");
+        console.warn("Regenerate timed out, polling...", err.message);
+        setActionStep("Waiting for pipeline...");
         await pollForUpdate(issuesBefore, "regenerate");
       } else {
         console.error("Regenerate failed:", err.message);
@@ -174,19 +218,19 @@ export default function ChapterReviewCard({
     }
   }
 
-  // Poll the DB until the chapter's updated_date changes, then re-scan
   async function pollForUpdate(issuesBefore, actionType) {
-    const [current] = await base44.entities.Chapter.filter({ id: chapterEntity.id });
-    const originalUpdated = current?.updated_date;
-    
-    for (let i = 0; i < 45; i++) {
-      await new Promise(r => setTimeout(r, 4000));
-      setActionStep(`Waiting for backend… (${i * 4}s)`);
-      const [updated] = await base44.entities.Chapter.filter({ id: chapterEntity.id });
+    var results = await base44.entities.Chapter.filter({ id: chapterEntity.id });
+    var current = results[0];
+    var originalUpdated = current ? current.updated_date : null;
+
+    for (var i = 0; i < 45; i++) {
+      await new Promise(function(r) { setTimeout(r, 4000); });
+      setActionStep("Waiting for backend... (" + (i * 4) + "s)");
+      var updated = (await base44.entities.Chapter.filter({ id: chapterEntity.id }))[0];
       if (updated && updated.updated_date !== originalUpdated) {
-        const newFindings = await rescanAndUpdate();
-        const issuesAfter = newFindings ? newFindings.reduce((s, f) => s + f.count, 0) : issuesBefore;
-        setLastResult({ type: actionType, issuesBefore, issuesAfter, fixed: issuesBefore - issuesAfter });
+        var newFindings = await rescanAndUpdate();
+        var issuesAfter = newFindings ? newFindings.reduce(function(s, f) { return s + f.count; }, 0) : issuesBefore;
+        setLastResult({ type: actionType, issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: issuesBefore - issuesAfter });
         return;
       }
     }
@@ -195,11 +239,10 @@ export default function ChapterReviewCard({
 
   return (
     <div className={cn("rounded-xl border p-4 transition-all", statusColor)}>
-      {/* ── Header row ── */}
       <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-            hasLeaks ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-600 text-white" : "bg-emerald-500 text-white"
+            hasLeaks || hasDupes ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-600 text-white" : "bg-emerald-500 text-white"
           )}>{chapterNum}</div>
           <div className="min-w-0">
             <div className="text-sm font-medium text-slate-200 truncate max-w-[300px]">
@@ -222,7 +265,6 @@ export default function ChapterReviewCard({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Inline result badge */}
           {lastResult && !isWorking && (
             <ResultBadge result={lastResult} />
           )}
@@ -230,11 +272,9 @@ export default function ChapterReviewCard({
         </div>
       </div>
 
-      {/* ── Expanded body ── */}
       {expanded && (
         <div className="mt-3 pt-3 border-t border-slate-700">
-          {/* Action buttons */}
-          {(chFindings.length > 0 || lastResult?.error) && (
+          {(chFindings.length > 0 || (lastResult && lastResult.error)) && (
             <div className="flex flex-wrap gap-2 mb-3">
               <Button size="sm" disabled={isWorking}
                 className="text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
@@ -259,26 +299,24 @@ export default function ChapterReviewCard({
             </div>
           )}
 
-          {/* Inline result detail */}
           {lastResult && !isWorking && (
             <ResultDetail result={lastResult} />
           )}
 
-          {/* Issue list */}
           {chFindings.length > 0 && (
             <div className="space-y-2">
               {chFindings.map((f, i) => {
                 const cat = SCAN_CATEGORIES[f.category];
                 return (
                   <div key={i} className={cn("flex items-start gap-2 text-xs p-2 rounded-lg",
-                    f.category === "instruction_leak" ? "bg-red-500/10" : "bg-slate-800/50"
+                    f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "bg-red-500/10" : "bg-slate-800/50"
                   )}>
-                    <span className="shrink-0 mt-0.5">{cat?.icon || "•"}</span>
+                    <span className="shrink-0 mt-0.5">{cat ? cat.icon : "•"}</span>
                     <div className="flex-1 min-w-0">
                       <span className={cn("font-medium",
-                        f.category === "instruction_leak" ? "text-red-400" :
+                        f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "text-red-400" :
                         f.category === "tense_drift" ? "text-amber-400" : "text-slate-300"
-                      )}>{cat?.label}:</span>{" "}
+                      )}>{cat ? cat.label : f.category}:</span>{" "}
                       <span className="text-slate-400">{f.label} ({f.count}×)</span>
                       {f.samples && (
                         <div className="mt-1 space-y-1">
@@ -303,12 +341,11 @@ export default function ChapterReviewCard({
   );
 }
 
-// ── Inline result badge (shown in collapsed header) ──
 function ResultBadge({ result }) {
   if (result.error) {
     return <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px]">Error</Badge>;
   }
-  const delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
+  var delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
   if (delta > 0) {
     return <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">−{delta} issues</Badge>;
   }
@@ -318,7 +355,6 @@ function ResultBadge({ result }) {
   return <Badge className="bg-slate-500/20 text-slate-400 border border-slate-500/30 text-[10px]">No change</Badge>;
 }
 
-// ── Inline result detail (shown in expanded body) ──
 function ResultDetail({ result }) {
   if (result.error) {
     return (
@@ -327,8 +363,8 @@ function ResultDetail({ result }) {
       </div>
     );
   }
-  const delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
-  const label = result.type === "fix" ? "Style Enforcer" : result.type === "polish" ? "Prose Polisher" : "Regeneration";
+  var delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
+  var label = result.type === "fix" ? "Auto-Fix" : result.type === "polish" ? "Prose Polisher" : "Regeneration";
   return (
     <div className={cn("mb-3 p-2.5 rounded-lg border", delta > 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-slate-800/50 border-slate-700")}>
       <div className="flex items-center gap-2 text-xs">
