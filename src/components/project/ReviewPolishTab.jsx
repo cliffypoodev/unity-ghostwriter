@@ -64,7 +64,7 @@ export default function ReviewPolishTab({ projectId }) {
 
   const spec = specs[0];
   const tense = spec?.tense || "";
-  const targetWords = { short: 2500, medium: 2500, long: 2800, epic: 3000 }[spec?.target_length || "medium"] || 2500;
+  const targetWords = { short: 2000, medium: 3500, long: 6000, epic: 8500 }[spec?.target_length || "medium"] || 3500;
   const generatedChapters = chapters.filter(c => c.status === "generated").sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
 
   // ── Full manuscript scan ──
