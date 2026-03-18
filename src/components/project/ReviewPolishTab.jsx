@@ -164,7 +164,7 @@ export default function ReviewPolishTab({ projectId }) {
         if (refreshed) {
           const content = await resolveChapterContent(refreshed);
           if (content && content.length >= 50) {
-            const { findings, words } = scanChapter(content, cd.number, tense);
+            const { findings, words } = scanChapter(content, cd.number, tense, targetWords);
             handleChapterScanUpdated(cd.number, findings, words);
           }
         }
