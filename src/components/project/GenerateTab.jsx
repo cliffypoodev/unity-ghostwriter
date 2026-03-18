@@ -823,7 +823,7 @@ export default function GenerateTab({ projectId, onProceed }) {
 
     try {
       // ── STEP 1: Shell (fast — titles + summaries) ──
-      const shellRes = await base44.functions.invoke('generateOutlineShell', { project_id: projectId }, { timeout: 60000 });
+      const shellRes = await base44.functions.invoke('generateOutlineShell', { project_id: projectId });
       if (shellRes.status !== 200) {
         setGenerateError(shellRes.data?.error || 'Failed to generate shell');
         setGenerating(false);
@@ -896,7 +896,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     setGenerateError("");
 
     try {
-      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId }, { timeout: 120000 });
+      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId });
       
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
@@ -918,127 +918,94 @@ export default function GenerateTab({ projectId, onProceed }) {
     }
   };
 
-  // Shared helper: fire writeChapter and poll until chapter reaches generated/error status.
-  // Returns "generated" | "error" | "timeout"
+  // Frontend-driven chapter write pipeline.
+  // Calls each bot sequentially as separate HTTP requests (no orchestrator).
+  // Returns "generated" | "error"
   const writeAndPollChapter = async (chapterId, chapterNumber, onProgress) => {
-    let httpDone = false;
-    let httpError = null;
-
-    // Pre-reset chapter status in DB to prevent polling from picking up stale "error" status
-    try {
-      await base44.entities.Chapter.update(chapterId, { status: "generating" });
-    } catch (e) { console.warn('Failed to reset chapter status before polling:', e.message); }
-
-    // Fire the bot_orchestrator request — track when it completes/fails
-    base44.functions.invoke('bot_orchestrator', {
-      action: 'write_chapter',
-      project_id: projectId,
-      chapter_id: chapterId,
-    }, { timeout: 600000 }).then(() => {
-      httpDone = true;
-    }).catch(err => {
-      httpDone = true;
-      httpError = err?.message || 'HTTP error';
-      console.log(`writeChapter HTTP returned/errored for ch ${chapterNumber}:`, httpError);
-    });
-
-    // Poll chapter status until done
     const startedAt = Date.now();
-    const maxWaitMs = 12 * 60 * 1000; // 12 min max per chapter (nonfiction with research+quality passes can take 10+ min)
-    const progressMessages = ["Writing chapter prose…", "Building narrative…", "Crafting scenes…", "Running continuity check…", "Updating story bible…"];
-    let lastUpdatedAt = null; // Track when the chapter record was last modified
+    const elapsed = () => {
+      const s = Math.floor((Date.now() - startedAt) / 1000);
+      return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
+    };
 
-    while (Date.now() - startedAt < maxWaitMs) {
-      await new Promise(r => setTimeout(r, 8000)); // 8-second intervals to avoid rate limits
-      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      const mins = Math.floor(elapsed / 60);
-      const secs = elapsed % 60;
-      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-      const msgIdx = Math.floor(elapsed / 20) % progressMessages.length;
-
-      // Fetch ONLY the chapter being written — not the whole project
-      let ch;
-      try {
-        const singleResult = await base44.entities.Chapter.filter({ id: chapterId });
-        ch = singleResult?.[0] || null;
-      } catch (fetchErr) {
-        // Rate limited or network error — skip this poll cycle, don't crash
-        if (String(fetchErr?.message).includes('429')) {
-          if (onProgress) onProgress(`Rate limited — waiting… (${timeStr})`);
-          await new Promise(r => setTimeout(r, 10000)); // Extra 10s backoff on 429
-          continue;
-        }
-        console.warn(`Poll fetch failed: ${fetchErr.message}`);
-        continue;
-      }
-
-      if (ch?.status === 'generated') {
-        if (onProgress) onProgress(`Complete — ${ch.word_count || 0} words (${timeStr})`);
-        return "generated";
-      }
-      // Ignore "error" status in the first 15 seconds — it could be stale from a previous attempt
-      // (the backend needs a few seconds to receive the request and set status to "generating")
-      if (ch?.status === 'error' && elapsed > 15) {
-        if (onProgress) onProgress(`Error during generation`);
-        return "error";
-      }
-      // If chapter was externally reset to "pending" (e.g. manual unstick), abort polling
-      if (ch?.status === 'pending' && elapsed > 15) {
-        if (onProgress) onProgress(`Chapter was reset — click Write to retry`);
-        return "error";
-      }
-
-      // Detect Deno crash: if HTTP request completed with error but chapter is still "generating",
-      // the backend may have crashed OR the gateway timed out (500/504) while the worker continues.
-      // Gateway timeouts (500/504) are common for long-running AI generation (4-7 min with 6-bot pipeline).
-      // The worker keeps running after a gateway timeout — only mark as error after a very generous grace period.
-      if (httpDone && httpError && ch?.status === 'generating') {
-        const isGatewayTimeout = httpError.includes('504') || httpError.includes('500') || httpError.includes('Gateway') || httpError.includes('status code');
-        const gracePeriod = isGatewayTimeout ? 540 : 420; // 9 min grace for gateway timeouts, 7 min for other errors
-        if (elapsed > gracePeriod) {
-          console.warn(`Ch ${chapterNumber}: Backend likely crashed (${httpError}, ${elapsed}s elapsed) — marking as error`);
-          if (onProgress) onProgress(`Generation timed out — skipping to next chapter`);
-          try {
-            await base44.entities.Chapter.update(chapterId, { status: 'error' });
-          } catch (e) { console.warn('Failed to mark crashed chapter:', e.message); }
-          return "error";
-        }
-        // Still within grace period — keep polling, worker may still be running
-        if (onProgress) onProgress(`HTTP returned early — worker still running… (${timeStr})`);
-      }
-
-      // Detect stale "generating": if 10+ minutes have passed and the chapter updated_date
-      // hasn't changed in 5+ minutes, the worker likely died silently.
-      // (Generous thresholds because nonfiction with research+multi-pass quality can take 8-10 min)
-      if (ch?.updated_date) {
-        const updMs = new Date(ch.updated_date).getTime();
-        if (lastUpdatedAt && updMs === lastUpdatedAt && elapsed > 600) {
-          const staleSecs = Math.floor((Date.now() - updMs) / 1000);
-          if (staleSecs > 300) {
-            console.warn(`Ch ${chapterNumber}: Stale "generating" for ${staleSecs}s — marking as error`);
-            if (onProgress) onProgress(`Worker timed out — skipping to next chapter`);
-            try {
-              await base44.entities.Chapter.update(chapterId, { status: 'error' });
-            } catch (e) { console.warn('Failed to mark stale chapter:', e.message); }
-            return "error";
-          }
-        }
-        lastUpdatedAt = updMs;
-      }
-
-      if (onProgress) onProgress(`${progressMessages[msgIdx]} (${timeStr})`);
-    }
-
-    // Timeout — check one last time, then mark as error so pipeline continues
-    const finalCheck = await base44.entities.Chapter.filter({ project_id: projectId });
-    const finalCh = finalCheck.find(c => c.id === chapterId);
-    if (finalCh?.status === 'generated') return "generated";
-    if (finalCh?.status === 'error') return "error";
-    // Force-mark as error so Write All pipeline doesn't get stuck
     try {
-      await base44.entities.Chapter.update(chapterId, { status: 'error' });
-    } catch (e) { console.warn('Failed to mark timed-out chapter:', e.message); }
-    return "timeout";
+      // Mark chapter as generating
+      await base44.entities.Chapter.update(chapterId, { status: "generating" });
+
+      // ── Step 1: Scene Architect (skip if scenes already exist) ──
+      const chData = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
+      const hasScenes = chData?.scenes && chData.scenes.trim() !== 'null' && chData.scenes.trim() !== '[]' && chData.scenes.trim() !== '' && chData.scenes.trim() !== '{}';
+      if (!hasScenes) {
+        if (onProgress) onProgress(`Building scenes… (${elapsed()})`);
+        await base44.functions.invoke('bot_sceneArchitect', {
+          project_id: projectId,
+          chapter_id: chapterId,
+        });
+      }
+
+      // ── Step 2: Prose Writer ──
+      if (onProgress) onProgress(`Writing prose… (${elapsed()})`);
+      const proseResult = await base44.functions.invoke('bot_proseWriter', {
+        project_id: projectId,
+        chapter_id: chapterId,
+      });
+      const proseData = proseResult?.data || proseResult;
+      const rawProse = proseData?.raw_prose;
+      const wordCount = proseData?.word_count || 0;
+
+      if (!rawProse || rawProse.length < 100) {
+        console.error(`Ch ${chapterNumber}: Prose writer returned empty/short output`);
+        await base44.entities.Chapter.update(chapterId, { status: 'error' });
+        if (onProgress) onProgress(`Error — prose writer returned empty output`);
+        return "error";
+      }
+
+      // Save raw prose to chapter
+      await base44.entities.Chapter.update(chapterId, {
+        content: rawProse,
+        word_count: wordCount,
+        generated_at: new Date().toISOString(),
+      });
+
+      // ── Step 3: Style Enforcer ──
+      if (onProgress) onProgress(`Fixing style issues… ${wordCount} words (${elapsed()})`);
+      try {
+        await base44.functions.invoke('bot_styleEnforcer', {
+          project_id: projectId,
+          chapter_id: chapterId,
+        });
+      } catch (styleErr) {
+        console.warn(`Ch ${chapterNumber}: Style enforcer failed (non-fatal):`, styleErr.message);
+      }
+
+      // ── Step 4: Prose Polisher ──
+      if (onProgress) onProgress(`Polishing prose… (${elapsed()})`);
+      try {
+        await base44.functions.invoke('bot_prosePolisher', {
+          project_id: projectId,
+          chapter_id: chapterId,
+        });
+      } catch (polishErr) {
+        console.warn(`Ch ${chapterNumber}: Prose polisher failed (non-fatal):`, polishErr.message);
+      }
+
+      // ── Step 5: Mark complete ──
+      // Re-fetch to get updated word count after style/polish passes
+      const finalCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
+      const finalWords = finalCh?.word_count || wordCount;
+      await base44.entities.Chapter.update(chapterId, { status: 'generated' });
+
+      if (onProgress) onProgress(`Complete — ${finalWords} words (${elapsed()})`);
+      return "generated";
+
+    } catch (err) {
+      console.error(`Ch ${chapterNumber} pipeline error:`, err.message);
+      try {
+        await base44.entities.Chapter.update(chapterId, { status: 'error' });
+      } catch (e) { console.warn('Failed to mark errored chapter:', e.message); }
+      if (onProgress) onProgress(`Error: ${err.message}`);
+      return "error";
+    }
   };
 
   const interiorityMissing = needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData);
