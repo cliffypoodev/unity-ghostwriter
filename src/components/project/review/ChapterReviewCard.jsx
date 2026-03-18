@@ -12,10 +12,11 @@ import { SCAN_CATEGORIES, scanChapter, resolveChapterContent } from "./ScanPatte
 // CHAPTER REVIEW CARD — self-contained fix/polish with inline status updates
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Only poll on actual timeout/network errors, not 4xx/5xx
+// Only poll on actual timeout errors, not 4xx/5xx/network failures
 function isTimeoutError(err) {
   const msg = (err?.message || "").toLowerCase();
-  return msg.includes("timeout") || msg.includes("econnaborted") || msg.includes("network error") || msg.includes("aborted");
+  // Network errors usually mean the request never reached the server — don't poll
+  return msg.includes("timeout") || msg.includes("econnaborted") || msg.includes("aborted");
 }
 
 export default function ChapterReviewCard({
