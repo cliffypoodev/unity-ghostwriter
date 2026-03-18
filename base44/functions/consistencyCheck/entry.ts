@@ -7,22 +7,23 @@ const MODEL_MAP = {
 };
 
 async function callAI(systemPrompt, userMessage) {
-  // callType: consistency_check → resolves to Claude (Haiku for speed)
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 2000,
-      temperature: 0.1,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  });
+  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
+  const response = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: userMessage }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { temperature: 0.1, maxOutputTokens: 2000 },
+      }),
+    }
+  );
   const data = await response.json();
-  if (!response.ok) throw new Error('Anthropic error: ' + (data.error?.message || response.status));
-  return data.content[0].text;
+  if (!response.ok) throw new Error('Google AI error: ' + (data.error?.message || response.status));
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 Deno.serve(async (req) => {
