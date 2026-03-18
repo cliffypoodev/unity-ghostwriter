@@ -136,9 +136,73 @@ async function orchestrateChapter(base44, projectId, chapterId) {
     };
   }
 
-  // ── STEP 3: SAVE CHAPTER ──
-  // Post-generation bots (continuity guardian, style enforcer, prose polisher, state chronicler)
-  // are deferred to Phase 4 (Review & Polish) and are NOT run during chapter generation.
+  // ── STEP 3: STYLE ENFORCER ──
+  try {
+    await base44.entities.Project.update(projectId, {
+      generation_status: JSON.stringify({
+        current_chapter: chapter.chapter_number,
+        current_bot: 'style_enforcer',
+        started_at: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {}
+
+  console.log(`Ch ${chapter.chapter_number}: Running style enforcer...`);
+  const styleResult = await invokeBot(base44, 'bot_styleEnforcer', {
+    project_id: projectId,
+    chapter_id: chapterId,
+    prose: currentProse,
+  });
+  timings.style_enforcer_ms = styleResult.duration_ms;
+
+  if (styleResult.success && styleResult.data?.clean_prose) {
+    currentProse = styleResult.data.clean_prose;
+    console.log(`Ch ${chapter.chapter_number}: Style enforcer fixed ${styleResult.data.violations_found || 0} violations`);
+  } else {
+    console.warn(`Ch ${chapter.chapter_number}: Style enforcer failed or returned no changes — proceeding with original prose`);
+  }
+
+  // ── STEP 4: PROSE POLISHER ──
+  try {
+    await base44.entities.Project.update(projectId, {
+      generation_status: JSON.stringify({
+        current_chapter: chapter.chapter_number,
+        current_bot: 'prose_polisher',
+        started_at: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {}
+
+  console.log(`Ch ${chapter.chapter_number}: Running prose polisher...`);
+  const polishResult = await invokeBot(base44, 'bot_prosePolisher', {
+    project_id: projectId,
+    chapter_id: chapterId,
+    prose: currentProse,
+  });
+  timings.prose_polisher_ms = polishResult.duration_ms;
+
+  if (polishResult.success && polishResult.data?.changed) {
+    console.log(`Ch ${chapter.chapter_number}: Prose polisher fixed ${polishResult.data.violations_found || 0} violations`);
+    // Polisher saves directly to the chapter — reload the content
+    try {
+      const [refreshed] = await base44.entities.Chapter.filter({ id: chapterId });
+      if (refreshed?.content) {
+        let polishedContent = refreshed.content;
+        if (polishedContent.startsWith('http')) {
+          try { polishedContent = await (await fetch(polishedContent)).text(); } catch {}
+        }
+        if (polishedContent && polishedContent.length > 100) {
+          currentProse = polishedContent;
+        }
+      }
+    } catch (e) {
+      console.warn(`Ch ${chapter.chapter_number}: Could not reload polished content — using pre-polish version`);
+    }
+  } else {
+    console.warn(`Ch ${chapter.chapter_number}: Prose polisher returned no changes`);
+  }
+
+  // ── STEP 5: SAVE CHAPTER ──
   const finalProse = currentProse;
   const finalWordCount = finalProse.trim().split(/\s+/).length;
 
