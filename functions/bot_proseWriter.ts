@@ -72,8 +72,14 @@ const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_g
 function resolveModel(callType, spec) {
   if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
   if (callType === 'explicit_scene') return 'deepseek-chat';
-  if (callType === 'sfw_prose') return spec?.writing_model || spec?.ai_model || 'trinity';
-  return spec?.writing_model || spec?.ai_model || 'trinity';
+  if (callType === 'sfw_prose') {
+    const userModel = spec?.writing_model || spec?.ai_model || '';
+    // Default prose writing to gemini-flash (fast, long output, free Google API)
+    // Trinity is kept as fallback only
+    if (!userModel || userModel === 'trinity') return 'gemini-flash';
+    return userModel;
+  }
+  return spec?.writing_model || spec?.ai_model || 'gemini-flash';
 }
 
 // ═══ INLINED: shared/dataLoader ═══
