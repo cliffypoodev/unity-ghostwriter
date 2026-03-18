@@ -5,7 +5,7 @@
 // Fiction → scene list. Nonfiction → beat sheet. NEVER writes prose.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ═══ INLINED: shared/aiRouter (compact) ═══
 const MODEL_MAP = {

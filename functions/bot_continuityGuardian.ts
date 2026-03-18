@@ -4,7 +4,7 @@
 // Read-only. Finds continuity violations. Returns fixes for Style Enforcer.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ═══ INLINED: shared/aiRouter ═══
 const MODEL_MAP = {

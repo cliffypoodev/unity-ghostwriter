@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Lightweight dispatcher: validates project, resets error chapters, and returns the list
 // of chapters to write. The frontend drives the sequential writing loop.
