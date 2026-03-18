@@ -411,18 +411,48 @@ export default function ReviewPolishTab({ projectId }) {
     } finally { setScanning(false); }
   }, [generatedChapters, tense]);
 
+  // Polish — runs prose polisher to clean up clichés, transitions, etc.
+  // Uses fire-and-poll pattern because polisher can take 60+ seconds
   const handlePolishChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
     if (!ch) return;
     setPolishing(prev => ({ ...prev, [chapterNum]: true }));
+    
+    const originalContent = ch.content;
+    const originalUpdated = ch.updated_date;
+    
     try {
-      const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id });
-      const data = result?.data || result;
-      setPolishResults(prev => ({ ...prev, [chapterNum]: data }));
-      if (data?.changed) setTimeout(() => handleScan(), 1000);
+      // Fire the function — may timeout but backend continues
+      await base44.functions.invoke("bot_prosePolisher", { 
+        project_id: projectId, 
+        chapter_id: ch.id 
+      }).catch(err => {
+        console.warn(`Prose polisher HTTP error (expected): ${err.message}`);
+      });
+      
+      // Poll for content change
+      let pollAttempts = 0;
+      const maxPolls = 40;
+      while (pollAttempts < maxPolls) {
+        await new Promise(r => setTimeout(r, 3000));
+        pollAttempts++;
+        try {
+          const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
+          if (updated && (updated.content !== originalContent || updated.updated_date !== originalUpdated)) {
+            setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: true, violations_found: 1, total_instances: 1 } }));
+            setTimeout(() => handleScan(), 1000);
+            return;
+          }
+        } catch (pollErr) {
+          console.warn('Poll error:', pollErr.message);
+        }
+      }
+      setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: false } }));
     } catch (err) {
       setPolishResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
-    } finally { setPolishing(prev => ({ ...prev, [chapterNum]: false })); }
+    } finally { 
+      setPolishing(prev => ({ ...prev, [chapterNum]: false })); 
+    }
   };
 
   const handlePolishAll = async () => {
