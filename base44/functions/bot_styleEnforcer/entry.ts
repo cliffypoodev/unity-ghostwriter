@@ -1,8 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// BOT 4 — STYLE ENFORCER
-// ═══════════════════════════════════════════════════════════════════════════════
-// Fix every style violation in-place. Return clean prose. ONE AI call for fixes.
-// ═══════════════════════════════════════════════════════════════════════════════
+// BOT 4 — STYLE ENFORCER (v2 — optimized data loading)
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
