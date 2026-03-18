@@ -960,12 +960,28 @@ export default function GenerateTab({ projectId, onProceed }) {
         return "error";
       }
 
-      // Save raw prose to chapter
-      await base44.entities.Chapter.update(chapterId, {
-        content: rawProse,
-        word_count: wordCount,
-        generated_at: new Date().toISOString(),
-      });
+      // Save raw prose to chapter — upload as file if too large
+      try {
+        await base44.entities.Chapter.update(chapterId, {
+          content: rawProse,
+          word_count: wordCount,
+          generated_at: new Date().toISOString(),
+        });
+      } catch (saveErr) {
+        if (saveErr.message?.includes('exceeds the maximum allowed size')) {
+          console.log(`Ch ${chapterNumber}: Content too large — uploading as file URL`);
+          const { file_url } = await base44.integrations.Core.UploadFile({
+            file: new File([rawProse], `chapter_${chapterId}_prose.txt`, { type: 'text/plain' }),
+          });
+          await base44.entities.Chapter.update(chapterId, {
+            content: file_url,
+            word_count: wordCount,
+            generated_at: new Date().toISOString(),
+          });
+        } else {
+          throw saveErr;
+        }
+      }
 
       // ── Step 3: Style Enforcer ──
       if (onProgress) onProgress(`Fixing style issues… ${wordCount} words (${elapsed()})`);
