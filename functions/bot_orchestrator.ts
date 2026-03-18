@@ -27,7 +27,7 @@ async function invokeBot(base44, botName, payload, retries = 3) {
   const startMs = Date.now();
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const result = await base44.functions.invoke(botName, payload, { timeout: 600000 });
+      const result = await base44.functions.invoke(botName, payload);
       return { success: true, data: result.data || result, duration_ms: Date.now() - startMs };
     } catch (err) {
       const is429 = err.message?.includes('429') || err.message?.includes('Rate limit') || err.message?.includes('rate limit');

@@ -17,7 +17,7 @@ const MODEL_MAP = {
 };
 
 async function callAIQuick(modelKey, prompt) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["claude-sonnet"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-flash"];
   const { provider, modelId, defaultTemp } = config;
   const maxTokens = 512;
 
