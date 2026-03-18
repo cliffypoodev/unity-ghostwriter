@@ -1105,7 +1105,7 @@ async function runProseWriter(base44, projectId, chapterId) {
   try {
     rawProse = await Promise.race([
       callAI(modelKey, systemPrompt, userMessage, {
-        maxTokens: 16384,
+        maxTokens: 32768,
         temperature: 0.72,
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_90s')), 90000)),
