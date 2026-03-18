@@ -951,10 +951,13 @@ Deno.serve(async (req) => {
 
     const result = await runStyleEnforcer(base44, project_id, chapter_id, prose, continuity_fixes);
 
-    // Save corrected prose back to chapter if violations were fixed
-    if (result.clean_prose && result.violations_found > 0) {
+    // If prose was passed in the payload, this is an in-pipeline call from the orchestrator.
+    // Return the clean prose directly so the next bot can use it. Don't save yet.
+    const isPipelineCall = !!prose;
+
+    if (!isPipelineCall && result.clean_prose && result.violations_found > 0) {
+      // Manual/standalone call — save corrected prose back to chapter
       try {
-        // Try direct save first; if content is too large, upload as file
         try {
           await base44.entities.Chapter.update(chapter_id, { content: result.clean_prose });
           result.saved = true;
@@ -975,10 +978,11 @@ Deno.serve(async (req) => {
         console.warn('Failed to save fixed prose:', saveErr.message);
         result.saved = false;
       }
+      // Don't return full prose in standalone mode — it's already saved to the DB
+      delete result.clean_prose;
     }
+    // In pipeline mode, clean_prose stays in the response for the orchestrator to use
 
-    // Don't return full prose in response — it's already saved to the DB
-    delete result.clean_prose;
     return Response.json(result);
   } catch (error) {
     console.error('styleEnforcer error:', error.message);
