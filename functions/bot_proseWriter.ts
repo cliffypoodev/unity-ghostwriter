@@ -1134,31 +1134,52 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 40% of target, ask it to continue (1 attempt max to avoid timeout)
-  const minAcceptable = Math.round(wordTarget * 0.4);
-  const currentWordsCheck = rawProse ? rawProse.trim().split(/\s+/).length : 0;
-  if (currentWordsCheck < minAcceptable && currentWordsCheck > 100) {
-    console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWordsCheck}/${wordTarget} words. Requesting continuation...`);
+  // If model returns less than 70% of target, ask it to continue (up to 2 attempts)
+  const continuationThreshold = Math.round(wordTarget * 0.7);
+  let currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
+  const maxContinuations = 2;
+  let continuationCount = 0;
+
+  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations) {
+    continuationCount++;
+    const wordsNeeded = wordTarget - currentWords;
+    console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
     try {
-      // Use a shorter context window to reduce latency and avoid timeouts
-      const lastContext = rawProse.slice(-300);
-      const continueMessage = `Continue writing from EXACTLY where you left off. Do NOT repeat any text. Do NOT add preamble. Just continue the prose from the last sentence. Write at least ${Math.min(wordTarget - currentWordsCheck, 4000)} more words.\n\nLAST PARAGRAPH (continue from here):\n${lastContext}`;
+      const lastContext = rawProse.slice(-500);
+      const continueMessage = `CONTINUE WRITING. You stopped too early. The chapter needs at least ${wordsNeeded} more words to meet the ${wordTarget}-word target.
+
+Continue from EXACTLY where you left off. Do NOT repeat any prior text. Do NOT add any preamble or commentary. Just write the next section of prose.
+
+Write at least ${Math.min(wordsNeeded, 4000)} more words of prose. Expand scenes with dialogue, sensory detail, action, and character interiority.
+
+LAST PARAGRAPH (continue from here):
+${lastContext}`;
       
-      // Race against a 50s timeout to avoid function-level timeout
+      const timeoutMs = continuationCount === 1 ? 60000 : 50000;
       const continuation = await Promise.race([
-        callAI(modelKey, systemPrompt, continueMessage, {
+        callAI(actualModel, systemPrompt, continueMessage, {
           maxTokens: 12000,
           temperature: 0.72,
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('continuation_timeout')), 50000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('continuation_timeout')), timeoutMs)),
       ]);
       if (continuation && !isRefusal(continuation)) {
-        const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing)[^\n]*\n+/i, '').trim();
-        rawProse = rawProse + '\n\n' + cleanCont;
-        console.log(`ProseWriter: Continuation added — now ${rawProse.trim().split(/\s+/).length} words`);
+        const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing|Sure|Okay|Of course)[^\n]*\n+/i, '').trim();
+        if (cleanCont.length > 50) {
+          rawProse = rawProse + '\n\n' + cleanCont;
+          currentWords = rawProse.trim().split(/\s+/).length;
+          console.log(`ProseWriter: Continuation ${continuationCount} added — now ${currentWords} words`);
+        } else {
+          console.warn(`ProseWriter: Continuation ${continuationCount} too short (${cleanCont.length} chars) — stopping`);
+          break;
+        }
+      } else {
+        console.warn(`ProseWriter: Continuation ${continuationCount} was empty or refusal — stopping`);
+        break;
       }
     } catch (contErr) {
-      console.warn(`Continuation skipped (${contErr.message}) — accepting ${currentWordsCheck} words`);
+      console.warn(`Continuation ${continuationCount} failed (${contErr.message}) — accepting ${currentWords} words`);
+      break;
     }
   }
 
