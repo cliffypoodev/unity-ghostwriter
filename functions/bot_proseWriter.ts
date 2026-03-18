@@ -1086,6 +1086,16 @@ Under no circumstances is an editorial note permitted inside prose.`);
 async function runProseWriter(base44, projectId, chapterId) {
   const startMs = Date.now();
   const ctx = await loadProjectContext(base44, projectId);
+
+  // Ensure the target chapter is in the loaded context — bulk loads can drop chapters
+  // with large content fields, so fetch it individually and merge if missing
+  if (!ctx.chapters.find(c => c.id === chapterId)) {
+    const [targetChapter] = await base44.entities.Chapter.filter({ id: chapterId });
+    if (!targetChapter) throw new Error('Chapter not found: ' + chapterId);
+    ctx.chapters.push(targetChapter);
+    ctx.chapters.sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+  }
+
   const chCtx = getChapterContext(ctx, chapterId);
 
   // Determine model
