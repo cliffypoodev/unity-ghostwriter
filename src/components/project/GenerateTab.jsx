@@ -1001,6 +1001,71 @@ export default function GenerateTab({ projectId, onProceed }) {
         return "error";
       }
 
+      // ── Step 2.5: Code-level cleanup (runs in browser, <100ms) ──
+      if (onProgress) onProgress(`Cleaning prose artifacts… (${elapsed()})`);
+      try {
+        const chBeforeClean = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
+        let rawContent = chBeforeClean?.content || "";
+        if (rawContent.startsWith("http")) {
+          try { rawContent = await (await fetch(rawContent)).text(); } catch (e) { rawContent = ""; }
+        }
+        if (rawContent && rawContent.length > 200) {
+          let cleaned = rawContent;
+          // Strip diff/code block artifacts from Gemini
+          cleaned = cleaned.replace(/```[\w]*\n?/g, '');
+          cleaned = cleaned.replace(/^---\s*a\/.*$/gm, '');
+          cleaned = cleaned.replace(/^\+\+\+\s*b\/.*$/gm, '');
+          cleaned = cleaned.replace(/^@@[^@]*@@.*$/gm, '');
+          // Remove duplicate consecutive paragraphs (split on single newline)
+          const lines = cleaned.split(/\n/);
+          const deduped = [];
+          for (let k = 0; k < lines.length; k++) {
+            const line = lines[k].trim();
+            if (line.length < 80) { deduped.push(lines[k]); continue; }
+            const words = new Set(line.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+            if (words.size < 10) { deduped.push(lines[k]); continue; }
+            let isDupe = false;
+            for (let p = Math.max(0, deduped.length - 3); p < deduped.length; p++) {
+              const prevWords = new Set(deduped[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+              if (prevWords.size < 10) continue;
+              let overlap = 0;
+              words.forEach(function(w) { if (prevWords.has(w)) overlap++; });
+              if (overlap / Math.min(words.size, prevWords.size) > 0.75) { isDupe = true; break; }
+            }
+            if (!isDupe) deduped.push(lines[k]);
+          }
+          cleaned = deduped.join('\n');
+          // Strip instruction leaks
+          cleaned = cleaned.replace(/\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^\n]*/gi, '');
+          cleaned = cleaned.replace(/\[TODO[:\s][^\]]*\]/gi, '');
+          cleaned = cleaned.replace(/as (instructed|requested|specified) (in|by) the (prompt|system|user|outline)[^\n]*/gi, '');
+          cleaned = cleaned.replace(/per the (outline|beat sheet|specification|chapter prompt)[^\n]*/gi, '');
+          cleaned = cleaned.replace(/\b(Remove specific|Use general|Either provide|Either cite) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w[^\n]*/gi, '');
+          cleaned = cleaned.replace(/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)[^\n]*/gi, '');
+          cleaned = cleaned.replace(/\bProvide (documentary|specific|archival|real) (source|evidence|documentation)[^\n]*/gi, '');
+          cleaned = cleaned.replace(/\bLabel as (representative|illustrative|composite|general|reconstructed)[^\n]*/gi, '');
+          cleaned = cleaned.replace(/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)[^\n]*/gi, '');
+          // Clean whitespace
+          cleaned = cleaned.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
+          // Save cleaned version if it changed
+          if (cleaned !== rawContent) {
+            console.log(`Ch ${chapterNumber}: Code cleanup removed ${rawContent.length - cleaned.length} chars`);
+            const blob = new Blob([cleaned], { type: "text/plain" });
+            const file = new File([blob], "chapter_" + chapterId + "_cleaned.txt", { type: "text/plain" });
+            try {
+              const uploadResult = await base44.integrations.Core.UploadFile({ file });
+              if (uploadResult?.file_url) {
+                await base44.entities.Chapter.update(chapterId, { content: uploadResult.file_url });
+              }
+            } catch (upErr) {
+              try { await base44.entities.Chapter.update(chapterId, { content: cleaned }); } catch (e) {}
+            }
+          }
+        }
+      } catch (cleanErr) {
+        console.warn(`Ch ${chapterNumber}: Code cleanup failed (non-fatal):`, cleanErr.message);
+      }
+
       // ── Step 3: Style Enforcer ──
       if (onProgress) onProgress(`Fixing style issues… ${wordCount} words (${elapsed()})`);
       try {
