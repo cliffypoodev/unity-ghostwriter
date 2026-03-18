@@ -277,6 +277,28 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
     findings.push({ category: "sensory_opener", label: "Scent description opener", count: 1, chapter: chapterNum });
   }
 
+  // Duplicate paragraph detection
+  findings.push(...scanDuplicateParagraphs(chapterText, chapterNum));
+
+  // NF banned phrase per-chapter caps
+  findings.push(...scanNfBannedPhraseCaps(chapterText, chapterNum));
+
+  // Repetitive padding detection
+  findings.push(...scanRepetitivePadding(chapterText, chapterNum));
+
+  // Word count check
+  if (targetWords && targetWords > 0) {
+    const overPercent = Math.round(((words - targetWords) / targetWords) * 100);
+    if (overPercent > 50) {
+      findings.push({
+        category: "word_count",
+        label: `Chapter is ${overPercent}% over target word count (${words} vs ${targetWords})`,
+        count: 1,
+        chapter: chapterNum,
+      });
+    }
+  }
+
   return { findings, words };
 }
 
