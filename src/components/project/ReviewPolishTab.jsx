@@ -416,7 +416,7 @@ export default function ReviewPolishTab({ projectId }) {
     if (!ch) return;
     setPolishing(prev => ({ ...prev, [chapterNum]: true }));
     try {
-      const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id }, { timeout: 120000 });
+      const result = await base44.functions.invoke("bot_prosePolisher", { project_id: projectId, chapter_id: ch.id });
       const data = result?.data || result;
       setPolishResults(prev => ({ ...prev, [chapterNum]: data }));
       if (data?.changed) setTimeout(() => handleScan(), 1000);
@@ -445,7 +445,7 @@ export default function ReviewPolishTab({ projectId }) {
       const result = await base44.functions.invoke("bot_styleEnforcer", {
         project_id: projectId,
         chapter_id: ch.id,
-      }, { timeout: 180000 });
+      });
       const data = result?.data || result;
       setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: data?.violations_fixed || 0, total: data?.violations_found || 0 } }));
       // Re-scan after fix
@@ -471,7 +471,7 @@ export default function ReviewPolishTab({ projectId }) {
         action: "write_chapter",
         project_id: projectId,
         chapter_id: ch.id,
-      }, { timeout: 600000 });
+      });
       setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, regenerated: true } }));
       setTimeout(() => handleScan(), 2000);
     } catch (err) {
