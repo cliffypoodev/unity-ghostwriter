@@ -965,21 +965,31 @@ export default function GenerateTab({ projectId, onProceed }) {
         if (onProgress) onProgress(`Waiting for prose writer… (${elapsed()})`);
       }
 
-      // If the invoke failed or timed out, poll the chapter entity for content
+      // If the invoke failed or timed out, poll the chapter entity for content.
+      // The backend prose writer saves content directly (as text or file URL),
+      // so we poll until word_count appears or content becomes a URL.
       if (!proseData?.saved) {
         let pollAttempts = 0;
-        const maxPollAttempts = 40; // 40 × 5s = 200s max wait
+        const maxPollAttempts = 60; // 60 × 5s = 300s (5 min) max wait
         while (pollAttempts < maxPollAttempts) {
           await new Promise(r => setTimeout(r, 5000));
           pollAttempts++;
           if (onProgress) onProgress(`Waiting for prose… ${pollAttempts * 5}s (${elapsed()})`);
-          const polledCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
-          if (polledCh?.word_count > 50) {
-            proseData = { saved: true, word_count: polledCh.word_count };
-            break;
+          try {
+            const polledCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
+            if (!polledCh) break;
+            // Check if content was saved (either word_count updated or content is now a URL)
+            const hasContent = polledCh.word_count > 50 || 
+              (polledCh.content && typeof polledCh.content === 'string' && polledCh.content.startsWith('http'));
+            if (hasContent) {
+              proseData = { saved: true, word_count: polledCh.word_count || 0 };
+              break;
+            }
+          } catch (pollErr) {
+            // Rate limit on polling — slow down
+            console.warn('Poll error:', pollErr.message);
+            await new Promise(r => setTimeout(r, 5000));
           }
-          // If status changed to error on backend side, stop polling
-          if (polledCh?.status === 'error') break;
         }
       }
 
