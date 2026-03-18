@@ -230,7 +230,7 @@ function scanRepetitivePadding(text, chapterNum) {
   return findings;
 }
 
-export function scanChapter(chapterText, chapterNum, tense) {
+export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   const findings = [];
   const clean = stripDialogue(chapterText);
   const words = chapterText.trim().split(/\s+/).length;
