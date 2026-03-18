@@ -85,10 +85,14 @@ export default function ChapterReviewCard({
         await pollForUpdate(issuesBefore, "fix");
       }
     } catch (err) {
-      // Timeout or network error — poll for completion
-      console.warn("Fix invoke error, polling…", err.message);
-      setActionStep("Waiting for backend…");
-      await pollForUpdate(issuesBefore, "fix");
+      if (isTimeoutError(err)) {
+        console.warn("Fix invoke timed out, polling…", err.message);
+        setActionStep("Waiting for backend…");
+        await pollForUpdate(issuesBefore, "fix");
+      } else {
+        console.error("Fix invoke failed:", err.message);
+        setLastResult({ type: "fix", error: err.message || "Backend call failed" });
+      }
     } finally {
       setAction(null);
       setActionStep("");
@@ -121,9 +125,14 @@ export default function ChapterReviewCard({
         setLastResult({ type: "polish", issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No changes needed" });
       }
     } catch (err) {
-      console.warn("Polish invoke error, polling…", err.message);
-      setActionStep("Waiting for backend…");
-      await pollForUpdate(issuesBefore, "polish");
+      if (isTimeoutError(err)) {
+        console.warn("Polish invoke timed out, polling…", err.message);
+        setActionStep("Waiting for backend…");
+        await pollForUpdate(issuesBefore, "polish");
+      } else {
+        console.error("Polish invoke failed:", err.message);
+        setLastResult({ type: "polish", error: err.message || "Backend call failed" });
+      }
     } finally {
       setAction(null);
       setActionStep("");
@@ -149,9 +158,14 @@ export default function ChapterReviewCard({
       const issuesAfter = newFindings ? newFindings.reduce((s, f) => s + f.count, 0) : 0;
       setLastResult({ type: "regenerate", issuesBefore, issuesAfter });
     } catch (err) {
-      console.warn("Regenerate error, polling…", err.message);
-      setActionStep("Waiting for pipeline…");
-      await pollForUpdate(issuesBefore, "regenerate");
+      if (isTimeoutError(err)) {
+        console.warn("Regenerate timed out, polling…", err.message);
+        setActionStep("Waiting for pipeline…");
+        await pollForUpdate(issuesBefore, "regenerate");
+      } else {
+        console.error("Regenerate failed:", err.message);
+        setLastResult({ type: "regenerate", error: err.message || "Backend call failed" });
+      }
     } finally {
       setAction(null);
       setActionStep("");
