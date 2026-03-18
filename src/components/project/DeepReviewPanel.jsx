@@ -156,7 +156,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
       await base44.functions.invoke("bot_styleEnforcer", {
         project_id: projectId,
         chapter_id: ch.id,
-      }, { timeout: 180000 });
+      });
       // Mark as dismissed after fix attempt
       setDismissedFlags(prev => new Set([...prev, key]));
     } catch (err) {
