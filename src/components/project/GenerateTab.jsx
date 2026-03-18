@@ -405,6 +405,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
     <div className={cn(
       "rounded-[10px] overflow-hidden bg-white mb-2.5",
       "border",
+      hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" :
       chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" :
       isWriting ? "border-blue-200" :
       isComplete ? "border-green-200 bg-[#f9fffe]" :
