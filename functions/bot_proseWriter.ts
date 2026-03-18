@@ -1095,6 +1095,7 @@ async function runProseWriter(base44, projectId, chapterId) {
 
   // Generate prose — race against 90s timeout to avoid function-level timeout
   let rawProse;
+  let actualModel = modelKey;
   let refusalDetected = false;
   try {
     rawProse = await Promise.race([
@@ -1105,8 +1106,26 @@ async function runProseWriter(base44, projectId, chapterId) {
       new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_90s')), 90000)),
     ]);
   } catch (err) {
-    console.error(`ProseWriter primary call failed: ${err.message}`);
-    throw err;
+    // If primary model (e.g. gemini-flash) fails, fallback to trinity
+    if (modelKey !== 'trinity') {
+      console.warn(`ProseWriter: ${modelKey} failed (${err.message}) — falling back to trinity`);
+      actualModel = 'trinity';
+      try {
+        rawProse = await Promise.race([
+          callAI('trinity', systemPrompt, userMessage, {
+            maxTokens: 16384,
+            temperature: 0.72,
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('fallback_timeout_90s')), 90000)),
+        ]);
+      } catch (fallbackErr) {
+        console.error(`ProseWriter fallback also failed: ${fallbackErr.message}`);
+        throw fallbackErr;
+      }
+    } else {
+      console.error(`ProseWriter primary call failed: ${err.message}`);
+      throw err;
+    }
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
