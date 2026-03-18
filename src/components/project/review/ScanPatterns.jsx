@@ -127,6 +127,109 @@ function stripDialogue(text) {
   return text.replace(/["\u201C][^"\u201D]*["\u201D]/g, "").replace(/'[^']*'/g, "");
 }
 
+// ── Duplicate paragraph detection ──
+function scanDuplicateParagraphs(text, chapterNum) {
+  const findings = [];
+  const paras = text.split(/\n\n+/).filter(p => p.trim().split(/\s+/).length > 50);
+  for (let i = 0; i < paras.length; i++) {
+    const wordsA = new Set(paras[i].toLowerCase().match(/\b[a-z]{3,}\b/g) || []);
+    if (wordsA.size === 0) continue;
+    for (let j = i + 1; j < paras.length; j++) {
+      const wordsB = new Set(paras[j].toLowerCase().match(/\b[a-z]{3,}\b/g) || []);
+      if (wordsB.size === 0) continue;
+      let intersection = 0;
+      for (const w of wordsA) { if (wordsB.has(w)) intersection++; }
+      const smaller = Math.min(wordsA.size, wordsB.size);
+      if (smaller > 0 && intersection / smaller >= 0.8) {
+        findings.push({
+          category: "duplicate_paragraph",
+          label: `Duplicate paragraph: "${paras[i].trim().slice(0, 80)}…"`,
+          count: 1,
+          chapter: chapterNum,
+          samples: [paras[i].trim().slice(0, 120), paras[j].trim().slice(0, 120)],
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+// ── NF banned phrase per-chapter caps ──
+const NF_PHRASE_CAPS = [
+  [/\bContemporary accounts\b/gi, "Contemporary accounts", 1],
+  [/\bThe evidence suggests\b/gi, "The evidence suggests", 1],
+  [/\bThe psychological impact\b/gi, "The psychological impact", 1],
+  [/\bThe pattern becomes clear\b/gi, "The pattern becomes clear", 1],
+  [/\bThis represented\b/gi, "This represented", 1],
+];
+
+function scanNfBannedPhraseCaps(text, chapterNum) {
+  const findings = [];
+  for (const [rx, label, cap] of NF_PHRASE_CAPS) {
+    const m = text.match(rx);
+    if (m && m.length > cap) {
+      findings.push({
+        category: "nf_banned_phrase",
+        label: `"${label}" x${m.length} (cap: ${cap}/chapter)`,
+        count: m.length - cap,
+        chapter: chapterNum,
+      });
+    }
+  }
+  return findings;
+}
+
+// ── NF manuscript-wide caps (called once on full text) ──
+const NF_MANUSCRIPT_CAPS = [
+  [/\bYou might assume\b/gi, "You might assume", 1],
+  [/\bConsider the case of\b/gi, "Consider the case of", 1],
+  [/\b(I |)(make|makes|made|making) (myself |me |)(a |)(cup of |)coffee\b/gi, "coffee-making scene", 0],
+  [/\b(I close the folder|I open the box|the scent of old paper|brittle pages)\b/gi, "archive narrator framing", 2],
+];
+
+export function scanManuscriptWideCaps(fullText) {
+  const findings = [];
+  for (const [rx, label, cap] of NF_MANUSCRIPT_CAPS) {
+    const m = fullText.match(rx);
+    if (m && m.length > cap) {
+      findings.push({
+        category: "nf_manuscript_cap",
+        label: `MANUSCRIPT-WIDE: "${label}" x${m.length} (max ${cap}/book)`,
+        count: m.length - cap,
+        chapter: 0,
+      });
+    }
+  }
+  return findings;
+}
+
+// ── Repetitive padding detection ──
+function scanRepetitivePadding(text, chapterNum) {
+  const findings = [];
+  const paras = text.split(/\n\n+/).filter(p => p.trim().length > 30);
+  const openers = paras.map(p => {
+    const first = p.trim().split(/[.!?]/)[0] || "";
+    // Extract first 3-4 significant words as key phrase
+    const words = first.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    return words.slice(0, 4).join(" ");
+  }).filter(Boolean);
+  const counts = {};
+  for (const opener of openers) {
+    counts[opener] = (counts[opener] || 0) + 1;
+  }
+  for (const [phrase, count] of Object.entries(counts)) {
+    if (count >= 3) {
+      findings.push({
+        category: "repetitive_padding",
+        label: `${count} paragraphs open with similar pattern: "${phrase}…"`,
+        count,
+        chapter: chapterNum,
+      });
+    }
+  }
+  return findings;
+}
+
 export function scanChapter(chapterText, chapterNum, tense) {
   const findings = [];
   const clean = stripDialogue(chapterText);
