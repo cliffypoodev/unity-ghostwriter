@@ -411,50 +411,59 @@ export default function ReviewPolishTab({ projectId }) {
   }, [generatedChapters, tense]);
 
   // Polish — runs prose polisher to clean up clichés, transitions, etc.
-  // Uses fire-and-poll pattern because polisher can take 60+ seconds
   const handlePolishChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
     if (!ch) return;
     setPolishing(prev => ({ ...prev, [chapterNum]: true }));
     
-    // Get current state before invoking
-    let originalUpdated;
     try {
-      const [current] = await base44.entities.Chapter.filter({ id: ch.id });
-      originalUpdated = current?.updated_date;
-    } catch { originalUpdated = ch.updated_date; }
-    
-    try {
-      // Fire the function — don't await, it may timeout
-      base44.functions.invoke("bot_prosePolisher", { 
-        project_id: projectId, 
-        chapter_id: ch.id 
-      }).catch(err => {
-        console.warn(`Prose polisher HTTP error (expected): ${err.message}`);
-      });
-      
-      // Initial wait before polling
-      await new Promise(r => setTimeout(r, 5000));
-      
-      // Poll for content change
-      let pollAttempts = 0;
-      const maxPolls = 60;
-      while (pollAttempts < maxPolls) {
-        try {
-          const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
-          if (updated && updated.updated_date && updated.updated_date !== originalUpdated) {
-            setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: true, violations_found: 1, total_instances: 1 } }));
+      let result;
+      let timedOut = false;
+      try {
+        const response = await base44.functions.invoke("bot_prosePolisher", { 
+          project_id: projectId, 
+          chapter_id: ch.id 
+        });
+        result = response.data;
+      } catch (invokeErr) {
+        console.warn(`Prose polisher invoke error: ${invokeErr.message}`);
+        timedOut = true;
+      }
+
+      if (!timedOut && result) {
+        if (result.error) {
+          setPolishResults(prev => ({ ...prev, [chapterNum]: { error: result.error } }));
+        } else {
+          setPolishResults(prev => ({ ...prev, [chapterNum]: { 
+            changed: result.changed || false, 
+            violations_found: result.violations_found || 0, 
+            total_instances: result.total_instances || 0 
+          } }));
+          if (result.changed) {
             await refetchChapters();
             setTimeout(() => handleScan(), 1000);
-            return;
           }
-        } catch (pollErr) {
-          console.warn('Poll error:', pollErr.message);
         }
-        await new Promise(r => setTimeout(r, 3000));
-        pollAttempts++;
+      } else {
+        // Timed out — poll for changes
+        const [current] = await base44.entities.Chapter.filter({ id: ch.id });
+        const originalUpdated = current?.updated_date;
+        let pollAttempts = 0;
+        while (pollAttempts < 40) {
+          await new Promise(r => setTimeout(r, 4000));
+          pollAttempts++;
+          try {
+            const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
+            if (updated && updated.updated_date !== originalUpdated) {
+              setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: true, violations_found: 1, total_instances: 1 } }));
+              await refetchChapters();
+              setTimeout(() => handleScan(), 1000);
+              return;
+            }
+          } catch {}
+        }
+        setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: false } }));
       }
-      setPolishResults(prev => ({ ...prev, [chapterNum]: { changed: false } }));
     } catch (err) {
       setPolishResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally { 
@@ -474,53 +483,69 @@ export default function ReviewPolishTab({ projectId }) {
   };
 
   // Fix — runs the style enforcer to fix detected violations
-  // Uses fire-and-poll pattern because style enforcer can take 60+ seconds
   const handleFixChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
     if (!ch) return;
     setFixing(prev => ({ ...prev, [chapterNum]: true }));
     
-    // Get the chapter's current state before invoking
-    let originalUpdated;
     try {
-      const [current] = await base44.entities.Chapter.filter({ id: ch.id });
-      originalUpdated = current?.updated_date;
-    } catch { originalUpdated = ch.updated_date; }
-    
-    try {
-      // Fire the function — don't await, it may timeout
-      base44.functions.invoke("bot_styleEnforcer", {
-        project_id: projectId,
-        chapter_id: ch.id,
-      }).catch(err => {
-        // HTTP timeout is expected for large chapters — we'll poll instead
-        console.warn(`Style enforcer HTTP error (expected): ${err.message}`);
-      });
-      
-      // Initial wait before polling
-      await new Promise(r => setTimeout(r, 5000));
-      
-      // Poll for content change (backend saves directly)
-      let pollAttempts = 0;
-      const maxPolls = 60; // 60 × 3s = 180s max wait
-      while (pollAttempts < maxPolls) {
-        try {
-          const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
-          if (updated && updated.updated_date && updated.updated_date !== originalUpdated) {
-            // Content changed — fix was applied
-            setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: 1, total: 1 } }));
-            await refetchChapters();
-            setTimeout(() => handleScan(), 1000);
-            return;
-          }
-        } catch (pollErr) {
-          console.warn('Poll error:', pollErr.message);
-        }
-        await new Promise(r => setTimeout(r, 3000));
-        pollAttempts++;
+      // Try direct invocation first — most calls complete within timeout
+      let result;
+      let timedOut = false;
+      try {
+        const response = await base44.functions.invoke("bot_styleEnforcer", {
+          project_id: projectId,
+          chapter_id: ch.id,
+        });
+        result = response.data;
+      } catch (invokeErr) {
+        // If timeout/network error, fall back to polling
+        console.warn(`Style enforcer invoke error: ${invokeErr.message}`);
+        timedOut = true;
       }
-      // Timeout — no change detected
-      setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: 'Timed out waiting for changes' } }));
+
+      if (!timedOut && result) {
+        // Direct response — check if it worked
+        if (result.error) {
+          setFixResults(prev => ({ ...prev, [chapterNum]: { error: result.error } }));
+        } else if (result.saved) {
+          setFixResults(prev => ({ ...prev, [chapterNum]: { 
+            success: true, 
+            fixed: result.quality_report?.violations_fixed || result.violations_found || 0, 
+            total: result.quality_report?.total_violations_found || result.violations_found || 0 
+          } }));
+          await refetchChapters();
+          setTimeout(() => handleScan(), 1000);
+        } else if (result.violations_found === 0) {
+          setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: 0, total: 0, message: 'No violations found' } }));
+        } else {
+          // Violations found but not saved — backend might have failed to save
+          setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: `Found ${result.violations_found} violations but save failed` } }));
+        }
+      } else {
+        // Timed out — poll for changes
+        const [current] = await base44.entities.Chapter.filter({ id: ch.id });
+        const originalUpdated = current?.updated_date;
+        
+        let pollAttempts = 0;
+        const maxPolls = 40;
+        while (pollAttempts < maxPolls) {
+          await new Promise(r => setTimeout(r, 4000));
+          pollAttempts++;
+          try {
+            const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
+            if (updated && updated.updated_date !== originalUpdated) {
+              setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: 1, total: 1 } }));
+              await refetchChapters();
+              setTimeout(() => handleScan(), 1000);
+              return;
+            }
+          } catch (pollErr) {
+            console.warn('Poll error:', pollErr.message);
+          }
+        }
+        setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: 'Timed out waiting for backend' } }));
+      }
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally {
