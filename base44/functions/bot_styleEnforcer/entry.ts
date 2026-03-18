@@ -872,7 +872,11 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   text = applyContinuityFixes(text, continuityFixes);
 
   // Detect erotica for genre-specific scans
-  const isErotica = /erotica|erotic|romance|bdsm/.test(((ctx.spec?.genre || '') + ' ' + (ctx.spec?.subgenre || '')).toLowerCase()) || (parseInt(ctx.spec?.spice_level) || 0) >= 3;
+  const isErotica = /erotica|erotic|romance|bdsm/.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')).toLowerCase()) || (parseInt(spec?.spice_level) || 0) >= 3;
+
+  // Build minimal previousChapters array for scanDynamicCaps
+  const prevChaptersForScan = previousChapter && previousChapter.content && previousChapter.status === 'generated'
+    ? [previousChapter] : [];
 
   // Collect all violations
   const allViolations = [
@@ -882,9 +886,9 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
     ...scanCharacterNames(text, storyBible, nameRegistry),
     ...scanBannedPhrases(text),
     ...scanFrequencyCaps(text),
-    ...scanDynamicCaps(text, chCtx.previousChapters),
+    ...scanDynamicCaps(text, prevChaptersForScan),
     ...scanSceneEndings(text),
-    ...scanInteriorityRepetition(text, ctx.bannedPhrases),
+    ...scanInteriorityRepetition(text, bannedPhrases),
     ...scanDialoguePatterns(text),
     ...scanPovDistance(text),
     ...scanScentOpener(text),
@@ -899,7 +903,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   // Word count enforcement — flag chapters exceeding 130% of target
   const wordCount = text.trim().split(/\s+/).length;
   const TARGET_WORDS = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
-  const targetWords = TARGET_WORDS[ctx.spec?.target_length || 'medium'] || 2500;
+  const targetWords = TARGET_WORDS[spec?.target_length || 'medium'] || 2500;
   const maxWords = Math.round(targetWords * 1.3);
   if (wordCount > maxWords) {
     allViolations.push({
