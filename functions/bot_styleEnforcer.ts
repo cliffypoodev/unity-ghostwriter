@@ -65,7 +65,7 @@ function stripLeakedInstructions(text) {
 }
 
 // ═══ INLINED: shared/resolveModel ═══
-function resolveModel(callType) { return 'trinity'; }
+function resolveModel(callType) { return 'gemini-pro'; }
 
 // ═══ RETRY HELPER for SDK rate limits ═══
 async function withRetry(fn, retries = 3) {

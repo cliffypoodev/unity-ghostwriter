@@ -220,8 +220,8 @@ async function runAIPolish(text, violations, isNonfiction) {
 
   const userMessage = `FLAGGED VIOLATIONS:\n${violationBrief}\n\n────────────────────\n\nCHAPTER TEXT TO POLISH:\n${text}`;
 
-  const result = await callAI('trinity', POLISH_SYSTEM, userMessage, {
-    maxTokens: 8192,
+  const result = await callAI('gemini-pro', POLISH_SYSTEM, userMessage, {
+    maxTokens: 16384,
     temperature: 0.5,
   });
 
