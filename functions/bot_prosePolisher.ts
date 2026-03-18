@@ -269,6 +269,10 @@ Deno.serve(async (req) => {
       const chapters = await base44.entities.Chapter.filter({ id: chapter_id });
       chapterProse = chapters?.[0]?.content || '';
     }
+    // Resolve URL content if stored as file URL
+    if (chapterProse && (chapterProse.startsWith('http://') || chapterProse.startsWith('https://'))) {
+      try { chapterProse = await (await fetch(chapterProse)).text(); } catch { chapterProse = ''; }
+    }
     if (!chapterProse) {
       return Response.json({ error: 'No prose to polish — provide prose in body or ensure chapter has content' }, { status: 400 });
     }
