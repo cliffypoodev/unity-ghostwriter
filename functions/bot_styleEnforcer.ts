@@ -966,7 +966,7 @@ Deno.serve(async (req) => {
             console.log('Content too large for direct save — uploading as file URL');
             const blob = new Blob([result.clean_prose], { type: 'text/plain' });
             const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
-            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+            const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
             await base44.entities.Chapter.update(chapter_id, { content: file_url });
             result.saved = true;
             result.saved_as_url = true;
