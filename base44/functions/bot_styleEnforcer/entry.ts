@@ -67,19 +67,14 @@ function stripLeakedInstructions(text) {
 // ═══ INLINED: shared/resolveModel ═══
 function resolveModel(callType) { return 'gemini-pro'; }
 
-// ═══ RETRY HELPER for SDK rate limits ═══
-async function withRetry(fn, retries = 3) {
-  for (let i = 0; i <= retries; i++) {
-    try { return await fn(); } catch (err) {
-      const is429 = err.message?.includes('429') || err.message?.includes('Rate limit') || err.message?.includes('rate limit');
-      if (is429 && i < retries) {
-        const delay = (i + 1) * 10000;
-        console.warn(`SDK rate limited, retry ${i + 1}/${retries} in ${delay / 1000}s...`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
+// Simple retry for rate limits
+async function withRetry(fn) {
+  try { return await fn(); } catch (err) {
+    if (err.message?.includes('429')) {
+      await new Promise(r => setTimeout(r, 5000));
+      return await fn();
     }
+    throw err;
   }
 }
 
