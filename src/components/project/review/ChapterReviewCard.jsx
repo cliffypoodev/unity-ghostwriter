@@ -12,6 +12,12 @@ import { SCAN_CATEGORIES, scanChapter, resolveChapterContent } from "./ScanPatte
 // CHAPTER REVIEW CARD — self-contained fix/polish with inline status updates
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Only poll on actual timeout/network errors, not 4xx/5xx
+function isTimeoutError(err) {
+  const msg = (err?.message || "").toLowerCase();
+  return msg.includes("timeout") || msg.includes("econnaborted") || msg.includes("network error") || msg.includes("aborted");
+}
+
 export default function ChapterReviewCard({
   chapterEntity, // raw chapter entity from DB
   findings,      // current scan findings for this chapter
