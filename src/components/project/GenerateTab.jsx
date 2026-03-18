@@ -1017,7 +1017,17 @@ export default function GenerateTab({ projectId, onProceed }) {
           cleaned = cleaned.replace(/^\+\+\+\s*b\/.*$/gm, '');
           cleaned = cleaned.replace(/^@@[^@]*@@.*$/gm, '');
           // Remove duplicate consecutive paragraphs (split on single newline)
-          const lines = cleaned.split(/\n/);
+          let lines = cleaned.split(/\n/);
+          // Remove exact consecutive duplicate lines (any length)
+          const exactDeduped = [];
+          for (let k = 0; k < lines.length; k++) {
+            const trimmed = lines[k].trim();
+            if (trimmed.length > 0 && exactDeduped.length > 0 && exactDeduped[exactDeduped.length - 1].trim() === trimmed) {
+              continue; // skip exact duplicate
+            }
+            exactDeduped.push(lines[k]);
+          }
+          lines = exactDeduped;
           const deduped = [];
           for (let k = 0; k < lines.length; k++) {
             const line = lines[k].trim();
