@@ -437,19 +437,46 @@ export default function ReviewPolishTab({ projectId }) {
   };
 
   // Fix — runs the style enforcer to fix detected violations
+  // Uses fire-and-poll pattern because style enforcer can take 60+ seconds
   const handleFixChapter = async (chapterNum) => {
     const ch = generatedChapters.find(c => c.chapter_number === chapterNum);
     if (!ch) return;
     setFixing(prev => ({ ...prev, [chapterNum]: true }));
+    
+    // Track the content URL/hash before invoking to detect when it changes
+    const originalContent = ch.content;
+    const originalUpdated = ch.updated_date;
+    
     try {
-      const result = await base44.functions.invoke("bot_styleEnforcer", {
+      // Fire the function — may timeout but backend continues
+      await base44.functions.invoke("bot_styleEnforcer", {
         project_id: projectId,
         chapter_id: ch.id,
+      }).catch(err => {
+        // HTTP timeout is expected for large chapters — we'll poll instead
+        console.warn(`Style enforcer HTTP error (expected): ${err.message}`);
       });
-      const data = result?.data || result;
-      setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: data?.violations_fixed || 0, total: data?.violations_found || 0 } }));
-      // Re-scan after fix
-      setTimeout(() => handleScan(), 1500);
+      
+      // Poll for content change (backend saves directly)
+      let pollAttempts = 0;
+      const maxPolls = 40; // 40 × 3s = 120s max wait
+      while (pollAttempts < maxPolls) {
+        await new Promise(r => setTimeout(r, 3000));
+        pollAttempts++;
+        try {
+          const [updated] = await base44.entities.Chapter.filter({ id: ch.id });
+          if (updated && (updated.content !== originalContent || updated.updated_date !== originalUpdated)) {
+            // Content changed — fix was applied
+            setFixResults(prev => ({ ...prev, [chapterNum]: { success: true, fixed: 1, total: 1 } }));
+            setTimeout(() => handleScan(), 1000);
+            return;
+          }
+        } catch (pollErr) {
+          console.warn('Poll error:', pollErr.message);
+        }
+      }
+      // Timeout — no change detected
+      setFixResults(prev => ({ ...prev, [chapterNum]: { success: false, message: 'No changes detected (may have timed out)' } }));
     } catch (err) {
       setFixResults(prev => ({ ...prev, [chapterNum]: { error: err.message } }));
     } finally {
