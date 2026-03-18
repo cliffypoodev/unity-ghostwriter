@@ -982,21 +982,20 @@ Deno.serve(async (req) => {
     if (!isPipelineCall && result.clean_prose && result.violations_found > 0) {
       // Manual/standalone call — save corrected prose back to chapter
       try {
-        try {
-          await base44.entities.Chapter.update(chapter_id, { content: result.clean_prose });
+        // Always upload as file URL for large chapters to avoid field size limits
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(result.clean_prose);
+        const blob = new Blob([bytes], { type: 'text/plain' });
+        const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
+        const uploadResult = await base44.integrations.Core.UploadFile({ file });
+        const fileUrl = uploadResult?.file_url;
+        if (fileUrl) {
+          await base44.entities.Chapter.update(chapter_id, { content: fileUrl });
           result.saved = true;
-        } catch (directSaveErr) {
-          if (directSaveErr.message?.includes('exceeds the maximum allowed size')) {
-            console.log('Content too large for direct save — uploading as file URL');
-            const blob = new Blob([result.clean_prose], { type: 'text/plain' });
-            const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
-            const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-            await base44.entities.Chapter.update(chapter_id, { content: file_url });
-            result.saved = true;
-            result.saved_as_url = true;
-          } else {
-            throw directSaveErr;
-          }
+          result.saved_as_url = true;
+        } else {
+          console.warn('Upload returned no file_url:', JSON.stringify(uploadResult));
+          result.saved = false;
         }
       } catch (saveErr) {
         console.warn('Failed to save fixed prose:', saveErr.message);
