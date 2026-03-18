@@ -804,7 +804,7 @@ export default function GenerateTab({ projectId, onProceed }) {
     return () => { clearInterval(unstickInterval); clearTimeout(mountCheck); };
   }, [chapters.length, activeChapterIds.size]); // Re-establish interval when chapter count or active set changes
 
-  const generatedCount = chapters.filter(c => c.status === "generated").length;
+  const generatedCount = chapters.filter(c => c.status === "generated" || (c.status === "error" && c.word_count > 100)).length;
   const totalCount = chapters.length;
   const allGenerated = totalCount > 0 && generatedCount === totalCount;
   const progress = totalCount > 0 ? Math.round((generatedCount / totalCount) * 100) : 0;
