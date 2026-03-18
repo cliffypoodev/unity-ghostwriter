@@ -729,52 +729,123 @@ function scanCompositeCharacters(text, storyBible) {
   return violations;
 }
 
-// ═══ AI-POWERED FIX PASS ═══
+// ═══ CODE-LEVEL FIX PASS (no AI calls — executes in milliseconds) ═══
 
-async function applyAIFixes(prose, violations, spec, isNonfiction) {
-  if (violations.length === 0) return { text: prose, fixed: 0 };
-  const modelKey = resolveModel('style_rewrite');
-  const violationBrief = violations.map(v => {
-    if (v.type === 'banned_phrase') return `BANNED: "${v.label}" appears ${v.count}x. Rewrite using direct physical description.`;
-    if (v.type === 'frequency_cap') return `OVERUSED: "${v.label}" appears ${v.count}x (max ${v.max}). Replace excess with different sensory angles.`;
-    if (v.type === 'dynamic_cap') return `PREV-CHAPTER REPEAT: ${v.label} (${v.count}x, max 2).`;
-    if (v.type === 'weak_ending') return `SCENE ENDING: "${v.label}" — rewrite final 2 sentences as concrete image, action, or dialogue.`;
-    if (v.type === 'nf_thesis_ending') return `NF ENDING: Final paragraph restates thesis. Replace with specific documented detail or unresolved question.`;
-    if (v.type === 'nf_fiction_trap') return `NF PATTERN: ${v.label}. Replace with author analysis or research citation.`;
-    if (v.type === 'meta_response') return `META: Output starts with AI assistant language. Remove all meta-commentary.`;
-    if (v.type === 'inline_editorial_note') return `CRITICAL — INLINE NOTE: ${v.label}. This is an editorial instruction embedded in prose. OPTION A: Silently fix it by writing the actual scene/transition/content it describes. OPTION B: Remove it entirely if you lack context. NEVER leave editorial notes in narrative text.`;
-    if (v.type === 'instruction_leak') return `INSTRUCTION LEAK: ${v.label}. This is a bot directive that leaked into prose output. Remove it entirely — it is not narrative content.`;
-    if (v.type === 'character_name_inconsistency') return `CHARACTER NAME ERROR: ${v.label}. Replace this name with the correct character from the registry, or use a generic descriptor (e.g., "the doctor", "the detective") if no match exists.`;
-    if (v.type === 'gemini_nf_cap') return `GEMINI NF CAP: ${v.label}. Rewrite excess occurrences using different phrasing. Vary sentence structure.`;
-    if (v.type === 'gemini_nf_ban') return `GEMINI NF BAN: "${v.label}" is banned entirely. Rewrite using concrete specific detail instead of this cliché.`;
-    if (v.type === 'gemini_nf_manuscript_cap') return `GEMINI NF MANUSCRIPT BAN: ${v.label}. Remove or replace — this phrase is near its manuscript-wide limit.`;
-    if (v.type === 'gemini_nf_ending') return `GEMINI NF ENDING: ${v.label}. Rewrite the final paragraph to end on a concrete image, specific documented detail, or an unresolved question — NOT a sweeping thematic statement.`;
-    if (v.type === 'vague_sensation') return `VAGUE SENSATION: ${v.label} appears ${v.count}x (max ${v.max}). Replace with specific body location + physical descriptor. BAD: "electricity shot through him." GOOD: "the drag of cool scales across his inner thigh made his hips jerk." For "something inside broke/shattered": replace with what SPECIFICALLY the character felt — name the muscle group, the body part, the physical reflex. For scent formulas: replace with ONE dominant scent tied to a specific memory or physical reaction.`;
-    if (v.type === 'interiority_repetition') return `INTERIORITY REPETITION: ${v.label} appears ${v.count}x (max ${v.max}). Replace repeated emotional vocabulary with NEW dimensions of the character's psychology.`;
-    if (v.type === 'dialogue_pattern') return `DIALOGUE PATTERN: ${v.label}. This character needs different conversational modes — mundane exchanges, genuine questions, uncertainty, humor.`;
-    if (v.type === 'sensory_opener') return `SENSORY OPENER: ${v.label}. Rewrite the opening sentence to use a DIFFERENT approach: dialogue, action, internal thought, a question, or a time/place stamp. Do NOT open with "The [adjective] [sensory detail]..."`;
-    if (v.type === 'word_count_excess') return `WORD COUNT: Chapter is ${v.count} words, target is ${v.max} max. Trim redundant paragraphs, compress recap sections, and cut any passages that don't advance plot or character. Do NOT cut dialogue or climactic scenes.`;
-    if (v.type === 'nf_fabricated_citation') return `FABRICATED CITATION: ${v.label}. Replace with general sourcing language. WRONG: "case number 56-4429" → RIGHT: "court records from the period." WRONG: "published in the Journal of Clinical Psychology in 1958" → RIGHT: "a psychiatrist's clinical notes from the era." WRONG: "FBI memo dated March 15, 1951" → RIGHT: "FBI surveillance files from the period." Do NOT invent verifiable reference numbers.`;
-    if (v.type === 'nf_composite_character') return `COMPOSITE CHARACTER: ${v.label}. Either (a) replace this named character with a role description ("a studio publicist," "a Beverly Hills psychiatrist"), OR (b) if the character serves a narrative purpose, add an explicit label: "The following account is a composite drawn from multiple documented cases." Do NOT present composite figures as real documented individuals.`;
-    if (v.type === 'nf_padding') return `NF PADDING: ${v.label}. Merge the redundant paragraphs into one tighter paragraph.`;
-    return `${v.type}: ${v.label}`;
-  }).join('\n');
+function applyCodeFixes(prose) {
+  let text = prose;
+  let fixCount = 0;
 
-  const systemPrompt = `You are a prose editor. Fix ONLY the violations listed below. Do NOT rewrite prose that isn't flagged. Preserve the author's voice, sentence structure, and word count. Output ONLY the corrected chapter text — no commentary.\n\n${isNonfiction ? 'NONFICTION RULES:\n- No melodrama, no journey metaphors, no thesis restatements in endings. Replace with documented evidence or specific detail.\n- INSTRUCTION LEAKS: If any sentence contains these trigger phrases, DELETE the instruction and replace with actual prose: "Remove specific," "Remove atmospheric," "Remove invented," "Remove fictional," "Replace with documented," "Either identify," "Either cite," "Either provide," "Either name," "Either source," "Either use," "Frame as," "Use general," "Use documented," "Provide documentary," "Provide specific," "Provide real," "Label as," "Anchor to," "Source to," "Cite specific," "Cite actual," "Verify and cite," "Insert documented." Also catch fused instructions where editorial text flows into prose without punctuation.\n- UNLABELED RECONSTRUCTIONS: If a scene presents a historical reconstruction as if it were documented fact, add framing like "Contemporary accounts describe..." or "Based on testimony from the period..."\n- PADDING: If consecutive paragraphs repeat the same point with synonym substitution, merge them into a single tighter paragraph.\n- REAL PERSON FACTS: Do NOT fabricate deaths, suicides, medical records, or legal events for named real people. If unsure, use general language.' : ''}`;
-
-  const userMessage = `VIOLATIONS TO FIX:\n${violationBrief}\n\nCHAPTER TEXT:\n${prose}`;
-
-  try {
-    const fixed = await callAI(modelKey, systemPrompt, userMessage, { maxTokens: 32768, temperature: 0.3 });
-    if (isRefusal(fixed)) return { text: prose, fixed: 0 };
-    if (fixed.length < prose.length * 0.5) return { text: prose, fixed: 0 };
-    // CODE-LEVEL: Strip any instruction leaks that survived the AI rewrite (runs for ALL genres)
-    const finalText = stripLeakedInstructions(fixed);
-    return { text: finalText, fixed: violations.length };
-  } catch (err) {
-    console.warn('AI fix pass failed:', err.message);
-    return { text: prose, fixed: 0 };
+  // 1. DUPLICATE PARAGRAPH REMOVAL
+  // Split on double newlines, deduplicate paragraphs sharing 80%+ words
+  const paras = text.split(/\n\n+/);
+  const kept = [];
+  const removedIndices = new Set();
+  for (let i = 0; i < paras.length; i++) {
+    if (removedIndices.has(i)) continue;
+    const wordsA = new Set((paras[i].toLowerCase().match(/\b[a-z]{3,}\b/g) || []));
+    if (wordsA.size < 40) { kept.push(paras[i]); continue; } // skip short paragraphs
+    for (let j = i + 1; j < paras.length; j++) {
+      if (removedIndices.has(j)) continue;
+      const wordsB = new Set((paras[j].toLowerCase().match(/\b[a-z]{3,}\b/g) || []));
+      if (wordsB.size < 40) continue;
+      let intersection = 0;
+      for (const w of wordsA) { if (wordsB.has(w)) intersection++; }
+      const smaller = Math.min(wordsA.size, wordsB.size);
+      if (smaller > 0 && intersection / smaller >= 0.8) {
+        removedIndices.add(j);
+        fixCount++;
+      }
+    }
+    kept.push(paras[i]);
   }
+  // Add any remaining short paragraphs that weren't removed
+  for (let i = 0; i < paras.length; i++) {
+    if (!removedIndices.has(i) && !kept.includes(paras[i])) kept.push(paras[i]);
+  }
+  text = kept.join('\n\n');
+
+  // 2. BANNED PHRASE REMOVAL — delete sentences containing banned phrases
+  for (const b of ABSOLUTE_BANS) {
+    if (b.p.test(text)) {
+      // Reset lastIndex for global regexes
+      b.p.lastIndex = 0;
+      // Remove entire sentences containing the banned phrase
+      const sentences = text.split(/(?<=[.!?])\s+/);
+      const cleaned = sentences.filter(s => { b.p.lastIndex = 0; return !b.p.test(s); });
+      if (cleaned.length < sentences.length) {
+        fixCount += sentences.length - cleaned.length;
+        text = cleaned.join(' ');
+      }
+      b.p.lastIndex = 0;
+    }
+  }
+
+  // 3. INSTRUCTION LEAK STRIPPING (already exists)
+  const beforeLeakStrip = text.length;
+  text = stripLeakedInstructions(text);
+  if (text.length < beforeLeakStrip) fixCount++;
+
+  // 4. COFFEE SCENE REMOVAL — keep only first coffee paragraph
+  const coffeeRx = /\bcoffee\b/i;
+  const coffeeSupportRx = /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i;
+  const coffeParas = text.split(/\n\n+/);
+  let coffeeCount = 0;
+  const afterCoffee = coffeParas.filter(p => {
+    if (coffeeRx.test(p) && coffeeSupportRx.test(p)) {
+      coffeeCount++;
+      if (coffeeCount > 1) { fixCount++; return false; }
+    }
+    return true;
+  });
+  if (coffeeCount > 1) text = afterCoffee.join('\n\n');
+
+  // 5. ARCHIVE FRAMING TRIM — keep only first 2 archive paragraphs
+  const archiveRx = /\b(folder|archive|brittle paper|yellowed|old paper|dust motes|manila folder|reading room)\b/i;
+  const archiveParas = text.split(/\n\n+/);
+  let archiveCount = 0;
+  const afterArchive = archiveParas.filter(p => {
+    if (archiveRx.test(p)) {
+      archiveCount++;
+      if (archiveCount > 2) { fixCount++; return false; }
+    }
+    return true;
+  });
+  if (archiveCount > 2) text = afterArchive.join('\n\n');
+
+  // 6. REPEATED PARAGRAPH OPENER COMPRESSION
+  // If 3+ consecutive paragraphs start with same 4-word prefix, keep only the first
+  const openerParas = text.split(/\n\n+/);
+  const finalParas = [];
+  let streakStart = 0;
+  for (let i = 0; i < openerParas.length; i++) {
+    const prefix = (openerParas[i].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(' ');
+    const nextPrefix = i + 1 < openerParas.length
+      ? (openerParas[i + 1].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(' ')
+      : '';
+    if (prefix && prefix === nextPrefix) {
+      // Continue streak — only push current if it's the start of a new streak
+      if (finalParas.length === 0 || finalParas[finalParas.length - 1] !== openerParas[i]) {
+        finalParas.push(openerParas[i]);
+      }
+      // Skip the next one (it will be checked in next iteration)
+    } else {
+      // Check if this is a duplicate of the previous (end of streak)
+      const prevPrefix = finalParas.length > 0
+        ? (finalParas[finalParas.length - 1].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(' ')
+        : '';
+      if (prefix && prefix === prevPrefix) {
+        fixCount++; // skip this paragraph — duplicate opener
+      } else {
+        finalParas.push(openerParas[i]);
+      }
+    }
+  }
+  if (finalParas.length < openerParas.length) text = finalParas.join('\n\n');
+
+  // Final cleanup — collapse triple+ newlines
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+  return { text, fixed: fixCount };
 }
 
 // ═══ APPLY CONTINUITY FIXES ═══
