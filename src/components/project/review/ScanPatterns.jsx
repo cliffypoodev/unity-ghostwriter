@@ -22,6 +22,10 @@ export const SCAN_CATEGORIES = {
   gemini_nf_cap: { label: "NF Frequency Cap", icon: "🔢", weight: 5, color: "amber" },
   gemini_nf_ban: { label: "NF Banned Phrase", icon: "🚫", weight: 10, color: "red" },
   gemini_nf_manuscript_cap: { label: "NF Manuscript Cap", icon: "📊", weight: 5, color: "amber" },
+  duplicate_paragraph: { label: "Duplicate Paragraphs", icon: "🔂", weight: 30, color: "red" },
+  nf_banned_phrase: { label: "NF Banned Phrase Caps", icon: "⛔", weight: 10, color: "red" },
+  nf_manuscript_cap: { label: "NF Manuscript-Wide Caps", icon: "📊", weight: 8, color: "amber" },
+  repetitive_padding: { label: "Repetitive Padding", icon: "🔄", weight: 12, color: "amber" },
 };
 
 export const PATTERNS = {
