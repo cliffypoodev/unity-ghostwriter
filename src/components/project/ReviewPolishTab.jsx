@@ -16,7 +16,7 @@ import DeepReviewPanel from "./DeepReviewPanel";
 import ScoreGauge from "./review/ScoreGauge";
 import ChapterReviewCard from "./review/ChapterReviewCard";
 import {
-  SCAN_CATEGORIES, PATTERNS, scanChapter, computeScore, resolveChapterContent, scanManuscriptWideCaps
+  SCAN_CATEGORIES, PATTERNS, scanChapter, computeScore, resolveChapterContent, scanManuscriptWideCaps, autoFixChapter
 } from "./review/ScanPatterns";
 
 // ── Category summary row ──
@@ -145,7 +145,7 @@ export default function ReviewPolishTab({ projectId }) {
     refetchChapters();
   }, [refetchChapters]);
 
-  // ── Fix All — sequential style enforcer on all chapters with issues ──
+  // ── Fix All — frontend code-level fixes on all chapters with issues ──
   const handleFixAll = async () => {
     if (!scanResults) return;
     setFixingAll(true);
@@ -155,23 +155,17 @@ export default function ReviewPolishTab({ projectId }) {
       const ch = generatedChapters.find(c => c.chapter_number === cd.number);
       if (!ch) continue;
       try {
-        await base44.functions.invoke("bot_styleEnforcer", {
-          project_id: projectId,
-          chapter_id: ch.id,
-        });
-        // Re-fetch and re-scan this chapter
-        const [refreshed] = await base44.entities.Chapter.filter({ id: ch.id });
-        if (refreshed) {
-          const content = await resolveChapterContent(refreshed);
-          if (content && content.length >= 50) {
-            const { findings, words } = scanChapter(content, cd.number, tense, targetWords);
-            handleChapterScanUpdated(cd.number, findings, words);
-          }
+        const content = await resolveChapterContent(ch);
+        if (!content || content.length < 100) continue;
+        const fixedContent = autoFixChapter(content);
+        if (fixedContent !== content) {
+          await base44.entities.Chapter.update(ch.id, { content: fixedContent });
+          const { findings, words } = scanChapter(fixedContent, cd.number, tense, targetWords);
+          handleChapterScanUpdated(cd.number, findings, words);
         }
       } catch (err) {
         console.warn(`Fix all: Ch ${cd.number} error:`, err.message);
       }
-      await new Promise(r => setTimeout(r, 2000));
     }
     setFixingAll(false);
   };

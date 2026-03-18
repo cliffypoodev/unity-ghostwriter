@@ -326,3 +326,105 @@ export async function resolveChapterContent(chapter) {
   }
   return content;
 }
+
+// ═══ FRONTEND AUTO-FIX (pure JS, no backend calls) ═══
+
+export function autoFixChapter(text) {
+  if (!text || text.length < 100) return text;
+  let fixed = text;
+
+  // 1. REMOVE DUPLICATE PARAGRAPHS (80%+ word overlap)
+  const paras = fixed.split(/\n\n+/);
+  const seen = [];
+  const deduped = [];
+  for (const p of paras) {
+    const words = p.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    if (words.length < 20) { deduped.push(p); continue; }
+    const wordSet = new Set(words);
+    let isDupe = false;
+    for (const prev of seen) {
+      const overlap = [...wordSet].filter(w => prev.has(w)).length;
+      const similarity = overlap / Math.max(wordSet.size, prev.size);
+      if (similarity > 0.75) { isDupe = true; break; }
+    }
+    if (!isDupe) { deduped.push(p); seen.push(wordSet); }
+  }
+  fixed = deduped.join('\n\n');
+
+  // 2. STRIP INSTRUCTION LEAKS
+  const LEAK_RX = [
+    /^(Begin with|Show the|Continue from|Start with|Open with|Transition to|Describe how|Establish the|Rewrite to|Address the|Include a|Ensure that|Note that|End with)\s[^.!?\n]*[.!?\n]/gim,
+    /\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^.!?\n]*/gi,
+    /\[TODO[:\s][^\]]*/gi,
+    /as (instructed|requested|specified) (in|by) the (prompt|system|user|outline)[^.!?\n]*/gi,
+    /per the (outline|beat sheet|specification|chapter prompt)[^.!?\n]*/gi,
+    /\b(Remove specific|Use general|Either provide|Either cite|Either use) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w[^.!?\n]*/gi,
+    /\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)[^.!?\n]*/gi,
+    /\bProvide (documentary|specific|archival|real) (source|evidence|documentation)[^.!?\n]*/gi,
+    /\bLabel as (representative|illustrative|composite|general|reconstructed)[^.!?\n]*/gi,
+    /\bFrame as (hypothetical|composite|reconstructed|general|illustrative)[^.!?\n]*/gi,
+  ];
+  for (const rx of LEAK_RX) fixed = fixed.replace(rx, '');
+
+  // 3. CAP COFFEE SCENES (max 0 per chapter — remove all coffee paragraphs)
+  const coffeeParas = fixed.split(/\n\n+/);
+  let coffeeCount = 0;
+  const afterCoffee = coffeeParas.filter(p => {
+    if (/\bcoffee\b/i.test(p) && /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i.test(p)) {
+      coffeeCount++;
+      if (coffeeCount > 0) return false;
+    }
+    return true;
+  });
+  if (coffeeCount > 0) fixed = afterCoffee.join('\n\n');
+
+  // 4. CAP ARCHIVE FRAMING (max 1 per chapter)
+  const archiveParas = fixed.split(/\n\n+/);
+  let archiveCount = 0;
+  const afterArchive = archiveParas.filter(p => {
+    if (/\b(brittle paper|yellowed|old paper|dust motes|close the folder|close the file|faded ink|manila folder|reading room)\b/i.test(p)) {
+      archiveCount++;
+      if (archiveCount > 1) return false;
+    }
+    return true;
+  });
+  if (archiveCount > 1) fixed = afterArchive.join('\n\n');
+
+  // 5. REMOVE BANNED PHRASES (delete sentences containing them)
+  const BANNED = [
+    /\b\w+ sent \w[\w\s]{0,25}through\b/gi,
+    /waves of (pleasure|sensation|emotion|feeling|heat|relief|desire|pain)/gi,
+    /washed over (him|her|them)/gi,
+    /threatened to overwhelm/gi,
+    /couldn't help but/gi,
+    /in that moment/gi,
+    /something (shifted|loosened|cracked|tightened|moved|settled|expanded) in (her|his|their) chest/gi,
+  ];
+  for (const rx of BANNED) {
+    if (rx.test(fixed)) {
+      rx.lastIndex = 0;
+      const sentences = fixed.split(/(?<=[.!?])\s+/);
+      const cleaned = sentences.filter(s => { rx.lastIndex = 0; return !rx.test(s); });
+      fixed = cleaned.join(' ');
+      rx.lastIndex = 0;
+    }
+  }
+
+  // 6. REPEATED PARAGRAPH OPENER COMPRESSION
+  const openerParas = fixed.split(/\n\n+/);
+  const finalParas = [];
+  for (let i = 0; i < openerParas.length; i++) {
+    const prefix = (openerParas[i].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(' ');
+    const prevPrefix = finalParas.length > 0
+      ? (finalParas[finalParas.length - 1].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(' ')
+      : '';
+    if (prefix && prefix === prevPrefix) continue; // skip duplicate opener
+    finalParas.push(openerParas[i]);
+  }
+  fixed = finalParas.join('\n\n');
+
+  // 7. CLEAN UP WHITESPACE
+  fixed = fixed.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
+
+  return fixed;
+}

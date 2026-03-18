@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   Loader2, RefreshCw, Wand2, Zap, ChevronDown, ChevronUp, Check, AlertTriangle
 } from "lucide-react";
-import { SCAN_CATEGORIES, scanChapter, resolveChapterContent } from "./ScanPatterns";
+import { SCAN_CATEGORIES, scanChapter, resolveChapterContent, autoFixChapter } from "./ScanPatterns";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHAPTER REVIEW CARD — self-contained fix/polish with inline status updates
@@ -66,41 +66,30 @@ export default function ChapterReviewCard({
     const issuesBefore = totalInstances;
     setAction("fixing");
     setLastResult(null);
-    setActionStep("Sending to style enforcer…");
+    setActionStep("Fixing issues…");
 
     try {
-      const response = await base44.functions.invoke("bot_styleEnforcer", {
-        project_id: projectId,
-        chapter_id: chapterEntity.id,
-        frontend_findings: chFindings.map(f => ({ category: f.category, label: f.label, count: f.count })),
-      });
-      const result = response.data;
-
-      if (result?.error) {
-        setLastResult({ type: "fix", error: result.error });
+      const content = await resolveChapterContent(chapterEntity);
+      if (!content || content.length < 100) {
+        setLastResult({ type: "fix", error: "No content to fix" });
         return;
       }
 
-      if (result?.saved || result?.violations_found > 0) {
-        // Backend fixed and saved — now re-scan
-        const newFindings = await rescanAndUpdate();
-        const issuesAfter = newFindings ? newFindings.reduce((s, f) => s + f.count, 0) : issuesBefore;
+      const fixedContent = autoFixChapter(content);
+
+      if (fixedContent !== content) {
+        setActionStep("Saving…");
+        await base44.entities.Chapter.update(chapterEntity.id, { content: fixedContent });
+        const { findings: newFindings, words: newWords } = scanChapter(fixedContent, chapterNum, tense, targetWords);
+        onScanUpdated(chapterNum, newFindings, newWords);
+        const issuesAfter = newFindings.reduce((s, f) => s + f.count, 0);
         setLastResult({ type: "fix", issuesBefore, issuesAfter, fixed: issuesBefore - issuesAfter });
-      } else if (result?.violations_found === 0) {
-        setLastResult({ type: "fix", issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No violations detected by enforcer" });
       } else {
-        // Backend returned but didn't save — poll for update
-        await pollForUpdate(issuesBefore, "fix");
+        setLastResult({ type: "fix", issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No fixable issues found" });
       }
     } catch (err) {
-      if (isTimeoutError(err)) {
-        console.warn("Fix invoke timed out, polling…", err.message);
-        setActionStep("Waiting for backend…");
-        await pollForUpdate(issuesBefore, "fix");
-      } else {
-        console.error("Fix invoke failed:", err.message);
-        setLastResult({ type: "fix", error: err.message || "Backend call failed" });
-      }
+      console.error("Fix failed:", err);
+      setLastResult({ type: "fix", error: err.message });
     } finally {
       setAction(null);
       setActionStep("");
