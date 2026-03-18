@@ -109,7 +109,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
           project_id: projectId,
           chapter_id: ch.id,
           chapter_text: content.slice(0, 6000),
-        }, { timeout: 60000 });
+        });
 
         const data = checkResult?.data || checkResult;
         const flags = (data?.flags || []).map(f => ({
