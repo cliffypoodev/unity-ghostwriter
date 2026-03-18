@@ -920,7 +920,7 @@ async function runStyleEnforcer(base44, projectId, chapterId, prose, continuityF
   let cleanProse = text;
   let fixedCount = 0;
   if (allViolations.length > 0) {
-    const result = await applyAIFixes(text, allViolations, ctx.spec, isNonfiction);
+    const result = await applyAIFixes(text, allViolations, spec, isNonfiction);
     cleanProse = result.text;
     fixedCount = result.fixed;
   }
