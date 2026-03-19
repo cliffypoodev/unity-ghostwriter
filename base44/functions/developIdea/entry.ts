@@ -6,7 +6,7 @@ async function callGemini(systemPrompt, userPrompt) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 55000);
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GOOGLE_AI_API_KEY, {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + GOOGLE_AI_API_KEY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: 1024 } }),
       signal: controller.signal,
