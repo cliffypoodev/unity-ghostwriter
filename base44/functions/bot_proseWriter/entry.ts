@@ -282,6 +282,19 @@ function cleanGeneratedProse(text, wordTarget) {
   // ── 9. Clean whitespace ──
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
 
+  // ── 9.5. Sentence-level dedup (catches duplicates WITHIN paragraphs) ──
+  const sentences = cleaned.split(/(?<=[.!?])\s+/);
+  const dedupedSentences = [];
+  for (let i = 0; i < sentences.length; i++) {
+    const s = sentences[i].trim();
+    if (s.length > 30 && dedupedSentences.length > 0 && dedupedSentences[dedupedSentences.length - 1].trim() === s) {
+      console.log('Cleanup: removed duplicate sentence: "' + s.slice(0, 60) + '..."');
+      continue;
+    }
+    dedupedSentences.push(sentences[i]);
+  }
+  cleaned = dedupedSentences.join(' ');
+
   // ── 10. HARD WORD-COUNT CAP ──
   // Models repeat themselves in the back half. If chapter exceeds target × 1.3,
   // keep paragraphs from the front until we hit target × 1.15, then append
