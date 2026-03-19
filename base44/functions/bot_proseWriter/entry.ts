@@ -201,6 +201,50 @@ function sanitizeData(data, isNonfiction) {
 // Legacy alias for NF recursive sanitizer
 function sanitizeNFData(data) { return sanitizeData(data, true); }
 
+// ═══ POST-GENERATION PROSE CLEANUP (model-agnostic) ═══
+// Catches artifacts that ANY model might produce: diff blocks, duplicate
+// paragraphs, duplicate lines, leftover code fences. Runs in <50ms.
+function cleanGeneratedProse(text) {
+  if (!text || text.length < 200) return text;
+  let cleaned = text;
+  // Strip diff/code block artifacts
+  cleaned = cleaned.replace(/```[\w]*\n?/g, '');
+  cleaned = cleaned.replace(/^---\s*a\/.*$/gm, '');
+  cleaned = cleaned.replace(/^\+\+\+\s*b\/.*$/gm, '');
+  cleaned = cleaned.replace(/^@@[^@]*@@.*$/gm, '');
+  // Remove exact consecutive duplicate lines (any length)
+  const lines = cleaned.split(/\n/);
+  const deduped = [];
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.length > 0 && deduped.length > 0 && deduped[deduped.length - 1].trim() === trimmed) continue;
+    deduped.push(lines[i]);
+  }
+  // Remove near-duplicate paragraphs (75%+ word overlap within 5 lines)
+  const final = [];
+  for (let i = 0; i < deduped.length; i++) {
+    const line = deduped[i].trim();
+    if (line.length < 80) { final.push(deduped[i]); continue; }
+    const words = new Set(line.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    if (words.size < 10) { final.push(deduped[i]); continue; }
+    let isDupe = false;
+    for (let p = Math.max(0, final.length - 5); p < final.length; p++) {
+      const prevWords = new Set(final[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+      if (prevWords.size < 10) continue;
+      let overlap = 0;
+      words.forEach(w => { if (prevWords.has(w)) overlap++; });
+      if (overlap / Math.min(words.size, prevWords.size) > 0.75) { isDupe = true; break; }
+    }
+    if (!isDupe) final.push(deduped[i]);
+  }
+  cleaned = final.join('\n');
+  // Clean whitespace
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
+  return cleaned;
+}
+
+
+
 function getChapterContext(ctx, chapterId) {
   const chapter = ctx.chapters.find(c => c.id === chapterId);
   if (!chapter) throw new Error('Chapter not found: ' + chapterId);
@@ -1246,6 +1290,11 @@ ${lastContext}`;
   if (rawProse) {
     rawProse = ctx.isNonfiction ? sanitizeNFPrompt(rawProse) : sanitizeGeneral(rawProse);
   }
+
+  // Post-generation cleanup: strip artifacts, remove duplicates (model-agnostic)
+  const beforeCleanup = rawProse ? rawProse.length : 0;
+  if (rawProse) rawProse = cleanGeneratedProse(rawProse);
+  if (rawProse && rawProse.length !== beforeCleanup) console.log(`ProseWriter: Cleanup removed ${beforeCleanup - rawProse.length} chars (dupes/artifacts)`);
 
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
   console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — ${wordCount} words in ${Math.round((Date.now() - startMs) / 1000)}s`);
