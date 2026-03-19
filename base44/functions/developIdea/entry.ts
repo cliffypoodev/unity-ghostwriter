@@ -4,7 +4,7 @@ const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
 
 async function callGemini(systemPrompt, userPrompt) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
   try {
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + GOOGLE_AI_API_KEY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
