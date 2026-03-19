@@ -38,7 +38,7 @@ Use your knowledge and grounding to gather accurate, current facts. Then return 
 Return 8-12 facts, 4-8 timeline entries, 3-6 key figures, and 3-5 sources. Return ONLY the JSON object.`;
 
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
