@@ -20,7 +20,7 @@ async function callGemini(systemPrompt, userMessage) {
         systemInstruction: { parts: [{ text: systemPrompt }] },
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 4096,
           responseMimeType: 'application/json',
         },
       }),
@@ -145,6 +145,24 @@ function parseJSON(raw) {
     }
   }
 
+  // Last resort: try to close unterminated strings/objects/arrays
+  try {
+    let truncated = cleaned;
+    // Close any unterminated string
+    const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+    if (quoteCount % 2 !== 0) truncated += '"';
+    // Close open brackets/braces
+    const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+    const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+    // Remove trailing comma before closing
+    truncated = truncated.replace(/,\s*$/, '');
+    for (let i = 0; i < openBrackets; i++) truncated += ']';
+    for (let i = 0; i < openBraces; i++) truncated += '}';
+    return JSON.parse(truncated);
+  } catch (e4) {
+    console.log('Truncation repair failed:', e4.message);
+  }
+
   console.error('All parse attempts failed. First 500 chars:', raw.slice(0, 500));
   console.error('Last 200 chars:', raw.slice(-200));
   throw new Error('Failed to parse JSON from AI response');
@@ -163,20 +181,20 @@ Return a JSON object with this EXACT structure:
       "id": "char_1",
       "name": "Character Name",
       "role": "protagonist|antagonist|love_interest|mentor|supporting|foil",
-      "core_wound": "The formative trauma that shaped their worldview — specific, not vague",
-      "desire": "What they want more than anything — their conscious goal",
-      "fear": "What terrifies them — the thing they'd do anything to avoid",
-      "misbelief": "The false belief about themselves or the world they cling to",
-      "ghost": "The specific past event that haunts them — their backstory trauma",
-      "arc_direction": "How they change by the end — what they learn or become",
+      "core_wound": "Brief formative trauma (1 sentence)",
+      "desire": "Conscious goal (1 sentence)",
+      "fear": "Core fear (1 sentence)",
+      "misbelief": "False belief (1 sentence)",
+      "ghost": "Past event that haunts them (1 sentence)",
+      "arc_direction": "How they change (1 sentence)",
       "voice_dna": {
-        "vocabulary": "How they speak — education level, register, word choices",
-        "speech_pattern": "Sentence structure, rhythm, how they talk when stressed vs calm",
-        "verbal_tic": "Signature phrase, habitual expression, or verbal habit",
-        "never_says": "Words or phrases this character would NEVER use — reveals suppression",
-        "internal_voice": "How they think vs how they talk — inner monologue style"
+        "vocabulary": "Speech register in a few words",
+        "speech_pattern": "How they talk (brief)",
+        "verbal_tic": "Signature phrase",
+        "never_says": "Words they avoid",
+        "internal_voice": "Inner monologue style (brief)"
       },
-      "physical_tells": "Observable behaviors that reveal inner state without dialogue",
+      "physical_tells": "Key behavioral tell (1 sentence)",
       "relationships": []
     }
   ],
@@ -199,13 +217,12 @@ Return a JSON object with this EXACT structure:
 }
 
 RULES:
-- Generate 2-4 characters depending on the premise. Always include a protagonist.
-- Each character's voice_dna must be DISTINCT from every other character's.
-- Core wounds, fears, and misbeliefs should create CONFLICT between characters.
-- The protagonist's arc_direction should connect to the thematic_question.
-- World rules should constrain character actions in ways that create dramatic tension.
-- Locations should be specific and atmospheric, not generic.
-- Return ONLY the JSON object. No commentary.`;
+- Generate 2-3 characters. Always include a protagonist.
+- KEEP ALL DESCRIPTIONS SHORT — 1 sentence max per field. No long paragraphs.
+- Each character's voice_dna must be DISTINCT.
+- 2-3 locations max. 2-3 world rules max.
+- Return ONLY the JSON object. No commentary.
+- Total response must be under 3000 tokens.`;
 }
 
 function buildNonfictionPrompt(topic, genre, subgenre, audience) {
@@ -254,14 +271,12 @@ Return a JSON object with this EXACT structure:
 }
 
 RULES:
-- Generate 4-8 key figures based on the topic. Use REAL, DOCUMENTED people/institutions.
-- Do NOT invent fictional figures or composite characters.
-- Timeline should include 8-15 key events in chronological order.
-- Supporting arguments should be specific claims, not vague observations.
-- Counter-arguments should be genuine challenges to the thesis that the book needs to address.
-- Source strategy should reflect realistic research possibilities for this topic.
-- Settings should be real places that can be documented.
-- Return ONLY the JSON object. No commentary.`;
+- Generate 3-5 key figures. Use REAL, DOCUMENTED people/institutions.
+- Timeline: 5-8 key events in chronological order.
+- KEEP ALL DESCRIPTIONS SHORT — 1 sentence max per field.
+- 2-3 settings max. 3 supporting arguments, 2 counter-arguments.
+- Return ONLY the JSON object. No commentary.
+- Total response must be under 3000 tokens.`;
 }
 
 Deno.serve(async (req) => {
