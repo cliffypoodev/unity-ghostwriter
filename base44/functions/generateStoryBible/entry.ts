@@ -296,8 +296,19 @@ Deno.serve(async (req) => {
     const raw = await callGemini(systemPrompt, userMessage);
     console.log('v2: got response, ' + raw.length + ' chars');
 
-    const storyBible = parseJSON(raw);
-    console.log('v2: parsed successfully');
+    let storyBible;
+    try {
+      storyBible = parseJSON(raw);
+      console.log('v2: parsed successfully');
+    } catch (parseErr) {
+      console.warn('v2: first attempt parse failed, retrying with strict prompt');
+      const retryPrompt = 'You are a JSON generator. Output ONLY valid, parseable JSON. Escape all double quotes inside string values with backslash. No markdown, no commentary, no code fences.';
+      const retryMessage = 'Take this broken JSON and return it as valid JSON. Fix any unescaped quotes, trailing commas, or malformed strings. Return the corrected JSON object only:\n\n' + raw;
+      const retryRaw = await callGemini(retryPrompt, retryMessage);
+      console.log('v2: retry response, ' + retryRaw.length + ' chars');
+      storyBible = parseJSON(retryRaw);
+      console.log('v2: retry parsed successfully');
+    }
 
     return Response.json({ story_bible: storyBible });
   } catch (err) {
