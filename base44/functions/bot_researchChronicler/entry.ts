@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // ═══ INLINED: shared/aiRouter (compact) ═══
 const MODEL_MAP = {
-  "gemini-pro": { provider: "google", modelId: "gemini-2.0-flash", defaultTemp: 0.72, maxTokensLimit: null },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.72, maxTokensLimit: null },
 };
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-pro"];
