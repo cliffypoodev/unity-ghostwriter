@@ -30,8 +30,28 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-white">
+          <div className="text-center space-y-4 p-8">
+            <h2 className="text-xl font-semibold text-slate-800">Session Expired</h2>
+            <p className="text-slate-500 text-sm">Please log in to continue.</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => navigateToLogin()}
+                className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700"
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm hover:bg-slate-200"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      );
     }
   }
 
