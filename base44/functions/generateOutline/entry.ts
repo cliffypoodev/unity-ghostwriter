@@ -1354,7 +1354,9 @@ No other fields. No prose outside the JSON array.`;
       status: 'pending',
       word_count: 0,
     }));
-    await sr.entities.Chapter.bulkCreate(chapterRecords);
+    if (chapterRecords.length > 0) {
+      await sr.entities.Chapter.bulkCreate(chapterRecords);
+    }
     console.log('runGeneration complete:', chapterRecords.length, 'chapters');
 
   } catch (error) {
