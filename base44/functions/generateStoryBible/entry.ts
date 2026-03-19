@@ -1,3 +1,5 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+
 // generateStoryBible.ts — Generates a structured story bible from premise
 // Called by StoryBibleEditor's "Generate Story Bible from Premise" button
 
@@ -155,14 +157,9 @@ RULES:
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
 
-  let base44Client;
-  try {
-    const { createClientFromRequest } = await import('npm:@base44/sdk@0.8.20');
-    base44Client = createClientFromRequest(req);
-    await base44Client.auth.me();
-  } catch (authErr) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const base44Client = createClientFromRequest(req);
+  const user = await base44Client.auth.me();
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const body = await req.json();
