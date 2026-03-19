@@ -217,7 +217,12 @@ function cleanGeneratedProse(text) {
   const deduped = [];
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (trimmed.length > 0 && deduped.length > 0 && deduped[deduped.length - 1].trim() === trimmed) continue;
+    if (trimmed.length > 0) {
+      // Compare against last non-empty line (skips blank lines between duplicates)
+      let lastNonEmpty = '';
+      for (let j = deduped.length - 1; j >= 0; j--) { if (deduped[j].trim().length > 0) { lastNonEmpty = deduped[j].trim(); break; } }
+      if (lastNonEmpty === trimmed) continue;
+    }
     deduped.push(lines[i]);
   }
   // Remove near-duplicate paragraphs (75%+ word overlap within 5 lines)
