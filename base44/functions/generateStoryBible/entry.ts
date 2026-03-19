@@ -182,7 +182,8 @@ Deno.serve(async (req) => {
     try {
       storyBible = safeParseJSON(raw);
     } catch (parseErr) {
-      console.error('Parse failed. Raw response (first 1000 chars):', raw?.slice(0, 1000));
+      console.error('Parse failed. Raw length:', raw?.length, 'First 500 chars:', raw?.slice(0, 500));
+      console.error('Last 200 chars:', raw?.slice(-200));
       throw parseErr;
     }
 
