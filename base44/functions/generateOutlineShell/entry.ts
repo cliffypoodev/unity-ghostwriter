@@ -26,7 +26,7 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
       body: JSON.stringify({
         contents: [{ parts: [{ text: userMessage }] }],
         systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens },
+        generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
       })
     }
   );
