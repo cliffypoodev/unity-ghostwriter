@@ -1,5 +1,3 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
-
 // generateStoryBible.ts — Generates a structured story bible from premise
 // Called by StoryBibleEditor's "Generate Story Bible from Premise" button
 
@@ -157,18 +155,9 @@ RULES:
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
 
-  let base44Client = null;
-  try {
-    base44Client = createClientFromRequest(req);
-    await base44Client.auth.me();
-  } catch (authErr) {
-    console.warn('generateStoryBible: auth failed, DB save will be skipped:', authErr.message);
-    base44Client = null;
-  }
-
   try {
     const body = await req.json();
-    const { project_id, topic, book_type, genre, subgenre, target_audience } = body;
+    const { topic, book_type, genre, subgenre, target_audience } = body;
 
     if (!topic) throw new Error('Topic/premise is required');
 
@@ -181,36 +170,16 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    let storyBible = null;
-    const MAX_RETRIES = 3;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      console.log(`generateStoryBible: calling Gemini (attempt ${attempt}/${MAX_RETRIES})...`);
-      const raw = await callGemini(systemPrompt, userMessage, 8192);
-      console.log('generateStoryBible: got response (' + (raw?.length || 0) + ' chars), parsing...');
-      try {
-        storyBible = safeParseJSON(raw);
-        console.log('generateStoryBible: parsed successfully');
-        break;
-      } catch (parseErr) {
-        console.error(`generateStoryBible: parse attempt ${attempt} failed: ${parseErr.message}`);
-        if (attempt === MAX_RETRIES) throw new Error('Story bible generation failed after ' + MAX_RETRIES + ' attempts — AI returned invalid JSON. Please try again.');
-      }
-    }
+    console.log('generateStoryBible: calling Gemini Flash...');
+    const raw = await callGemini(systemPrompt, userMessage);
+    console.log('generateStoryBible: got response (' + (raw?.length || 0) + ' chars)');
 
-    // Save directly to Specification BEFORE returning response
-    // This way if the gateway kills our response, the data is still in the DB
-    if (project_id && base44Client) {
-      try {
-        const specs = await base44Client.entities.Specification.filter({ project_id });
-        if (specs.length > 0) {
-          await base44Client.entities.Specification.update(specs[0].id, {
-            story_bible_data: JSON.stringify(storyBible),
-          });
-          console.log('generateStoryBible: saved to Specification ' + specs[0].id);
-        }
-      } catch (saveErr) {
-        console.error('generateStoryBible: save to Specification failed:', saveErr.message);
-      }
+    let storyBible;
+    try {
+      storyBible = safeParseJSON(raw);
+    } catch (parseErr) {
+      console.error('Parse failed. Raw response (first 1000 chars):', raw?.slice(0, 1000));
+      throw parseErr;
     }
 
     return Response.json({ story_bible: storyBible });
