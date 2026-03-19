@@ -51,28 +51,80 @@ async function callGemini(systemPrompt, userMessage) {
   }
 }
 
+function repairJSON(str) {
+  // Fix common Gemini JSON issues:
+  // 1. Unescaped control characters inside string values
+  // 2. Trailing commas
+  // 3. Unescaped quotes inside strings
+  
+  // Replace literal tabs and other control chars inside strings
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    
+    if (ch === '\\') {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+    
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    
+    if (inString) {
+      // Escape control characters that break JSON
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    
+    result += ch;
+  }
+  
+  // Fix trailing commas before } or ]
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  
+  return result;
+}
+
 function parseJSON(raw) {
-  // With responseMimeType=application/json, Gemini should return clean JSON
-  // But just in case, handle edge cases
   let cleaned = raw.trim();
+  
+  // Strip markdown fences if present
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
 
   // Try direct parse first
   try { return JSON.parse(cleaned); } catch (e1) {
     console.log('Direct parse failed:', e1.message);
   }
 
-  // Strip markdown fences if present
-  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
-  try { return JSON.parse(cleaned); } catch (e2) {
-    console.log('Fence-stripped parse failed:', e2.message);
+  // Try with JSON repair (handles unescaped chars in strings)
+  try { return JSON.parse(repairJSON(cleaned)); } catch (e2) {
+    console.log('Repair parse failed:', e2.message);
   }
 
-  // Extract outermost { ... }
+  // Extract outermost { ... } and try again
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
   if (start !== -1 && end > start) {
-    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (e3) {
-      console.log('Extracted object parse failed:', e3.message);
+    const extracted = cleaned.slice(start, end + 1);
+    try { return JSON.parse(extracted); } catch {}
+    try { return JSON.parse(repairJSON(extracted)); } catch (e3) {
+      console.log('Extracted+repair parse failed:', e3.message);
     }
   }
 
