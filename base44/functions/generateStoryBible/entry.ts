@@ -2,15 +2,15 @@
 // Called by StoryBibleEditor's "Generate Story Bible from Premise" button
 
 const MODEL_MAP = {
-  'gemini-pro': { provider: 'google', model: 'gemini-2.5-flash' },
+  'gemini-pro': { provider: 'google', model: 'gemini-2.5-pro' },
 };
 
 async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
   try {
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
