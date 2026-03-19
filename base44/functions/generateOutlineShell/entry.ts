@@ -206,7 +206,9 @@ RULES:
       status: 'pending',
       word_count: 0,
     }));
-    await sr.entities.Chapter.bulkCreate(chapterRecords);
+    if (chapterRecords.length > 0) {
+      await sr.entities.Chapter.bulkCreate(chapterRecords);
+    }
 
     console.log(`Shell complete: ${chapterRecords.length} chapters, ${(shell.character_names||[]).length} characters`);
     return Response.json({ outline_id: outlineId, status: 'shell_complete', chapters: chapterRecords.length });
