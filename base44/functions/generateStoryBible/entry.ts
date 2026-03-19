@@ -155,34 +155,63 @@ RULES:
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
 
+  let base44Client;
   try {
-    const body = await req.json();
-    const { topic, book_type, genre, subgenre, target_audience } = body;
-
-    if (!topic) throw new Error('Topic/premise is required');
-
-    const isNonfiction = book_type === 'nonfiction';
-    const systemPrompt = isNonfiction
-      ? 'You are a nonfiction research strategist and book architect. Generate structured research bibles for investigative nonfiction. Output ONLY valid JSON. No preamble, no markdown.'
-      : 'You are a fiction story architect specializing in character psychology and world-building. Generate structured story bibles with deep character development. Output ONLY valid JSON. No preamble, no markdown.';
-
-    const userMessage = isNonfiction
-      ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
-      : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
-
-    const raw = await callGemini(systemPrompt, userMessage);
-
-    let storyBible;
-    try {
-      storyBible = safeParseJSON(raw);
-    } catch (parseErr) {
-      console.error('Parse failed. Raw response (first 1000 chars):', raw?.slice(0, 1000));
-      throw parseErr;
-    }
-
-    return Response.json({ story_bible: storyBible });
-  } catch (err) {
-    console.error('generateStoryBible error:', err.message);
-    return Response.json({ error: err.message }, { status: 500 });
+    const { createClientFromRequest } = await import('npm:@base44/sdk@0.8.20');
+    base44Client = createClientFromRequest(req);
+    await base44Client.auth.me();
+  } catch (authErr) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const { project_id, topic, book_type, genre, subgenre, target_audience } = body;
+  if (!topic) return Response.json({ error: 'Topic/premise is required' }, { status: 400 });
+
+  // Fire-and-forget: return immediately, generate in background
+  // This avoids Base44 gateway timeout (~60s) killing the request
+  const generateInBackground = async () => {
+    try {
+      const isNonfiction = book_type === 'nonfiction';
+      const systemPrompt = isNonfiction
+        ? 'You are a nonfiction research strategist and book architect. Generate structured research bibles for investigative nonfiction. Output ONLY valid JSON. No preamble, no markdown.'
+        : 'You are a fiction story architect specializing in character psychology and world-building. Generate structured story bibles with deep character development. Output ONLY valid JSON. No preamble, no markdown.';
+
+      const userMessage = isNonfiction
+        ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
+        : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
+
+      console.log('generateStoryBible: calling Gemini Pro...');
+      const raw = await callGemini(systemPrompt, userMessage);
+      console.log('generateStoryBible: got response, parsing JSON...');
+
+      const storyBible = safeParseJSON(raw);
+      console.log('generateStoryBible: parsed successfully, saving to Specification...');
+
+      // Save directly to the Specification entity
+      if (project_id) {
+        const specs = await base44Client.entities.Specification.filter({ project_id });
+        if (specs.length > 0) {
+          await base44Client.entities.Specification.update(specs[0].id, {
+            story_bible_data: JSON.stringify(storyBible),
+          });
+          console.log('generateStoryBible: saved to Specification ' + specs[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('generateStoryBible background error:', err.message);
+    }
+  };
+
+  // Start background generation (don't await — let it run after response)
+  generateInBackground();
+
+  // Return immediately so Base44 gateway doesn't kill us
+  return Response.json({ status: 'processing', message: 'Story bible generation started. It will appear in a few moments.' });
 });
