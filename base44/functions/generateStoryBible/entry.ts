@@ -55,9 +55,8 @@ function repairJSON(str) {
   // Fix common Gemini JSON issues:
   // 1. Unescaped control characters inside string values
   // 2. Trailing commas
-  // 3. Unescaped quotes inside strings
+  // 3. Unescaped double quotes inside string values
   
-  // Replace literal tabs and other control chars inside strings
   let result = '';
   let inString = false;
   let escaped = false;
@@ -78,13 +77,31 @@ function repairJSON(str) {
     }
     
     if (ch === '"') {
-      inString = !inString;
-      result += ch;
+      if (!inString) {
+        // Opening a string
+        inString = true;
+        result += ch;
+        continue;
+      }
+      // We're inside a string and hit an unescaped quote.
+      // Determine if this is the real closing quote or an inner quote.
+      // Look ahead: if next non-whitespace char is : , } ] or end-of-string,
+      // this is a structural closing quote. Otherwise it's an inner quote to escape.
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        // Structural closing quote
+        inString = false;
+        result += ch;
+      } else {
+        // Inner quote — escape it
+        result += '\\"';
+      }
       continue;
     }
     
     if (inString) {
-      // Escape control characters that break JSON
       if (ch === '\n') { result += '\\n'; continue; }
       if (ch === '\r') { result += '\\r'; continue; }
       if (ch === '\t') { result += '\\t'; continue; }
