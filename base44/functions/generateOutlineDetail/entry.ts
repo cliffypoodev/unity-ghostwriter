@@ -16,7 +16,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     const r = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/' + config.modelId + ':generateContent?key=' + Deno.env.get('GOOGLE_AI_API_KEY'),
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) }
+        body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } }) }
     );
     const d = await r.json();
     if (!r.ok) throw new Error('Gemini error: ' + (d.error?.message || r.status));
