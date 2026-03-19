@@ -202,49 +202,113 @@ function sanitizeData(data, isNonfiction) {
 function sanitizeNFData(data) { return sanitizeData(data, true); }
 
 // ═══ POST-GENERATION PROSE CLEANUP (model-agnostic) ═══
-// Catches artifacts that ANY model might produce: diff blocks, duplicate
-// paragraphs, duplicate lines, leftover code fences. Runs in <50ms.
-function cleanGeneratedProse(text) {
+// Enforces quality rules through CODE. Models ignore prompt rules.
+// Catches: diff artifacts, duplicate lines, near-duplicate paragraphs,
+// scaffolding, recap bloat, transition crutches, instruction leaks.
+// Also enforces a hard word-count cap to eliminate back-half repetition.
+function cleanGeneratedProse(text, wordTarget) {
   if (!text || text.length < 200) return text;
   let cleaned = text;
-  // Strip diff/code block artifacts
+
+  // ── 1. Strip diff/code block artifacts ──
   cleaned = cleaned.replace(/```[\w]*\n?/g, '');
   cleaned = cleaned.replace(/^---\s*a\/.*$/gm, '');
   cleaned = cleaned.replace(/^\+\+\+\s*b\/.*$/gm, '');
   cleaned = cleaned.replace(/^@@[^@]*@@.*$/gm, '');
-  // Remove exact consecutive duplicate lines (any length)
+
+  // ── 2. Remove exact duplicate lines (even with blank lines between them) ──
   const lines = cleaned.split(/\n/);
   const deduped = [];
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (trimmed.length > 0) {
-      // Compare against last non-empty line (skips blank lines between duplicates)
       let lastNonEmpty = '';
       for (let j = deduped.length - 1; j >= 0; j--) { if (deduped[j].trim().length > 0) { lastNonEmpty = deduped[j].trim(); break; } }
       if (lastNonEmpty === trimmed) continue;
     }
     deduped.push(lines[i]);
   }
-  // Remove near-duplicate paragraphs (75%+ word overlap within 5 lines)
-  const final = [];
+
+  // ── 3. Remove near-duplicate paragraphs (75%+ word overlap) ──
+  const afterNearDupe = [];
   for (let i = 0; i < deduped.length; i++) {
     const line = deduped[i].trim();
-    if (line.length < 80) { final.push(deduped[i]); continue; }
+    if (line.length < 80) { afterNearDupe.push(deduped[i]); continue; }
     const words = new Set(line.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
-    if (words.size < 10) { final.push(deduped[i]); continue; }
+    if (words.size < 10) { afterNearDupe.push(deduped[i]); continue; }
     let isDupe = false;
-    for (let p = Math.max(0, final.length - 5); p < final.length; p++) {
-      const prevWords = new Set(final[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+    for (let p = Math.max(0, afterNearDupe.length - 5); p < afterNearDupe.length; p++) {
+      const prevWords = new Set(afterNearDupe[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
       if (prevWords.size < 10) continue;
       let overlap = 0;
       words.forEach(w => { if (prevWords.has(w)) overlap++; });
       if (overlap / Math.min(words.size, prevWords.size) > 0.75) { isDupe = true; break; }
     }
-    if (!isDupe) final.push(deduped[i]);
+    if (!isDupe) afterNearDupe.push(deduped[i]);
   }
-  cleaned = final.join('\n');
-  // Clean whitespace
+  cleaned = afterNearDupe.join('\n');
+
+  // ── 4. Remove scaffolding sentences ──
+  cleaned = cleaned.replace(/\bThis (chapter|section|part|book) (will )?(explore|examine|discuss|investigate|look at|delve into|unpack|peel back|pull back)[^.!?\n]*[.!?]/gi, '');
+  cleaned = cleaned.replace(/\bIn this (chapter|section|part),? we (will|shall|are going to)[^.!?\n]*[.!?]/gi, '');
+  cleaned = cleaned.replace(/\bThe next chapter(s)? will[^.!?\n]*[.!?]/gi, '');
+  cleaned = cleaned.replace(/\bAs we (progress|move|journey|delve|explore) through[^.!?\n]*[.!?]/gi, '');
+  cleaned = cleaned.replace(/\bWe will (also )?(examine|explore|delve|uncover|look at|investigate|reveal)[^.!?\n]*[.!?]/gi, '');
+
+  // ── 5. Remove recap/bloat sentences ──
+  cleaned = cleaned.replace(/\bAs (we've|I've|we have|I have) (discussed|seen|explored|examined|noted|mentioned|established)[^.!?\n]*[.!?]/gi, '');
+  cleaned = cleaned.replace(/\bTo (summarize|recap|sum up|review) (what we've|the above|our discussion)[^.!?\n]*[.!?]/gi, '');
+
+  // ── 6. Remove hedging openers ──
+  cleaned = cleaned.replace(/\bIt could be argued that\s/gi, '');
+  cleaned = cleaned.replace(/\bOne (might|could|may) (suggest|argue|say|think) that\s/gi, '');
+
+  // ── 7. Remove transition crutches ──
+  cleaned = cleaned.replace(/\bFurthermore,?\s/gi, '');
+  cleaned = cleaned.replace(/\bMoreover,?\s/gi, '');
+  cleaned = cleaned.replace(/\bAdditionally,?\s/gi, '');
+
+  // ── 8. Strip instruction leaks ──
+  cleaned = cleaned.replace(/\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^\n]*/gi, '');
+  cleaned = cleaned.replace(/\[TODO[:\s][^\]]*\]/gi, '');
+  cleaned = cleaned.replace(/as (instructed|requested|specified) (in|by) the (prompt|system|user|outline)[^\n]*/gi, '');
+  cleaned = cleaned.replace(/per the (outline|beat sheet|specification|chapter prompt)[^\n]*/gi, '');
+  cleaned = cleaned.replace(/\b(Remove specific|Use general|Either provide|Either cite) \w+(\s\w+)? or (cite|provide|use|anchor|source|reference) \w[^\n]*/gi, '');
+  cleaned = cleaned.replace(/\bRemove (atmospheric|invented|fictional|fabricated) (reconstruction|detail|scene|quote)[^\n]*/gi, '');
+  cleaned = cleaned.replace(/\bProvide (documentary|specific|archival|real) (source|evidence|documentation)[^\n]*/gi, '');
+  cleaned = cleaned.replace(/\bLabel as (representative|illustrative|composite|general|reconstructed)[^\n]*/gi, '');
+  cleaned = cleaned.replace(/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)[^\n]*/gi, '');
+
+  // ── 9. Clean whitespace ──
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
+
+  // ── 10. HARD WORD-COUNT CAP ──
+  // Models repeat themselves in the back half. If chapter exceeds target × 1.3,
+  // keep paragraphs from the front until we hit target × 1.15, then append
+  // the last paragraph as the conclusion. This is what Sudowrite does.
+  if (wordTarget && wordTarget > 0) {
+    const currentWords = cleaned.split(/\s+/).length;
+    const maxWords = Math.round(wordTarget * 1.3);
+    if (currentWords > maxWords) {
+      const targetCap = Math.round(wordTarget * 1.15);
+      const capParas = cleaned.split(/\n\n+/);
+      if (capParas.length > 3) {
+        const lastPara = capParas[capParas.length - 1]; // save conclusion
+        const kept = [];
+        let runningWords = 0;
+        for (let i = 0; i < capParas.length - 1; i++) {
+          const paraWords = capParas[i].split(/\s+/).length;
+          if (runningWords + paraWords > targetCap) break;
+          kept.push(capParas[i]);
+          runningWords += paraWords;
+        }
+        kept.push(lastPara); // always keep conclusion
+        cleaned = kept.join('\n\n');
+        console.log('Cleanup: Word cap enforced — ' + currentWords + ' -> ' + cleaned.split(/\s+/).length + ' words (target: ' + wordTarget + ')');
+      }
+    }
+  }
+
   return cleaned;
 }
 
@@ -1298,7 +1362,7 @@ ${lastContext}`;
 
   // Post-generation cleanup: strip artifacts, remove duplicates (model-agnostic)
   const beforeCleanup = rawProse ? rawProse.length : 0;
-  if (rawProse) rawProse = cleanGeneratedProse(rawProse);
+  if (rawProse) rawProse = cleanGeneratedProse(rawProse, wordTarget);
   if (rawProse && rawProse.length !== beforeCleanup) console.log(`ProseWriter: Cleanup removed ${beforeCleanup - rawProse.length} chars (dupes/artifacts)`);
 
   const wordCount = rawProse ? rawProse.trim().split(/\s+/).length : 0;
