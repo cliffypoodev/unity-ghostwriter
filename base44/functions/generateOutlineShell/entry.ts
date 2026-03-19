@@ -21,7 +21,7 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
   // callType: outline → shell generation resolves to Gemini Pro
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: userMessage }] }],
@@ -36,7 +36,7 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
 }
 
 Deno.serve(async (req) => {
-  const DEADLINE = Date.now() + 55000; // 55-second timeout guard
+  const DEADLINE = Date.now() + 120000; // 55-second timeout guard
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
