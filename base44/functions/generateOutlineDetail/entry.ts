@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Inline AI router — same as generateOutline
 const MODEL_MAP = {
-  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro", defaultTemp: 0.6 },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.6 },
 };
 
