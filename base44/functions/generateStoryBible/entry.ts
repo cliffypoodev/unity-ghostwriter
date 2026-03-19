@@ -157,9 +157,14 @@ RULES:
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
 
-  const base44Client = createClientFromRequest(req);
-  const user = await base44Client.auth.me();
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  let base44Client = null;
+  try {
+    base44Client = createClientFromRequest(req);
+    await base44Client.auth.me();
+  } catch (authErr) {
+    console.warn('generateStoryBible: auth failed, DB save will be skipped:', authErr.message);
+    base44Client = null;
+  }
 
   try {
     const body = await req.json();
@@ -194,7 +199,7 @@ Deno.serve(async (req) => {
 
     // Save directly to Specification BEFORE returning response
     // This way if the gateway kills our response, the data is still in the DB
-    if (project_id) {
+    if (project_id && base44Client) {
       try {
         const specs = await base44Client.entities.Specification.filter({ project_id });
         if (specs.length > 0) {
