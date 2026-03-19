@@ -176,12 +176,21 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    console.log('generateStoryBible: calling Gemini Pro...');
-    const raw = await callGemini(systemPrompt, userMessage);
-    console.log('generateStoryBible: got response (' + (raw?.length || 0) + ' chars), parsing...');
-
-    const storyBible = safeParseJSON(raw);
-    console.log('generateStoryBible: parsed successfully');
+    let storyBible = null;
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`generateStoryBible: calling Gemini (attempt ${attempt}/${MAX_RETRIES})...`);
+      const raw = await callGemini(systemPrompt, userMessage, 8192);
+      console.log('generateStoryBible: got response (' + (raw?.length || 0) + ' chars), parsing...');
+      try {
+        storyBible = safeParseJSON(raw);
+        console.log('generateStoryBible: parsed successfully');
+        break;
+      } catch (parseErr) {
+        console.error(`generateStoryBible: parse attempt ${attempt} failed: ${parseErr.message}`);
+        if (attempt === MAX_RETRIES) throw new Error('Story bible generation failed after ' + MAX_RETRIES + ' attempts — AI returned invalid JSON. Please try again.');
+      }
+    }
 
     // Save directly to Specification BEFORE returning response
     // This way if the gateway kills our response, the data is still in the DB
