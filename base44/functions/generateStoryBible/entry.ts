@@ -18,8 +18,17 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
     });
     clearTimeout(timeout);
     const d = await r.json();
-    if (!r.ok) throw new Error('Gemini: ' + (d.error?.message || r.status));
-    return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!r.ok) {
+      console.error('Gemini API error:', r.status, JSON.stringify(d?.error || d).slice(0, 500));
+      throw new Error('Gemini: ' + (d.error?.message || r.status));
+    }
+    const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const finishReason = d?.candidates?.[0]?.finishReason;
+    console.log('Gemini response: ' + text.length + ' chars, finishReason=' + finishReason);
+    if (!text) {
+      console.error('Empty Gemini response. Full response:', JSON.stringify(d).slice(0, 1000));
+    }
+    return text;
   } catch (e) {
     clearTimeout(timeout);
     throw e;
