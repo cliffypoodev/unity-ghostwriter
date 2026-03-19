@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Inline AI router — same as generateOutline
 const MODEL_MAP = {
-  "gemini-pro": { provider: "google", modelId: "gemini-2.5-pro", defaultTemp: 0.6 },
+  "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.6 },
 };
 
@@ -35,19 +35,64 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   throw new Error('Unknown provider');
 }
 
-function cleanJSON(text) {
-  let c = text.trim();
-  if (c.startsWith('```json')) c = c.slice(7);
-  else if (c.startsWith('```')) c = c.slice(3);
-  if (c.endsWith('```')) c = c.slice(0, -3);
-  c = c.trim().replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-  if (!c.endsWith('}') && !c.endsWith(']')) {
-    const ob = (c.match(/{/g)||[]).length, cb = (c.match(/}/g)||[]).length;
-    const oB = (c.match(/\[/g)||[]).length, cB = (c.match(/]/g)||[]).length;
-    for (let i = 0; i < oB - cB; i++) c += ']';
-    for (let i = 0; i < ob - cb; i++) c += '}';
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
   }
-  return c;
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  // Try extracting outermost object or array
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  // Truncation repair — close unterminated strings/brackets
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
 }
 
 function isRefusal(text) {
@@ -156,8 +201,7 @@ Return ONLY JSON.`;
     const bibleText = await callAI(modelKey, bibleSystem, biblePrompt, { maxTokens: 3000 });
     let storyBible = null;
     try {
-      const m = bibleText.match(/\{[\s\S]*\}/);
-      storyBible = JSON.parse(cleanJSON(m ? m[0] : bibleText));
+      storyBible = robustParseJSON(bibleText);
     } catch (e) { console.warn('Bible parse failed:', e.message); }
 
     // Save bible immediately as partial progress
@@ -219,8 +263,7 @@ Return a JSON array with exactly ${chunk.length} objects. No prose outside the a
         try {
           text = await callAI(modelKey, detailSystem, detailPrompt, { maxTokens: 8000 });
           if (isRefusal(text)) { console.warn(`Detail batch ${chunkNums}: refusal on attempt ${attempt + 1}`); continue; }
-          const jm = text.match(/\[[\s\S]*\]/);
-          parsed = JSON.parse(cleanJSON(jm ? jm[0] : text));
+          parsed = robustParseJSON(text);
           if (Array.isArray(parsed) && parsed.length > 0) break;
           parsed = null;
         } catch (e) {
@@ -249,8 +292,7 @@ ${isNonfiction ? '- concept_budget: Array of {concept, primary_chapter, supporti
 - thread_register: Array of {thread, introduced_chapter, payoff_chapter}
 Return ONLY JSON.`;
         const slText = await callAI(modelKey, detailSystem, slPrompt, { maxTokens: 2000 });
-        const slm = slText.match(/\{[\s\S]*\}/);
-        scopeLock = JSON.parse(cleanJSON(slm ? slm[0] : slText));
+        scopeLock = robustParseJSON(slText);
       } catch (e) { console.warn('Scope lock failed:', e.message); }
     }
 
@@ -260,8 +302,7 @@ Return ONLY JSON.`;
     if (!bookMetadata.description && Date.now() < DEADLINE) {
       try {
         const metaText = await callAI(modelKey, 'Return ONLY valid JSON.', `Generate publishing metadata for "${bookMetadata.title || truncatedTopic}". Return: {"title":"...","subtitle":"...","description":"2-3 paragraphs","keywords":["k1","k2",...7]}`, { maxTokens: 1500 });
-        const mm = metaText.match(/\{[\s\S]*\}/);
-        const meta = JSON.parse(cleanJSON(mm ? mm[0] : metaText));
+        const meta = robustParseJSON(metaText);
         bookMetadata = { ...bookMetadata, ...meta };
       } catch {}
     }

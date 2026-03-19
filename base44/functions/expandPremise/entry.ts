@@ -2,12 +2,70 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
 
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
+  }
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
+}
+
 async function callGemini(prompt, maxTokens = 2500) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
   try {
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + GOOGLE_AI_API_KEY,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GOOGLE_AI_API_KEY,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,14 +189,14 @@ INFERENCE RULES:
 
     const response = await callGemini(prompt);
 
-    // Parse JSON, stripping accidental markdown fences
-    const cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    // Parse JSON with robust repair
     let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      parsed = robustParseJSON(response);
     } catch (parseErr) {
       console.error('JSON parse failed, raw:', response.slice(0, 500));
       // Fallback: try to extract expanded_brief at minimum
+      const cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       const briefMatch = cleaned.match(/"expanded_brief"\s*:\s*"([\s\S]*?)(?:"\s*[,}])/);
       return Response.json({
         expanded_brief: briefMatch ? briefMatch[1] : topic,

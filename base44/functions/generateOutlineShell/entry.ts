@@ -2,19 +2,62 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const CHAPTER_COUNTS = { short: { min: 8, max: 12 }, medium: { min: 15, max: 25 }, long: { min: 25, max: 40 }, epic: { min: 40, max: 60 } };
 
-function cleanJSON(text) {
-  let c = text.trim();
-  if (c.startsWith('```json')) c = c.slice(7);
-  else if (c.startsWith('```')) c = c.slice(3);
-  if (c.endsWith('```')) c = c.slice(0, -3);
-  c = c.trim().replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-  if (!c.endsWith('}') && !c.endsWith(']')) {
-    const ob = (c.match(/{/g)||[]).length, cb = (c.match(/}/g)||[]).length;
-    const oB = (c.match(/\[/g)||[]).length, cB = (c.match(/]/g)||[]).length;
-    for (let i = 0; i < oB - cB; i++) c += ']';
-    for (let i = 0; i < ob - cb; i++) c += '}';
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
   }
-  return c;
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
 }
 
 async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
@@ -125,8 +168,7 @@ RULES:
       return Response.json({ outline_id: outlineId, status: 'partial' });
     }
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const shell = JSON.parse(cleanJSON(jsonMatch ? jsonMatch[0] : rawText));
+    const shell = robustParseJSON(rawText);
 
     // Save shell outline as file
     const shellOutline = { shell: true, chapters: shell.chapters || [], character_names: shell.character_names || [] };

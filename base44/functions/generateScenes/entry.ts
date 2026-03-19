@@ -9,7 +9,7 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.6 },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9 },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.6 },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro", defaultTemp: 0.6 },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.6 },
 };
 
@@ -76,41 +76,78 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   throw new Error('Unknown provider: ' + provider);
 }
 
-function cleanJSON(text) {
-  let cleaned = text.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
-  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
-  cleaned = cleaned.replace(/,\s*}/g, '}');
-  cleaned = cleaned.replace(/,\s*]/g, ']');
-  if (!cleaned.endsWith('}') && !cleaned.endsWith(']')) {
-    const openBraces = (cleaned.match(/{/g) || []).length;
-    const closeBraces = (cleaned.match(/}/g) || []).length;
-    const openBrackets = (cleaned.match(/\[/g) || []).length;
-    const closeBrackets = (cleaned.match(/]/g) || []).length;
-    for (let i = 0; i < openBrackets - closeBrackets; i++) cleaned += ']';
-    for (let i = 0; i < openBraces - closeBraces; i++) cleaned += '}';
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
   }
-  return cleaned;
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
 }
 
 async function safeParseJSON(text, modelKey) {
-  const cleaned = cleanJSON(text);
   try {
-    return JSON.parse(cleaned);
+    return robustParseJSON(text);
   } catch (e1) {
-    console.warn('safeParseJSON first attempt failed:', e1.message, '— attempting AI repair...');
+    console.warn('safeParseJSON robustParse failed:', e1.message, '— attempting AI repair...');
   }
   try {
-    // callType: beat_sheet (JSON repair — uses same model as parent call)
     const repaired = await callAI(
       modelKey,
       'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
-      `Fix this malformed JSON and return only the corrected JSON:\n\n${cleaned}`,
+      `Fix this malformed JSON and return only the corrected JSON:\n\n${text}`,
       { maxTokens: 4000, temperature: 0.0 }
     );
-    return JSON.parse(cleanJSON(repaired));
+    return robustParseJSON(repaired);
   } catch {
     throw new Error('The AI returned an invalid response. Please click Retry.');
   }

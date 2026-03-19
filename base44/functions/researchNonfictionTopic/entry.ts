@@ -4,6 +4,64 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 // Input: { topic, subject, genre, subgenre, scope }
 // Output: { facts, timeline, keyFigures, sources, contextSummary }
 
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
+  }
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
+}
+
 async function doResearch(topic, subject, genre, subgenre, scope) {
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
@@ -84,28 +142,17 @@ Return 8-12 facts, 4-8 timeline entries, 3-6 key figures, and 3-5 sources. Retur
     };
   }
 
-  // Attempt to repair common Gemini JSON issues (unterminated strings, trailing commas)
-  let jsonStr = jsonMatch[0];
   try {
-    return JSON.parse(jsonStr);
-  } catch (firstErr) {
-    console.warn('Research JSON first parse failed, attempting repair:', firstErr.message);
-    // Fix trailing commas before } or ]
-    jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
-    // Fix unterminated strings: find lines ending with unmatched quote
-    jsonStr = jsonStr.replace(/:\s*"([^"]*?)(\n)/g, ': "$1"$2');
-    try {
-      return JSON.parse(jsonStr);
-    } catch {
-      console.warn('Research JSON repair failed, returning contextSummary only');
-      return {
-        facts: [],
-        timeline: [],
-        keyFigures: [],
-        sources: [],
-        contextSummary: clean.slice(0, 500),
-      };
-    }
+    return robustParseJSON(jsonMatch[0]);
+  } catch {
+    console.warn('Research JSON all parse attempts failed, returning contextSummary only');
+    return {
+      facts: [],
+      timeline: [],
+      keyFigures: [],
+      sources: [],
+      contextSummary: clean.slice(0, 500),
+    };
   }
 }
 
