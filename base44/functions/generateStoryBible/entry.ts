@@ -1,33 +1,49 @@
-// generateStoryBible.ts — Generates a structured story bible from premise
-// Called by StoryBibleEditor's "Generate Story Bible from Premise" button
+// generateStoryBible — Generates a structured story bible from premise using Gemini 2.5 Flash
+// No auth required — just calls Gemini and returns the result
+// v2 — uses responseMimeType to force JSON output
 
-const MODEL_MAP = {
-  'gemini-pro': { provider: 'google', model: 'gemini-2.5-flash' },
-};
+async function callGemini(systemPrompt, userMessage) {
+  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
 
-async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
+
   try {
-    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+    
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens } }),
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: userMessage }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+        },
+      }),
       signal: controller.signal,
     });
+
     clearTimeout(timeout);
     const d = await r.json();
+
     if (!r.ok) {
-      console.error('Gemini API error:', r.status, JSON.stringify(d?.error || d).slice(0, 500));
-      throw new Error('Gemini: ' + (d.error?.message || r.status));
+      console.error('Gemini API error:', r.status, JSON.stringify(d?.error || {}).slice(0, 500));
+      throw new Error('Gemini API error: ' + (d.error?.message || r.status));
     }
+
     const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const finishReason = d?.candidates?.[0]?.finishReason;
     console.log('Gemini response: ' + text.length + ' chars, finishReason=' + finishReason);
+
     if (!text) {
-      console.error('Empty Gemini response. Full response:', JSON.stringify(d).slice(0, 1000));
+      console.error('Empty response from Gemini:', JSON.stringify(d).slice(0, 500));
+      throw new Error('Empty response from Gemini');
     }
+
     return text;
   } catch (e) {
     clearTimeout(timeout);
@@ -35,19 +51,33 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
   }
 }
 
-function safeParseJSON(raw) {
+function parseJSON(raw) {
+  // With responseMimeType=application/json, Gemini should return clean JSON
+  // But just in case, handle edge cases
   let cleaned = raw.trim();
-  // Strip ALL markdown code fences (greedy, handles multiple backtick styles)
-  cleaned = cleaned.replace(/^```[\s\S]*?\n/i, '').replace(/\n?```\s*$/i, '');
-  cleaned = cleaned.trim();
-  // Try parsing directly
-  try { return JSON.parse(cleaned); } catch {}
-  // Try extracting the outermost JSON object
+
+  // Try direct parse first
+  try { return JSON.parse(cleaned); } catch (e1) {
+    console.log('Direct parse failed:', e1.message);
+  }
+
+  // Strip markdown fences if present
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch (e2) {
+    console.log('Fence-stripped parse failed:', e2.message);
+  }
+
+  // Extract outermost { ... }
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
   if (start !== -1 && end > start) {
-    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (e3) {
+      console.log('Extracted object parse failed:', e3.message);
+    }
   }
+
+  console.error('All parse attempts failed. First 500 chars:', raw.slice(0, 500));
+  console.error('Last 200 chars:', raw.slice(-200));
   throw new Error('Failed to parse JSON from AI response');
 }
 
@@ -166,7 +196,16 @@ RULES:
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+  }
 
   try {
     const body = await req.json();
@@ -175,26 +214,21 @@ Deno.serve(async (req) => {
     if (!topic) throw new Error('Topic/premise is required');
 
     const isNonfiction = book_type === 'nonfiction';
+
     const systemPrompt = isNonfiction
-      ? 'You are a nonfiction research strategist and book architect. Generate structured research bibles for investigative nonfiction. Output ONLY valid JSON. No preamble, no markdown.'
-      : 'You are a fiction story architect specializing in character psychology and world-building. Generate structured story bibles with deep character development. Output ONLY valid JSON. No preamble, no markdown.';
+      ? 'You are a nonfiction research strategist and book architect. Generate structured research bibles for investigative nonfiction. Output ONLY valid JSON.'
+      : 'You are a fiction story architect specializing in character psychology and world-building. Generate structured story bibles with deep character development. Output ONLY valid JSON.';
 
     const userMessage = isNonfiction
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    console.log('generateStoryBible: calling Gemini Flash...');
+    console.log('v2: generateStoryBible calling Gemini 2.5 Flash, type=' + book_type);
     const raw = await callGemini(systemPrompt, userMessage);
-    console.log('generateStoryBible: got response (' + (raw?.length || 0) + ' chars)');
+    console.log('v2: got response, ' + raw.length + ' chars');
 
-    let storyBible;
-    try {
-      storyBible = safeParseJSON(raw);
-    } catch (parseErr) {
-      console.error('Parse failed. Raw length:', raw?.length, 'First 500 chars:', raw?.slice(0, 500));
-      console.error('Last 200 chars:', raw?.slice(-200));
-      throw parseErr;
-    }
+    const storyBible = parseJSON(raw);
+    console.log('v2: parsed successfully');
 
     return Response.json({ story_bible: storyBible });
   } catch (err) {
