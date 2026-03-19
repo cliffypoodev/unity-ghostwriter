@@ -11,7 +11,7 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.4, maxTokensLimit: null },
   "gpt-4o-creative":   { provider: "openai",    modelId: "gpt-4o",                   defaultTemp: 0.9, maxTokensLimit: null },
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7, maxTokensLimit: null },
-  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro",         defaultTemp: 0.6, maxTokensLimit: null },
+  "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-flash",         defaultTemp: 0.6, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.7, maxTokensLimit: 8192 },
 };
 
@@ -376,43 +376,78 @@ function deduplicateChapterTitles(chapters) {
 
 // ── Shared JSON repair helpers ────────────────────────────────────────────────
 
-function cleanJSON(text) {
-  let cleaned = text.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
-  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
-  // Fix trailing commas before } or ]
-  cleaned = cleaned.replace(/,\s*}/g, '}');
-  cleaned = cleaned.replace(/,\s*]/g, ']');
-  // Try to close truncated JSON
-  if (!cleaned.endsWith('}') && !cleaned.endsWith(']')) {
-    const openBraces = (cleaned.match(/{/g) || []).length;
-    const closeBraces = (cleaned.match(/}/g) || []).length;
-    const openBrackets = (cleaned.match(/\[/g) || []).length;
-    const closeBrackets = (cleaned.match(/]/g) || []).length;
-    for (let i = 0; i < openBrackets - closeBrackets; i++) cleaned += ']';
-    for (let i = 0; i < openBraces - closeBraces; i++) cleaned += '}';
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
   }
-  return cleaned;
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
 }
 
 async function safeParseJSON(text, modelKey) {
-  const cleaned = cleanJSON(text);
   try {
-    return JSON.parse(cleaned);
+    return robustParseJSON(text);
   } catch (e1) {
-    console.warn('safeParseJSON first attempt failed:', e1.message, '— attempting AI repair...');
+    console.warn('safeParseJSON robustParse failed:', e1.message, '— attempting AI repair...');
   }
   try {
-    // callType: outline (JSON repair — uses same model as parent outline call)
     const repaired = await callAI(
       modelKey,
       'You are a JSON repair tool. Return ONLY valid JSON. No explanation, no markdown.',
-      `Fix this malformed JSON and return only the corrected JSON:\n\n${cleaned}`,
+      `Fix this malformed JSON and return only the corrected JSON:\n\n${text}`,
       { maxTokens: 4000, temperature: 0.0 }
     );
-    return JSON.parse(cleanJSON(repaired));
+    return robustParseJSON(repaired);
   } catch {
     throw new Error('The AI returned an invalid response. Please click Retry.');
   }
@@ -504,7 +539,7 @@ async function runNonfictionOutlineGemini(sr, project_id, spec, outlineId, bookR
   async function callGemini(systemPrompt, userMessage, maxTokens = 12000) {
     // callType: outline → nonfiction Gemini path
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -669,8 +704,7 @@ Return ONLY the JSON object.`;
     const metaText = await callGemini(systemPrompt, metadataPrompt, 2000);
     let bookMetadata = null;
     try {
-      const metaMatch = metaText.match(/\{[\s\S]*\}/);
-      bookMetadata = JSON.parse(cleanJSON(metaMatch ? metaMatch[0] : metaText));
+      bookMetadata = robustParseJSON(metaText);
     } catch (e) {
       console.warn('Gemini metadata parse failed:', e.message);
     }
@@ -681,8 +715,7 @@ Return ONLY the JSON object.`;
     const bibleText = await callGemini(systemPrompt, storyBiblePrompt, 2000);
     let parsedStoryBible = null;
     try {
-      const bibleMatch = bibleText.match(/\{[\s\S]*\}/);
-      parsedStoryBible = JSON.parse(cleanJSON(bibleMatch ? bibleMatch[0] : bibleText));
+      parsedStoryBible = robustParseJSON(bibleText);
     } catch (e) {
       console.warn('Gemini story bible parse failed:', e.message);
     }
@@ -698,8 +731,7 @@ Return ONLY the JSON object.`;
 - "thread_register": Array of objects with "thread", "introduced_chapter", "payoff_chapter".
 Return ONLY JSON.`;
       const slText = await callGemini(systemPrompt, slPrompt, 2000);
-      const slMatch = slText.match(/\{[\s\S]*\}/);
-      nfScopeLock = JSON.parse(cleanJSON(slMatch ? slMatch[0] : slText));
+      nfScopeLock = robustParseJSON(slText);
       console.log('Gemini scope lock generated');
     } catch (e) { console.warn('Gemini scope lock failed:', e.message); }
 
@@ -744,8 +776,7 @@ Return a JSON array with exactly ${chunkCount} objects. No prose outside the arr
         if (text && !isRefusal(text)) break;
       }
 
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      const parsed = JSON.parse(cleanJSON(jsonMatch ? jsonMatch[0] : text));
+      const parsed = robustParseJSON(text);
       if (!Array.isArray(parsed)) throw new Error(`Not an array in batch ${chunkStart}-${chunkEnd}`);
       console.log(`✓ Gemini batch ${chunkStart}-${chunkEnd} complete`);
       return parsed;
@@ -812,7 +843,9 @@ Return a JSON array with exactly ${chunkCount} objects. No prose outside the arr
       status: 'pending',
       word_count: 0,
     }));
-    await sr.entities.Chapter.bulkCreate(chapterRecords);
+    if (chapterRecords.length > 0) {
+      await sr.entities.Chapter.bulkCreate(chapterRecords);
+    }
     console.log('Gemini nonfiction outline complete:', chapterRecords.length, 'chapters');
   } catch (err) {
     console.error('Gemini nonfiction generation failed:', err.message);
