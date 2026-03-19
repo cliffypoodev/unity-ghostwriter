@@ -705,7 +705,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { ...form };
-      ["id", "created_date", "updated_date", "created_by", "story_bible_data"].forEach(k => delete payload[k]);
+      ["id", "created_date", "updated_date", "created_by"].forEach(k => delete payload[k]);
       
       // Persist protagonist interiority on the Project entity for cross-phase access
       const interiority = {
