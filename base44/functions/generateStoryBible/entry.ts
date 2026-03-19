@@ -28,13 +28,17 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4096) {
 
 function safeParseJSON(raw) {
   let cleaned = raw.trim();
-  // Strip markdown code fences
-  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+  // Strip ALL markdown code fences (greedy, handles multiple backtick styles)
+  cleaned = cleaned.replace(/^```[\s\S]*?\n/i, '').replace(/\n?```\s*$/i, '');
+  cleaned = cleaned.trim();
   // Try parsing directly
   try { return JSON.parse(cleaned); } catch {}
-  // Try extracting JSON object
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) { try { return JSON.parse(match[0]); } catch {} }
+  // Try extracting the outermost JSON object
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+  }
   throw new Error('Failed to parse JSON from AI response');
 }
 
