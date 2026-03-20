@@ -14,8 +14,19 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
   if (provider === "google") {
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage + '\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no commentary.' }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } }) });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000);
+    let r;
+    try {
+      r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage + '\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no commentary.' }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } }) });
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      throw new Error('Gemini fetch failed: ' + fetchErr.message);
+    }
+    clearTimeout(timeout);
+    console.log('callAI: fetch complete, status=' + r.status);
     const d = await r.json();
+    console.log('callAI: json parsed');
     if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status));
     const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const finishReason = d?.candidates?.[0]?.finishReason;
