@@ -22,7 +22,7 @@ const MODEL_MAP = {
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.5-flash", defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
-  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: null },
+  "trinity":           { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: null },
 };
 
 // Maximum time for any single AI API call — must complete well within Deno Deploy's isolate limit
