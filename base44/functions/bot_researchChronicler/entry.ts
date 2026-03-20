@@ -21,6 +21,65 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
 }
 function isRefusal(text) { if (!text) return false; const f = text.slice(0, 300).toLowerCase(); return ['i cannot','i can\'t','i\'m unable','as an ai'].some(m => f.includes(m)); }
 
+// ═══ INLINED: robust JSON parsing (handles Gemini unescaped quotes, unterminated strings) ═══
+function repairJSON(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { escaped = true; result += ch; continue; }
+    if (ch === '"') {
+      if (!inString) { inString = true; result += ch; continue; }
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\r' || str[j] === '\n')) j++;
+      const next = str[j] || '';
+      if (next === ':' || next === ',' || next === '}' || next === ']' || next === '') {
+        inString = false; result += ch;
+      } else { result += '\\"'; }
+      continue;
+    }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      const code = ch.charCodeAt(0);
+      if (code < 32) { result += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+    }
+    result += ch;
+  }
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
+}
+
+function robustParseJSON(raw) {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(repairJSON(cleaned)); } catch {}
+  const objStart = cleaned.indexOf('{'), objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('['), arrEnd = cleaned.lastIndexOf(']');
+  const candidates = [];
+  if (objStart !== -1 && objEnd > objStart) candidates.push(cleaned.slice(objStart, objEnd + 1));
+  if (arrStart !== -1 && arrEnd > arrStart) candidates.push(cleaned.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(repairJSON(c)); } catch {}
+  }
+  let truncated = cleaned;
+  const quoteCount = (truncated.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) truncated += '"';
+  truncated = truncated.replace(/,\s*$/, '');
+  const openBrackets = (truncated.match(/\[/g) || []).length - (truncated.match(/]/g) || []).length;
+  const openBraces = (truncated.match(/{/g) || []).length - (truncated.match(/}/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) truncated += ']';
+  for (let i = 0; i < openBraces; i++) truncated += '}';
+  try { return JSON.parse(truncated); } catch {}
+  try { return JSON.parse(repairJSON(truncated)); } catch {}
+  throw new Error('Failed to parse JSON from AI response');
+}
+
 // ═══ INLINED: shared/resolveModel ═══
 function resolveModel(callType) {
   if (callType === 'research') return 'gemini-pro';
