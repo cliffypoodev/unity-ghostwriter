@@ -471,54 +471,7 @@ async function runBibliography(base44, ctx) {
 
 // ═══ MODE 4: TOPIC-LEVEL RESEARCH (PRE-OUTLINE) ═══
 
-const TOPIC_RESEARCH_SYSTEM = `You are a professional nonfiction research architect. A user wants to write a nonfiction book. Your job is to deeply research the TOPIC and produce a comprehensive knowledge base that will guide the entire book's structure.
-
-You will receive: topic, genre, subgenre, target audience.
-
-Return a structured JSON knowledge base with:
-
-1. TOPIC ANALYSIS — What this topic actually covers, common misconceptions, the current state of the field
-2. KEY FRAMEWORKS — 3 major theoretical frameworks or organizing principles used by experts (3 max)
-3. MAJOR THEMES — 5-8 distinct themes or subtopics a comprehensive book MUST cover
-4. AUTHORITATIVE SOURCES — 8-10 real, verifiable books, journals, organizations, and experts
-5. TARGET AUDIENCE NEEDS — What readers need, their pain points, knowledge gaps
-6. SUGGESTED CHAPTER STRUCTURE — A proposed 10-15 chapter outline with titles and 1-sentence descriptions
-7. COMPETING BOOKS — 3-5 existing books on this topic, strengths and gaps
-8. KEY TERMS — 8-10 essential terms the author must use correctly
-
-OUTPUT FORMAT — respond ONLY with valid JSON:
-{
-  "topic_analysis": {
-    "core_subject": "What this book is really about",
-    "scope": "What it covers and what it deliberately excludes",
-    "current_state": "Where the field stands right now",
-    "common_misconceptions": ["misconception 1", "misconception 2"]
-  },
-  "key_frameworks": [
-    { "name": "Framework Name", "description": "What it is and why it matters", "source": "Who developed it" }
-  ],
-  "major_themes": [
-    { "theme": "Theme Name", "description": "Why this must be in the book", "subtopics": ["subtopic 1", "subtopic 2"] }
-  ],
-  "authoritative_sources": [
-    { "type": "book|journal|organization|expert|government", "name": "Full Name/Title", "author": "Author if applicable", "relevance": "Why this is authoritative", "url": "" }
-  ],
-  "target_audience_needs": {
-    "primary_reader": "Who this book is for",
-    "knowledge_level": "What they already know",
-    "pain_points": ["what frustrates them"],
-    "desired_outcomes": ["what they want to learn/achieve"]
-  },
-  "suggested_chapters": [
-    { "number": 1, "title": "Chapter Title", "description": "One-sentence description", "theme": "Which major theme this serves" }
-  ],
-  "competing_books": [
-    { "title": "Book Title", "author": "Author", "strength": "What it does well", "gap": "What it misses that your book can fill" }
-  ],
-  "key_terms": [
-    { "term": "Term", "definition": "Plain-language definition" }
-  ]
-}`;
+// TOPIC_RESEARCH_SYSTEM prompt removed — topic_research now uses InvokeLLM with response_json_schema
 
 async function runTopicResearch(base44, projectId, spec) {
   const topic = spec?.topic || '';
