@@ -558,6 +558,7 @@ This knowledge base will be used to generate the book's outline and guide every 
       competing_books: knowledgeBase.competing_books?.length || 0,
     };
   } catch (e) {
+    console.error('topic_research catch:', e.message);
     return { success: false, error: e.message };
   }
 }
