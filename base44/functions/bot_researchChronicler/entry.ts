@@ -523,8 +523,15 @@ Research this topic thoroughly. Find real frameworks, real sources, real competi
 This knowledge base will be used to generate the book's outline and guide every chapter's content. Be comprehensive.`;
 
   try {
+    console.log('topic_research: calling AI...');
     const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
-    console.log('topic_research raw length:', raw.length, 'first 200:', raw.slice(0, 200), 'last 200:', raw.slice(-200));
+    console.log('topic_research: raw length=' + (raw?.length || 0));
+    if (!raw || raw.length < 10) {
+      console.error('topic_research: empty or near-empty response');
+      return { success: false, error: 'AI returned empty response — please retry' };
+    }
+    console.log('topic_research: first 300 chars: ' + raw.slice(0, 300));
+    console.log('topic_research: last 300 chars: ' + raw.slice(-300));
     const knowledgeBase = robustParseJSON(raw);
 
     // Store knowledge base on the project
