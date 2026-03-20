@@ -1315,14 +1315,10 @@ Write at least ${Math.min(wordsNeeded, 4000)} more words of prose. Expand scenes
 LAST PARAGRAPH (continue from here):
 ${lastContext}`;
       
-      const timeoutMs = continuationCount === 1 ? 120000 : 90000;
-      const continuation = await Promise.race([
-        callAI(actualModel, systemPrompt, continueMessage, {
-          maxTokens: 12000,
-          temperature: 0.72,
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('continuation_timeout')), timeoutMs)),
-      ]);
+      const continuation = await callAI(actualModel, systemPrompt, continueMessage, {
+        maxTokens: 12000,
+        temperature: 0.72,
+      });
       if (continuation && !isRefusal(continuation)) {
         const cleanCont = continuation.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/^(Here is|Here's|I've written|Below is|Continuing|Sure|Okay|Of course)[^\n]*\n+/i, '').trim();
         if (cleanCont.length > 50) {
