@@ -1309,13 +1309,15 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 70% of target, ask it to continue (up to 2 attempts)
+  // If model returns less than 70% of target, ask it to continue (up to 1 attempt)
+  // Limited to 1 attempt to stay within Deno Deploy's isolate time budget
   const continuationThreshold = Math.round(wordTarget * 0.7);
   let currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
-  const maxContinuations = 2;
+  const maxContinuations = 1;
   let continuationCount = 0;
+  const elapsedMs = Date.now() - startMs;
 
-  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations) {
+  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && elapsedMs < 55000) {
     continuationCount++;
     const wordsNeeded = wordTarget - currentWords;
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
