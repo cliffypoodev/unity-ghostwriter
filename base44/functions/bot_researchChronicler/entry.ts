@@ -478,13 +478,13 @@ You will receive: topic, genre, subgenre, target audience.
 Return a structured JSON knowledge base with:
 
 1. TOPIC ANALYSIS — What this topic actually covers, common misconceptions, the current state of the field
-2. KEY FRAMEWORKS — The major theoretical frameworks, models, or organizing principles used by experts in this field (3-5 frameworks)
-3. MAJOR THEMES — The 8-12 distinct themes or subtopics that a comprehensive book on this subject MUST cover
-4. AUTHORITATIVE SOURCES — 15-20 real, verifiable books, journals, organizations, and experts that are the gold standard in this field
-5. TARGET AUDIENCE NEEDS — What readers of this genre/topic specifically need, their pain points, their knowledge gaps
-6. SUGGESTED CHAPTER STRUCTURE — A proposed 15-20 chapter outline with titles and 1-sentence descriptions, organized by the most logical progression for this topic
-7. COMPETING BOOKS — 5-8 existing books on this topic, what they do well, and what gaps remain for a new book to fill
-8. KEY TERMS — A glossary of 10-20 essential terms the author must use correctly
+2. KEY FRAMEWORKS — 3 major theoretical frameworks or organizing principles used by experts (3 max)
+3. MAJOR THEMES — 5-8 distinct themes or subtopics a comprehensive book MUST cover
+4. AUTHORITATIVE SOURCES — 8-10 real, verifiable books, journals, organizations, and experts
+5. TARGET AUDIENCE NEEDS — What readers need, their pain points, knowledge gaps
+6. SUGGESTED CHAPTER STRUCTURE — A proposed 10-15 chapter outline with titles and 1-sentence descriptions
+7. COMPETING BOOKS — 3-5 existing books on this topic, strengths and gaps
+8. KEY TERMS — 8-10 essential terms the author must use correctly
 
 OUTPUT FORMAT — respond ONLY with valid JSON:
 {
