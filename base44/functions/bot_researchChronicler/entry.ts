@@ -530,38 +530,64 @@ async function runTopicResearch(base44, projectId, spec) {
     return { success: false, error: 'Topic is too short or missing. Provide a detailed nonfiction topic/premise.' };
   }
 
-  const userMessage = `NONFICTION BOOK RESEARCH REQUEST:
-TOPIC: ${topic}
+  // Truncate topic to first 800 chars to keep prompt small
+  const truncTopic = topic.length > 800 ? topic.slice(0, 800) + '...' : topic;
+
+  const fullPrompt = `You are a professional nonfiction research architect. Research this topic and return a JSON knowledge base.
+
+TOPIC: ${truncTopic}
 GENRE: ${genre}${subgenre ? ' / ' + subgenre : ''}
 TARGET AUDIENCE: ${audience}
 
-Research this topic thoroughly. Find real frameworks, real sources, real competing books. Do NOT fabricate any sources or experts. If you cannot find real sources for a specific subtopic, note it as a gap.
+Return ONLY a valid JSON object with these fields:
+{
+  "topic_analysis": { "core_subject": "string", "scope": "string", "current_state": "string", "common_misconceptions": ["string"] },
+  "key_frameworks": [{ "name": "string", "description": "string", "source": "string" }],
+  "major_themes": [{ "theme": "string", "description": "string", "subtopics": ["string"] }],
+  "authoritative_sources": [{ "type": "book|journal|organization|expert", "name": "string", "author": "string", "relevance": "string" }],
+  "target_audience_needs": { "primary_reader": "string", "knowledge_level": "string", "pain_points": ["string"], "desired_outcomes": ["string"] },
+  "suggested_chapters": [{ "number": 1, "title": "string", "description": "string", "theme": "string" }],
+  "competing_books": [{ "title": "string", "author": "string", "strength": "string", "gap": "string" }],
+  "key_terms": [{ "term": "string", "definition": "string" }]
+}
 
-This knowledge base will be used to generate the book's outline and guide every chapter's content. Be comprehensive.`;
+RULES:
+- 3 frameworks, 5-8 themes, 8 sources, 10-12 chapters, 3-4 competing books, 8 terms.
+- Keep ALL descriptions to 1 sentence. Be concise.
+- Only cite REAL, verifiable sources. No fabrication.`;
 
   try {
-    console.log('topic_research: calling AI...');
-    let raw;
-    try {
-      raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 3500, temperature: 0.3 });
-    } catch (aiErr) {
-      console.error('topic_research: callAI threw:', aiErr.message);
-      return { success: false, error: 'AI call failed: ' + aiErr.message };
-    }
-    console.log('topic_research: raw length=' + (raw?.length || 0));
-    if (!raw || raw.length < 10) {
-      console.error('topic_research: empty or near-empty response');
-      return { success: false, error: 'AI returned empty response — please retry' };
-    }
-    console.log('topic_research: first 300 chars: ' + raw.slice(0, 300));
-    console.log('topic_research: last 300 chars: ' + raw.slice(-300));
+    console.log('topic_research: calling InvokeLLM...');
     let knowledgeBase;
     try {
-      knowledgeBase = robustParseJSON(raw);
-    } catch (parseErr) {
-      console.error('topic_research: parse failed:', parseErr.message);
-      return { success: false, error: 'JSON parse failed: ' + parseErr.message };
+      const llmResult = await base44.integrations.Core.InvokeLLM({
+        prompt: fullPrompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            topic_analysis: { type: "object", properties: { core_subject: { type: "string" }, scope: { type: "string" }, current_state: { type: "string" }, common_misconceptions: { type: "array", items: { type: "string" } } } },
+            key_frameworks: { type: "array", items: { type: "object", properties: { name: { type: "string" }, description: { type: "string" }, source: { type: "string" } } } },
+            major_themes: { type: "array", items: { type: "object", properties: { theme: { type: "string" }, description: { type: "string" }, subtopics: { type: "array", items: { type: "string" } } } } },
+            authoritative_sources: { type: "array", items: { type: "object", properties: { type: { type: "string" }, name: { type: "string" }, author: { type: "string" }, relevance: { type: "string" } } } },
+            target_audience_needs: { type: "object", properties: { primary_reader: { type: "string" }, knowledge_level: { type: "string" }, pain_points: { type: "array", items: { type: "string" } }, desired_outcomes: { type: "array", items: { type: "string" } } } },
+            suggested_chapters: { type: "array", items: { type: "object", properties: { number: { type: "number" }, title: { type: "string" }, description: { type: "string" }, theme: { type: "string" } } } },
+            competing_books: { type: "array", items: { type: "object", properties: { title: { type: "string" }, author: { type: "string" }, strength: { type: "string" }, gap: { type: "string" } } } },
+            key_terms: { type: "array", items: { type: "object", properties: { term: { type: "string" }, definition: { type: "string" } } } }
+          }
+        },
+        add_context_from_internet: true,
+        model: "gemini_3_flash"
+      });
+      console.log('topic_research: InvokeLLM returned, type=' + typeof llmResult);
+      knowledgeBase = typeof llmResult === 'string' ? robustParseJSON(llmResult) : llmResult;
+    } catch (aiErr) {
+      console.error('topic_research: InvokeLLM threw:', aiErr.message);
+      return { success: false, error: 'AI call failed: ' + aiErr.message };
     }
+    if (!knowledgeBase || typeof knowledgeBase !== 'object') {
+      return { success: false, error: 'AI returned invalid response — please retry' };
+    }
+    console.log('topic_research: got knowledge base with keys:', Object.keys(knowledgeBase).join(', '));
 
     // Store knowledge base on the project
     const kbText = JSON.stringify(knowledgeBase, null, 2);
