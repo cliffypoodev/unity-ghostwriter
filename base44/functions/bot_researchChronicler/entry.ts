@@ -530,7 +530,7 @@ This knowledge base will be used to generate the book's outline and guide every 
 
   try {
     console.log('topic_research: calling AI...');
-    const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
+    const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 4096, temperature: 0.3 });
     console.log('topic_research: raw length=' + (raw?.length || 0));
     if (!raw || raw.length < 10) {
       console.error('topic_research: empty or near-empty response');
