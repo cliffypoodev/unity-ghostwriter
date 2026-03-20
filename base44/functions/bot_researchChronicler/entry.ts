@@ -14,8 +14,14 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
   if (provider === "google") {
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' } }) });
-    const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status)); return d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status));
+    const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const finishReason = d?.candidates?.[0]?.finishReason;
+    console.log('callAI: ' + text.length + ' chars, finishReason=' + finishReason);
+    if (!text) console.error('callAI: empty response, full:', JSON.stringify(d).slice(0, 500));
+    return text;
   }
   throw new Error('Unknown provider: ' + provider);
 }
