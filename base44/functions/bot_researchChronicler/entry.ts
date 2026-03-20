@@ -241,8 +241,7 @@ Find ${depthConfig.min}-${depthConfig.max} REAL, VERIFIABLE sources that directl
 
     try {
       const raw = await callAI(modelKey, RESEARCH_SYSTEM, passPrompt, { maxTokens: 4096, temperature: 0.3 });
-      const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      const parsed = JSON.parse(cleaned);
+      const parsed = robustParseJSON(raw);
 
       if (parsed.sources) {
         for (const src of parsed.sources) {
@@ -358,8 +357,7 @@ async function runVerification(base44, ctx, chCtx, prose) {
 
   try {
     const raw = await callAI(modelKey, VERIFY_SYSTEM, userMessage, { maxTokens: 4096, temperature: 0.2 });
-    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const result = JSON.parse(cleaned);
+    const result = robustParseJSON(raw);
 
     const verification = {
       success: true,
@@ -526,8 +524,7 @@ This knowledge base will be used to generate the book's outline and guide every 
 
   try {
     const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
-    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const knowledgeBase = JSON.parse(cleaned);
+    const knowledgeBase = robustParseJSON(raw);
 
     // Store knowledge base on the project
     const kbText = JSON.stringify(knowledgeBase, null, 2);
