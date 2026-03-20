@@ -532,7 +532,7 @@ This knowledge base will be used to generate the book's outline and guide every 
     console.log('topic_research: calling AI...');
     let raw;
     try {
-      raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 4096, temperature: 0.3 });
+      raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 3000, temperature: 0.3 });
     } catch (aiErr) {
       console.error('topic_research: callAI threw:', aiErr.message);
       return { success: false, error: 'AI call failed: ' + aiErr.message };
