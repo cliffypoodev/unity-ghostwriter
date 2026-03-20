@@ -524,6 +524,7 @@ This knowledge base will be used to generate the book's outline and guide every 
 
   try {
     const raw = await callAI(resolveModel('topic_research'), TOPIC_RESEARCH_SYSTEM, userMessage, { maxTokens: 8192, temperature: 0.3 });
+    console.log('topic_research raw length:', raw.length, 'first 200:', raw.slice(0, 200), 'last 200:', raw.slice(-200));
     const knowledgeBase = robustParseJSON(raw);
 
     // Store knowledge base on the project
