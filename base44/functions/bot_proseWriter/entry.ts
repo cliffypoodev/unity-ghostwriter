@@ -25,40 +25,55 @@ const MODEL_MAP = {
   "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: null },
 };
 
+// Maximum time for any single AI API call — must complete well within Deno Deploy's isolate limit
+const AI_CALL_TIMEOUT = 50000; // 50 seconds
+
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];
+  const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-flash"];
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
   if (maxTokensLimit) maxTokens = Math.min(maxTokens, maxTokensLimit);
 
-  if (provider === "anthropic") {
-    const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }) });
-    const d = await r.json(); if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status)); return d.content[0].text;
+  // AbortController for timeout — prevents hanging requests from killing the isolate
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_CALL_TIMEOUT);
+  const fetchOpts = { signal: controller.signal };
+
+  try {
+    if (provider === "anthropic") {
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': Deno.env.get('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }), ...fetchOpts });
+      const d = await r.json(); if (!r.ok) throw new Error('Anthropic: ' + (d.error?.message || r.status)); return d.content[0].text;
+    }
+    if (provider === "openai") {
+      const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('OPENAI_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }), ...fetchOpts });
+      const d = await r.json(); if (!r.ok) throw new Error('OpenAI: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
+    }
+    if (provider === "google") {
+      const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }), ...fetchOpts });
+      const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status));
+      if (!d?.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error('Google AI empty response');
+      return d.candidates[0].content.parts[0].text;
+    }
+    if (provider === "deepseek") {
+      const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }), ...fetchOpts });
+      const d = await r.json(); if (!r.ok) throw new Error('DeepSeek: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
+    }
+    if (provider === "openrouter") {
+      const orKey = Deno.env.get('OPENROUTER_API_KEY'); if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }), ...fetchOpts });
+      const d = await r.json(); if (!r.ok) throw new Error('OpenRouter: ' + (d.error?.message || r.status));
+      if (!d.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
+      return d.choices[0].message.content;
+    }
+    throw new Error('Unknown provider: ' + provider);
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error(`${provider} timed out after ${AI_CALL_TIMEOUT / 1000}s`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  if (provider === "openai") {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('OPENAI_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
-    const d = await r.json(); if (!r.ok) throw new Error('OpenAI: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
-  }
-  if (provider === "google") {
-    const apiKey = Deno.env.get('GOOGLE_AI_API_KEY'); if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { temperature, maxOutputTokens: maxTokens } }) });
-    const d = await r.json(); if (!r.ok) throw new Error('Google: ' + (d.error?.message || r.status));
-    if (!d?.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error('Google AI empty response');
-    return d.candidates[0].content.parts[0].text;
-  }
-  if (provider === "deepseek") {
-    const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
-    const d = await r.json(); if (!r.ok) throw new Error('DeepSeek: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
-  }
-  if (provider === "openrouter") {
-    const orKey = Deno.env.get('OPENROUTER_API_KEY'); if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
-    const d = await r.json(); if (!r.ok) throw new Error('OpenRouter: ' + (d.error?.message || r.status));
-    if (!d.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
-    return d.choices[0].message.content;
-  }
-  throw new Error('Unknown provider: ' + provider);
 }
 
 function isRefusal(text) {
