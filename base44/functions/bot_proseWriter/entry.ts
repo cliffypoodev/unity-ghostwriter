@@ -1253,38 +1253,43 @@ async function runProseWriter(base44, projectId, chapterId) {
   // Build prompt
   const { systemPrompt, userMessage, wordTarget } = buildProsePrompt(ctx, chCtx);
 
-  // Generate prose — race against 90s timeout to avoid function-level timeout
+  // Generate prose — use AbortController for clean timeout within Deno Deploy limits
   let rawProse;
   let actualModel = modelKey;
   let refusalDetected = false;
+
+  // Save generating status FIRST so frontend polling knows we're working
   try {
-    rawProse = await Promise.race([
-      callAI(modelKey, systemPrompt, userMessage, {
+    await base44.entities.Chapter.update(chapterId, { status: 'generating' });
+  } catch {}
+
+  const PRIMARY_TIMEOUT = 55000; // 55s — must finish before Deno Deploy's ~60s isolate limit
+  const FALLBACK_TIMEOUT = 50000;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PRIMARY_TIMEOUT);
+    try {
+      rawProse = await callAI(modelKey, systemPrompt, userMessage, {
         maxTokens: 32768,
         temperature: 0.72,
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('primary_generation_timeout_240s')), 240000)),
-    ]);
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (err) {
-    // If primary model (e.g. gemini-flash) fails, fallback to trinity
-    if (modelKey !== 'trinity') {
-      console.warn(`ProseWriter: ${modelKey} failed (${err.message}) — falling back to trinity`);
-      actualModel = 'trinity';
-      try {
-        rawProse = await Promise.race([
-          callAI('trinity', systemPrompt, userMessage, {
-            maxTokens: 16384,
-            temperature: 0.72,
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('fallback_timeout_180s')), 180000)),
-        ]);
-      } catch (fallbackErr) {
-        console.error(`ProseWriter fallback also failed: ${fallbackErr.message}`);
-        throw fallbackErr;
-      }
-    } else {
-      console.error(`ProseWriter primary call failed: ${err.message}`);
-      throw err;
+    // If primary model fails, try gemini-flash as fallback (fast & reliable)
+    const fallbackModel = modelKey === 'gemini-flash' ? 'gemini-pro' : 'gemini-flash';
+    console.warn(`ProseWriter: ${modelKey} failed (${err.message}) — falling back to ${fallbackModel}`);
+    actualModel = fallbackModel;
+    try {
+      rawProse = await callAI(fallbackModel, systemPrompt, userMessage, {
+        maxTokens: 16384,
+        temperature: 0.72,
+      });
+    } catch (fallbackErr) {
+      console.error(`ProseWriter fallback (${fallbackModel}) also failed: ${fallbackErr.message}`);
+      throw fallbackErr;
     }
   }
 
