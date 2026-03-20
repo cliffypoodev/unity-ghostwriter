@@ -29,7 +29,8 @@ const MODEL_MAP = {
 const AI_CALL_TIMEOUT = 50000; // 50 seconds
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-flash"];
+  const config = MODEL_MAP[modelKey];
+  if (!config) throw new Error('Unknown model: ' + modelKey + '. Available: ' + Object.keys(MODEL_MAP).join(', '));
   const { provider, modelId, defaultTemp, maxTokensLimit } = config;
   const temperature = options.temperature ?? defaultTemp;
   let maxTokens = options.maxTokens ?? 8192;
