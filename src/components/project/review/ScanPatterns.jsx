@@ -667,6 +667,15 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   findings.push.apply(findings, scanAiAdjectives(chapterText, chapterNum));
   findings.push.apply(findings, scanPhilosophicalEndings(chapterText, chapterNum));
   findings.push.apply(findings, scanTheNounOpener(chapterText, chapterNum));
+  // v14 AI DNA detectors
+  findings.push.apply(findings, scanFormulaicIntros(chapterText, chapterNum));
+  findings.push.apply(findings, scanCarOpeningCliche(chapterText, chapterNum));
+  findings.push.apply(findings, scanSimileOverload(chapterText, chapterNum));
+  findings.push.apply(findings, scanPassiveVoiceDensity(chapterText, chapterNum));
+  findings.push.apply(findings, scanNarratorRepetition(chapterText, chapterNum));
+  findings.push.apply(findings, scanParticipleChains(chapterText, chapterNum));
+  findings.push.apply(findings, scanGrammarAAn(chapterText, chapterNum));
+  findings.push.apply(findings, scanAiSensoryDefaults(chapterText, chapterNum));
 
   if (targetWords && targetWords > 0) {
     var overPercent = Math.round(((words - targetWords) / targetWords) * 100);
