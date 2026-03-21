@@ -390,6 +390,218 @@ function scanTheNounOpener(text, chapterNum) {
   return findings;
 }
 
+// ═══ AI DNA DETECTORS (v14) ═══
+
+function scanFormulaicIntros(text, chapterNum) {
+  var findings = [];
+  // "[Name], a man/woman of [adj] [noun], sat/stood/leaned behind/at..."
+  var rx = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s+a\s+(?:man|woman|figure|person)\s+(?:of|with|whose)\s+\w+\s+\w+/g;
+  var m = text.match(rx);
+  if (m && m.length >= 2) {
+    findings.push({
+      category: "formulaic_intro",
+      label: m.length + " formulaic character intros (\"[Name], a man/woman of [adj]...\")",
+      count: m.length,
+      chapter: chapterNum,
+      samples: m.slice(0, 3).map(function(s) { return s.slice(0, 80); }),
+    });
+  }
+  return findings;
+}
+
+function scanCarOpeningCliche(text, chapterNum) {
+  var findings = [];
+  var first500 = text.trim().slice(0, 500);
+  var carOpeners = [
+    /\b\w+\s+purred\s+to\s+a\s+stop\b/i,
+    /\bThe\s+(?:car|sedan|limousine|Cadillac|Packard|Lincoln|Buick|Rolls)\s+(?:purred|glided|slid|rolled|eased|pulled)\b/i,
+    /\b(?:purred|glided|slid)\s+(?:to a stop|to a halt|into|up to|alongside)\b/i,
+    /\bThe\s+(?:engine|motor)\s+(?:idled|hummed|died|fell silent|ticked)\b/i,
+  ];
+  for (var i = 0; i < carOpeners.length; i++) {
+    if (carOpeners[i].test(first500)) {
+      findings.push({
+        category: "car_opening_cliche",
+        label: "Chapter opens with vehicle/car arrival cliché",
+        count: 1,
+        chapter: chapterNum,
+        samples: [first500.split(/[.!?]/)[0].slice(0, 100)],
+      });
+      break;
+    }
+  }
+  return findings;
+}
+
+function scanSimileOverload(text, chapterNum) {
+  var findings = [];
+  var paras = splitParas(text);
+  for (var i = 0; i < paras.length; i++) {
+    // Count "like [noun]" and "as [adj] as" similes
+    var likeSimiles = (paras[i].match(/\blike\s+(?:a|an|the)\s+\w+/gi) || []).length;
+    var asSimiles = (paras[i].match(/\bas\s+\w+\s+as\b/gi) || []).length;
+    // Count metaphors with "was/were a [noun]" pattern  
+    var metaCount = (paras[i].match(/\b(?:was|were|is)\s+(?:a|an|the)\s+(?:cathedral|temple|palace|fortress|prison|cage|machine|factory|engine|symphony|orchestra|tapestry|mosaic|labyrinth|kaleidoscope|crucible|furnace|beacon|lighthouse|oasis|sanctuary|void|abyss)\b/gi) || []).length;
+    var total = likeSimiles + asSimiles + metaCount;
+    if (total >= 3) {
+      findings.push({
+        category: "simile_overload",
+        label: total + " similes/metaphors in paragraph " + (i + 1) + " — overloaded",
+        count: total - 2,
+        chapter: chapterNum,
+        samples: [paras[i].trim().slice(0, 120)],
+      });
+    }
+  }
+  return findings;
+}
+
+function scanPassiveVoiceDensity(text, chapterNum) {
+  var findings = [];
+  var clean = stripDialogue(text);
+  var passiveRx = /\b(?:was|were|is|are|been|being|be)\s+(?:\w+ed|built|sold|told|found|made|taken|given|shown|known|seen|done|gone|run|set|cut|put|held|kept|left|led|read|said|sent|shut|won|worn|written|driven|drawn|grown|thrown|broken|chosen|fallen|hidden|risen|spoken|stolen|woken)\b/gi;
+  var passiveMatches = clean.match(passiveRx) || [];
+  var totalSentences = (clean.match(/[.!?]+/g) || []).length;
+  if (totalSentences > 10) {
+    var ratio = passiveMatches.length / totalSentences;
+    if (ratio > 0.25) {
+      findings.push({
+        category: "passive_voice_density",
+        label: Math.round(ratio * 100) + "% passive voice (" + passiveMatches.length + "/" + totalSentences + " sentences) — aim for <25%",
+        count: Math.round(passiveMatches.length - totalSentences * 0.25),
+        chapter: chapterNum,
+        samples: passiveMatches.slice(0, 4).map(function(s) { return s.slice(0, 60); }),
+      });
+    }
+  }
+  return findings;
+}
+
+function scanNarratorRepetition(text, chapterNum) {
+  var findings = [];
+  // "I investigated/examined/explored/discovered/uncovered/researched/studied/analyzed"
+  var rx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|analysed|delved into|looked into|dug into|pored over|sifted through)\b/gi;
+  var m = text.match(rx);
+  if (m && m.length >= 3) {
+    findings.push({
+      category: "narrator_repetition",
+      label: m.length + " \"I investigated/examined/explored...\" narrator transitions (max 2)",
+      count: m.length - 2,
+      chapter: chapterNum,
+      samples: m.slice(0, 4).map(function(s) { return s.slice(0, 60); }),
+    });
+  }
+  return findings;
+}
+
+function scanParticipleChains(text, chapterNum) {
+  var findings = [];
+  // Sentences ending with multiple -ing phrases: "revealing X, catching Y, purring Z"
+  var sents = text.split(/(?<=[.!?])\s+/);
+  var badCount = 0;
+  for (var i = 0; i < sents.length; i++) {
+    var ingMatches = sents[i].match(/\b\w+ing\b/g) || [];
+    if (ingMatches.length >= 4) badCount++;
+  }
+  if (badCount >= 3) {
+    findings.push({
+      category: "participle_chain",
+      label: badCount + " sentences with 4+ \"-ing\" words — makes prose feel floaty",
+      count: badCount,
+      chapter: chapterNum,
+    });
+  }
+  return findings;
+}
+
+function scanGrammarAAn(text, chapterNum) {
+  var findings = [];
+  // "a" before vowel sound
+  var aBeforeVowel = text.match(/\ba\s+[aeiou]\w+/gi) || [];
+  // Filter out false positives: "a unique", "a uniform", "a universal", "a used", "a one", "a once", "a European"
+  var falsePositives = /^a\s+(uni\w+|us(?:ed|ual|eful|ury)|one|once|europ)/i;
+  var errors = [];
+  for (var i = 0; i < aBeforeVowel.length; i++) {
+    if (!falsePositives.test(aBeforeVowel[i])) {
+      errors.push(aBeforeVowel[i]);
+    }
+  }
+  if (errors.length > 0) {
+    findings.push({
+      category: "grammar_a_an",
+      label: errors.length + " \"a\" before vowel (should be \"an\")",
+      count: errors.length,
+      chapter: chapterNum,
+      samples: errors.slice(0, 5).map(function(s) { return "\"" + s.trim() + "\""; }),
+    });
+  }
+  return findings;
+}
+
+function scanAiSensoryDefaults(text, chapterNum) {
+  var findings = [];
+  var defaults = [
+    [/\bdust motes\s+(?:dancing|floating|swirling|drifting|spinning|suspended)\b/gi, "dust motes dancing/floating"],
+    [/\bscent of\s+(?:polished wood|old leather|expensive cigar|cigar smoke|aged paper|ancient leather)\b/gi, "scent of polished wood/old leather"],
+    [/\b(?:mahogany|oak|walnut)\s+desk\s+(?:that |which )?(?:dominated|commanded|anchored|occupied)\b/gi, "mahogany desk that dominated"],
+    [/\bwindowless\s+cathedral/gi, "windowless cathedral"],
+    [/\bdistilled and shimmering\b/gi, "distilled and shimmering"],
+    [/\blike\s+(?:green |emerald |jade )?sequins\b/gi, "like green sequins"],
+    [/\bpolished\s+(?:mahogany|oak|wood)\s+(?:gleamed|glowed|reflected)\b/gi, "polished wood gleamed"],
+    [/\b(?:amber|golden|warm)\s+(?:light|glow)\s+(?:spilled|pooled|washed|bathed|filtered)\b/gi, "amber light spilled/pooled"],
+    [/\bheavy\s+(?:velvet|silk)\s+(?:curtains?|drapes?)\b/gi, "heavy velvet/silk curtains"],
+  ];
+  for (var i = 0; i < defaults.length; i++) {
+    var m = text.match(defaults[i][0]);
+    if (m) {
+      findings.push({
+        category: "ai_sensory_default",
+        label: "\"" + defaults[i][1] + "\" x" + m.length + " — AI default sensory cliché",
+        count: m.length,
+        chapter: chapterNum,
+        samples: m.slice(0, 2).map(function(s) { return s.slice(0, 80); }),
+      });
+    }
+  }
+  return findings;
+}
+
+// ═══ MANUSCRIPT-WIDE: Concept re-explanation ═══
+// Called from ReviewPolishTab with all chapter texts
+export function scanConceptReexplanation(chapterTexts) {
+  var findings = [];
+  // Concepts that tend to be over-explained: legal terms, industry terms
+  var concepts = [
+    [/\b(?:seven[- ]year|7[- ]year)\s+contract/gi, "seven-year contract"],
+    [/\bmorality\s+clause/gi, "morality clause"],
+    [/\bvertical\s+integration/gi, "vertical integration"],
+    [/\bstudio\s+system/gi, "studio system"],
+    [/\boption\s+clause/gi, "option clause"],
+    [/\bexclusivity\s+clause/gi, "exclusivity clause"],
+    [/\bblock\s+booking/gi, "block booking"],
+    [/\bstar\s+system/gi, "star system"],
+  ];
+  for (var c = 0; c < concepts.length; c++) {
+    var chaptersContaining = [];
+    for (var ch = 0; ch < chapterTexts.length; ch++) {
+      var rx = concepts[c][0];
+      rx.lastIndex = 0;
+      if (rx.test(chapterTexts[ch].text)) {
+        chaptersContaining.push(chapterTexts[ch].number);
+      }
+    }
+    if (chaptersContaining.length >= 3) {
+      findings.push({
+        category: "concept_reexplanation",
+        label: "\"" + concepts[c][1] + "\" explained in " + chaptersContaining.length + " chapters (" + chaptersContaining.join(", ") + ") — define once, reference later",
+        count: chaptersContaining.length - 1,
+        chapter: 0,
+      });
+    }
+  }
+  return findings;
+}
+
 export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   var findings = [];
   var clean = stripDialogue(chapterText);
