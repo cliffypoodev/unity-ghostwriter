@@ -710,6 +710,16 @@ export function computeScore(allFindings) {
     else if (f.category === "ai_adjective") deductions += f.count * 2;
     else if (f.category === "philosophical_ending") deductions += f.count * 5;
     else if (f.category === "the_noun_opener") deductions += f.count * 1.5;
+    // v14 AI DNA detectors
+    else if (f.category === "formulaic_intro") deductions += f.count * 3;
+    else if (f.category === "car_opening_cliche") deductions += f.count * 4;
+    else if (f.category === "simile_overload") deductions += f.count * 2;
+    else if (f.category === "passive_voice_density") deductions += Math.min(f.count * 0.3, 8);
+    else if (f.category === "narrator_repetition") deductions += f.count * 2;
+    else if (f.category === "participle_chain") deductions += f.count * 1;
+    else if (f.category === "grammar_a_an") deductions += f.count * 2;
+    else if (f.category === "ai_sensory_default") deductions += f.count * 3;
+    else if (f.category === "concept_reexplanation") deductions += f.count * 4;
     else deductions += f.count * 0.5;
   }
   return Math.max(0, Math.min(100, Math.round(100 - deductions)));
