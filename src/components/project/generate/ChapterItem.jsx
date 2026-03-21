@@ -182,7 +182,7 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
       {writeConfirm && (
         <div className="border-t border-slate-100 bg-amber-50 px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-xs text-amber-800 font-medium flex-1">This chapter has no scenes. Generate scenes first for better results?</span>
-          <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700" onClick={handleGenerateScenesThenWrite}><LayoutGrid className="w-3 h-3 mr-1" />Generate Scenes First</Button>
+          <Button size="sm" className="h-7 text-xs bg-[#5b50f0] hover:bg-[#4a40d0]" onClick={handleGenerateScenesThenWrite}><LayoutGrid className="w-3 h-3 mr-1" />Generate Scenes First</Button>
           <button className="text-xs text-slate-400 hover:text-slate-600 underline" onClick={() => { setWriteConfirm(false); onWrite(chapter); }}>Write Without Scenes</button>
           <button className="text-xs text-slate-400 hover:text-slate-600" onClick={() => setWriteConfirm(false)}>Cancel</button>
         </div>
