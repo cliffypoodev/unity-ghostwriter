@@ -120,7 +120,7 @@ export default function ChapterReviewCard({
       var fixedContent = autoFixChapter(content);
       console.log("[handleFix] Fix complete. Original:", content.length, "Fixed:", fixedContent.length, "Changed:", content !== fixedContent);
 
-      if (fixedContent !== content && fixedContent.length > 0) {
+      if (fixedContent !== content && fixedContent && fixedContent.trim().length >= 100) {
         setActionStep("Saving fixed content...");
         await saveChapterContent(chapterEntity.id, fixedContent);
 

@@ -168,7 +168,7 @@ export default function ReviewPolishTab({ projectId }) {
         let [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
         if (!updatedCh) continue;
         let content = await resolveChapterContent(updatedCh);
-        if (!content || content.length < 100) continue;
+        if (!content || content.trim().length < 100) continue;
 
         // ── PASS 2: Frontend autoFixChapter ──
         // Handles: transition crutches, scaffolding, hedging, recap bloat,
