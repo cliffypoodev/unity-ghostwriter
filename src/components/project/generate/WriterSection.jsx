@@ -99,7 +99,7 @@ export default function WriterSection({
       {chapters.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
+            <h3 className="font-semibold text-base" style={{ color: 'var(--ink, #18171f)' }}>Chapters</h3>
             {acts && <ActSplitEditor acts={acts} totalChapters={totalCount} onSave={onSetCustomActSplits} />}
           </div>
           {[1, 2, 3].map(actNum => {
