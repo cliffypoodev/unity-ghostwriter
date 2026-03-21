@@ -1337,11 +1337,18 @@ async function runProseWriter(base44, projectId, chapterId) {
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
     try {
       const lastContext = rawProse.slice(-500);
-      const continueMessage = `CONTINUE WRITING. You stopped too early. The chapter needs at least ${wordsNeeded} more words to meet the ${wordTarget}-word target.
+      const continueMessage = `╔═══════════════════════════════════════════════╗
+║  CONTINUATION REQUIRED — OUTPUT WAS TOO SHORT ║
+╚═══════════════════════════════════════════════╝
 
-Continue from EXACTLY where you left off. Do NOT repeat any prior text. Do NOT add any preamble or commentary. Just write the next section of prose.
+You wrote only ~${currentWords} words. The target is ${wordTarget} words. You need AT LEAST ${wordsNeeded} more words.
 
-Write at least ${Math.min(wordsNeeded, 4000)} more words of prose. Expand scenes with dialogue, sensory detail, action, and character interiority.
+RULES:
+1. Continue from EXACTLY where you left off — do NOT repeat any prior text.
+2. Do NOT add any preamble, commentary, or "Here is the continuation" — just write prose.
+3. Write at least ${Math.min(wordsNeeded, 5000)} more words. This is not optional.
+4. Do NOT rush to a conclusion. Expand remaining scenes with full dialogue exchanges, sensory detail, action beats, character interiority, and environmental description.
+5. If you have unwritten scenes from the outline, write them NOW in full detail.
 
 LAST PARAGRAPH (continue from here):
 ${lastContext}`;
