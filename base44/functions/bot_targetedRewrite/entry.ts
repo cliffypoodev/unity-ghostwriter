@@ -154,6 +154,52 @@ function extractIssueContext(prose, findings) {
         }
       }
     }
+
+    if (f.category === 'fiction_cliche') {
+      const clicheRxList = [
+        /\bLittle did (he|she|they) know\b/gi,
+        /\bUnbeknownst to\b/gi,
+        /\bA (chill|shiver) (ran|crept|went|traveled) (down|up) (his|her|their) spine\b/gi,
+        /\b(He|She|They) let out a breath (he|she|they) didn'?t (know|realize)/gi,
+        /\bTime (seemed to|appeared to) (slow|stop|stand still|freeze)\b/gi,
+        /\bA (single|lone) tear (rolled|slid|traced|tracked) down\b/gi,
+        /\bDarkness (claimed|consumed|swallowed|took) (him|her|them)\b/gi,
+      ];
+      for (let i = 0; i < segments.length; i++) {
+        for (const crx of clicheRxList) {
+          crx.lastIndex = 0;
+          if (crx.test(segments[i])) {
+            tasks.push({
+              type: 'fiction_cliche',
+              segIndex: i,
+              instruction: 'Rewrite the clichéd sentence(s) with original, specific prose. Keep surrounding text unchanged.',
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    if (f.category === 'recap_bloat') {
+      const recapRxList = [
+        /\bAs (we'?ve?|I'?ve?) (discussed|seen|explored|examined|noted|mentioned|established)\b/gi,
+        /\bTo (summarize|recap|sum up|review) (what we'?ve?|the above|our discussion)\b/gi,
+        /\bIn (summary|conclusion|closing|short)\b/gi,
+      ];
+      for (let i = 0; i < segments.length; i++) {
+        for (const rrx of recapRxList) {
+          rrx.lastIndex = 0;
+          if (rrx.test(segments[i])) {
+            tasks.push({
+              type: 'recap_bloat',
+              segIndex: i,
+              instruction: 'Remove recap/summary phrases or rewrite without backward-looking framing.',
+            });
+            break;
+          }
+        }
+      }
+    }
   }
 
   return tasks;
