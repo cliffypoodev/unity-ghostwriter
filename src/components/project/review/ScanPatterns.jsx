@@ -456,6 +456,9 @@ export function computeScore(allFindings) {
     else if (f.category === "repetitive_padding") deductions += f.count * 2;
     else if (f.category === "nf_manuscript_cap") deductions += f.count * 2;
     else if (f.category === "word_count") deductions += f.count * 2;
+    else if (f.category === "ai_adjective") deductions += f.count * 2;
+    else if (f.category === "philosophical_ending") deductions += f.count * 5;
+    else if (f.category === "the_noun_opener") deductions += f.count * 1.5;
     else deductions += f.count * 0.5;
   }
   return Math.max(0, Math.min(100, Math.round(100 - deductions)));
