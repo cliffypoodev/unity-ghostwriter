@@ -48,6 +48,7 @@ export default function ReviewPolishTab({ projectId }) {
   const [scanResults, setScanResults] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [fixingAll, setFixingAll] = useState(false);
+  const [fixProgress, setFixProgress] = useState("");
   const [uploadedText, setUploadedText] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState(null);
 
@@ -138,68 +139,47 @@ export default function ReviewPolishTab({ projectId }) {
     refetchChapters();
   }, [refetchChapters]);
 
-  // ── Fix All — frontend auto-fix on all chapters with issues ──
+  // ── Fix All — calls backend bot_styleEnforcer for each chapter with issues ──
   const handleFixAll = async () => {
     if (!scanResults) return;
     setFixingAll(true);
     const chaptersWithIssues = scanResults.chapterData.filter(cd => cd.findings.length > 0);
+    const total = chaptersWithIssues.length;
 
-    for (const cd of chaptersWithIssues) {
+    for (let i = 0; i < chaptersWithIssues.length; i++) {
+      const cd = chaptersWithIssues[i];
       const ch = generatedChapters.find(c => c.chapter_number === cd.number);
       if (!ch) continue;
+
+      setFixProgress(`Fixing chapter ${cd.number} (${i + 1} of ${total})…`);
+
       try {
-        console.log("[fixAll] Processing chapter", cd.number);
-        const content = await resolveChapterContent(ch);
-        if (!content || content.length < 100) {
-          console.warn("[fixAll] Ch", cd.number, "no content, skipping");
-          continue;
-        }
+        // Call backend bot_styleEnforcer — it saves the fixed content automatically
+        const response = await base44.functions.invoke("bot_styleEnforcer", {
+          project_id: projectId,
+          chapter_id: ch.id,
+        });
+        const result = response.data || response;
+        console.log("[fixAll] Ch", cd.number, "styleEnforcer result:", result.violations_found, "violations,", result.violations_remaining?.length || 0, "remaining", result.safety_blocked ? "(SAFETY BLOCKED)" : "");
 
-        const fixedContent = autoFixChapter(content);
-
-        if (fixedContent !== content) {
-          console.log("[fixAll] Ch", cd.number, "changed, saving...");
-          const blob = new Blob([fixedContent], { type: "text/plain" });
-          const file = new File([blob], "chapter_" + ch.id + "_fixed.txt", { type: "text/plain" });
-          let saved = false;
-
-          // Try file upload first
-          try {
-            const uploadResult = await base44.integrations.Core.UploadFile({ file });
-            if (uploadResult && uploadResult.file_url) {
-              await base44.entities.Chapter.update(ch.id, { content: uploadResult.file_url });
-              console.log("[fixAll] Ch", cd.number, "saved via file upload");
-              saved = true;
-            }
-          } catch (upErr) {
-            console.warn("[fixAll] File upload failed for ch", cd.number, upErr.message);
-          }
-
-          // Fallback to direct save
-          if (!saved) {
-            try {
-              await base44.entities.Chapter.update(ch.id, { content: fixedContent });
-              console.log("[fixAll] Ch", cd.number, "saved via direct update");
-              saved = true;
-            } catch (directErr) {
-              console.error("[fixAll] Direct save also failed for ch", cd.number, directErr.message);
-            }
-          }
-
-          if (saved) {
-            const { findings, words } = scanChapter(fixedContent, cd.number, tense, targetWords);
+        // Re-fetch chapter content and re-scan locally to update the UI
+        const updatedChapters = await base44.entities.Chapter.filter({ id: ch.id });
+        const updatedCh = updatedChapters[0];
+        if (updatedCh) {
+          const newContent = await resolveChapterContent(updatedCh);
+          if (newContent && newContent.length > 50) {
+            const { findings, words } = scanChapter(newContent, cd.number, tense, targetWords);
             handleChapterScanUpdated(cd.number, findings, words);
-            console.log("[fixAll] Ch", cd.number, "re-scanned, issues:", findings.length);
           }
-        } else {
-          console.log("[fixAll] Ch", cd.number, "no changes needed");
         }
       } catch (err) {
-        console.warn("[fixAll] Ch", cd.number, "error:", err.message);
+        console.warn("[fixAll] Ch", cd.number, "bot_styleEnforcer error:", err.message);
       }
-      await new Promise(r => setTimeout(r, 500));
     }
+
+    setFixProgress("");
     setFixingAll(false);
+    refetchChapters();
   };
 
   // ── Export scan results ──
@@ -257,7 +237,7 @@ export default function ReviewPolishTab({ projectId }) {
           {scanResults && totalIssues > 0 && (
             <Button onClick={handleFixAll} disabled={fixingAll || scanning} className="bg-amber-600 hover:bg-amber-700 gap-2">
               {fixingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {fixingAll ? "Fixing…" : "Fix All"}
+              {fixingAll ? fixProgress || "Fixing…" : "Fix All"}
             </Button>
           )}
           {scanResults && (
