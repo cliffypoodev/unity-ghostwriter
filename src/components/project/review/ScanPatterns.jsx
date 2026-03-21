@@ -659,21 +659,8 @@ export function autoFixChapter(text) {
 
   // 12. REPEATED PARAGRAPH OPENER COMPRESSION
   var openerParas = fixed.split(/\n\n+/);
-  var finalParas = [];
-  for (var op = 0; op < openerParas.length; op++) {
-    var prefix = ((openerParas[op].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(" "));
-    if (finalParas.length > 0 && prefix) {
-      var prevPrefix = ((finalParas[finalParas.length - 1].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(" "));
-      if (prefix === prevPrefix) {
-        changeLog.push("Removed repeated opener: \"" + prefix + "...\"");
-        continue;
-      }
-    }
-    finalParas.push(openerParas[op]);
-  }
-  fixed = finalParas.join("\n\n");
-
-  // 11. CLEAN UP WHITESPACE
+...
+  // 13. CLEAN UP WHITESPACE
   fixed = fixed.replace(/\n{3,}/g, "\n\n").replace(/  +/g, " ").trim();
 
   console.log("[autoFix] Done. Changes:", changeLog.length, "Output length:", fixed.length);
