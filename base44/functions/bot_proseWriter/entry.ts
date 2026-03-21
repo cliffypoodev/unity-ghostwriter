@@ -1227,36 +1227,8 @@ This is a SHORT-FORM story. The ENTIRE story must be COMPLETE within ${totalChap
     systemParts.push(nameLock);
   }
 
-  // Anti-padding rules (universal — fiction + nonfiction)
-  systemParts.push(`\nANTI-PADDING RULES (MANDATORY):
-1. NEVER restate your thesis or central argument. State it ONCE, then move forward. Every subsequent paragraph must introduce NEW evidence, a NEW example, a NEW perspective, or a NEW historical detail. If a paragraph could be deleted without losing any new information, it should not exist.
-
-2. NEVER use structural resets. Do not insert "* * *" section breaks that restart the chapter's argument from the beginning. The chapter must flow as ONE continuous narrative that builds progressively. Each section break (if any) must advance to a NEW subtopic, not revisit the previous one.
-
-3. Each paragraph must pass the "so what's new?" test. If a reader could respond "you already said that" to any paragraph, cut it. Repetition of themes using different words is still repetition.
-
-4. BANNED paragraph openers (these signal padding):
-   - "This was not simply..." / "This wasn't merely..."
-   - "Consider the..." (used as a transition more than once per chapter)
-   - "The power imbalance was..." / "The control was..." / "This control extended..."
-   - "Imagine a young woman/actress/performer..."
-   - Any sentence that begins by summarizing what the previous paragraph just said
-
-5. TARGET DENSITY: A 3,500-word chapter should contain at least 10 distinct factual claims, historical examples, or documented incidents. If you find yourself writing abstract analysis without anchoring it to a specific person, date, document, or event, you are padding.
-
-6. NEVER repeat a quote or dramatic line. If you open with a quote, do not repeat that quote later in the chapter.`);
-
-  // Absolute prohibition on inline editorial notes
-  systemParts.push(`\nABSOLUTE PROHIBITION — INLINE EDITORIAL NOTES:
-Never insert editorial notes, structural suggestions, continuity flags, or
-revision reminders inside narrative output. Examples of BANNED patterns:
-- "Add [scene/transition] here"
-- "Change [name] to [other name] throughout"
-- "Either revise this or update the outline"
-- "Show [event] before this scene"
-If you identify a continuity problem WHILE WRITING, fix it silently within
-the narrative. If you cannot fix it, STOP and do not write that section.
-Under no circumstances is an editorial note permitted inside prose.`);
+  // Anti-padding + editorial rules (compact)
+  systemParts.push(`\nANTI-PADDING: Every paragraph must introduce NEW information. No restating, no structural resets, no summarizing prior paragraphs. Never repeat quotes. No editorial notes or instructions in output.`);
 
   const systemPrompt = systemParts.filter(Boolean).join('\n');
 
