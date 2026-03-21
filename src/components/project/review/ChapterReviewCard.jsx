@@ -78,7 +78,7 @@ export default function ChapterReviewCard({
     : hasTenseDrift
     ? "border-amber-200 bg-amber-50"
     : chFindings.length > 0
-    ? "border-[var(--nb-border)]"
+    ? "border-[#e8e8ec]"
     : "border-emerald-200 bg-emerald-50";
 
   async function rescanAndUpdate() {
@@ -288,18 +288,18 @@ export default function ChapterReviewCard({
   }
 
   return (
-    <div className={cn("rounded-xl border p-4 transition-all bg-white/40", statusColor)}>
+    <div className={cn("rounded-[14px] border p-4 transition-all bg-white", statusColor)}>
       <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
             hasLeaks || hasDupes ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-500 text-white" : "bg-emerald-500 text-white"
           )}>{chapterNum}</div>
           <div className="min-w-0">
-            <div className="text-sm font-medium truncate max-w-[300px]" style={{ color: 'var(--ink)' }}>
+            <div className="text-sm font-medium truncate max-w-[300px] text-[#18171f]">
               {(chapterEntity.title || "").replace(/^Chapter \d+:\s*/, "")}
             </div>
             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-              <span className={cn("text-xs", targetWords && words > targetWords * 1.3 ? "text-red-600 font-medium" : "")} style={!(targetWords && words > targetWords * 1.3) ? { color: 'var(--ink2)' } : {}}>
+              <span className={cn("text-xs", targetWords && words > targetWords * 1.3 ? "text-red-600 font-medium" : "text-[#9997b0]")}>
                 {words.toLocaleString()} words
               </span>
               {isWorking ? (
@@ -318,12 +318,12 @@ export default function ChapterReviewCard({
           {lastResult && !isWorking && (
             <ResultBadge result={lastResult} />
           )}
-          {expanded ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--ink2)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--ink2)' }} />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-[#9997b0]" /> : <ChevronDown className="w-4 h-4 text-[#9997b0]" />}
         </div>
       </div>
 
       {expanded && (
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--nb-border)' }}>
+        <div className="mt-3 pt-3 border-t border-[#e8e8ec]">
           {(chFindings.length > 0 || (lastResult && lastResult.error)) && (
             <div className="flex flex-wrap gap-2 mb-3">
               <Button size="sm" disabled={isWorking}
@@ -333,7 +333,7 @@ export default function ChapterReviewCard({
                 Fix Issues
               </Button>
               <Button size="sm" disabled={isWorking}
-                className="text-xs h-8 bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+                className="text-xs h-8 bg-[#5b50f0] hover:bg-[#4a40d0] text-white gap-1.5"
                 onClick={(e) => { e.stopPropagation(); handlePolish(); }}>
                 {action === "polishing" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                 Polish Prose
@@ -366,12 +366,12 @@ export default function ChapterReviewCard({
                       <span className={cn("font-medium",
                         f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "text-red-700" :
                         f.category === "tense_drift" ? "text-amber-700" : ""
-                      )} style={!(f.category === "instruction_leak" || f.category === "duplicate_paragraph" || f.category === "tense_drift") ? { color: 'var(--ink)' } : {}}>{cat ? cat.label : f.category}:</span>{" "}
-                      <span style={{ color: 'var(--ink2)' }}>{f.label} ({f.count}×)</span>
+                      )} style={!(f.category === "instruction_leak" || f.category === "duplicate_paragraph" || f.category === "tense_drift") ? { color: '#18171f' } : {}}>{cat ? cat.label : f.category}:</span>{" "}
+                                      <span className="text-[#9997b0]">{f.label} ({f.count}×)</span>
                       {f.samples && (
                         <div className="mt-1 space-y-1">
                           {f.samples.map((s, j) => (
-                            <div key={j} className="pl-3 border-l-2 italic truncate max-w-full" style={{ borderColor: 'var(--nb-border)', color: 'var(--ink2)' }}>"{s}"</div>
+                            <div key={j} className="pl-3 border-l-2 border-[#e8e8ec] text-[#9997b0] italic truncate max-w-full">"{s}"</div>
                           ))}
                         </div>
                       )}
