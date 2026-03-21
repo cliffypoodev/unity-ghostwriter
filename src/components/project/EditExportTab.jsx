@@ -890,10 +890,10 @@ export default function EditExportTab({ projectId }) {
           lineHeight: docSettings.lineSpacing,
         }}>
           {!quillReady && (
-            <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: 'var(--pg, #F5EFE4)' }}>
+            <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: '#ffffff' }}>
               <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">Loading editor…</p>
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: '#5b50f0' }} />
+                <p className="text-sm" style={{ color: '#9997b0' }}>Loading editor…</p>
               </div>
             </div>
           )}
