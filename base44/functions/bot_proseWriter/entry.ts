@@ -951,37 +951,8 @@ function buildProsePrompt(ctx, chCtx) {
     `\nYou are writing Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}".`,
     `\n${CONTENT_GUARDRAILS}`,
     `\n${OUTPUT_FORMAT_RULES}`,
-    `\n╔═══════════════════════════════════════════════════════════════╗
-║          WORD COUNT REQUIREMENT — NON-NEGOTIABLE              ║
-╠═══════════════════════════════════════════════════════════════╣
-║  TARGET: ${wordTarget} words                                         ║
-║  ABSOLUTE MINIMUM: ${Math.round(wordTarget * 0.85)} words                              ║
-║  CHAPTERS UNDER ${Math.round(wordTarget * 0.7)} WORDS WILL BE REJECTED                ║
-╚═══════════════════════════════════════════════════════════════╝
-
-You MUST write AT LEAST ${Math.round(wordTarget * 0.85)} words of prose. The target is ${wordTarget} words.
-
-MANDATORY LENGTH RULES:
-1. Do NOT stop early. Do NOT summarize remaining scenes.
-2. Write EVERY scene/section in full detail with dialogue, action, sensory description, and interiority.
-3. If you feel the chapter is "done" but you're under ${wordTarget} words, you are NOT done.
-4. Expand scenes: add dialogue exchanges, deepen character moments, add transitional beats, describe settings.
-5. Each scene/section should contain at least 3-4 paragraphs of action/dialogue PLUS 2-3 paragraphs of interiority/description.
-6. A ${wordTarget}-word chapter typically requires ${Math.max(4, Math.round(wordTarget / 1200))}-${Math.max(6, Math.round(wordTarget / 800))} fully developed scenes.
-
-PER-SCENE/SECTION WORD TARGETS ARE MANDATORY:
-Each scene or section in the writing plan below has its own word target.
-You MUST write each one to its specified length. If a scene says "800 words",
-write approximately 800 words for that scene — not 300, not 400.
-The sum of all scene word targets equals the chapter target.
-Treat each scene target as a hard requirement, not a suggestion.
-
-SELF-CHECK BEFORE FINISHING:
-- Count your approximate output. If you've written ~2000-3000 words and the target is ${wordTarget}, you are LESS THAN HALF DONE. Keep writing.
-- Check: have you written ALL scenes/sections from the writing plan? If any are missing, you are NOT done.
-- Check: does each scene/section meet its individual word target? If any scene is under 60% of its target, expand it.
-- Do not output a conclusion or wrap-up until you have covered ALL scenes at full depth.
-═══ END WORD COUNT ═══`,
+    `\nWORD COUNT: Target ${wordTarget} words. Minimum ${Math.round(wordTarget * 0.85)}. Under ${Math.round(wordTarget * 0.7)} = REJECTED.
+Each scene/section has its own word target — write each one to that length. Do NOT stop early, summarize, or skip scenes. If under target, you've compressed or skipped scenes — keep writing.`,
     `\n${isNonfiction ? buildNonfictionBlock(spec) : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
     isLastChapter ? '\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist\'s transformation.\n=== END ===' : '',
     isFirstChapter ? '\n- THIS IS THE OPENING CHAPTER. Hook the reader immediately. Establish world and tone.' : '',
