@@ -153,11 +153,16 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
     const key = `${chapterNumber}-${violation.description?.slice(0, 30)}`;
     setFixing(prev => ({ ...prev, [key]: true }));
     try {
-      await base44.functions.invoke("bot_styleEnforcer", {
+      // Use targeted rewrite (lightweight) instead of full style enforcer (times out)
+      await base44.functions.invoke("bot_targetedRewrite", {
         project_id: projectId,
         chapter_id: ch.id,
+        findings: [{
+          category: "instruction_leak",
+          label: violation.description || "Continuity issue",
+          count: 1,
+        }],
       });
-      // Mark as dismissed after fix attempt
       setDismissedFlags(prev => new Set([...prev, key]));
     } catch (err) {
       console.error("Fix failed:", err.message);
