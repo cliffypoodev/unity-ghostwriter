@@ -1387,7 +1387,8 @@ async function runProseWriter(base44, projectId, chapterId) {
   const maxContinuations = wordTarget >= 6000 ? 3 : wordTarget >= 3500 ? 2 : 1;
   let continuationCount = 0;
 
-  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 110000) {
+  // Allow up to 150s total for continuations (primary call ~60-90s + continuations)
+  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 150000) {
     continuationCount++;
     const wordsNeeded = wordTarget - currentWords;
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
