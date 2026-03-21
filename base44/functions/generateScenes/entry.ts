@@ -166,7 +166,7 @@ async function parseField(field, fieldUrl) {
   }
 }
 
-const WORDS_PER_CHAPTER = { short: 1200, medium: 1600, long: 2200, epic: 3000 };
+const WORDS_PER_CHAPTER = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
 
 function getSceneCount(targetLength) {
   const base = (targetLength === 'long' || targetLength === 'epic') ? 4 : 3;
