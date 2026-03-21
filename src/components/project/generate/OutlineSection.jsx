@@ -110,11 +110,11 @@ export default function OutlineSection({
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-indigo-500" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#ede9fe' }}>
+            <Sparkles className="w-8 h-8" style={{ color: '#5b50f0' }} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Your book starts here</h2>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+          <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--ink, #18171f)' }}>Your book starts here</h2>
+          <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--ink2, #9997b0)' }}>
             Generate your outline to begin. The AI will build your chapter structure based on your premise.
           </p>
           {generateError && (
@@ -123,7 +123,7 @@ export default function OutlineSection({
               {retryCountdown > 0 && <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 text-center font-medium">Ready to retry in: {retryCountdown}s...</div>}
             </div>
           )}
-          <Button onClick={onGenerateOutline} disabled={retryCountdown > 0} className="bg-indigo-600 hover:bg-indigo-700 px-6 disabled:opacity-50 disabled:cursor-not-allowed">
+          <Button onClick={onGenerateOutline} disabled={retryCountdown > 0} style={{ background: '#5b50f0' }} className="hover:opacity-90 px-6 text-white disabled:opacity-50 disabled:cursor-not-allowed">
             <Sparkles className="w-4 h-4 mr-2" /> {generateError ? 'Retry Generation' : 'Generate Outline & Story Bible'}
           </Button>
           {spec && <div className="mt-4 text-left"><SpecSettingsSummary spec={spec} /></div>}
@@ -138,18 +138,18 @@ export default function OutlineSection({
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center max-w-sm">
-          <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Generating your book outline…</p>
-          {generationProgress && <p className="text-sm text-indigo-600 mt-2 font-medium">{generationProgress}</p>}
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#5b50f0' }} />
+          <p className="font-medium" style={{ color: 'var(--ink, #18171f)' }}>Generating your book outline…</p>
+          {generationProgress && <p className="text-sm mt-2 font-medium" style={{ color: '#5b50f0' }}>{generationProgress}</p>}
           <div className="flex items-center gap-2 mt-4 justify-center">
-            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-500" : "bg-indigo-400 animate-pulse")} />
-            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-400 animate-pulse" : "bg-slate-200")} />
+            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-[#5b50f0]" : "bg-[#5b50f0]/60 animate-pulse")} />
+            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-[#5b50f0]/60 animate-pulse" : "bg-[#e8e8ec]")} />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
-            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Structure</span>
-            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Detail</span>
+          <div className="flex justify-between text-[10px] mt-1 px-1" style={{ color: '#9997b0' }}>
+            <span className={isStep2 ? "font-medium" : ""} style={isStep2 ? { color: '#5b50f0' } : {}}>Structure</span>
+            <span className={isStep2 ? "font-medium" : ""} style={isStep2 ? { color: '#5b50f0' } : {}}>Detail</span>
           </div>
-          <p className="text-xs text-slate-400 mt-3">Usually completes in under 2 minutes</p>
+          <p className="text-xs mt-3" style={{ color: '#9997b0' }}>Usually completes in under 2 minutes</p>
         </div>
       </div>
     );
