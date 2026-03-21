@@ -78,22 +78,22 @@ export default function WriterSection({
         <Button variant="outline" size="sm" onClick={() => {
           const hasWritten = chapters.some(c => c.status === 'generated');
           if (hasWritten) setRegenOutlineConfirm(true); else onGenerateOutline();
-        }} className="text-slate-500"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}</Button>
+        }} style={{ color: '#52516a', borderColor: '#e8e8ec' }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}</Button>
 
         {totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}') && (
           <Button onClick={onGenerateAllScenes} disabled={generatingAllScenes || writeAllActive}
-            className={spec?.book_type === 'nonfiction' ? "bg-teal-600 hover:bg-teal-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}>
+            style={{ background: '#5b50f0' }} className="hover:opacity-90 text-white">
             {generatingAllScenes ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{spec?.book_type === 'nonfiction' ? 'Generating Beat Sheets…' : 'Generating Scenes…'}</>
               : <><LayoutGrid className="w-4 h-4 mr-2" />{spec?.book_type === 'nonfiction' ? 'Generate All Beat Sheets' : 'Generate All Scenes'}</>}
           </Button>
         )}
         {totalCount > 0 && generatedCount < totalCount && (
-          <Button variant="outline" size="sm" onClick={onWriteAllChapters} disabled={generating || writeAllActive} className="text-slate-500 border-slate-300" title="Write all chapters sequentially">
+          <Button variant="outline" size="sm" onClick={onWriteAllChapters} disabled={generating || writeAllActive} style={{ color: '#52516a', borderColor: '#e8e8ec' }} title="Write all chapters sequentially">
             <Zap className="w-3.5 h-3.5 mr-1.5" /> {writeAllActive ? "Writing..." : `Write All (${totalCount - generatedCount} remaining)`}
           </Button>
         )}
       </div>
-      {allScenesProgress && <div className="text-sm text-indigo-600 font-medium text-right">{allScenesProgress}</div>}
+      {allScenesProgress && <div className="text-sm font-medium text-right" style={{ color: '#5b50f0' }}>{allScenesProgress}</div>}
 
       {/* Chapters grouped by Act */}
       {chapters.length > 0 && (
