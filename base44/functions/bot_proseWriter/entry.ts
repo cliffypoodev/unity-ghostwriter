@@ -1386,19 +1386,34 @@ async function runProseWriter(base44, projectId, chapterId) {
     const wordsNeeded = wordTarget - currentWords;
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
     try {
-      const lastContext = rawProse.slice(-500);
+      const lastContext = rawProse.slice(-800);
+      // Identify which scenes/sections may still be unwritten by checking for their titles in the output
+      let unwrittenHint = '';
+      const sceneList = Array.isArray(chCtx.scenes) ? chCtx.scenes : (chCtx.scenes?.sections || []);
+      if (sceneList.length > 0) {
+        const unwritten = sceneList.filter(s => {
+          const title = s.title || '';
+          // Check if scene content is likely missing by looking for its key elements
+          return title && !rawProse.includes(title.slice(0, 20));
+        });
+        if (unwritten.length > 0) {
+          unwrittenHint = `\nUNWRITTEN SCENES/SECTIONS (you MUST write these now):\n` +
+            unwritten.map(s => `- "${s.title}" (~${s.word_target || 800} words)`).join('\n') + '\n';
+        }
+      }
       const continueMessage = `╔═══════════════════════════════════════════════╗
 ║  CONTINUATION REQUIRED — OUTPUT WAS TOO SHORT ║
 ╚═══════════════════════════════════════════════╝
 
 You wrote only ~${currentWords} words. The target is ${wordTarget} words. You need AT LEAST ${wordsNeeded} more words.
-
+${unwrittenHint}
 RULES:
 1. Continue from EXACTLY where you left off — do NOT repeat any prior text.
 2. Do NOT add any preamble, commentary, or "Here is the continuation" — just write prose.
 3. Write at least ${Math.min(wordsNeeded, 5000)} more words. This is not optional.
 4. Do NOT rush to a conclusion. Expand remaining scenes with full dialogue exchanges, sensory detail, action beats, character interiority, and environmental description.
 5. If you have unwritten scenes from the outline, write them NOW in full detail.
+6. Each remaining scene/section MUST meet its individual word target.
 
 LAST PARAGRAPH (continue from here):
 ${lastContext}`;
