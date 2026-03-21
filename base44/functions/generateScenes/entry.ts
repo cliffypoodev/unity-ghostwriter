@@ -11,6 +11,7 @@ const MODEL_MAP = {
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.6 },
   "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.6 },
+  "lumimaid":          { provider: "openrouter", modelId: "neversleep/llama-3.1-lumimaid-70b", defaultTemp: 0.7 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
