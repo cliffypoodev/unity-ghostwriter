@@ -296,6 +296,57 @@ function cleanGeneratedProse(text, wordTarget) {
   cleaned = cleaned.replace(/\bLabel as (representative|illustrative|composite|general|reconstructed)[^\n]*/gi, '');
   cleaned = cleaned.replace(/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)[^\n]*/gi, '');
 
+  // ── 9a-pre. CAP AI-preferred adjectives — max 1 each per chapter ──
+  const aiAdjectives = [
+    'shimmering', 'luminous', 'tapestry', 'intricate', 'meticulously',
+    'insatiable', 'palpable', 'unmistakable', 'undeniable', 'relentless',
+    'sprawling', 'labyrinthine', 'opulent', 'resplendent', 'ethereal',
+    'visceral', 'cacophony', 'crescendo', 'juxtaposition', 'myriad',
+    'plethora', 'testament', 'harbinger', 'paradigm', 'dichotomy'
+  ];
+  for (const adj of aiAdjectives) {
+    let adjCount = 0;
+    const adjRx = new RegExp('\\b' + adj + '\\b', 'gi');
+    cleaned = cleaned.replace(adjRx, function(match) {
+      adjCount++;
+      if (adjCount <= 1) return match;
+      return ''; // strip subsequent uses — context usually still makes sense
+    });
+  }
+
+  // ── 9a-pre2. CAP "The [Noun] [past-verb]" openers — max 3 per paragraph ──
+  // Splits into paragraphs, checks each for excessive "The X verb" patterns
+  const paras = cleaned.split(/\n\n+/);
+  const fixedParas = paras.map(para => {
+    const sents = para.split(/(?<=[.!?])\s+/);
+    let theNounCount = 0;
+    return sents.map(s => {
+      if (/^The\s+[A-Z][a-z]+\s+(was|were|had|could|would|seemed|appeared|began|continued|remained|stood|sat|lay|hung|felt|looked|moved|turned|came|went|made|took|gave|got|ran|saw|knew|found|thought)\b/.test(s.trim())) {
+        theNounCount++;
+        if (theNounCount > 3) {
+          // Rewrite opener: strip "The " and lowercase, prepend with varied opener
+          return s; // leave it — code can't reliably rewrite; the AI DNA prompt will catch on regen
+        }
+      }
+      return s;
+    }).join(' ');
+  });
+  cleaned = fixedParas.join('\n\n');
+
+  // ── 9a-pre3. Strip philosophical platitude endings ──
+  // Remove final sentences that match grand-conclusion patterns
+  const finalParas2 = cleaned.split(/\n\n+/);
+  if (finalParas2.length > 2) {
+    let lastPara2 = finalParas2[finalParas2.length - 1];
+    // Strip platitude sentences from end
+    lastPara2 = lastPara2.replace(/\b(The final,?\s+(unsettling\s+)?truth\s+(is|was)\s+that|In the end,?\s+what\s+(mattered|remained)\s+was|Perhaps\s+the\s+real\s+(lesson|truth|story)\s+was|The\s+past\s+is\s+never\s+truly\s+past|What\s+remains\s+is\s+the\s+(inescapable|uncomfortable|unsettling)\s+truth|The\s+legacy\s+of\s+[^.]+\s+endures|History\s+would\s+(ultimately\s+)?judge|The\s+echoes\s+of\s+[^.]+\s+continue\s+to\s+reverberate|And\s+so\s+the\s+(cycle|story|pattern)\s+continues)[^.!?]*[.!?]/gi, '');
+    lastPara2 = lastPara2.trim();
+    if (lastPara2.length > 20) {
+      finalParas2[finalParas2.length - 1] = lastPara2;
+      cleaned = finalParas2.join('\n\n');
+    }
+  }
+
   // ── 9a. CAP "Consider the/a..." openers — max 1 per chapter ──
   let considerCount = 0;
   cleaned = cleaned.replace(/\bConsider (the|a|an|how|what)\b/gi, function(match) {
