@@ -953,21 +953,57 @@ function buildUserStoryBibleContext(userBible, isNonfiction) {
 }
 
 function buildSceneContext(scenes, isNonfiction) {
-  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) return '';
-  const sf = (v) => isNonfiction ? sanitizeNFPrompt(v) : sanitizeGeneral(v); // sanitize for both genres
-  return 'SCENE BREAKDOWN:\n' + scenes.map((s, i) => {
+  if (!scenes) return '';
+  const sf = (v) => isNonfiction ? sanitizeNFPrompt(v) : sanitizeGeneral(v);
+
+  // Handle NF section-based beat sheets (object with .sections array)
+  if (!Array.isArray(scenes) && scenes.sections && Array.isArray(scenes.sections)) {
+    const sections = scenes.sections;
+    const totalSectionWords = sections.reduce((sum, s) => sum + (s.word_target || 0), 0);
+    let header = `SECTION-BY-SECTION WRITING PLAN (${sections.length} sections, ${totalSectionWords} total words):\n`;
+    header += `╔══════════════════════════════════════════════════════════════╗\n`;
+    header += `║  MANDATORY: Write EACH section to its word target.          ║\n`;
+    header += `║  Do NOT compress, summarize, or skip ANY section.           ║\n`;
+    header += `║  Each section = a self-contained prose unit you write FULLY.║\n`;
+    header += `╚══════════════════════════════════════════════════════════════╝\n`;
+    header += sections.map((s, i) => {
+      let line = `Section ${s.section_number || i + 1}: "${sf(s.title || 'Untitled')}"`;
+      line += ` [${s.mode || 'exposition'}] [${s.tempo || 'medium'}]`;
+      line += `\n  *** WORD TARGET: ${s.word_target || 600} words — write this section to EXACTLY this length ***`;
+      if (s.purpose) line += `\n  Purpose: ${sf(s.purpose)}`;
+      if (s.content_direction) line += `\n  Direction: ${sf(s.content_direction)}`;
+      if (s.key_claim) line += `\n  Key claim: ${sf(s.key_claim)}`;
+      if (s.evidence_needed) line += `\n  Evidence: ${sf(s.evidence_needed)}`;
+      if (s.opens_with) line += `\n  Opens with: ${sf(s.opens_with)}`;
+      if (s.closes_with) line += `\n  Closes with: ${sf(s.closes_with)}`;
+      return line;
+    }).join('\n\n');
+    return header;
+  }
+
+  // Handle fiction scenes (array)
+  if (!Array.isArray(scenes) || scenes.length === 0) return '';
+  const totalSceneWords = scenes.reduce((sum, s) => sum + (s.word_target || 0), 0);
+  let header = `SCENE-BY-SCENE WRITING PLAN (${scenes.length} scenes, ${totalSceneWords} total words):\n`;
+  header += `╔══════════════════════════════════════════════════════════════╗\n`;
+  header += `║  MANDATORY: Write EACH scene to its word target.            ║\n`;
+  header += `║  Do NOT compress, summarize, or skip ANY scene.             ║\n`;
+  header += `║  Each scene = a self-contained prose unit you write FULLY.  ║\n`;
+  header += `╚══════════════════════════════════════════════════════════════╝\n`;
+  header += scenes.map((s, i) => {
     let line = `Scene ${i + 1}: "${s.title || 'Untitled'}"`;
     if (s.location) line += ` — ${sf(s.location)}`;
     if (s.pov) line += ` [POV: ${s.pov}]`;
+    line += `\n  *** WORD TARGET: ${s.word_target || 800} words — write this scene to EXACTLY this length ***`;
     if (s.purpose) line += `\n  Purpose: ${sf(s.purpose)}`;
     if (s.key_action) line += `\n  Key action: ${sf(s.key_action)}`;
     if (s.emotional_arc) line += `\n  Arc: ${sf(s.emotional_arc)}`;
     if (s.sensory_anchor) line += `\n  Open with: ${sf(s.sensory_anchor)}`;
     if (s.dialogue_focus) line += `\n  Dialogue: ${sf(s.dialogue_focus)}`;
     if (s.extra_instructions) line += `\n  Notes: ${sf(s.extra_instructions)}`;
-    if (s.word_target) line += `\n  Word target: ~${s.word_target}`;
     return line;
   }).join('\n\n');
+  return header;
 }
 
 function buildCharacterNameLock(storyBible, nameRegistry, outlineData) {
