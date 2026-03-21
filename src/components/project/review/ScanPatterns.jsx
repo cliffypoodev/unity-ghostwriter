@@ -524,19 +524,25 @@ function scanNarratorRepetition(text, chapterNum) {
 
 function scanParticipleChains(text, chapterNum) {
   var findings = [];
-  // Sentences ending with multiple -ing phrases: "revealing X, catching Y, purring Z"
   var sents = text.split(/(?<=[.!?])\s+/);
   var badCount = 0;
+  var samples = [];
   for (var i = 0; i < sents.length; i++) {
     var ingMatches = sents[i].match(/\b\w+ing\b/g) || [];
-    if (ingMatches.length >= 4) badCount++;
+    // Lower threshold to 3 -ing words per sentence
+    if (ingMatches.length >= 3) {
+      badCount++;
+      if (samples.length < 3) samples.push(sents[i].trim().slice(0, 80));
+    }
   }
-  if (badCount >= 3) {
+  // Flag at 2+ bad sentences per chapter
+  if (badCount >= 2) {
     findings.push({
       category: "participle_chain",
-      label: badCount + " sentences with 4+ \"-ing\" words — makes prose feel floaty",
+      label: badCount + " sentences with 3+ \"-ing\" words — floaty/AI-like prose",
       count: badCount,
       chapter: chapterNum,
+      samples: samples,
     });
   }
   return findings;
