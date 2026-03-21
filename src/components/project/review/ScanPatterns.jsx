@@ -117,6 +117,9 @@ export const PATTERNS = {
     [/\bTime (seemed to|appeared to) (slow|stop|stand still|freeze)\b/gi, "Time seemed to slow"],
     [/\bA (single|lone) tear (rolled|slid|traced|tracked) down\b/gi, "A single tear rolled down"],
     [/\bDarkness (claimed|consumed|swallowed|took) (him|her|them)\b/gi, "Darkness claimed them"],
+    [/\b\w+\s+purred\s+to\s+a\s+stop\b/gi, "Vehicle purred to a stop"],
+    [/\bdust motes\s+(?:dancing|floating|swirling|drifting|spinning|suspended)\b/gi, "dust motes dancing (AI default)"],
+    [/\b(?:eyes|gaze)\s+(?:that|which)\s+(?:held|contained|betrayed|revealed|spoke of)\s+\w+\b/gi, "eyes that held/betrayed X"],
   ],
   hedging: [
     [/\bIt could be argued that\b/gi, "It could be argued that"],
