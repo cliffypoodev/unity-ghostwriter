@@ -1082,11 +1082,25 @@ function buildProsePrompt(ctx, chCtx) {
     `\nYou are writing Chapter ${chapter.chapter_number} of ${totalChapters}: "${chapter.title}".`,
     `\n${CONTENT_GUARDRAILS}`,
     `\n${OUTPUT_FORMAT_RULES}`,
-    `\n═══ WORD COUNT REQUIREMENT (NON-NEGOTIABLE) ═══
-Target: ${wordTarget} words. ABSOLUTE MINIMUM: ${Math.round(wordTarget * 0.85)} words.
-You MUST write at least ${Math.round(wordTarget * 0.85)} words of prose. Chapters under ${Math.round(wordTarget * 0.7)} words are UNACCEPTABLE and will be rejected.
-Do NOT stop early. Do NOT summarize remaining scenes. Write EVERY scene in full detail with dialogue, action, sensory description, and interiority.
-If you feel the chapter is "done" but you're under ${wordTarget} words, you are NOT done — expand scenes, add dialogue exchanges, deepen character moments, add transitional beats.
+    `\n╔═══════════════════════════════════════════════════════════════╗
+║          WORD COUNT REQUIREMENT — NON-NEGOTIABLE              ║
+╠═══════════════════════════════════════════════════════════════╣
+║  TARGET: ${wordTarget} words                                         ║
+║  ABSOLUTE MINIMUM: ${Math.round(wordTarget * 0.85)} words                              ║
+║  CHAPTERS UNDER ${Math.round(wordTarget * 0.7)} WORDS WILL BE REJECTED                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+You MUST write AT LEAST ${Math.round(wordTarget * 0.85)} words of prose. The target is ${wordTarget} words.
+
+MANDATORY LENGTH RULES:
+1. Do NOT stop early. Do NOT summarize remaining scenes.
+2. Write EVERY scene in full detail with dialogue, action, sensory description, and interiority.
+3. If you feel the chapter is "done" but you're under ${wordTarget} words, you are NOT done.
+4. Expand scenes: add dialogue exchanges, deepen character moments, add transitional beats, describe settings.
+5. Each scene should contain at least 3-4 paragraphs of action/dialogue PLUS 2-3 paragraphs of interiority/description.
+6. A ${wordTarget}-word chapter typically requires ${Math.max(4, Math.round(wordTarget / 1200))}-${Math.max(6, Math.round(wordTarget / 800))} fully developed scenes.
+
+SELF-CHECK BEFORE FINISHING: Count your approximate output. If it feels like you've written ~2000-3000 words and the target is ${wordTarget}, you are LESS THAN HALF DONE. Keep writing. Do not output a conclusion or wrap-up until you have covered ALL scenes at full depth.
 ═══ END WORD COUNT ═══`,
     `\n${isNonfiction ? buildNonfictionBlock(spec) : `Show, don't tell. Concrete sensory detail. Dialogue advances plot.\n\n${QUALITY_UPGRADES}`}`,
     isLastChapter ? '\n=== FINAL CHAPTER — RESOLUTION MANDATE ===\nClose every open emotional thread. Do not introduce new threats or sequel hooks. Final image reflects protagonist\'s transformation.\n=== END ===' : '',
@@ -1232,7 +1246,7 @@ Under no circumstances is an editorial note permitted inside prose.`);
     '',
     buildBannedPhrasesContext(bannedPhrases),
     '',
-    `Write Chapter ${chapter.chapter_number} now. You MUST write at least ${Math.round(wordTarget * 0.85)} words (target: ${wordTarget}). Do not stop early. Prose only.`,
+    `Write Chapter ${chapter.chapter_number} now. You MUST write at least ${Math.round(wordTarget * 0.85)} words (target: ${wordTarget}). Do not stop early. Do NOT wrap up or write a conclusion until you have written ALL scenes at full depth. If the target is ${wordTarget} words and you've only written ~2500, you are NOT DONE — keep writing. Prose only.`,
   ];
 
   const userMessage = userParts.filter(Boolean).join('\n');
@@ -1310,15 +1324,14 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 70% of target, ask it to continue (up to 1 attempt)
-  // Limited to 1 attempt to stay within Deno Deploy's isolate time budget
-  const continuationThreshold = Math.round(wordTarget * 0.7);
+  // If model returns less than 80% of target, ask it to continue
+  // For large targets (5000+), allow up to 2 continuations since models often stop at ~2500
+  const continuationThreshold = Math.round(wordTarget * 0.8);
   let currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
-  const maxContinuations = 1;
+  const maxContinuations = wordTarget >= 5000 ? 2 : 1;
   let continuationCount = 0;
-  const elapsedMs = Date.now() - startMs;
 
-  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && elapsedMs < 55000) {
+  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 50000) {
     continuationCount++;
     const wordsNeeded = wordTarget - currentWords;
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
