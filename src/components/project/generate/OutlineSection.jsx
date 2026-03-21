@@ -89,7 +89,7 @@ function StoryBibleCard({ storyBible }) {
     { key: 'society', label: 'Society' },{ key: 'history', label: 'History' },
   ];
   return (
-    <CollapsibleCard title="Story Bible" icon={Globe} defaultOpen={false}>
+    <CollapsibleCard title="Story Bible" emoji="🌍" defaultOpen={false}>
       <div className="space-y-4">
         {fields.map(({ key, label }) => { const val = bible[key]; if (!val) return null; const text = toStr(val); if (!text) return null; return <div key={key}><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{label}</p><p className="text-sm text-slate-700 leading-relaxed">{text}</p></div>; })}
         {bible.characters?.length > 0 && <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Characters</p><div className="space-y-2">{bible.characters.map((char, i) => <div key={i} className="bg-slate-50 rounded-lg p-3"><div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-slate-800">{toStr(char.name)}</span>{char.role && <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", ROLE_COLORS[toStr(char.role).toLowerCase()] || ROLE_COLORS.minor)}>{toStr(char.role)}</span>}</div>{char.description && <p className="text-xs text-slate-600 mb-1">{toStr(char.description)}</p>}{char.arc && <p className="text-xs text-slate-500 italic">{toStr(char.arc)}</p>}</div>)}</div></div>}
