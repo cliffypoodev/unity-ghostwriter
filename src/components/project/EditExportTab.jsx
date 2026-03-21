@@ -542,22 +542,32 @@ function exportHtml(quill, ds) {
   download(blob, `${ds.bookTitle || "book"}.html`);
 }
 
-// Server-side TXT export (opens in new tab)
+// Server-side TXT export — downloads via file URL
 async function exportTxt(projectId, ds) {
   const { base44: sdk } = await import("@/api/base44Client");
   const resp = await sdk.functions.invoke("exportProject", { projectId, format: "txt" });
-  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
-  const blob = new Blob([text], { type: "text/plain" });
-  window.open(URL.createObjectURL(blob), "_blank");
+  const { file_url, filename } = resp.data || {};
+  if (file_url) {
+    const a = document.createElement("a");
+    a.href = file_url;
+    a.download = filename || "book.txt";
+    a.target = "_blank";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
 }
 
-// Server-side Markdown export (opens in new tab)
+// Server-side Markdown export — downloads via file URL
 async function exportMd(projectId, ds) {
   const { base44: sdk } = await import("@/api/base44Client");
   const resp = await sdk.functions.invoke("exportProject", { projectId, format: "md" });
-  const text = typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data);
-  const blob = new Blob([text], { type: "text/markdown" });
-  window.open(URL.createObjectURL(blob), "_blank");
+  const { file_url, filename } = resp.data || {};
+  if (file_url) {
+    const a = document.createElement("a");
+    a.href = file_url;
+    a.download = filename || "book.md";
+    a.target = "_blank";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
 }
 
 // Server-side DOCX export (proper Open XML)
