@@ -302,51 +302,61 @@ export default function ReviewPolishTab({ projectId }) {
   const totalIssues = scanResults ? scanResults.allFindings.reduce((s, f) => s + f.count, 0) : 0;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6" style={{ color: 'var(--ink)' }}>
+    <div className="phase1-form">
       {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>Manuscript Scanner & Polisher</h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--ink2)' }}>{generatedChapters.length} chapter{generatedChapters.length !== 1 ? "s" : ""} ready for review</p>
+      <div className="p1-card">
+        <div className="p1-card-header">
+          <div className="p1-card-icon" style={{ background: '#ede9fe', color: '#5b50f0' }}>
+            <Target className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1">
+            <div className="p1-card-title">Manuscript Scanner & Polisher</div>
+            <div className="p1-card-subtitle">{generatedChapters.length} chapter{generatedChapters.length !== 1 ? "s" : ""} ready for review</div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={handleScan} disabled={scanning || generatedChapters.length === 0} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
-            {scanning ? "Scanning…" : scanResults ? "Re-Scan" : "Scan Manuscript"}
-          </Button>
-          {scanResults && totalIssues > 0 && (
-            <Button onClick={handleFixAll} disabled={fixingAll || scanning} className="bg-amber-600 hover:bg-amber-700 text-white gap-2">
-              {fixingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {fixingAll ? fixProgress || "Fixing…" : "Fix All"}
+        <div className="p1-card-body">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button onClick={handleScan} disabled={scanning || generatedChapters.length === 0} className="bg-[#5b50f0] hover:bg-[#4a40d0] text-white gap-2 text-xs h-8">
+              {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Target className="w-3.5 h-3.5" />}
+              {scanning ? "Scanning…" : scanResults ? "Re-Scan" : "Scan Manuscript"}
             </Button>
-          )}
-          {scanResults && (
-            <Button onClick={handleExport} variant="outline" className="gap-2 border-emerald-600/40 text-emerald-700 hover:bg-emerald-50">
-              <Download className="w-4 h-4" /> Export
-            </Button>
-          )}
+            {scanResults && totalIssues > 0 && (
+              <Button onClick={handleFixAll} disabled={fixingAll || scanning} className="bg-amber-600 hover:bg-amber-700 text-white gap-2 text-xs h-8">
+                {fixingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                {fixingAll ? fixProgress || "Fixing…" : "Fix All"}
+              </Button>
+            )}
+            {scanResults && (
+              <Button onClick={handleExport} variant="outline" className="gap-2 border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-xs h-8">
+                <Download className="w-3.5 h-3.5" /> Export
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Upload section ── */}
-      <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>External Manuscript</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Upload a .txt, .md, .docx, or .pdf to review</p>
+      <div className="p1-card">
+        <div className="p1-card-header">
+          <div className="p1-card-icon" style={{ background: '#f3f4f6', color: '#52516a' }}>
+            <FileText className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1">
+            <div className="p1-card-title">External Manuscript</div>
+            <div className="p1-card-subtitle">Upload a .txt, .md, .docx, or .pdf to review</div>
           </div>
           <ManuscriptUploader onTextLoaded={(text, name) => { setUploadedText(text); setUploadedFileName(name); }} />
         </div>
         {uploadedText && (
-          <div className="rounded-lg border border-[var(--nb-border)] bg-white/40 p-3">
+          <div className="p1-card-body">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--ink2)' }}>
+              <span className="text-xs flex items-center gap-1.5 text-[#9997b0]">
                 <FileText className="w-3 h-3" />
                 {uploadedFileName || "Uploaded"} · {uploadedText.trim().split(/\s+/).length.toLocaleString()} words
               </span>
-              <button onClick={() => { setUploadedText(""); setUploadedFileName(null); }} className="text-xs hover:underline" style={{ color: 'var(--ink2)' }}>Clear</button>
+              <button onClick={() => { setUploadedText(""); setUploadedFileName(null); }} className="text-xs text-[#9997b0] hover:underline">Clear</button>
             </div>
-            <div className="max-h-32 overflow-y-auto text-xs font-mono whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--ink2)' }}>
+            <div className="max-h-32 overflow-y-auto text-xs font-mono whitespace-pre-wrap leading-relaxed text-[#52516a]">
               {uploadedText.slice(0, 2000)}{uploadedText.length > 2000 ? "…" : ""}
             </div>
           </div>
@@ -355,21 +365,25 @@ export default function ReviewPolishTab({ projectId }) {
 
       {/* ── Empty state ── */}
       {generatedChapters.length === 0 && !scanning && !uploadedText && (
-        <div className="flex items-center justify-center py-20 text-center">
-          <div>
-            <BookOpen className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--ink2)' }} />
-            <p className="font-medium" style={{ color: 'var(--ink)' }}>No generated chapters yet</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--ink2)' }}>Generate chapters in the Write tab first</p>
+        <div className="p1-card">
+          <div className="p1-card-body flex items-center justify-center py-16 text-center">
+            <div>
+              <BookOpen className="w-12 h-12 mx-auto mb-3 text-[#9997b0]" />
+              <p className="font-medium text-[#18171f]">No generated chapters yet</p>
+              <p className="text-sm mt-1 text-[#9997b0]">Generate chapters in the Write tab first</p>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Scanning spinner ── */}
       {scanning && (
-        <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <div className="w-16 h-16 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
-          <p className="font-medium" style={{ color: 'var(--ink)' }}>Scanning {generatedChapters.length} chapters…</p>
-          <p className="text-xs" style={{ color: 'var(--ink2)' }}>Checking duplicates, leaks, tense drift, repetition, clichés…</p>
+        <div className="p1-card">
+          <div className="p1-card-body flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-16 h-16 rounded-full border-4 border-[#5b50f0] border-t-transparent animate-spin" />
+            <p className="font-medium text-[#18171f]">Scanning {generatedChapters.length} chapters…</p>
+            <p className="text-xs text-[#9997b0]">Checking duplicates, leaks, tense drift, repetition, clichés…</p>
+          </div>
         </div>
       )}
 
