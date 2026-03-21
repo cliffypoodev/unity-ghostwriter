@@ -1294,7 +1294,13 @@ Under no circumstances is an editorial note permitted inside prose.`);
     '',
     buildBannedPhrasesContext(bannedPhrases),
     '',
-    `Write Chapter ${chapter.chapter_number} now. You MUST write at least ${Math.round(wordTarget * 0.85)} words (target: ${wordTarget}). Do not stop early. Do NOT wrap up or write a conclusion until you have written ALL scenes at full depth. If the target is ${wordTarget} words and you've only written ~2500, you are NOT DONE — keep writing. Prose only.`,
+    `Write Chapter ${chapter.chapter_number} now. Target: ${wordTarget} words. Absolute minimum: ${Math.round(wordTarget * 0.9)} words.
+
+EXECUTION PLAN: Write each scene/section above IN ORDER, hitting each one's individual word target. The sum of all scene targets = ${wordTarget} words. Do NOT compress any scene. Do NOT skip any scene. Do NOT wrap up early.
+
+If you reach what feels like a natural ending but you're under ${wordTarget} words, you have SKIPPED or COMPRESSED scenes. Go back and write the missing material.
+
+Prose only. No commentary. No scene headers.`,
   ];
 
   const userMessage = userParts.filter(Boolean).join('\n');
