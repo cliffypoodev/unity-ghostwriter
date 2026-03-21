@@ -507,13 +507,14 @@ function scanPassiveVoiceDensity(text, chapterNum) {
 function scanNarratorRepetition(text, chapterNum) {
   var findings = [];
   // "I investigated/examined/explored/discovered/uncovered/researched/studied/analyzed"
-  var rx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|analysed|delved into|looked into|dug into|pored over|sifted through)\b/gi;
+  var rx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|analysed|delved into|looked into|dug into|pored over|sifted through|turned to|turned my attention to|found myself|began to|set out to)\b/gi;
   var m = text.match(rx);
-  if (m && m.length >= 3) {
+  // Flag at 2+ — even 2 of these per chapter is formulaic
+  if (m && m.length >= 2) {
     findings.push({
       category: "narrator_repetition",
-      label: m.length + " \"I investigated/examined/explored...\" narrator transitions (max 2)",
-      count: m.length - 2,
+      label: m.length + " \"I [verb]\" narrator transitions (max 1/chapter)",
+      count: m.length - 1,
       chapter: chapterNum,
       samples: m.slice(0, 4).map(function(s) { return s.slice(0, 60); }),
     });
