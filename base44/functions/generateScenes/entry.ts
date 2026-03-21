@@ -504,8 +504,8 @@ RULES:
       prevChapterTail = content.trim().slice(-200);
     }
 
-    // callType: beat_sheet → scene generation is structural, always uses Gemini (never user's prose model)
-    const modelKey = 'gemini-pro';
+    // callType: beat_sheet → scene generation. Erotica → Lumimaid, others → Gemini
+    const modelKey = isErotica ? 'lumimaid' : 'gemini-pro';
     const characters = storyBible?.characters || [];
     const world = storyBible?.world || storyBible?.settings;
     const rules = storyBible?.rules;
