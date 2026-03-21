@@ -312,12 +312,12 @@ Deno.serve(async (req) => {
     const totalWords = generatedChapters.reduce((sum, ch) => sum + (ch.word_count || 0), 0);
     text += `\nTotal word count: ~${totalWords}\n`;
 
-    return new Response(text, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.txt"`,
-      },
-    });
+    // Upload as file and return URL — avoids response size limits
+    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const file = new File([blob], `${safeTitle}.txt`, { type: 'text/plain' });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+    return Response.json({ file_url, filename: `${safeTitle}.txt` });
   }
 
   // ── Markdown Export ──
@@ -338,12 +338,11 @@ Deno.serve(async (req) => {
       md += toMarkdown(ch.resolvedContent) + '\n\n---\n\n';
     }
 
-    return new Response(md, {
-      headers: {
-        'Content-Type': 'text/markdown; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${projectTitle.replace(/[^a-zA-Z0-9 ]/g, '')}.md"`,
-      },
-    });
+    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const file = new File([blob], `${safeTitle}.md`, { type: 'text/markdown' });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+    return Response.json({ file_url, filename: `${safeTitle}.md` });
   }
 
   // ── DOCX Export (proper Open XML via docx library) ──
