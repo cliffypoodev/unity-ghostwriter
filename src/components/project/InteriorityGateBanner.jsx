@@ -42,6 +42,14 @@ export function hasProtagonistInteriority(spec, project) {
   }
   // Fall back to spec fields
   if (spec?.protagonist_core_wound?.trim() || spec?.protagonist_self_belief?.trim() || spec?.protagonist_secret_desire?.trim()) return true;
+  // Fall back to story bible protagonist data
+  if (spec?.story_bible_data) {
+    try {
+      const bible = JSON.parse(spec.story_bible_data);
+      const protagonist = (bible.characters || []).find(c => c.role === 'protagonist');
+      if (protagonist && (protagonist.core_wound?.trim() || protagonist.desire?.trim() || protagonist.fear?.trim() || protagonist.misbelief?.trim())) return true;
+    } catch {}
+  }
   return false;
 }
 
