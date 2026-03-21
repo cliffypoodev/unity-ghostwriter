@@ -422,6 +422,9 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   findings.push.apply(findings, scanRepetitivePadding(chapterText, chapterNum));
   findings.push.apply(findings, scanCoffeeScenes(chapterText, chapterNum));
   findings.push.apply(findings, scanArchiveFraming(chapterText, chapterNum));
+  findings.push.apply(findings, scanAiAdjectives(chapterText, chapterNum));
+  findings.push.apply(findings, scanPhilosophicalEndings(chapterText, chapterNum));
+  findings.push.apply(findings, scanTheNounOpener(chapterText, chapterNum));
 
   if (targetWords && targetWords > 0) {
     var overPercent = Math.round(((words - targetWords) / targetWords) * 100);
