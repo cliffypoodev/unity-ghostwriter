@@ -387,20 +387,22 @@ async function batchRewrite(prose, tasks) {
 
   const systemPrompt = `You are a prose editor. You will receive numbered text segments with specific fix instructions.
 For each segment, apply ONLY the requested fix. Do NOT change anything else.
-Return the fixed segments in the EXACT format:
+Return the COMPLETE fixed segment in the EXACT format:
 
 [SEG_INDEX]
-fixed text here
+(complete fixed text of the entire segment here)
 
 [SEG_INDEX]
-fixed text here
+(complete fixed text of the entire segment here)
 
-Rules:
-- Keep segment length within 15% of original
+CRITICAL Rules:
+- Return the ENTIRE segment text with the fix applied — not just the changed sentence
+- Keep segment length within 15% of original — if a segment is 2000 chars, return ~1700-2300 chars
 - Maintain the same voice, tone, and style
-- Do NOT add commentary or explanations
+- Do NOT add commentary, explanations, or notes
 - Do NOT change content beyond the specific fix requested
-- Return ONLY the fixed segments, nothing else`;
+- Return ONLY the fixed segments, nothing else
+- If a segment is marked as truncated, apply fixes only to the shown portion and return the complete shown portion with fixes`;
 
   const parts = [];
   for (const idx of toFix) {
