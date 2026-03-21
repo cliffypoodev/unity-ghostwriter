@@ -169,7 +169,7 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
               {isResuming ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Resuming…</> : <><ArrowRight className="w-3.5 h-3.5" />Resume from here</>}
             </button>
           )}
-          <button className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-white border-0 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700", (isWriting || generatingScenesThenWrite || rewriting) && "opacity-50 cursor-not-allowed")} disabled={isWriting || generatingScenesThenWrite || rewriting} onClick={handleWriteClick}>
+          <button className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-white border-0 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-[#5b50f0] hover:bg-[#4a40d0]", (isWriting || generatingScenesThenWrite || rewriting) && "opacity-50 cursor-not-allowed")} disabled={isWriting || generatingScenesThenWrite || rewriting} onClick={handleWriteClick}>
             {generatingScenesThenWrite ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Scenes…</> : isWriting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Writing…</> : <><RefreshCw className="w-3.5 h-3.5" />Write</>}
           </button>
         </>)}
