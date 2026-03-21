@@ -490,11 +490,12 @@ function scanPassiveVoiceDensity(text, chapterNum) {
   var totalSentences = (clean.match(/[.!?]+/g) || []).length;
   if (totalSentences > 10) {
     var ratio = passiveMatches.length / totalSentences;
-    if (ratio > 0.25) {
+    // Lower threshold to 18% — good prose stays under 15%
+    if (ratio > 0.18) {
       findings.push({
         category: "passive_voice_density",
-        label: Math.round(ratio * 100) + "% passive voice (" + passiveMatches.length + "/" + totalSentences + " sentences) — aim for <25%",
-        count: Math.round(passiveMatches.length - totalSentences * 0.25),
+        label: Math.round(ratio * 100) + "% passive voice (" + passiveMatches.length + "/" + totalSentences + " sentences) — aim for <18%",
+        count: Math.round(passiveMatches.length - totalSentences * 0.18),
         chapter: chapterNum,
         samples: passiveMatches.slice(0, 4).map(function(s) { return s.slice(0, 60); }),
       });
