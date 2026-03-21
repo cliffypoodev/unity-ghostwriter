@@ -666,14 +666,7 @@ export default function SetupTab({ projectId, onProceed }) {
     }
   };
 
-  const topicResearchTriggered = useRef(false);
-  useEffect(() => {
-    if (form.book_type === 'nonfiction' && form.topic && form.topic.trim().length >= 20 && form.genre && !form.nf_knowledge_base_status && !topicResearchTriggered.current && projectId) {
-      topicResearchTriggered.current = true;
-      const timer = setTimeout(() => triggerTopicResearch(), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [form.book_type, form.topic, form.genre, form.nf_knowledge_base_status, projectId]);
+  // Research is now manual-only — triggered by clicking "Research This Topic" button
 
   const canProceed = form.book_type && form.genre && form.topic?.trim();
   const genres = form.book_type === "fiction" ? FICTION_GENRES : NONFICTION_GENRES;
