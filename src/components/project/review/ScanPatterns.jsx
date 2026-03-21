@@ -624,7 +624,40 @@ export function autoFixChapter(text) {
     if (fixed !== beforeHd) changeLog.push("Removed hedging phrase");
   }
 
-  // 10. REPEATED PARAGRAPH OPENER COMPRESSION
+  // 10. CAP AI-PREFERRED ADJECTIVES (max 1 per chapter)
+  var aiAdjs = [
+    'shimmering', 'luminous', 'tapestry', 'intricate', 'meticulously',
+    'insatiable', 'palpable', 'unmistakable', 'undeniable', 'relentless',
+    'sprawling', 'labyrinthine', 'opulent', 'resplendent', 'ethereal',
+    'visceral', 'cacophony', 'crescendo', 'juxtaposition', 'myriad',
+    'plethora', 'testament', 'harbinger', 'paradigm', 'dichotomy'
+  ];
+  for (var ai = 0; ai < aiAdjs.length; ai++) {
+    var aiCount = 0;
+    var aiRx = new RegExp('\\b' + aiAdjs[ai] + '\\b', 'gi');
+    fixed = fixed.replace(aiRx, function(match) {
+      aiCount++;
+      if (aiCount <= 1) return match;
+      changeLog.push("Removed excess AI adjective: " + match);
+      return "";
+    });
+  }
+
+  // 11. STRIP PHILOSOPHICAL PLATITUDE ENDINGS
+  var platParas = fixed.split(/\n\n+/);
+  if (platParas.length > 2) {
+    var lastP = platParas[platParas.length - 1];
+    var platBefore = lastP;
+    lastP = lastP.replace(/\b(The final,?\s*(unsettling\s*)?truth\s+(is|was)\s+that|In the end,?\s+what\s+(mattered|remained)\s+was|Perhaps\s+the\s+real\s+(lesson|truth|story)\s+was|The\s+past\s+is\s+never\s+truly\s+past|What\s+remains\s+is\s+the\s+(inescapable|uncomfortable|unsettling)\s+truth|The\s+legacy\s+of\s+[^.]+\s+endures|History\s+would\s+(ultimately\s+)?judge|The\s+echoes\s+of\s+[^.]+\s+continue\s+to\s+reverberate|And\s+so\s+the\s+(cycle|story|pattern)\s+continues)[^.!?]*[.!?]/gi, "");
+    lastP = lastP.trim();
+    if (lastP !== platBefore.trim() && lastP.length > 20) {
+      platParas[platParas.length - 1] = lastP;
+      fixed = platParas.join("\n\n");
+      changeLog.push("Stripped philosophical platitude ending");
+    }
+  }
+
+  // 12. REPEATED PARAGRAPH OPENER COMPRESSION
   var openerParas = fixed.split(/\n\n+/);
   var finalParas = [];
   for (var op = 0; op < openerParas.length; op++) {
