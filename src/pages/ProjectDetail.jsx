@@ -197,18 +197,18 @@ export default function ProjectDetail() {
            </AppErrorBoundary>
          )}
          {activePhase === "cover" && (
-           <div className="notebook-phase-flush">
-             <AppErrorBoundary>
+           <AppErrorBoundary>
+             <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px 100px' }}>
                <CoverDesigner projectId={projectId} />
-             </AppErrorBoundary>
-           </div>
+             </div>
+           </AppErrorBoundary>
          )}
          {activePhase === "preview" && (
-           <div className="notebook-phase-flush">
-             <AppErrorBoundary>
+           <AppErrorBoundary>
+             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 100px' }}>
                <BookPreview projectId={projectId} />
-             </AppErrorBoundary>
-           </div>
+             </div>
+           </AppErrorBoundary>
          )}
          </NotebookShell>
 
