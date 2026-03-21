@@ -174,11 +174,11 @@ export default function ProjectDetail() {
            </AppErrorBoundary>
          )}
          {activePhase === "generate" && (
-           <div className="notebook-phase-padded">
-             <AppErrorBoundary>
+           <AppErrorBoundary>
+             <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px 100px' }}>
                <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
-             </AppErrorBoundary>
-           </div>
+             </div>
+           </AppErrorBoundary>
          )}
          {activePhase === "export" && (
            <div className="notebook-phase-flush">
