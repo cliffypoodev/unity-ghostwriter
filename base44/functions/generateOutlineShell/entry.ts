@@ -61,7 +61,6 @@ function robustParseJSON(raw) {
 }
 
 async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
-  // callType: outline → shell generation resolves to Gemini Pro
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const response = await fetch(
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey,
@@ -76,6 +75,24 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
   const data = await response.json();
   if (!response.ok) throw new Error('Gemini error: ' + (data.error?.message || response.status));
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function callLumimaid(systemPrompt, userMessage, maxTokens = 4000) {
+  const orKey = Deno.env.get('OPENROUTER_API_KEY');
+  if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' },
+    body: JSON.stringify({ model: 'neversleep/llama-3.1-lumimaid-70b', max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error('Lumimaid error: ' + (d.error?.message || r.status));
+  if (!d.choices?.[0]?.message?.content) throw new Error('Lumimaid empty response');
+  return d.choices[0].message.content;
+}
+
+function isEroticaGenre(genre, subgenre) {
+  return /erotica|erotic/i.test(((genre || '') + ' ' + (subgenre || '')));
 }
 
 Deno.serve(async (req) => {
