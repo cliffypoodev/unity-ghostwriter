@@ -447,11 +447,14 @@ export default function ReviewPolishTab({ projectId }) {
           </div>
 
           {/* Chapter cards */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--ink)' }}>
-              <BarChart3 className="w-4 h-4" /> Chapter Breakdown
-            </h3>
-            <div className="space-y-2">
+          <div className="p1-card">
+            <div className="p1-card-header">
+              <div className="p1-card-icon" style={{ background: '#f3f4f6', color: '#52516a' }}>
+                <BarChart3 className="w-3.5 h-3.5" />
+              </div>
+              <div className="p1-card-title">Chapter Breakdown</div>
+            </div>
+            <div className="p1-card-body space-y-2">
               {scanResults.chapterData.map(cd => {
                 const chapterEntity = generatedChapters.find(c => c.chapter_number === cd.number);
                 if (!chapterEntity) return null;
