@@ -359,7 +359,7 @@ export default function ChapterReviewCard({
                 const cat = SCAN_CATEGORIES[f.category];
                 return (
                   <div key={i} className={cn("flex items-start gap-2 text-xs p-2 rounded-lg",
-                    f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "bg-red-50" : "bg-white/50"
+                    f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "bg-red-50" : "bg-[#fafafa]"
                   )}>
                     <span className="shrink-0 mt-0.5">{cat ? cat.icon : "•"}</span>
                     <div className="flex-1 min-w-0">
@@ -416,14 +416,14 @@ function ResultDetail({ result }) {
   var delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
   var label = result.type === "fix" ? "Auto-Fix" : result.type === "polish" ? "Prose Polisher" : "Regeneration";
   return (
-    <div className={cn("mb-3 p-2.5 rounded-lg border", delta > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white/50 border-[var(--nb-border)]")}>
+    <div className={cn("mb-3 p-2.5 rounded-lg border", delta > 0 ? "bg-emerald-50 border-emerald-200" : "bg-[#fafafa] border-[#e8e8ec]")}>
       <div className="flex items-center gap-2 text-xs">
-        <Check className={cn("w-3 h-3", delta > 0 ? "text-emerald-600" : "")} style={delta <= 0 ? { color: 'var(--ink2)' } : {}} />
-        <span className={cn("font-medium", delta > 0 ? "text-emerald-700" : "")} style={delta <= 0 ? { color: 'var(--ink)' } : {}}>{label} complete</span>
+        <Check className={cn("w-3 h-3", delta > 0 ? "text-emerald-600" : "text-[#9997b0]")} />
+        <span className={cn("font-medium", delta > 0 ? "text-emerald-700" : "text-[#18171f]")}>{label} complete</span>
         {delta > 0 ? (
           <span className="text-emerald-700/80">— {result.issuesBefore} → {result.issuesAfter} issues ({delta} fixed)</span>
         ) : (
-          <span style={{ color: 'var(--ink2)' }}>— {result.message || "no change detected"}</span>
+          <span className="text-[#9997b0]">— {result.message || "no change detected"}</span>
         )}
       </div>
     </div>
