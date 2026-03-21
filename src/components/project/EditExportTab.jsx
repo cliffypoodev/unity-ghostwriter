@@ -906,8 +906,8 @@ export default function EditExportTab({ projectId }) {
             }
             .quill-page-wrapper .ql-toolbar {
               border: none !important;
-              background: #fff;
-              border-bottom: 1px solid #e2e8f0 !important;
+              background: #fafafa;
+              border-bottom: 1px solid #e8e8ec !important;
               position: sticky;
               top: 0;
               z-index: 10;
