@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Settings } from "lucide-react";
+import SettingsModal from "./SettingsModal";
 
 const PHASES = [
   { id: "specify", label: "Specify", icon: "1" },
@@ -33,6 +34,8 @@ function NotebookTab({ phase, index, state, onClick }) {
 }
 
 export default function NotebookShell({ activePhase, onPhaseChange, children }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const getState = (phaseId) => {
     const activeIdx = PHASE_ORDER.indexOf(activePhase);
     const phaseIdx = PHASE_ORDER.indexOf(phaseId);
@@ -64,12 +67,22 @@ export default function NotebookShell({ activePhase, onPhaseChange, children }) 
             onClick={() => handleTabClick(phase.id)}
           />
         ))}
+        <button
+          className="nb-settings-gear"
+          onClick={() => setSettingsOpen(true)}
+          title="Notebook Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Body — the "page" area */}
       <div className="notebook-body">
+        <div className="nb-margin-line" />
         {children}
       </div>
+
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { ThemeProvider } from '@/components/project/ThemeProvider';
 import Layout from '@/components/Layout';
 import ErrorLogPanel from '@/components/ErrorLogPanel';
 
@@ -78,14 +79,16 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <SonnerToaster position="bottom-right" richColors />
-        <ErrorLogPanel />
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+          <SonnerToaster position="bottom-right" richColors />
+          <ErrorLogPanel />
+        </QueryClientProvider>
+      </ThemeProvider>
     </AuthProvider>
   )
 }
