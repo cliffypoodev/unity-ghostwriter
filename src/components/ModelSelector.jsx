@@ -259,7 +259,7 @@ const FIT_MATRIX = {
       ['red',  '<b>Explicit content NOT supported</b> on Gemini'],
       ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
       ['blue',  'Non-explicit chapters work normally'],
-      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+      ['blue',  'Consider DeepSeek V3.2 for erotica projects'],
     ]},
     nonfiction: { fitClass:'great', title:'Excellent fit for Nonfiction — fast + massive context', rows:[
       ['green', 'Investigative beat style applied'],
@@ -292,7 +292,7 @@ const FIT_MATRIX = {
       ['red',  '<b>Explicit content NOT supported</b> on Gemini'],
       ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
       ['blue',  'Non-explicit chapters work normally'],
-      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+      ['blue',  'Consider DeepSeek V3.2 for erotica projects'],
     ]},
     nonfiction: { fitClass:'great', title:'Excellent fit for Nonfiction', rows:[
       ['green', 'Investigative beat style <b>fully enforced</b>'],
@@ -325,7 +325,7 @@ const FIT_MATRIX = {
       ['red',  '<b>Explicit content blocked</b> by OpenAI content policy'],
       ['yellow','Use Lumimaid or Budget Mode for explicit scenes'],
       ['blue',  'SFW romance and tension chapters work normally'],
-      ['blue',  'Consider DeepSeek or Trinity for erotica projects'],
+      ['blue',  'Consider DeepSeek V3.2 for erotica projects'],
     ]},
     nonfiction: { fitClass:'good', title:'Good fit for Nonfiction', rows:[
       ['blue',  'Investigative beat style applied'],
@@ -357,7 +357,7 @@ const FIT_MATRIX = {
     erotica:    { fitClass:'warn', title:'Not supported — OpenAI blocks explicit content', rows:[
       ['red',  '<b>Explicit content blocked</b> by OpenAI'],
       ['red',  'Cannot be used for erotica — switch models'],
-      ['yellow','Use Lumimaid, DeepSeek, or Trinity instead'],
+      ['yellow','Use Lumimaid or DeepSeek V3.2 instead'],
       ['blue',  'Budget Mode routes to Lumimaid automatically'],
     ]},
     nonfiction: { fitClass:'ok', title:'Acceptable for lighter Nonfiction', rows:[
