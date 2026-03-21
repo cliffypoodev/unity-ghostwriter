@@ -29,12 +29,18 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
+    } else {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-white">
           <div className="text-center space-y-4 p-8">
-            <h2 className="text-xl font-semibold text-slate-800">Session Expired</h2>
-            <p className="text-slate-500 text-sm">Please log in to continue.</p>
+            <h2 className="text-xl font-semibold text-slate-800">
+              {authError.type === 'auth_required' ? 'Session Expired' : 'Connection Error'}
+            </h2>
+            <p className="text-slate-500 text-sm">
+              {authError.type === 'auth_required' 
+                ? 'Please log in to continue.' 
+                : authError.message || 'Something went wrong. Please try again.'}
+            </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigateToLogin()}
