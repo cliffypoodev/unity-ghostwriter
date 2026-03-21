@@ -960,6 +960,102 @@ function applyCodeFixes(prose) {
     });
   }
 
+  // 11. NF PHRASE CAPS — cap per chapter (matches frontend scanner NF_PHRASE_CAPS)
+  const NF_PHRASE_FIXES = [
+    { rx: /\bContemporary accounts\b/gi, max: 1, alts: ['Historical records', 'Period sources', 'Accounts from the era'] },
+    { rx: /\bThe evidence suggests\b/gi, max: 1, alts: ['The record indicates', 'Documents reveal', 'Sources point to'] },
+    { rx: /\bThe psychological impact\b/gi, max: 1, alts: ['The emotional toll', 'The mental consequences', 'The lasting damage'] },
+    { rx: /\bThe pattern becomes clear\b/gi, max: 1, alts: ['A pattern emerges', 'The throughline reveals itself', 'The consistency is unmistakable'] },
+    { rx: /\bThis represented\b/gi, max: 1, alts: ['This marked', 'This signaled', 'This constituted'] },
+  ];
+  for (const { rx, max, alts } of NF_PHRASE_FIXES) {
+    let count = 0;
+    text = text.replace(rx, function(match) {
+      count++;
+      if (count <= max) return match;
+      fixCount++;
+      return alts[(count - max - 1) % alts.length];
+    });
+  }
+
+  // 12. TRANSITION CRUTCH REMOVAL
+  const transitionRx = [
+    /\bFurthermore,?\s/gi,
+    /\bMoreover,?\s/gi,
+    /\bAdditionally,?\s/gi,
+    /\bIt'?s worth noting that\s/gi,
+    /\bAs (mentioned|discussed|noted|stated) (earlier|above|previously|before),?\s/gi,
+    /\bWith this (understanding|context|background|foundation),?\s/gi,
+    /\bUltimately,?\s/gi,
+  ];
+  for (const rx of transitionRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
+  // 13. SCAFFOLDING SENTENCE REMOVAL
+  const scaffoldRx = [
+    /\bThis (chapter|section|part) (will )?(explore|examine|discuss|investigate|look at|delve into|unpack)[^.!?\n]*[.!?\n]/gi,
+    /\bIn this (chapter|section|part),? we (will|shall|are going to)[^.!?\n]*[.!?\n]/gi,
+    /\bBefore (we|I) (begin|dive in|proceed|explore|examine)[^.!?\n]*[.!?\n]/gi,
+    /\bLet'?s (begin|start|dive in|explore|examine|unpack)[^.!?\n]*[.!?\n]/gi,
+    /\bWhat (follows|comes next) is[^.!?\n]*[.!?\n]/gi,
+  ];
+  for (const rx of scaffoldRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
+  // 14. HEDGING PHRASE REMOVAL
+  const hedgeRx = [
+    /\bIt could be argued that\s/gi,
+    /\bOne (might|could|may) (suggest|argue|say|think) that\s/gi,
+    /\bPerhaps (it is|it's) (the case|true|fair to say) that\s/gi,
+  ];
+  for (const rx of hedgeRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
+  // 15. RECAP BLOAT REMOVAL
+  const recapRx = [
+    /\bAs (we'?ve?|I'?ve?) (discussed|seen|explored|examined|noted|mentioned|established)[^.!?\n]*[.!?\n]/gi,
+    /\bTo (summarize|recap|sum up|review) (what we'?ve?|the above|our discussion)[^.!?\n]*[.!?\n]/gi,
+  ];
+  for (const rx of recapRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
+  // 16. GENERIC CONCLUSION REMOVAL
+  const conclusionRx = [
+    /\bThe (story|tale|saga|history|legacy) of .{5,60} (reminds|teaches|shows|tells|demonstrates) us that[^.!?\n]*[.!?\n]/gi,
+    /\bOnly time (will|would|could) tell[^.!?\n]*[.!?\n]/gi,
+    /\bThe rest,? as they say,? is history[^.!?\n]*[.!?\n]/gi,
+    /\bAnd (so|thus),? the (stage was set|seeds were sown|wheels were set in motion)[^.!?\n]*[.!?\n]/gi,
+  ];
+  for (const rx of conclusionRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
+  // 17. FICTION CLICHE REMOVAL
+  const clicheRx = [
+    /\bLittle did (he|she|they) know[^.!?\n]*[.!?\n]/gi,
+    /\bUnbeknownst to[^.!?\n]*[.!?\n]/gi,
+    /\bTime (seemed to|appeared to) (slow|stop|stand still|freeze)[^.!?\n]*[.!?\n]/gi,
+  ];
+  for (const rx of clicheRx) {
+    const before = text;
+    text = text.replace(rx, '');
+    if (text !== before) fixCount++;
+  }
+
   // Final cleanup — collapse triple+ newlines
   text = text.replace(/\n{3,}/g, '\n\n').trim();
 
