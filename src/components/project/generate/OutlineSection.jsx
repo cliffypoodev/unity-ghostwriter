@@ -4,7 +4,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles, ChevronDown, ChevronRight, BookOpen, Globe, RefreshCw, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SpecSettingsSummary from "../SpecSettingsSummary";
@@ -22,25 +21,27 @@ function toStr(val) {
   return String(val);
 }
 
-function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }) {
+function CollapsibleCard({ title, icon, emoji, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
   const handleToggle = () => {
     const scrollPos = window.scrollY;
     setOpen(o => !o);
     setTimeout(() => window.scrollTo(0, scrollPos), 0);
   };
+  const Icon = icon;
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="py-3 px-4 cursor-pointer" onClick={handleToggle}>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <CardIcon className="w-4 h-4 text-indigo-500" />{title}
-          </CardTitle>
-          {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+    <div className="p1-card">
+      <div className="p1-card-header cursor-pointer" onClick={handleToggle}>
+        <div className="p1-card-icon" style={{ background: '#ede9fe', color: '#7c3aed' }}>
+          {emoji || (Icon && <Icon className="w-3.5 h-3.5" />)}
         </div>
-      </CardHeader>
-      {open && <CardContent className="pt-0 px-4 pb-4">{children}</CardContent>}
-    </Card>
+        <div className="p1-card-title">{title}</div>
+        <div className="ml-auto">
+          {open ? <ChevronDown className="w-4 h-4" style={{ color: '#9997b0' }} /> : <ChevronRight className="w-4 h-4" style={{ color: '#9997b0' }} />}
+        </div>
+      </div>
+      {open && <div className="p1-card-body">{children}</div>}
+    </div>
   );
 }
 
