@@ -135,7 +135,7 @@ export default function WriterSection({
       {/* Proceed button */}
       {allGenerated && (
         <div className="flex justify-end pt-2">
-          <Button onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700 px-6">Proceed to Editor <ArrowRight className="w-4 h-4 ml-2" /></Button>
+          <Button onClick={onProceed} style={{ background: '#5b50f0' }} className="hover:opacity-90 text-white px-6">Proceed to Editor <ArrowRight className="w-4 h-4 ml-2" /></Button>
         </div>
       )}
 
