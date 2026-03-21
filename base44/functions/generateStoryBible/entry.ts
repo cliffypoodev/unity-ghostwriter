@@ -363,6 +363,7 @@ Deno.serve(async (req) => {
     if (!topic) throw new Error('Topic/premise is required');
 
     const isNonfiction = book_type === 'nonfiction';
+    const erotica = isEroticaGenre(genre, subgenre);
 
     const systemPrompt = isNonfiction
       ? 'You are a nonfiction research strategist and book architect. Generate structured research bibles for investigative nonfiction. Output ONLY valid JSON.'
@@ -372,22 +373,28 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    console.log('v2: generateStoryBible calling Gemini 2.5 Flash, type=' + book_type);
+    // Erotica → Lumimaid (no content filtering). Others → Gemini with Claude fallback.
+    const primaryModel = erotica ? 'lumimaid' : 'gemini';
+    console.log('v2: generateStoryBible calling ' + primaryModel + ', type=' + book_type + (erotica ? ' (erotica route)' : ''));
     let raw;
     let usedFallback = false;
 
-    try {
-      raw = await callGemini(systemPrompt, userMessage);
-    } catch (geminiErr) {
-      if (geminiErr.message?.startsWith('CONTENT_BLOCKED')) {
-        console.warn('v2: Gemini blocked content, falling back to Claude');
-        raw = await callClaude(systemPrompt, userMessage);
-        usedFallback = true;
-      } else {
-        throw geminiErr;
+    if (erotica) {
+      raw = await callLumimaid(systemPrompt, userMessage);
+    } else {
+      try {
+        raw = await callGemini(systemPrompt, userMessage);
+      } catch (geminiErr) {
+        if (geminiErr.message?.startsWith('CONTENT_BLOCKED')) {
+          console.warn('v2: Gemini blocked content, falling back to Claude');
+          raw = await callClaude(systemPrompt, userMessage);
+          usedFallback = true;
+        } else {
+          throw geminiErr;
+        }
       }
     }
-    console.log('v2: got response, ' + raw.length + ' chars' + (usedFallback ? ' (via Claude fallback)' : ''));
+    console.log('v2: got response, ' + raw.length + ' chars' + (usedFallback ? ' (via Claude fallback)' : '') + (erotica ? ' (via Lumimaid)' : ''));
 
     let storyBible;
     try {
@@ -398,13 +405,17 @@ Deno.serve(async (req) => {
       const retryPrompt = 'You are a JSON generator. Output ONLY valid, parseable JSON. Escape all double quotes inside string values with backslash. No markdown, no commentary, no code fences.';
       const retryMessage = 'Take this broken JSON and return it as valid JSON. Fix any unescaped quotes, trailing commas, or malformed strings. Return the corrected JSON object only:\n\n' + raw;
       let retryRaw;
-      try {
-        retryRaw = usedFallback ? await callClaude(retryPrompt, retryMessage) : await callGemini(retryPrompt, retryMessage);
-      } catch (retryGeminiErr) {
-        if (retryGeminiErr.message?.startsWith('CONTENT_BLOCKED')) {
-          retryRaw = await callClaude(retryPrompt, retryMessage);
-        } else {
-          throw retryGeminiErr;
+      if (erotica) {
+        retryRaw = await callLumimaid(retryPrompt, retryMessage);
+      } else {
+        try {
+          retryRaw = usedFallback ? await callClaude(retryPrompt, retryMessage) : await callGemini(retryPrompt, retryMessage);
+        } catch (retryGeminiErr) {
+          if (retryGeminiErr.message?.startsWith('CONTENT_BLOCKED')) {
+            retryRaw = await callClaude(retryPrompt, retryMessage);
+          } else {
+            throw retryGeminiErr;
+          }
         }
       }
       console.log('v2: retry response, ' + retryRaw.length + ' chars');
