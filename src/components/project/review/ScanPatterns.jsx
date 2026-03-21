@@ -489,16 +489,17 @@ function scanPassiveVoiceDensity(text, chapterNum) {
   var passiveRx = /\b(?:was|were|is|are|been|being|be)\s+(?:\w+ed|built|sold|told|found|made|taken|given|shown|known|seen|done|gone|run|set|cut|put|held|kept|left|led|read|said|sent|shut|won|worn|written|driven|drawn|grown|thrown|broken|chosen|fallen|hidden|risen|spoken|stolen|woken)\b/gi;
   var passiveMatches = clean.match(passiveRx) || [];
   var totalSentences = (clean.match(/[.!?]+/g) || []).length;
-  if (totalSentences > 10) {
+  if (totalSentences > 20) {
     var ratio = passiveMatches.length / totalSentences;
-    // Lower threshold to 18% — good prose stays under 15%
-    if (ratio > 0.18) {
+    // 30% threshold — nonfiction naturally uses more passive voice
+    if (ratio > 0.30) {
+      var excess = Math.round(passiveMatches.length - totalSentences * 0.30);
       findings.push({
         category: "passive_voice_density",
-        label: Math.round(ratio * 100) + "% passive voice (" + passiveMatches.length + "/" + totalSentences + " sentences) — aim for <18%",
-        count: Math.round(passiveMatches.length - totalSentences * 0.18),
+        label: Math.round(ratio * 100) + "% passive voice (" + passiveMatches.length + "/" + totalSentences + " sentences) — aim for <30%",
+        count: Math.min(excess, 5),
         chapter: chapterNum,
-        samples: passiveMatches.slice(0, 4).map(function(s) { return s.slice(0, 60); }),
+        samples: passiveMatches.slice(0, 3).map(function(s) { return s.slice(0, 60); }),
       });
     }
   }
