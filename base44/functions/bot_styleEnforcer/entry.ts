@@ -735,9 +735,14 @@ function applyCodeFixes(prose) {
   let text = prose;
   let fixCount = 0;
 
+  // Normalize paragraph splitting — handle content with single \n breaks
+  const hasDoubleBreaks = /\n\n/.test(text);
+  const PARA_SEP = hasDoubleBreaks ? /\n\n+/ : /\n/;
+  const PARA_JOIN = hasDoubleBreaks ? '\n\n' : '\n';
+
   // 1. DUPLICATE PARAGRAPH REMOVAL
-  // Split on double newlines, deduplicate paragraphs sharing 80%+ words
-  const paras = text.split(/\n\n+/);
+  // Split on paragraph breaks, deduplicate paragraphs sharing 80%+ words
+  const paras = text.split(PARA_SEP);
   const kept = [];
   const removedIndices = new Set();
   for (let i = 0; i < paras.length; i++) {
@@ -762,7 +767,7 @@ function applyCodeFixes(prose) {
   for (let i = 0; i < paras.length; i++) {
     if (!removedIndices.has(i) && !kept.includes(paras[i])) kept.push(paras[i]);
   }
-  text = kept.join('\n\n');
+  text = kept.join(PARA_JOIN);
 
   // 2. BANNED PHRASE REMOVAL — delete sentences containing banned phrases
   for (const b of ABSOLUTE_BANS) {
@@ -785,23 +790,23 @@ function applyCodeFixes(prose) {
   text = stripLeakedInstructions(text);
   if (text.length < beforeLeakStrip) fixCount++;
 
-  // 4. COFFEE SCENE REMOVAL — keep only first coffee paragraph
+  // 4. COFFEE SCENE REMOVAL — keep only first coffee paragraph (skip large blocks)
   const coffeeRx = /\bcoffee\b/i;
   const coffeeSupportRx = /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i;
-  const coffeParas = text.split(/\n\n+/);
+  const coffeParas = text.split(PARA_SEP);
   let coffeeCount = 0;
   const afterCoffee = coffeParas.filter(p => {
-    if (coffeeRx.test(p) && coffeeSupportRx.test(p)) {
+    if (p.length < 2000 && coffeeRx.test(p) && coffeeSupportRx.test(p)) {
       coffeeCount++;
       if (coffeeCount > 1) { fixCount++; return false; }
     }
     return true;
   });
-  if (coffeeCount > 1) text = afterCoffee.join('\n\n');
+  if (coffeeCount > 1) text = afterCoffee.join(PARA_JOIN);
 
   // 5. ARCHIVE FRAMING TRIM — keep only first 2 archive paragraphs
   const archiveRx = /\b(folder|archive|brittle paper|yellowed|old paper|dust motes|manila folder|reading room)\b/i;
-  const archiveParas = text.split(/\n\n+/);
+  const archiveParas = text.split(PARA_SEP);
   let archiveCount = 0;
   const afterArchive = archiveParas.filter(p => {
     if (archiveRx.test(p)) {
@@ -810,11 +815,11 @@ function applyCodeFixes(prose) {
     }
     return true;
   });
-  if (archiveCount > 2) text = afterArchive.join('\n\n');
+  if (archiveCount > 2) text = afterArchive.join(PARA_JOIN);
 
   // 6. REPEATED PARAGRAPH OPENER COMPRESSION
   // If 3+ consecutive paragraphs start with same 4-word prefix, keep only the first
-  const openerParas = text.split(/\n\n+/);
+  const openerParas = text.split(PARA_SEP);
   const finalParas = [];
   let streakStart = 0;
   for (let i = 0; i < openerParas.length; i++) {
@@ -840,7 +845,7 @@ function applyCodeFixes(prose) {
       }
     }
   }
-  if (finalParas.length < openerParas.length) text = finalParas.join('\n\n');
+  if (finalParas.length < openerParas.length) text = finalParas.join(PARA_JOIN);
 
   // 7. INTERIORITY WORD CAPS — enforce per-chapter limits
   const INTERIORITY_FIXES = [
