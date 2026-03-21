@@ -310,6 +310,29 @@ function extractIssueContext(prose, findings) {
       }
     }
 
+    // v14: Concept re-explanation — term defined in too many chapters
+    // When present, identify repeated concept-defining phrases and simplify them
+    if (f.category === 'concept_reexplanation') {
+      const conceptMatch = f.label.match(/"([^"]+)"/);
+      if (conceptMatch) {
+        const concept = conceptMatch[1];
+        const conceptRx = new RegExp(concept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        for (let i = 0; i < segments.length; i++) {
+          if (conceptRx.test(segments[i])) {
+            // Check if this segment actually explains/defines the concept (not just mentions it)
+            const explanationPatterns = /\b(which\s+(means?|refers?\s+to|is|was)|—\s*(?:the|a)|,\s*(?:the|a)\s+(?:practice|process|system|method|policy|term|concept|principle)|meaning\s+that|defined\s+as|known\s+as)\b/i;
+            if (explanationPatterns.test(segments[i])) {
+              tasks.push({
+                type: 'concept_reexplanation',
+                segIndex: i,
+                instruction: `The concept "${concept}" has been explained in multiple chapters. In this segment, remove the explanatory clause or definition — just reference it naturally as if the reader already knows what it means. Keep the surrounding sentence intact.`,
+              });
+            }
+          }
+        }
+      }
+    }
+
     // v14: AI sensory defaults — must match all patterns from ScanPatterns scanner
     if (f.category === 'ai_sensory_default') {
       const aiDefRx = [
