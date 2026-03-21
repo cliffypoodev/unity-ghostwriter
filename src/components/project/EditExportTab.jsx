@@ -886,7 +886,7 @@ export default function EditExportTab({ projectId }) {
         )}
 
         {/* Editor Area */}
-        <div className="flex-1 overflow-auto relative" style={{ background: 'var(--pg, #F5EFE4)',
+        <div className="flex-1 overflow-auto relative" style={{ background: '#f8f8fa',
           lineHeight: docSettings.lineSpacing,
         }}>
           {!quillReady && (
