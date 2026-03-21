@@ -455,7 +455,7 @@ RULES:
 - Each section must advance a DIFFERENT aspect of the chapter's argument. No repeated points.
 - "new_ground" must identify material NOT covered in other chapters. If it overlaps, write "[RESTRUCTURE NEEDED: overlaps with Ch X]".`;
 
-      const nfModelKey = 'gemini-pro';
+      const nfModelKey = isErotica ? 'lumimaid' : 'gemini-pro';
       let nfRaw;
       try {
         nfRaw = await callAI(nfModelKey, nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
