@@ -189,8 +189,8 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
       )}
 
       {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-3">
-          {chapterProgress && !isWriting && <div className="text-xs text-indigo-600 font-medium">{chapterProgress}</div>}
+        <div className="border-t border-[#e8e8ec] bg-[#fafafa] p-4 space-y-3">
+          {chapterProgress && !isWriting && <div className="text-xs text-[#5b50f0] font-medium">{chapterProgress}</div>}
           {chapter.status === "error" && chapter.quality_scan && (() => { try { const qs = JSON.parse(chapter.quality_scan); if (qs.error) return <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2"><span className="font-semibold">Error:</span> {qs.error}</div>; } catch {} return null; })()}
           <ConsistencyFlagsBanner chapter={chapter} />
           {chapter.summary && <div><p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Summary</p><p className="text-sm text-slate-700 leading-relaxed">{chapter.summary}</p></div>}
@@ -206,7 +206,7 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
           </div>
           {(content || isStreaming) && (
             <div><p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Content</p>
-            <div className="bg-white rounded-lg border border-slate-200 p-3 max-h-80 overflow-y-auto"><p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{content}{isStreaming && <span className="inline-block w-2 h-4 bg-indigo-400 animate-pulse ml-0.5 align-text-bottom" />}</p></div></div>
+            <div className="bg-white rounded-lg border border-slate-200 p-3 max-h-80 overflow-y-auto"><p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{content}{isStreaming && <span className="inline-block w-2 h-4 bg-[#5b50f0] animate-pulse ml-0.5 align-text-bottom" />}</p></div></div>
           )}
         </div>
       )}
