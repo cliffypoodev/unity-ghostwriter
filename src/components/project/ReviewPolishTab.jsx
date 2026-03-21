@@ -25,17 +25,17 @@ function CategoryRow({ category, findings }) {
   if (!cat) return null;
   const totalInstances = findings.reduce((sum, f) => sum + f.count, 0);
   const colorMap = {
-    red: "bg-red-500/20 text-red-400 border-red-500/30",
-    amber: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    blue: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    red: "bg-red-100 text-red-700 border-red-200",
+    amber: "bg-amber-100 text-amber-700 border-amber-200",
+    blue: "bg-blue-100 text-blue-700 border-blue-200",
   };
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-800/50">
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/60 border border-[var(--nb-border)]">
       <div className="flex items-center gap-2">
         <span className="text-base">{cat.icon}</span>
-        <span className="text-sm text-slate-200">{cat.label}</span>
+        <span className="text-sm" style={{ color: 'var(--ink)' }}>{cat.label}</span>
       </div>
-      <Badge className={cn("text-xs border", findings.length === 0 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : colorMap[cat.color])}>
+      <Badge className={cn("text-xs border", findings.length === 0 ? "bg-emerald-100 text-emerald-700 border-emerald-200" : colorMap[cat.color])}>
         {findings.length === 0 ? "✓ Clean" : `${totalInstances} instance${totalInstances !== 1 ? "s" : ""}`}
       </Badge>
     </div>
@@ -275,26 +275,26 @@ export default function ReviewPolishTab({ projectId }) {
   const totalIssues = scanResults ? scanResults.allFindings.reduce((s, f) => s + f.count, 0) : 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6" style={{ color: 'var(--ink)' }}>
       {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">Manuscript Scanner & Polisher</h2>
-          <p className="text-sm text-slate-400 mt-0.5">{generatedChapters.length} chapter{generatedChapters.length !== 1 ? "s" : ""} ready for review</p>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>Manuscript Scanner & Polisher</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--ink2)' }}>{generatedChapters.length} chapter{generatedChapters.length !== 1 ? "s" : ""} ready for review</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={handleScan} disabled={scanning || generatedChapters.length === 0} className="bg-violet-600 hover:bg-violet-700 gap-2">
+          <Button onClick={handleScan} disabled={scanning || generatedChapters.length === 0} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
             {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
             {scanning ? "Scanning…" : scanResults ? "Re-Scan" : "Scan Manuscript"}
           </Button>
           {scanResults && totalIssues > 0 && (
-            <Button onClick={handleFixAll} disabled={fixingAll || scanning} className="bg-amber-600 hover:bg-amber-700 gap-2">
+            <Button onClick={handleFixAll} disabled={fixingAll || scanning} className="bg-amber-600 hover:bg-amber-700 text-white gap-2">
               {fixingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {fixingAll ? fixProgress || "Fixing…" : "Fix All"}
             </Button>
           )}
           {scanResults && (
-            <Button onClick={handleExport} variant="outline" className="gap-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10">
+            <Button onClick={handleExport} variant="outline" className="gap-2 border-emerald-600/40 text-emerald-700 hover:bg-emerald-50">
               <Download className="w-4 h-4" /> Export
             </Button>
           )}
@@ -302,24 +302,24 @@ export default function ReviewPolishTab({ projectId }) {
       </div>
 
       {/* ── Upload section ── */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 space-y-3">
+      <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-4 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-sm font-medium text-slate-300">External Manuscript</p>
-            <p className="text-xs text-slate-500 mt-0.5">Upload a .txt, .md, .docx, or .pdf to review</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>External Manuscript</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Upload a .txt, .md, .docx, or .pdf to review</p>
           </div>
           <ManuscriptUploader onTextLoaded={(text, name) => { setUploadedText(text); setUploadedFileName(name); }} />
         </div>
         {uploadedText && (
-          <div className="rounded-lg border border-slate-600 bg-slate-900/50 p-3">
+          <div className="rounded-lg border border-[var(--nb-border)] bg-white/40 p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+              <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--ink2)' }}>
                 <FileText className="w-3 h-3" />
                 {uploadedFileName || "Uploaded"} · {uploadedText.trim().split(/\s+/).length.toLocaleString()} words
               </span>
-              <button onClick={() => { setUploadedText(""); setUploadedFileName(null); }} className="text-xs text-slate-500 hover:text-slate-300">Clear</button>
+              <button onClick={() => { setUploadedText(""); setUploadedFileName(null); }} className="text-xs hover:underline" style={{ color: 'var(--ink2)' }}>Clear</button>
             </div>
-            <div className="max-h-32 overflow-y-auto text-xs text-slate-500 font-mono whitespace-pre-wrap leading-relaxed">
+            <div className="max-h-32 overflow-y-auto text-xs font-mono whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--ink2)' }}>
               {uploadedText.slice(0, 2000)}{uploadedText.length > 2000 ? "…" : ""}
             </div>
           </div>
@@ -330,9 +330,9 @@ export default function ReviewPolishTab({ projectId }) {
       {generatedChapters.length === 0 && !scanning && !uploadedText && (
         <div className="flex items-center justify-center py-20 text-center">
           <div>
-            <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 font-medium">No generated chapters yet</p>
-            <p className="text-sm text-slate-500 mt-1">Generate chapters in the Write tab first</p>
+            <BookOpen className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--ink2)' }} />
+            <p className="font-medium" style={{ color: 'var(--ink)' }}>No generated chapters yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--ink2)' }}>Generate chapters in the Write tab first</p>
           </div>
         </div>
       )}
@@ -341,8 +341,8 @@ export default function ReviewPolishTab({ projectId }) {
       {scanning && (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <div className="w-16 h-16 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
-          <p className="text-slate-300 font-medium">Scanning {generatedChapters.length} chapters…</p>
-          <p className="text-xs text-slate-500">Checking duplicates, leaks, tense drift, repetition, clichés…</p>
+          <p className="font-medium" style={{ color: 'var(--ink)' }}>Scanning {generatedChapters.length} chapters…</p>
+          <p className="text-xs" style={{ color: 'var(--ink2)' }}>Checking duplicates, leaks, tense drift, repetition, clichés…</p>
         </div>
       )}
 
@@ -351,28 +351,28 @@ export default function ReviewPolishTab({ projectId }) {
         <>
           {/* Score + category summary */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-6 flex flex-col items-center justify-center">
+            <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-6 flex flex-col items-center justify-center">
               <ScoreGauge score={scanResults.score} />
               <div className="mt-3 text-center">
-                <p className="text-xs text-slate-500">{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapters</p>
-                <p className="text-xs text-slate-500 mt-0.5">Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
+                <p className="text-xs" style={{ color: 'var(--ink2)' }}>{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapters</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
               </div>
             </div>
-            <div className="lg:col-span-2 rounded-xl border border-slate-700 bg-slate-800/60 p-5">
-              <h3 className="text-sm font-semibold text-slate-200 mb-3">Scanner Results</h3>
+            <div className="lg:col-span-2 rounded-xl border border-[var(--nb-border)] bg-white/50 p-5">
+              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--ink)' }}>Scanner Results</h3>
               <div className="space-y-1.5">
                 {Object.keys(SCAN_CATEGORIES).map(key => (
                   <CategoryRow key={key} category={key} findings={scanResults.allFindings.filter(f => f.category === key)} />
                 ))}
               </div>
               {leakCount > 0 && (
-                <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                  <p className="text-xs text-red-400 font-medium">🚨 {leakCount} instruction leak{leakCount !== 1 ? "s" : ""} detected — use Fix All or fix individual chapters.</p>
+                <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-xs text-red-700 font-medium">🚨 {leakCount} instruction leak{leakCount !== 1 ? "s" : ""} detected — use Fix All or fix individual chapters.</p>
                 </div>
               )}
               {scanResults.openerRatio > 0.5 && (
-                <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                  <p className="text-xs text-amber-400 font-medium">👁 {Math.round(scanResults.openerRatio * 100)}% of chapters open with sensory atmosphere. Vary with dialogue, action, or thought openers.</p>
+                <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <p className="text-xs text-amber-700 font-medium">👁 {Math.round(scanResults.openerRatio * 100)}% of chapters open with sensory atmosphere. Vary with dialogue, action, or thought openers.</p>
                 </div>
               )}
             </div>
@@ -380,7 +380,7 @@ export default function ReviewPolishTab({ projectId }) {
 
           {/* Chapter cards */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--ink)' }}>
               <BarChart3 className="w-4 h-4" /> Chapter Breakdown
             </h3>
             <div className="space-y-2">
