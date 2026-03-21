@@ -12,7 +12,7 @@ const MODEL_MAP = {
   "gpt-4o":            { provider: "openai",    modelId: "gpt-4o", defaultTemp: 0.4, maxTokensLimit: null },
   "gpt-4o-mini":       { provider: "openai",    modelId: "gpt-4o-mini", defaultTemp: 0.9, maxTokensLimit: null },
   "deepseek":          { provider: "deepseek",  modelId: "deepseek-chat", defaultTemp: 0.72, maxTokensLimit: 8192 },
-  "trinity":           { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.9, maxTokensLimit: null },
+  "trinity":           { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: null },
   "lumimaid":          { provider: "openrouter", modelId: "neversleep/llama-3-lumimaid-70b", defaultTemp: 0.92, maxTokensLimit: null },
 };
 
