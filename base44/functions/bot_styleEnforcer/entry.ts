@@ -804,6 +804,12 @@ function applyCodeFixes(prose) {
   });
   if (coffeeCount > 1) text = afterCoffee.join(PARA_JOIN);
 
+  // SAFETY: if any removal step wiped too much content, revert
+  if (text.length < prose.length * 0.5) {
+    console.warn('applyCodeFixes: content too short after removals, reverting to original');
+    return { text: prose, fixed: 0 };
+  }
+
   // 5. ARCHIVE FRAMING TRIM — keep only first 2 archive paragraphs
   const archiveRx = /\b(folder|archive|brittle paper|yellowed|old paper|dust motes|manila folder|reading room)\b/i;
   const archiveParas = text.split(PARA_SEP);
