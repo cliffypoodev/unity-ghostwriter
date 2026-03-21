@@ -15,72 +15,10 @@ import ReviewPolishTab from "../components/project/ReviewPolishTab";
 import DeleteProjectDialog from "../components/project/DeleteProjectDialog";
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import DiagnosticsPanel from "../components/DiagnosticsPanel";
+import NotebookShell from "../components/project/NotebookShell";
 import { cn } from "@/lib/utils";
 
-const PHASES = [
-  { id: "specify", label: "1. Specify", description: "Define your book" },
-  { id: "generate", label: "2. Generate", description: "Build outline & chapters" },
-  { id: "export", label: "3. Edit & Export", description: "Polish & export" },
-  { id: "review", label: "4. Review & Polish", description: "AI manuscript review" },
-];
-
 const PHASE_ORDER = ["specify", "generate", "export", "review"];
-
-function PhaseTabs({ activePhase, onPhaseChange, projectStatus }) {
-   const setActivePhase = (id) => {
-     onPhaseChange(id);
-     setTimeout(() => {
-       window.scrollTo({ top: 0, behavior: "instant" });
-       document.documentElement.scrollTop = 0;
-       document.body.scrollTop = 0;
-     }, 0);
-   };
-   const getPhaseState = (phaseId) => {
-     const activeIdx = PHASE_ORDER.indexOf(activePhase);
-     const phaseIdx = PHASE_ORDER.indexOf(phaseId);
-     if (phaseId === activePhase) return "active";
-     if (phaseIdx < activeIdx) return "completed";
-     return "idle";
-   };
-
-   return (
-     <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-       <div className="flex items-center gap-0 bg-white border border-slate-200 rounded-2xl p-1 sm:p-1.5 shadow-sm w-fit min-w-full sm:w-auto">
-         {PHASES.map((phase, i) => {
-           const state = getPhaseState(phase.id);
-           return (
-             <div key={phase.id} className="flex items-center gap-0">
-               <button
-                 onClick={() => setActivePhase(phase.id)}
-                 className={cn(
-                   "flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0",
-                   state === "active" && "bg-indigo-600 text-white shadow-md shadow-indigo-200",
-                   state === "completed" && "text-emerald-600 hover:bg-emerald-50",
-                   state === "idle" && "text-slate-500 hover:bg-slate-50"
-                 )}
-               >
-                 {state === "completed" ? (
-                   <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 flex-shrink-0" />
-                 ) : (
-                   <span className={cn(
-                     "w-4 h-4 sm:w-5 sm:h-5 rounded-full text-[10px] sm:text-xs flex items-center justify-center flex-shrink-0 font-bold",
-                     state === "active" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
-                   )}>
-                     {i + 1}
-                   </span>
-                 )}
-                 {phase.label.replace(/^\d+\.\s/, "")}
-               </button>
-               {i < PHASES.length - 1 && (
-                 <div className="w-px h-4 sm:h-5 bg-slate-200 mx-0.5 sm:mx-1 flex-shrink-0" />
-               )}
-             </div>
-           );
-         })}
-       </div>
-     </div>
-   );
- }
 
 export default function ProjectDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -220,37 +158,35 @@ export default function ProjectDetail() {
 
        </div>
 
-       {/* Phase Tabs */}
-       <div className="mb-4 sm:mb-6">
-         <PhaseTabs activePhase={activePhase} onPhaseChange={setActivePhase} projectStatus={project.status} />
-       </div>
-
-      {/* Phase Content — Specify has its own card layout, others use shared wrapper */}
-      {activePhase === "specify" && (
-        <AppErrorBoundary>
-          <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
-        </AppErrorBoundary>
-      )}
-      <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm", activePhase === "export" ? "overflow-hidden" : "", activePhase === "specify" ? "hidden" : "")}>
-        
-        {activePhase === "generate" && (
-          <div className="p-3 sm:p-6">
-            <AppErrorBoundary>
-              <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
-            </AppErrorBoundary>
-          </div>
-        )}
-        {activePhase === "export" && (
-          <AppErrorBoundary>
-            <EditExportTab projectId={projectId} />
-          </AppErrorBoundary>
-        )}
-        {activePhase === "review" && (
-          <AppErrorBoundary>
-            <ReviewPolishTab projectId={projectId} />
-          </AppErrorBoundary>
-        )}
-      </div>
+       {/* Notebook Shell — tabs + body */}
+       <NotebookShell activePhase={activePhase} onPhaseChange={setActivePhase}>
+         {activePhase === "specify" && (
+           <AppErrorBoundary>
+             <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
+           </AppErrorBoundary>
+         )}
+         {activePhase === "generate" && (
+           <div className="notebook-phase-padded">
+             <AppErrorBoundary>
+               <GenerateTab projectId={projectId} onProceed={() => setActivePhase("export")} />
+             </AppErrorBoundary>
+           </div>
+         )}
+         {activePhase === "export" && (
+           <div className="notebook-phase-flush">
+             <AppErrorBoundary>
+               <EditExportTab projectId={projectId} />
+             </AppErrorBoundary>
+           </div>
+         )}
+         {activePhase === "review" && (
+           <div className="notebook-phase-padded">
+             <AppErrorBoundary>
+               <ReviewPolishTab projectId={projectId} />
+             </AppErrorBoundary>
+           </div>
+         )}
+       </NotebookShell>
 
       <DiagnosticsPanel />
     </div>
