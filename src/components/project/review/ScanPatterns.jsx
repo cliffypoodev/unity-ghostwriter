@@ -280,6 +280,86 @@ function scanRepetitivePadding(text, chapterNum) {
   return findings;
 }
 
+// ═══ AI DNA SCANNERS ═══
+
+var AI_ADJECTIVES = [
+  'shimmering', 'luminous', 'tapestry', 'intricate', 'meticulously',
+  'insatiable', 'palpable', 'unmistakable', 'undeniable', 'relentless',
+  'sprawling', 'labyrinthine', 'opulent', 'resplendent', 'ethereal',
+  'visceral', 'cacophony', 'crescendo', 'juxtaposition', 'myriad',
+  'plethora', 'testament', 'harbinger', 'paradigm', 'dichotomy'
+];
+
+function scanAiAdjectives(text, chapterNum) {
+  var findings = [];
+  for (var i = 0; i < AI_ADJECTIVES.length; i++) {
+    var rx = new RegExp('\\b' + AI_ADJECTIVES[i] + '\\b', 'gi');
+    var m = text.match(rx);
+    if (m && m.length > 1) {
+      findings.push({
+        category: "ai_adjective",
+        label: "\"" + AI_ADJECTIVES[i] + "\" x" + m.length + " (max 1/chapter)",
+        count: m.length - 1,
+        chapter: chapterNum,
+      });
+    }
+  }
+  return findings;
+}
+
+function scanPhilosophicalEndings(text, chapterNum) {
+  var findings = [];
+  var paras = text.split(/\n\n+/);
+  if (paras.length < 2) return findings;
+  var last = paras[paras.length - 1];
+  var platitudes = [
+    /\bThe final,?\s*(unsettling\s*)?truth\s+(is|was)\s+that\b/i,
+    /\bIn the end,?\s+what\s+(mattered|remained)\s+was\b/i,
+    /\bPerhaps\s+the\s+real\s+(lesson|truth|story)\s+was\b/i,
+    /\bThe\s+past\s+is\s+never\s+truly\s+past\b/i,
+    /\bWhat\s+remains\s+is\s+the\s+(inescapable|uncomfortable|unsettling)\s+truth\b/i,
+    /\bThe\s+legacy\s+of\s+[^.]+\s+endures\b/i,
+    /\bHistory\s+would\s+(ultimately\s+)?judge\b/i,
+    /\bThe\s+echoes\s+of\s+[^.]+\s+continue\s+to\s+reverberate\b/i,
+    /\bAnd\s+so\s+the\s+(cycle|story|pattern)\s+continues\b/i,
+  ];
+  for (var i = 0; i < platitudes.length; i++) {
+    if (platitudes[i].test(last)) {
+      findings.push({
+        category: "philosophical_ending",
+        label: "Chapter ends with philosophical platitude: \"" + last.trim().slice(0, 80) + "...\"",
+        count: 1,
+        chapter: chapterNum,
+      });
+      break;
+    }
+  }
+  return findings;
+}
+
+function scanTheNounOpener(text, chapterNum) {
+  var findings = [];
+  var paras = text.split(/\n\n+/);
+  for (var i = 0; i < paras.length; i++) {
+    var sents = paras[i].split(/(?<=[.!?])\s+/);
+    var theCount = 0;
+    for (var j = 0; j < sents.length; j++) {
+      if (/^The\s+[A-Z][a-z]+\s+(was|were|had|could|would|seemed|appeared|began|continued|remained|stood|sat|lay|hung|felt|looked|moved|turned|came|went|made|took|gave|got|ran|saw|knew|found|thought)\b/.test(sents[j].trim())) {
+        theCount++;
+      }
+    }
+    if (theCount >= 4) {
+      findings.push({
+        category: "the_noun_opener",
+        label: theCount + " sentences start with \"The [Noun] [Verb]\" in paragraph " + (i + 1),
+        count: theCount - 2,
+        chapter: chapterNum,
+      });
+    }
+  }
+  return findings;
+}
+
 export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   var findings = [];
   var clean = stripDialogue(chapterText);
