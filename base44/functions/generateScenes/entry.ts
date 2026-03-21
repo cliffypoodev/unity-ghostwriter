@@ -74,6 +74,20 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     return data.choices[0].message.content;
   }
 
+  if (provider === "openrouter") {
+    const orKey = Deno.env.get('OPENROUTER_API_KEY');
+    if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' },
+      body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error('OpenRouter error: ' + (data.error?.message || response.status));
+    if (!data.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
+    return data.choices[0].message.content;
+  }
+
   throw new Error('Unknown provider: ' + provider);
 }
 
