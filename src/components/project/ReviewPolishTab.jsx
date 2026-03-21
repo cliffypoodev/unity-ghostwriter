@@ -164,11 +164,18 @@ export default function ReviewPolishTab({ projectId }) {
   const handleFixAll = async () => {
     if (!scanResults) return;
     setFixingAll(true);
-    const chaptersWithIssues = scanResults.chapterData.filter(cd => cd.findings.length > 0);
-    const total = chaptersWithIssues.length;
 
-    for (let i = 0; i < chaptersWithIssues.length; i++) {
-      const cd = chaptersWithIssues[i];
+    // Process ALL chapters that have per-chapter findings OR are referenced by manuscript-wide findings
+    const manuscriptFindings = scanResults.allFindings.filter(f => f.chapter === 0);
+    const allChapters = scanResults.chapterData;
+    // Every chapter gets processed if there are any issues at all (manuscript-wide findings affect every chapter)
+    const chaptersToFix = manuscriptFindings.length > 0
+      ? allChapters
+      : allChapters.filter(cd => cd.findings.length > 0);
+    const total = chaptersToFix.length;
+
+    for (let i = 0; i < chaptersToFix.length; i++) {
+      const cd = chaptersToFix[i];
       const ch = generatedChapters.find(c => c.chapter_number === cd.number);
       if (!ch) continue;
 
@@ -176,8 +183,6 @@ export default function ReviewPolishTab({ projectId }) {
 
       try {
         // ── PASS 1: Backend bot_styleEnforcer ──
-        // Handles: banned phrases, interiority word caps (synonym replacement),
-        // duplicate paragraphs, instruction leaks, frequency caps, etc.
         const response = await base44.functions.invoke("bot_styleEnforcer", {
           project_id: projectId,
           chapter_id: ch.id,
@@ -192,8 +197,6 @@ export default function ReviewPolishTab({ projectId }) {
         if (!content || content.trim().length < 100) continue;
 
         // ── PASS 2: Frontend autoFixChapter ──
-        // Handles: transition crutches, scaffolding, hedging, recap bloat,
-        // generic conclusions, repeated openers, coffee scenes, archive framing
         setFixProgress(`Pass 2/3: Ch ${cd.number} (${i + 1}/${total}) — regex cleanup…`);
         const fixedContent = autoFixChapter(content);
 
@@ -216,8 +219,7 @@ export default function ReviewPolishTab({ projectId }) {
         const midScan = scanChapter(content, cd.number, tense, targetWords);
 
         // ── PASS 3: AI Targeted Rewrite ──
-        // Handles: interiority repetition (contextual synonym), sensory opener
-        // monotony (rewrite opening), tense drift (fix verbs in context)
+        // Combine per-chapter findings with manuscript-wide findings for this chapter
         const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending', 'fiction_cliche', 'recap_bloat', 'formulaic_intro', 'car_opening_cliche', 'simile_overload', 'narrator_repetition', 'participle_chain', 'ai_sensory_default', 'sentence_rhythm'];
         const aiFindings = midScan.findings.filter(f => aiFixableCategories.includes(f.category));
 
