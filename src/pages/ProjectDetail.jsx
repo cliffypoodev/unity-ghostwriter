@@ -190,11 +190,11 @@ export default function ProjectDetail() {
            </AppErrorBoundary>
          )}
          {activePhase === "review" && (
-           <div className="notebook-phase-padded">
-             <AppErrorBoundary>
+           <AppErrorBoundary>
+             <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px 100px' }}>
                <ReviewPolishTab projectId={projectId} />
-             </AppErrorBoundary>
-           </div>
+             </div>
+           </AppErrorBoundary>
          )}
          {activePhase === "cover" && (
            <div className="notebook-phase-flush">
