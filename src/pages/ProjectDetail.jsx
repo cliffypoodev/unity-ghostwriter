@@ -6,7 +6,8 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Loader2, Pencil, Check, X, CheckCircle2 } from "lucide-react";
-import SpecificationTab from "../components/project/SpecificationTab";
+import SetupTab from "../components/project/SetupTab";
+import BibleTab from "../components/project/BibleTab";
 import GenerateTab from "../components/project/GenerateTab";
 import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
@@ -20,7 +21,7 @@ import DiagnosticsPanel from "../components/DiagnosticsPanel";
 import NotebookShell from "../components/project/NotebookShell";
 import { cn } from "@/lib/utils";
 
-const PHASE_ORDER = ["specify", "generate", "export", "review", "cover", "preview"];
+const PHASE_ORDER = ["setup", "bible", "generate", "export", "review", "cover", "preview"];
 
 export default function ProjectDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -33,7 +34,7 @@ export default function ProjectDetail() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activePhase, setActivePhase] = useState("specify");
+  const [activePhase, setActivePhase] = useState("setup");
 
   // Scroll to top on phase change and on initial mount
   useEffect(() => { 
@@ -162,9 +163,14 @@ export default function ProjectDetail() {
 
        {/* Notebook Shell — tabs + body */}
        <NotebookShell activePhase={activePhase} onPhaseChange={setActivePhase}>
-         {activePhase === "specify" && (
+         {activePhase === "setup" && (
            <AppErrorBoundary>
-             <SpecificationTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
+             <SetupTab projectId={projectId} onProceed={() => setActivePhase("bible")} />
+           </AppErrorBoundary>
+         )}
+         {activePhase === "bible" && (
+           <AppErrorBoundary>
+             <BibleTab projectId={projectId} onProceed={() => setActivePhase("generate")} />
            </AppErrorBoundary>
          )}
          {activePhase === "generate" && (

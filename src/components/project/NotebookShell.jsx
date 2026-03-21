@@ -4,15 +4,16 @@ import { CheckCircle2, Settings } from "lucide-react";
 import SettingsModal from "./SettingsModal";
 
 const PHASES = [
-  { id: "specify", label: "Specify", icon: "1" },
-  { id: "generate", label: "Generate", icon: "2" },
-  { id: "export", label: "Edit & Export", icon: "3" },
-  { id: "review", label: "Review", icon: "4" },
-  { id: "cover", label: "Cover", icon: "5" },
-  { id: "preview", label: "Preview", icon: "6" },
+  { id: "setup", label: "Setup", icon: "1" },
+  { id: "bible", label: "Bible", icon: "2" },
+  { id: "generate", label: "Generate", icon: "3" },
+  { id: "export", label: "Edit & Export", icon: "4" },
+  { id: "review", label: "Review", icon: "5" },
+  { id: "cover", label: "Cover", icon: "6" },
+  { id: "preview", label: "Preview", icon: "7" },
 ];
 
-const PHASE_ORDER = ["specify", "generate", "export", "review", "cover", "preview"];
+const PHASE_ORDER = ["setup", "bible", "generate", "export", "review", "cover", "preview"];
 
 function NotebookTab({ phase, index, state, onClick }) {
   return (
