@@ -201,7 +201,7 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
               <Button size="sm" variant="ghost" className="h-6 text-xs text-slate-500 px-2" onClick={() => setEditingPrompt(e => !e)}><Pencil className="w-3 h-3 mr-1" />{editingPrompt ? "Cancel" : "Edit"}</Button>
             </div>
             {editingPrompt ? (
-              <div className="space-y-2"><Textarea className="text-xs font-mono" rows={4} value={promptValue} onChange={e => setPromptValue(e.target.value)} /><Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" onClick={savePrompt}>Save</Button></div>
+              <div className="space-y-2"><Textarea className="text-xs font-mono" rows={4} value={promptValue} onChange={e => setPromptValue(e.target.value)} /><Button size="sm" className="bg-[#5b50f0] hover:bg-[#4a40d0] h-7 text-xs" onClick={savePrompt}>Save</Button></div>
             ) : <p className="text-sm text-slate-600 leading-relaxed">{chapter.prompt}</p>}
           </div>
           {(content || isStreaming) && (
