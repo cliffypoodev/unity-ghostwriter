@@ -220,8 +220,12 @@ export default function ReviewPolishTab({ projectId }) {
 
         // ── PASS 3: AI Targeted Rewrite ──
         // Combine per-chapter findings with manuscript-wide findings for this chapter
-        const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending', 'fiction_cliche', 'recap_bloat', 'formulaic_intro', 'car_opening_cliche', 'simile_overload', 'narrator_repetition', 'participle_chain', 'ai_sensory_default', 'sentence_rhythm'];
-        const aiFindings = midScan.findings.filter(f => aiFixableCategories.includes(f.category));
+        const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending', 'fiction_cliche', 'recap_bloat', 'formulaic_intro', 'car_opening_cliche', 'simile_overload', 'narrator_repetition', 'participle_chain', 'ai_sensory_default', 'sentence_rhythm', 'concept_reexplanation'];
+        const aiFindings = [
+          ...midScan.findings.filter(f => aiFixableCategories.includes(f.category)),
+          // Include manuscript-wide findings that the AI can fix per-chapter
+          ...manuscriptFindings.filter(f => aiFixableCategories.includes(f.category)),
+        ];
 
         if (aiFindings.length > 0) {
           setFixProgress(`Pass 3/3: Ch ${cd.number} (${i + 1}/${total}) — AI rewrite (${aiFindings.length} issues)…`);
