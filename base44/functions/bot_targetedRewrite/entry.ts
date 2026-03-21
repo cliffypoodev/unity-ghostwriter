@@ -441,22 +441,31 @@ CRITICAL Rules:
     const origLen = (segments[idx] || '').length;
     if (origLen === 0) continue;
 
-    // For segments we truncated, do find-replace instead of full replacement
-    if (origLen > 4000 && text.length < origLen * 0.5) {
-      // The AI only rewrote the truncated portion — apply as find-replace
-      console.log(`Seg ${idx}: AI returned ${text.length} chars for ${origLen} char segment — applying as targeted replacement`);
-      const original = segments[idx];
-      // Try to match and replace just the beginning portion that was sent
-      const originalStart = original.slice(0, 4000);
-      if (text.length > 100) {
-        // Apply word-level replacements from AI output to original
+    // For segments we truncated (>4000 chars), accept the AI's rewrite of the truncated portion
+    if (origLen > 4000) {
+      const truncLen = 4000;
+      if (text.length >= truncLen * 0.4 && text.length <= truncLen * 2.0) {
+        // AI rewrote the truncated portion — splice it back with the remainder
+        const original = segments[idx];
+        const remainder = original.slice(4000);
+        segments[idx] = text + (remainder ? '\n' + remainder : '');
+        fixedSegs[idx] = true;
+        console.log(`Seg ${idx}: spliced AI rewrite (${text.length} chars) with remainder (${remainder.length} chars)`);
+      } else if (text.length > 100) {
+        // Fallback: apply word-level targeted fixes
+        const original = segments[idx];
+        const originalStart = original.slice(0, 4000);
         segments[idx] = applyTargetedFixes(original, originalStart, text, tasksBySeg[idx]);
         fixedSegs[idx] = true;
+        console.log(`Seg ${idx}: applied targeted word-level fixes`);
+      } else {
+        console.warn(`Rejected rewrite for seg ${idx}: ${text.length} chars too short for ${origLen} char segment`);
       }
-    } else if (text.length >= origLen * 0.5 && text.length <= origLen * 2.0) {
+    } else if (text.length >= origLen * 0.35 && text.length <= origLen * 2.5) {
+      // Normal segment — accept with wider tolerance (35%-250% of original)
       fixedSegs[idx] = text;
     } else {
-      console.warn(`Rejected rewrite for seg ${idx}: ${text.length} chars vs original ${origLen} chars`);
+      console.warn(`Rejected rewrite for seg ${idx}: ${text.length} chars vs original ${origLen} chars (ratio: ${(text.length/origLen).toFixed(2)})`);
     }
   }
 
