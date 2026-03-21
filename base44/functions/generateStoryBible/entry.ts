@@ -340,8 +340,21 @@ Deno.serve(async (req) => {
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
     console.log('v2: generateStoryBible calling Gemini 2.5 Flash, type=' + book_type);
-    const raw = await callGemini(systemPrompt, userMessage);
-    console.log('v2: got response, ' + raw.length + ' chars');
+    let raw;
+    let usedFallback = false;
+
+    try {
+      raw = await callGemini(systemPrompt, userMessage);
+    } catch (geminiErr) {
+      if (geminiErr.message?.startsWith('CONTENT_BLOCKED')) {
+        console.warn('v2: Gemini blocked content, falling back to Claude');
+        raw = await callClaude(systemPrompt, userMessage);
+        usedFallback = true;
+      } else {
+        throw geminiErr;
+      }
+    }
+    console.log('v2: got response, ' + raw.length + ' chars' + (usedFallback ? ' (via Claude fallback)' : ''));
 
     let storyBible;
     try {
@@ -351,7 +364,16 @@ Deno.serve(async (req) => {
       console.warn('v2: first attempt parse failed, retrying with strict prompt');
       const retryPrompt = 'You are a JSON generator. Output ONLY valid, parseable JSON. Escape all double quotes inside string values with backslash. No markdown, no commentary, no code fences.';
       const retryMessage = 'Take this broken JSON and return it as valid JSON. Fix any unescaped quotes, trailing commas, or malformed strings. Return the corrected JSON object only:\n\n' + raw;
-      const retryRaw = await callGemini(retryPrompt, retryMessage);
+      let retryRaw;
+      try {
+        retryRaw = usedFallback ? await callClaude(retryPrompt, retryMessage) : await callGemini(retryPrompt, retryMessage);
+      } catch (retryGeminiErr) {
+        if (retryGeminiErr.message?.startsWith('CONTENT_BLOCKED')) {
+          retryRaw = await callClaude(retryPrompt, retryMessage);
+        } else {
+          throw retryGeminiErr;
+        }
+      }
       console.log('v2: retry response, ' + retryRaw.length + ' chars');
       storyBible = parseJSON(retryRaw);
       console.log('v2: retry parsed successfully');
