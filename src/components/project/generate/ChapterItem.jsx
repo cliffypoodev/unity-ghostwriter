@@ -113,8 +113,8 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
   const isPendingOrError = (chapter.status === "error" && !hasContentDespiteError) || chapter.status === "pending" || isGeneratedButEmpty;
 
   return (
-    <div className={cn("rounded-[10px] overflow-hidden bg-white mb-2.5 border",
-      isGeneratedButEmpty ? "border-amber-300 bg-[#fffbf0]" : hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" : chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" : isWriting ? "border-blue-200" : isComplete ? "border-green-200 bg-[#f9fffe]" : "border-gray-200"
+    <div className={cn("rounded-[14px] overflow-hidden bg-white mb-2.5 border shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-shadow",
+      isGeneratedButEmpty ? "border-amber-300 bg-[#fffbf0]" : hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" : chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" : isWriting ? "border-blue-200" : isComplete ? "border-green-200 bg-[#f9fffe]" : "border-[#e8e8ec]"
     )}>
       {/* ROW 1 — Status */}
       <div className={cn("flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-bold tracking-[0.8px] uppercase border-b border-gray-100", st.row)}>
