@@ -1278,10 +1278,12 @@ async function runProseWriter(base44, projectId, chapterId) {
   const callType = isExplicit ? 'explicit_scene' : 'sfw_prose';
   const modelKey = resolveModel(callType, ctx.spec);
 
-  console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} using ${modelKey} (${callType})`);
+  const config = MODEL_MAP[modelKey];
+  console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} using ${modelKey} (${callType}) | provider=${config?.provider} | modelId=${config?.modelId} | maxTokensLimit=${config?.maxTokensLimit}`);
 
   // Build prompt
   const { systemPrompt, userMessage, wordTarget } = buildProsePrompt(ctx, chCtx);
+  console.log(`ProseWriter: wordTarget=${wordTarget} (target_length=${ctx.spec?.target_length}) | systemPrompt=${systemPrompt.length} chars | userMessage=${userMessage.length} chars`);
 
   // Generate prose — use AbortController for clean timeout within Deno Deploy limits
   let rawProse;
