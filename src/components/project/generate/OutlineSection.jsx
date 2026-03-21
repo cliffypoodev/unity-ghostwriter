@@ -53,7 +53,7 @@ function BookMetadataCard({ metadataRaw }) {
   const meta = safeParse(metadataRaw);
   if (!meta) return null;
   return (
-    <CollapsibleCard title="Book Metadata — Publishing Details" icon={BookOpen} defaultOpen={false}>
+    <CollapsibleCard title="Book Metadata — Publishing Details" emoji="📖" defaultOpen={false}>
       <div className="space-y-4">
         {meta.title && <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Title</p><p className="font-bold text-slate-900 leading-tight" style={{ fontSize: "18px" }}>{meta.title}</p></div>}
         {meta.subtitle && <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Subtitle</p><p className="text-sm text-slate-700 italic">{meta.subtitle}</p></div>}
