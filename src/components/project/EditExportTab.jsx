@@ -636,6 +636,7 @@ export default function EditExportTab({ projectId }) {
     queryKey: ["chapters", projectId],
     queryFn: () => base44.entities.Chapter.filter({ project_id: projectId }, "chapter_number"),
     enabled: !!projectId,
+    refetchOnMount: "always",
   });
   const { data: specs = [] } = useQuery({
     queryKey: ["spec", projectId],
