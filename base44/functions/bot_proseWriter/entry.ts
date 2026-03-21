@@ -1374,11 +1374,11 @@ async function runProseWriter(base44, projectId, chapterId) {
   }
 
   // ═══ SHORT OUTPUT CONTINUATION LOOP ═══
-  // If model returns less than 80% of target, ask it to continue
-  // For large targets (5000+), allow up to 2 continuations since models often stop at ~2500
-  const continuationThreshold = Math.round(wordTarget * 0.8);
+  // If model returns less than 90% of target, ask it to continue
+  // Scale max continuations by target size: 1 for short, 2 for medium, 3 for long/epic
+  const continuationThreshold = Math.round(wordTarget * 0.9);
   let currentWords = rawProse ? rawProse.trim().split(/\s+/).length : 0;
-  const maxContinuations = wordTarget >= 5000 ? 2 : 1;
+  const maxContinuations = wordTarget >= 6000 ? 3 : wordTarget >= 3500 ? 2 : 1;
   let continuationCount = 0;
 
   while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 110000) {
