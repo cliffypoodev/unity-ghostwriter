@@ -605,6 +605,39 @@ function scanAiSensoryDefaults(text, chapterNum) {
   return findings;
 }
 
+function scanSentenceRhythm(text, chapterNum) {
+  var findings = [];
+  var clean = stripDialogue(text);
+  var sents = clean.split(/(?<=[.!?])\s+/).filter(function(s) { return s.trim().length > 10; });
+  if (sents.length < 20) return findings;
+  
+  // Check for runs of 5+ consecutive sentences with similar word counts (within ±3 words)
+  var monotoneRuns = 0;
+  var longestRun = 0;
+  var currentRun = 1;
+  for (var i = 1; i < sents.length; i++) {
+    var prevLen = sents[i - 1].trim().split(/\s+/).length;
+    var currLen = sents[i].trim().split(/\s+/).length;
+    if (Math.abs(prevLen - currLen) <= 3) {
+      currentRun++;
+    } else {
+      if (currentRun >= 5) { monotoneRuns++; longestRun = Math.max(longestRun, currentRun); }
+      currentRun = 1;
+    }
+  }
+  if (currentRun >= 5) { monotoneRuns++; longestRun = Math.max(longestRun, currentRun); }
+  
+  if (monotoneRuns >= 2) {
+    findings.push({
+      category: "sentence_rhythm",
+      label: monotoneRuns + " monotone runs (5+ consecutive sentences of similar length, longest: " + longestRun + ") — vary sentence length",
+      count: monotoneRuns,
+      chapter: chapterNum,
+    });
+  }
+  return findings;
+}
+
 // ═══ MANUSCRIPT-WIDE: Concept re-explanation ═══
 // Called from ReviewPolishTab with all chapter texts
 export function scanConceptReexplanation(chapterTexts) {
