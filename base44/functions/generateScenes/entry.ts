@@ -169,8 +169,10 @@ async function parseField(field, fieldUrl) {
 const WORDS_PER_CHAPTER = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
 
 function getSceneCount(targetLength) {
-  const base = (targetLength === 'long' || targetLength === 'epic') ? 4 : 3;
-  return base + Math.round(Math.random()); // 3-4 for short/medium, 4-5 for long/epic
+  // short: 2-4, medium: 4-6, long: 6-8, epic: 8-12
+  const ranges = { short: [2, 4], medium: [4, 6], long: [6, 8], epic: [8, 12] };
+  const [min, max] = ranges[targetLength] || ranges.medium;
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 // ── Phase Continuity: Settings Propagation ──
@@ -348,8 +350,10 @@ Deno.serve(async (req) => {
       };
 
       // Determine section count based on target length
-      const sectionCounts = { short: 4, medium: 5, long: 6, epic: 8 };
-      const sectionCount = sectionCounts[targetLength] || 5;
+      // short: 2-4, medium: 4-6, long: 6-8, epic: 8-12
+      const sectionRanges = { short: [2, 4], medium: [4, 6], long: [6, 8], epic: [8, 12] };
+      const [secMin, secMax] = sectionRanges[targetLength] || sectionRanges.medium;
+      const sectionCount = secMin + Math.floor(Math.random() * (secMax - secMin + 1));
       const wordPerSection = Math.round(wordsPerChapter / sectionCount);
 
       // Build full outline summary for cross-reference
