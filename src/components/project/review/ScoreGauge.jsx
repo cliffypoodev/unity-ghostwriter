@@ -11,7 +11,10 @@ export default function ScoreGauge({ score }) {
     <div className="flex flex-col items-center gap-2">
       <svg width="140" height="140" viewBox="0 0 140 140">
         <circle cx="70" cy="70" r={radius} fill="none" stroke="#e8e8ec" strokeWidth="10" />
-...
+        <circle cx="70" cy="70" r={radius} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={circumference} strokeDashoffset={circumference - filled}
+          strokeLinecap="round" transform="rotate(-90 70 70)" />
+        <text x="70" y="68" textAnchor="middle" fontSize="28" fontWeight="bold" fill="#18171f">{score}</text>
         <text x="70" y="82" textAnchor="middle" fontSize="11" fill="#9997b0">/ 100</text>
       </svg>
       <div className="flex items-center gap-1.5">

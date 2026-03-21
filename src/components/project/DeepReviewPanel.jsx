@@ -21,29 +21,29 @@ function ViolationItem({ v, index, onDismiss, onFix, fixing }) {
   if (dismissed) return null;
 
   return (
-    <div className={cn("rounded-lg border p-3", v.severity === "critical" ? "border-red-200 bg-red-50" : "border-[var(--nb-border)] bg-white/40")}>
+    <div className={cn("rounded-lg border p-3", v.severity === "critical" ? "border-red-200 bg-red-50" : "border-[#e8e8ec] bg-[#fafafa]")}>
       <div className="flex items-start gap-2 cursor-pointer" onClick={() => setOpen(!open)}>
         <Badge className={cn("text-[10px] border shrink-0 mt-0.5", severityBadge(v.severity))}>
           {v.severity || "info"}
         </Badge>
         <div className="flex-1 min-w-0">
-          <p className="text-sm" style={{ color: 'var(--ink)' }}>{v.description || v.label || "Unnamed issue"}</p>
-          {v.character && <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Character: {v.character}</p>}
+          <p className="text-sm text-[#18171f]">{v.description || v.label || "Unnamed issue"}</p>
+          {v.character && <p className="text-xs mt-0.5 text-[#9997b0]">Character: {v.character}</p>}
         </div>
-        {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--ink2)' }} /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--ink2)' }} />}
+        {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0 text-[#9997b0]" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0 text-[#9997b0]" />}
       </div>
       {open && (
-        <div className="mt-2 pt-2 border-t space-y-2" style={{ borderColor: 'var(--nb-border)' }}>
+        <div className="mt-2 pt-2 border-t border-[#e8e8ec] space-y-2">
           {v.location && (
             <div>
-              <span className="text-[10px] uppercase font-semibold" style={{ color: 'var(--ink2)' }}>Location</span>
-              <p className="text-xs italic mt-0.5" style={{ color: 'var(--ink2)' }}>"{v.location}"</p>
+              <span className="text-[10px] uppercase font-semibold text-[#9997b0]">Location</span>
+              <p className="text-xs italic mt-0.5 text-[#9997b0]">"{v.location}"</p>
             </div>
           )}
           {v.suggested_fix && (
             <div>
-              <span className="text-[10px] uppercase font-semibold" style={{ color: 'var(--ink2)' }}>Suggestion</span>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--ink)' }}>{v.suggested_fix}</p>
+              <span className="text-[10px] uppercase font-semibold text-[#9997b0]">Suggestion</span>
+              <p className="text-xs mt-0.5 text-[#18171f]">{v.suggested_fix}</p>
             </div>
           )}
           <div className="flex gap-2 pt-1">
@@ -57,7 +57,7 @@ function ViolationItem({ v, index, onDismiss, onFix, fixing }) {
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setDismissed(true); onDismiss && onDismiss(v); }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 hover:bg-slate-200 transition-colors" style={{ color: 'var(--ink2)' }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 hover:bg-slate-200 text-[#9997b0] transition-colors"
             >
               Dismiss — Intentional
             </button>
@@ -180,11 +180,11 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
   const cleanCount = results ? results.filter(r => r.violations.length === 0 && !r.error).length : 0;
 
   return (
-    <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-5 space-y-4">
+    <div className="p1-card"><div className="p1-card-body space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4 text-[#5b50f0]" />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Deep Continuity Review</h3>
+          <h3 className="text-sm font-semibold text-[#18171f]">Deep Continuity Review</h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -198,7 +198,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
         </div>
       </div>
 
-      <p className="text-xs" style={{ color: 'var(--ink2)' }}>
+      <p className="text-xs text-[#9997b0]">
         Checks every chapter against the Story Bible for character contradictions, timeline violations, location errors, and name inconsistencies.
       </p>
 
@@ -225,7 +225,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
       {reviewing && (
         <div className="flex items-center gap-3 py-4">
           <Loader2 className="w-4 h-4 animate-spin text-[#5b50f0]" />
-          <p className="text-sm" style={{ color: 'var(--ink)' }}>{reviewProgress}</p>
+          <p className="text-sm text-[#18171f]">{reviewProgress}</p>
         </div>
       )}
 
@@ -235,17 +235,17 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
           <div className="flex gap-3 flex-wrap">
             <div className={cn("px-3 py-2 rounded-lg text-center", totalViolations === 0 ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200")}>
               <p className={cn("text-lg font-bold", totalViolations === 0 ? "text-emerald-700" : "text-red-600")}>{totalViolations}</p>
-              <p className="text-[10px] uppercase" style={{ color: 'var(--ink2)' }}>Issues</p>
+              <p className="text-[10px] uppercase text-[#9997b0]">Issues</p>
             </div>
             {criticalCount > 0 && (
               <div className="px-3 py-2 rounded-lg text-center bg-red-50 border border-red-200">
                 <p className="text-lg font-bold text-red-600">{criticalCount}</p>
-                <p className="text-[10px] uppercase" style={{ color: 'var(--ink2)' }}>Critical</p>
+                <p className="text-[10px] uppercase text-[#9997b0]">Critical</p>
               </div>
             )}
             <div className="px-3 py-2 rounded-lg text-center bg-emerald-50 border border-emerald-200">
               <p className="text-lg font-bold text-emerald-700">{cleanCount}</p>
-              <p className="text-[10px] uppercase" style={{ color: 'var(--ink2)' }}>Clean</p>
+              <p className="text-[10px] uppercase text-[#9997b0]">Clean</p>
             </div>
           </div>
 
@@ -258,7 +258,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
               "border-emerald-200 bg-emerald-50"
             )}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Ch {r.chapterNumber}: {r.title || ""}</span>
+                <span className="text-sm font-medium text-[#18171f]">Ch {r.chapterNumber}: {r.title || ""}</span>
                 {r.error ? (
                   <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">Error</Badge>
                 ) : r.violations.length === 0 ? (
