@@ -20,8 +20,9 @@ const MODEL_MAP = {
   "gpt-4-turbo":       { provider: "openai",    modelId: "gpt-4-turbo",              defaultTemp: 0.7,  maxTokensLimit: 4096 },
   "gemini-pro":        { provider: "google",    modelId: "gemini-2.5-pro", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-flash":      { provider: "google",    modelId: "gemini-2.0-flash-001",     defaultTemp: 0.72, maxTokensLimit: null },
-  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 8192 },
-  "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 32768 },
+  "trinity":           { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: 32768 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
@@ -47,7 +48,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     return d.candidates[0].content.parts[0].text;
   }
   if (provider === "deepseek") {
-    const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
+    const r = await fetch('https://api.deepseek.com/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + Deno.env.get('DEEPSEEK_API_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }) });
     const d = await r.json(); if (!r.ok) throw new Error('DeepSeek: ' + (d.error?.message || r.status)); return d.choices[0].message.content;
   }
   if (provider === "openrouter") {
@@ -677,7 +678,7 @@ function getEndingType(chNum) {
 // PROMPT BUILDERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const WORDS_PER_CHAPTER = { short: 1200, medium: 1600, long: 2200, epic: 3000 };
+const WORDS_PER_CHAPTER = { short: 2000, medium: 3500, long: 6000, epic: 8500 };
 
 function buildContextHeader(spec) {
   const bs = spec?.beat_style || spec?.tone_style || '';
