@@ -96,10 +96,25 @@ export default function ReviewPolishTab({ projectId }) {
       });
     }
 
+    // Manuscript-wide concept re-explanation check (v14)
+    const chapterTextsForConceptScan = chapterData.map(cd => ({
+      number: cd.number,
+      text: '' // will be filled below
+    }));
+    // Build chapter text map for concept scan
+    const chapterContentMap = {};
+    for (const ch of generatedChapters) {
+      const ct = await resolveChapterContent(ch);
+      chapterContentMap[ch.chapter_number] = ct || '';
+    }
+    for (const entry of chapterTextsForConceptScan) {
+      entry.text = chapterContentMap[entry.number] || '';
+    }
+    const conceptFindings = scanConceptReexplanation(chapterTextsForConceptScan);
+    allFindings.push(...conceptFindings);
+
     // Manuscript-wide interiority checks
-    const fullText = await Promise.all(
-      generatedChapters.map(ch => resolveChapterContent(ch))
-    ).then(texts => texts.join("\n\n"));
+    const fullText = Object.values(chapterContentMap).join("\n\n");
 
     for (const [rx, label, manuscriptCap] of PATTERNS.interiority_repetition) {
       const m = fullText.match(rx);
