@@ -200,6 +200,106 @@ function extractIssueContext(prose, findings) {
         }
       }
     }
+
+    // v14: Formulaic character intros
+    if (f.category === 'formulaic_intro') {
+      const introRx = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s+a\s+(?:man|woman|figure|person)\s+(?:of|with|whose)\s+\w+\s+\w+/g;
+      for (let i = 0; i < segments.length; i++) {
+        introRx.lastIndex = 0;
+        if (introRx.test(segments[i])) {
+          tasks.push({
+            type: 'formulaic_intro',
+            segIndex: i,
+            instruction: 'Rewrite the character introduction. Instead of "[Name], a man/woman of [adj] presence...", introduce them through action, dialogue, or a distinctive detail. Show, don\'t label.',
+          });
+        }
+      }
+    }
+
+    // v14: Car opening cliche
+    if (f.category === 'car_opening_cliche') {
+      tasks.push({
+        type: 'car_opening_cliche',
+        segIndex: 0,
+        instruction: 'Rewrite this opening. Do NOT start with a vehicle arriving/purring/gliding. Start with dialogue, interior thought, a sensory detail from inside the location, or an action already in progress.',
+      });
+    }
+
+    // v14: Simile/metaphor overload
+    if (f.category === 'simile_overload') {
+      for (let i = 0; i < segments.length; i++) {
+        const likes = (segments[i].match(/\blike\s+(?:a|an|the)\s+\w+/gi) || []).length;
+        const asAs = (segments[i].match(/\bas\s+\w+\s+as\b/gi) || []).length;
+        if (likes + asAs >= 3) {
+          tasks.push({
+            type: 'simile_overload',
+            segIndex: i,
+            instruction: 'This paragraph has too many similes/metaphors. Keep the strongest one. Replace the others with direct, concrete description.',
+          });
+        }
+      }
+    }
+
+    // v14: Narrator transition repetition
+    if (f.category === 'narrator_repetition') {
+      const narrRx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|delved into|looked into|dug into|pored over|sifted through)\b/gi;
+      let narrSeen = 0;
+      for (let i = 0; i < segments.length; i++) {
+        narrRx.lastIndex = 0;
+        if (narrRx.test(segments[i])) {
+          narrSeen++;
+          if (narrSeen > 2) {
+            tasks.push({
+              type: 'narrator_repetition',
+              segIndex: i,
+              instruction: 'Rewrite the "I investigated/examined/explored" transition. Use a different approach: start with the evidence itself, a quote, a date, or a specific detail. Remove the narrator self-reference.',
+            });
+          }
+        }
+      }
+    }
+
+    // v14: Participle chains
+    if (f.category === 'participle_chain') {
+      for (let i = 0; i < segments.length; i++) {
+        const sents = segments[i].split(/(?<=[.!?])\s+/);
+        for (const s of sents) {
+          const ings = (s.match(/\b\w+ing\b/g) || []).length;
+          if (ings >= 4) {
+            tasks.push({
+              type: 'participle_chain',
+              segIndex: i,
+              instruction: 'Break up the -ing participle chain. Use finite verbs instead of participial phrases. E.g. "revealing X, catching Y" → "It revealed X. Y caught..."',
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    // v14: AI sensory defaults
+    if (f.category === 'ai_sensory_default') {
+      const aiDefRx = [
+        /\bdust motes\s+(?:dancing|floating|swirling|drifting|spinning|suspended)\b/gi,
+        /\bscent of\s+(?:polished wood|old leather|expensive cigar|cigar smoke|aged paper)\b/gi,
+        /\b(?:mahogany|oak|walnut)\s+desk\s+(?:that |which )?(?:dominated|commanded|anchored)\b/gi,
+        /\bwindowless\s+cathedral/gi,
+        /\b(?:amber|golden|warm)\s+(?:light|glow)\s+(?:spilled|pooled|washed|bathed|filtered)\b/gi,
+      ];
+      for (let i = 0; i < segments.length; i++) {
+        for (const arx of aiDefRx) {
+          arx.lastIndex = 0;
+          if (arx.test(segments[i])) {
+            tasks.push({
+              type: 'ai_sensory_default',
+              segIndex: i,
+              instruction: 'Replace the generic AI sensory description with something specific to THIS scene. What does this particular room/place actually smell/look/sound like? Use a unique, unexpected detail.',
+            });
+            break;
+          }
+        }
+      }
+    }
   }
 
   return tasks;
