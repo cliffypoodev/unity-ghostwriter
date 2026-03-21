@@ -46,8 +46,9 @@ export default function NonfictionBeatSection({ chapter, onScenesUpdated }) {
   const [expanded, setExpanded] = useState(true);
 
   // Nonfiction beat sheet is stored in the `scenes` field as JSON
+  // Supports both old flat format (opening_hook) and new section-based format (sections array)
   const beatSheet = safeParse(chapter.scenes);
-  const hasBeatSheet = beatSheet && beatSheet.opening_hook;
+  const hasBeatSheet = beatSheet && (beatSheet.opening_hook || beatSheet.sections);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -64,7 +65,7 @@ export default function NonfictionBeatSection({ chapter, onScenesUpdated }) {
         const updated = await base44.entities.Chapter.filter({ project_id: chapter.project_id });
         const updCh = updated.find(c => c.id === chapter.id);
         const parsed = safeParse(updCh?.scenes);
-        if (parsed?.opening_hook) break;
+        if (parsed?.opening_hook || parsed?.sections) break;
       }
       if (onScenesUpdated) onScenesUpdated();
     } catch (err) {
@@ -133,6 +134,14 @@ export default function NonfictionBeatSection({ chapter, onScenesUpdated }) {
 
       {expanded && (
         <div className="space-y-1 bg-white rounded-lg border border-slate-200 p-3">
+          {/* Structural beat info (new format) */}
+          {beatSheet.structural_beat && (
+            <div className="mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">{beatSheet.structural_beat}</span>
+              {beatSheet.structural_function && <span className="text-[10px] text-slate-400">{beatSheet.structural_function}</span>}
+              {beatSheet.template_key && <span className="text-[10px] text-slate-400">({beatSheet.template_key})</span>}
+            </div>
+          )}
           {/* Argument Progression */}
           {beatSheet.argument_progression && (
             <div className="mb-2 pb-2 border-b border-slate-100">
@@ -148,10 +157,36 @@ export default function NonfictionBeatSection({ chapter, onScenesUpdated }) {
               )}
             </div>
           )}
-          {BEAT_FIELDS.map(field => (
+          {/* New section-based format */}
+          {beatSheet.sections && Array.isArray(beatSheet.sections) && (
+            <div className="space-y-2">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sections ({beatSheet.sections.length})</p>
+              {beatSheet.sections.map((sec, i) => (
+                <div key={i} className="border-l-2 border-teal-200 pl-3 py-1.5 space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">{sec.section_number || i + 1}</span>
+                    <span className="text-xs font-semibold text-slate-800">{sec.title}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{sec.mode}</span>
+                    <span className="text-[9px] text-slate-400">{sec.tempo}</span>
+                    {sec.word_target && <span className="text-[9px] text-slate-400">~{sec.word_target}w</span>}
+                  </div>
+                  {sec.purpose && <p className="text-[11px] text-slate-600">{sec.purpose}</p>}
+                  {sec.key_claim && <p className="text-[11px] text-emerald-700 italic">{sec.key_claim}</p>}
+                  {sec.fabrication_warnings?.length > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] text-amber-600">
+                      <AlertTriangle className="w-3 h-3" />
+                      {sec.fabrication_warnings.join('; ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Old flat format fields */}
+          {!beatSheet.sections && BEAT_FIELDS.map(field => (
             <BeatRow key={field.key} field={field} value={beatSheet[field.key]} />
           ))}
-          {beatSheet.word_target && (
+          {beatSheet.word_target && !beatSheet.sections && (
             <div className="pt-1 text-[10px] text-slate-400 text-right">
               Target: ~{beatSheet.word_target} words
             </div>
