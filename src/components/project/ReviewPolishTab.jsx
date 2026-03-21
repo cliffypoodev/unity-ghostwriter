@@ -391,20 +391,27 @@ export default function ReviewPolishTab({ projectId }) {
       {scanResults && !scanning && (
         <>
           {/* Score + category summary */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-6 flex flex-col items-center justify-center">
-              <ScoreGauge score={scanResults.score} />
-              <div className="mt-3 text-center">
-                <p className="text-xs" style={{ color: 'var(--ink2)' }}>{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapter{scanResults.totalChapters !== 1 ? "s" : ""} scanned</p>
-                {scanResults.emptyChapters?.length > 0 && (
-                  <p className="text-xs mt-0.5 text-amber-600 font-medium">{scanResults.emptyChapters.length} chapter{scanResults.emptyChapters.length !== 1 ? "s" : ""} empty — not included</p>
-                )}
-                <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="p1-card">
+              <div className="p1-card-body flex flex-col items-center justify-center py-4">
+                <ScoreGauge score={scanResults.score} />
+                <div className="mt-3 text-center">
+                  <p className="text-xs text-[#9997b0]">{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapter{scanResults.totalChapters !== 1 ? "s" : ""} scanned</p>
+                  {scanResults.emptyChapters?.length > 0 && (
+                    <p className="text-xs mt-0.5 text-amber-600 font-medium">{scanResults.emptyChapters.length} chapter{scanResults.emptyChapters.length !== 1 ? "s" : ""} empty — not included</p>
+                  )}
+                  <p className="text-xs mt-0.5 text-[#9997b0]">Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
+                </div>
               </div>
             </div>
-            <div className="lg:col-span-2 rounded-xl border border-[var(--nb-border)] bg-white/50 p-5">
-              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--ink)' }}>Scanner Results</h3>
-              <div className="space-y-1.5">
+            <div className="lg:col-span-2 p1-card">
+              <div className="p1-card-header">
+                <div className="p1-card-icon" style={{ background: '#ede9fe', color: '#5b50f0' }}>
+                  <BarChart3 className="w-3.5 h-3.5" />
+                </div>
+                <div className="p1-card-title">Scanner Results</div>
+              </div>
+              <div className="p1-card-body space-y-1.5">
                 {Object.keys(SCAN_CATEGORIES).map(key => (
                   <CategoryRow key={key} category={key} findings={scanResults.allFindings.filter(f => f.category === key)} />
                 ))}
