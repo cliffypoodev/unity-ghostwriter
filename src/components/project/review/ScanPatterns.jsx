@@ -451,13 +451,13 @@ function scanCarOpeningCliche(text, chapterNum) {
 function scanSimileOverload(text, chapterNum) {
   var findings = [];
   var paras = splitParas(text);
+  var chapterSimileTotal = 0;
   for (var i = 0; i < paras.length; i++) {
-    // Count "like [noun]" and "as [adj] as" similes
     var likeSimiles = (paras[i].match(/\blike\s+(?:a|an|the)\s+\w+/gi) || []).length;
     var asSimiles = (paras[i].match(/\bas\s+\w+\s+as\b/gi) || []).length;
-    // Count metaphors with "was/were a [noun]" pattern  
     var metaCount = (paras[i].match(/\b(?:was|were|is)\s+(?:a|an|the)\s+(?:cathedral|temple|palace|fortress|prison|cage|machine|factory|engine|symphony|orchestra|tapestry|mosaic|labyrinth|kaleidoscope|crucible|furnace|beacon|lighthouse|oasis|sanctuary|void|abyss)\b/gi) || []).length;
     var total = likeSimiles + asSimiles + metaCount;
+    chapterSimileTotal += total;
     if (total >= 3) {
       findings.push({
         category: "simile_overload",
@@ -467,6 +467,17 @@ function scanSimileOverload(text, chapterNum) {
         samples: [paras[i].trim().slice(0, 120)],
       });
     }
+  }
+  // Also flag chapter-wide simile density (more than 1 per ~300 words is AI-ish)
+  var wordCount = text.trim().split(/\s+/).length;
+  var expectedMax = Math.max(5, Math.floor(wordCount / 300));
+  if (chapterSimileTotal > expectedMax) {
+    findings.push({
+      category: "simile_overload",
+      label: chapterSimileTotal + " total similes/metaphors in chapter (expected max ~" + expectedMax + " for " + wordCount + " words)",
+      count: chapterSimileTotal - expectedMax,
+      chapter: chapterNum,
+    });
   }
   return findings;
 }
