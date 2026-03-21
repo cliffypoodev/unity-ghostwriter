@@ -74,12 +74,12 @@ export default function ChapterReviewCard({
   var isWorking = !!action;
 
   var statusColor = hasLeaks || hasDupes
-    ? "border-red-500/50 bg-red-500/5"
+    ? "border-red-200 bg-red-50"
     : hasTenseDrift
-    ? "border-amber-500/50 bg-amber-500/5"
+    ? "border-amber-200 bg-amber-50"
     : chFindings.length > 0
-    ? "border-slate-600"
-    : "border-emerald-500/30 bg-emerald-500/5";
+    ? "border-[var(--nb-border)]"
+    : "border-emerald-200 bg-emerald-50";
 
   async function rescanAndUpdate() {
     setActionStep("Re-scanning chapter...");
@@ -238,28 +238,28 @@ export default function ChapterReviewCard({
   }
 
   return (
-    <div className={cn("rounded-xl border p-4 transition-all", statusColor)}>
+    <div className={cn("rounded-xl border p-4 transition-all bg-white/40", statusColor)}>
       <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-            hasLeaks || hasDupes ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-600 text-white" : "bg-emerald-500 text-white"
+            hasLeaks || hasDupes ? "bg-red-500 text-white" : hasTenseDrift ? "bg-amber-500 text-white" : chFindings.length > 0 ? "bg-slate-500 text-white" : "bg-emerald-500 text-white"
           )}>{chapterNum}</div>
           <div className="min-w-0">
-            <div className="text-sm font-medium text-slate-200 truncate max-w-[300px]">
+            <div className="text-sm font-medium truncate max-w-[300px]" style={{ color: 'var(--ink)' }}>
               {(chapterEntity.title || "").replace(/^Chapter \d+:\s*/, "")}
             </div>
             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-              <span className={cn("text-xs", targetWords && words > targetWords * 1.3 ? "text-red-400 font-medium" : "text-slate-400")}>
+              <span className={cn("text-xs", targetWords && words > targetWords * 1.3 ? "text-red-600 font-medium" : "")} style={!(targetWords && words > targetWords * 1.3) ? { color: 'var(--ink2)' } : {}}>
                 {words.toLocaleString()} words
               </span>
               {isWorking ? (
-                <span className="text-xs text-violet-400 flex items-center gap-1">
+                <span className="text-xs text-violet-600 flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" /> {actionStep}
                 </span>
               ) : chFindings.length > 0 ? (
-                <span className="text-xs text-amber-400">{totalInstances} issue{totalInstances !== 1 ? "s" : ""}</span>
+                <span className="text-xs text-amber-700">{totalInstances} issue{totalInstances !== 1 ? "s" : ""}</span>
               ) : (
-                <span className="text-xs text-emerald-400">✓ Clean</span>
+                <span className="text-xs text-emerald-700">✓ Clean</span>
               )}
             </div>
           </div>
@@ -268,12 +268,12 @@ export default function ChapterReviewCard({
           {lastResult && !isWorking && (
             <ResultBadge result={lastResult} />
           )}
-          {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          {expanded ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--ink2)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--ink2)' }} />}
         </div>
       </div>
 
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-slate-700">
+        <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--nb-border)' }}>
           {(chFindings.length > 0 || (lastResult && lastResult.error)) && (
             <div className="flex flex-wrap gap-2 mb-3">
               <Button size="sm" disabled={isWorking}
@@ -290,7 +290,7 @@ export default function ChapterReviewCard({
               </Button>
               {hasLeaks && (
                 <Button size="sm" disabled={isWorking} variant="outline"
-                  className="text-xs h-8 border-red-500/40 text-red-400 hover:bg-red-500/10 gap-1.5"
+                  className="text-xs h-8 border-red-200 text-red-700 hover:bg-red-50 gap-1.5"
                   onClick={(e) => { e.stopPropagation(); handleRegenerate(); }}>
                   {action === "regenerating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Regenerate
@@ -309,19 +309,19 @@ export default function ChapterReviewCard({
                 const cat = SCAN_CATEGORIES[f.category];
                 return (
                   <div key={i} className={cn("flex items-start gap-2 text-xs p-2 rounded-lg",
-                    f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "bg-red-500/10" : "bg-slate-800/50"
+                    f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "bg-red-50" : "bg-white/50"
                   )}>
                     <span className="shrink-0 mt-0.5">{cat ? cat.icon : "•"}</span>
                     <div className="flex-1 min-w-0">
                       <span className={cn("font-medium",
-                        f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "text-red-400" :
-                        f.category === "tense_drift" ? "text-amber-400" : "text-slate-300"
-                      )}>{cat ? cat.label : f.category}:</span>{" "}
-                      <span className="text-slate-400">{f.label} ({f.count}×)</span>
+                        f.category === "instruction_leak" || f.category === "duplicate_paragraph" ? "text-red-700" :
+                        f.category === "tense_drift" ? "text-amber-700" : ""
+                      )} style={!(f.category === "instruction_leak" || f.category === "duplicate_paragraph" || f.category === "tense_drift") ? { color: 'var(--ink)' } : {}}>{cat ? cat.label : f.category}:</span>{" "}
+                      <span style={{ color: 'var(--ink2)' }}>{f.label} ({f.count}×)</span>
                       {f.samples && (
                         <div className="mt-1 space-y-1">
                           {f.samples.map((s, j) => (
-                            <div key={j} className="pl-3 border-l-2 border-slate-700 text-slate-500 italic truncate max-w-full">"{s}"</div>
+                            <div key={j} className="pl-3 border-l-2 italic truncate max-w-full" style={{ borderColor: 'var(--nb-border)', color: 'var(--ink2)' }}>"{s}"</div>
                           ))}
                         </div>
                       )}
@@ -333,7 +333,7 @@ export default function ChapterReviewCard({
           )}
 
           {chFindings.length === 0 && !lastResult && (
-            <p className="text-xs text-emerald-400/70 py-2">No issues detected in this chapter.</p>
+            <p className="text-xs text-emerald-700/70 py-2">No issues detected in this chapter.</p>
           )}
         </div>
       )}
@@ -343,37 +343,37 @@ export default function ChapterReviewCard({
 
 function ResultBadge({ result }) {
   if (result.error) {
-    return <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px]">Error</Badge>;
+    return <Badge className="bg-red-100 text-red-700 border border-red-200 text-[10px]">Error</Badge>;
   }
   var delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
   if (delta > 0) {
-    return <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">−{delta} issues</Badge>;
+    return <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px]">−{delta} issues</Badge>;
   }
   if (result.message) {
-    return <Badge className="bg-slate-500/20 text-slate-400 border border-slate-500/30 text-[10px]">{result.message}</Badge>;
+    return <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px]">{result.message}</Badge>;
   }
-  return <Badge className="bg-slate-500/20 text-slate-400 border border-slate-500/30 text-[10px]">No change</Badge>;
+  return <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px]">No change</Badge>;
 }
 
 function ResultDetail({ result }) {
   if (result.error) {
     return (
-      <div className="mb-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/30">
-        <p className="text-xs text-red-400"><AlertTriangle className="w-3 h-3 inline mr-1" />{result.error}</p>
+      <div className="mb-3 p-2.5 rounded-lg bg-red-50 border border-red-200">
+        <p className="text-xs text-red-700"><AlertTriangle className="w-3 h-3 inline mr-1" />{result.error}</p>
       </div>
     );
   }
   var delta = (result.issuesBefore || 0) - (result.issuesAfter || 0);
   var label = result.type === "fix" ? "Auto-Fix" : result.type === "polish" ? "Prose Polisher" : "Regeneration";
   return (
-    <div className={cn("mb-3 p-2.5 rounded-lg border", delta > 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-slate-800/50 border-slate-700")}>
+    <div className={cn("mb-3 p-2.5 rounded-lg border", delta > 0 ? "bg-emerald-50 border-emerald-200" : "bg-white/50 border-[var(--nb-border)]")}>
       <div className="flex items-center gap-2 text-xs">
-        <Check className={cn("w-3 h-3", delta > 0 ? "text-emerald-400" : "text-slate-400")} />
-        <span className={cn("font-medium", delta > 0 ? "text-emerald-400" : "text-slate-300")}>{label} complete</span>
+        <Check className={cn("w-3 h-3", delta > 0 ? "text-emerald-600" : "")} style={delta <= 0 ? { color: 'var(--ink2)' } : {}} />
+        <span className={cn("font-medium", delta > 0 ? "text-emerald-700" : "")} style={delta <= 0 ? { color: 'var(--ink)' } : {}}>{label} complete</span>
         {delta > 0 ? (
-          <span className="text-emerald-400/80">— {result.issuesBefore} → {result.issuesAfter} issues ({delta} fixed)</span>
+          <span className="text-emerald-700/80">— {result.issuesBefore} → {result.issuesAfter} issues ({delta} fixed)</span>
         ) : (
-          <span className="text-slate-500">— {result.message || "no change detected"}</span>
+          <span style={{ color: 'var(--ink2)' }}>— {result.message || "no change detected"}</span>
         )}
       </div>
     </div>
