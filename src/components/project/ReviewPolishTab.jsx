@@ -197,7 +197,7 @@ export default function ReviewPolishTab({ projectId }) {
         // ── PASS 3: AI Targeted Rewrite ──
         // Handles: interiority repetition (contextual synonym), sensory opener
         // monotony (rewrite opening), tense drift (fix verbs in context)
-        const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift'];
+        const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending'];
         const aiFindings = midScan.findings.filter(f => aiFixableCategories.includes(f.category));
 
         if (aiFindings.length > 0) {
