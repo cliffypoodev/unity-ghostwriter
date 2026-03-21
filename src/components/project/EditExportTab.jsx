@@ -821,8 +821,8 @@ export default function EditExportTab({ projectId }) {
   return (
     <div className={wrapperClass} style={wrapperStyle}>
       {/* Top Bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b flex-wrap" style={{ background: 'var(--pgAlt, #FFFDF8)', borderColor: 'var(--nb-border, #D8D0C0)' }}>
-        <h2 className="text-sm font-semibold mr-2 whitespace-nowrap" style={{ color: 'var(--ink, #3A3530)' }}>Edit & Export</h2>
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b flex-wrap" style={{ background: '#fafafa', borderColor: '#e8e8ec' }}>
+        <h2 className="text-sm font-semibold mr-2 whitespace-nowrap" style={{ color: '#18171f' }}>Edit &amp; Export</h2>
 
         <Button size="sm" variant={showSettings ? "secondary" : "outline"} className="h-7 text-xs gap-1.5" onClick={() => setShowSettings(s => !s)}>
           <Settings className="w-3.5 h-3.5" /> Settings
