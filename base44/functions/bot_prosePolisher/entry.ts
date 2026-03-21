@@ -293,9 +293,25 @@ Deno.serve(async (req) => {
     // Phase 2: AI polish
     const { polished, changed, rejected } = await runAIPolish(chapterProse, violations, isNonfiction);
 
-    // If prose was passed in the payload, this is an in-pipeline call from the orchestrator.
-    // Save to DB so the orchestrator can reload it (orchestrator does its own final save too).
+    // SAFETY GUARD: Never save content that is less than 80% of the original length.
+    // This prevents wiping a chapter if the polisher returns truncated/empty text.
     if (changed) {
+      const originalLen = chapterProse ? chapterProse.length : 0;
+      const newLen = polished ? polished.length : 0;
+      if (originalLen > 0 && newLen < originalLen * 0.8) {
+        console.error(`PROSE POLISHER SAFETY GUARD: Refusing to save — new content (${newLen} chars) is less than 80% of original (${originalLen} chars). This would wipe the chapter.`);
+        return Response.json({
+          success: true,
+          changed: false,
+          safety_blocked: true,
+          original_length: originalLen,
+          new_length: newLen,
+          violations_found: violations.length,
+          total_instances: violations.reduce((sum, v) => sum + v.count, 0),
+          violations: violations.map(v => ({ category: v.category, label: v.label, count: v.count })),
+          duration_ms: Date.now() - startMs,
+        });
+      }
       try {
         // Always upload as file URL for large chapters to avoid field size limits
         const encoder = new TextEncoder();

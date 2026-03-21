@@ -1046,26 +1046,39 @@ Deno.serve(async (req) => {
     const isPipelineCall = !!prose;
 
     if (!isPipelineCall && result.clean_prose) {
-      // Manual/standalone call — save corrected prose back to chapter
-      try {
-        // Always upload as file URL for large chapters to avoid field size limits
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(result.clean_prose);
-        const blob = new Blob([bytes], { type: 'text/plain' });
-        const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
-        const uploadResult = await base44.integrations.Core.UploadFile({ file });
-        const fileUrl = uploadResult?.file_url;
-        if (fileUrl) {
-          await base44.entities.Chapter.update(chapter_id, { content: fileUrl });
-          result.saved = true;
-          result.saved_as_url = true;
-        } else {
-          console.warn('Upload returned no file_url:', JSON.stringify(uploadResult));
+      // SAFETY GUARD: Never save content that is less than 80% of the original length.
+      // This prevents wiping a chapter if the style enforcer returns truncated/empty text.
+      const originalText = prose || await resolveContent((await base44.entities.Chapter.filter({ id: chapter_id }))[0]?.content);
+      const originalLen = originalText ? originalText.length : 0;
+      const newLen = result.clean_prose.length;
+      if (originalLen > 0 && newLen < originalLen * 0.8) {
+        console.error(`STYLE ENFORCER SAFETY GUARD: Refusing to save — new content (${newLen} chars) is less than 80% of original (${originalLen} chars). This would wipe the chapter.`);
+        result.saved = false;
+        result.safety_blocked = true;
+        result.original_length = originalLen;
+        result.new_length = newLen;
+      } else {
+        // Manual/standalone call — save corrected prose back to chapter
+        try {
+          // Always upload as file URL for large chapters to avoid field size limits
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(result.clean_prose);
+          const blob = new Blob([bytes], { type: 'text/plain' });
+          const file = new File([blob], `chapter_${chapter_id}_styled.txt`, { type: 'text/plain' });
+          const uploadResult = await base44.integrations.Core.UploadFile({ file });
+          const fileUrl = uploadResult?.file_url;
+          if (fileUrl) {
+            await base44.entities.Chapter.update(chapter_id, { content: fileUrl });
+            result.saved = true;
+            result.saved_as_url = true;
+          } else {
+            console.warn('Upload returned no file_url:', JSON.stringify(uploadResult));
+            result.saved = false;
+          }
+        } catch (saveErr) {
+          console.warn('Failed to save fixed prose:', saveErr.message);
           result.saved = false;
         }
-      } catch (saveErr) {
-        console.warn('Failed to save fixed prose:', saveErr.message);
-        result.saved = false;
       }
       // Don't return full prose in standalone mode — it's already saved to the DB
       delete result.clean_prose;
