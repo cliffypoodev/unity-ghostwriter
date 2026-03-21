@@ -106,77 +106,94 @@ export default function BibleTab({ projectId, onProceed }) {
   const mergedForm = { ...spec, ...form };
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 24px 100px" }}>
-      {/* Story Bible Card */}
-      <div className="p1-card" style={{ marginBottom: 18 }}>
-        <div className="p1-card-header">
-          <div className="p1-card-icon" style={{ background: isFiction ? '#fce7f3' : '#fef3c7', color: isFiction ? '#9d174d' : '#92400e' }}>
-            {isFiction ? '🧠' : '📋'}
-          </div>
-          <div>
-            <div className="p1-card-title">{isFiction ? 'Story Bible' : 'Nonfiction Bible'}</div>
-            <div className="p1-card-subtitle">
-              {isFiction
-                ? "Characters, world, themes — enforced in every chapter's voice and structure"
-                : "Key figures, settings, timeline, argument structure — feeds into every chapter"
-              }
-            </div>
-          </div>
-          <span className="p1-card-badge">Recommended</span>
-        </div>
-        <div className="p1-card-body">
-          <StoryBibleEditor
-            form={mergedForm}
-            onChange={handleChange}
-            projectId={projectId}
-          />
-        </div>
-      </div>
+    <div className="phase1-wrap">
+      {/* ── LEFT: Section Nav ── */}
+      <nav className="phase1-nav">
+        <div className="phase1-nav-header">ON THIS PAGE</div>
+        {[
+          { id: 'sec-bible', label: isFiction ? 'Story Bible' : 'NF Bible' },
+          ...(isFiction ? [{ id: 'sec-interiority', label: 'Interiority' }] : []),
+        ].map(({ id, label }) => (
+          <a key={id} className="phase1-nav-item" href={`#${id}`}
+            onClick={e => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+            <div className="phase1-nav-dot" />{label}
+          </a>
+        ))}
+      </nav>
 
-      {/* Protagonist Interiority Card (fiction only) */}
-      {isFiction && (
-        <div className="p1-card" style={{ marginBottom: 18 }}>
+      {/* ── RIGHT: Form ── */}
+      <div className="phase1-form">
+        {/* Story Bible Card */}
+        <div className="p1-card" id="sec-bible">
           <div className="p1-card-header">
-            <div className="p1-card-icon" style={{ background: '#ede9fe', color: '#7c3aed' }}>💭</div>
+            <div className="p1-card-icon" style={{ background: isFiction ? '#fce7f3' : '#fef3c7', color: isFiction ? '#9d174d' : '#92400e' }}>
+              {isFiction ? '🧠' : '📋'}
+            </div>
             <div>
-              <div className="p1-card-title">Protagonist Interiority</div>
-              <div className="p1-card-subtitle">Deep psychology that gets injected into every chapter prompt</div>
+              <div className="p1-card-title">{isFiction ? 'Story Bible' : 'Nonfiction Bible'}</div>
+              <div className="p1-card-subtitle">
+                {isFiction
+                  ? "Characters, world, themes — enforced in every chapter's voice and structure"
+                  : "Key figures, settings, timeline, argument structure — feeds into every chapter"
+                }
+              </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPsychOpen(o => !o)}
-                className="text-xs font-semibold"
-                style={{ color: '#5b50f0', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                {psychOpen ? 'Collapse ▲' : 'Expand ▼'}
-              </button>
-            </div>
+            <span className="p1-card-badge">Recommended</span>
           </div>
-          {psychOpen && (
-            <div className="p1-card-body space-y-4">
-              <ProtagonistInteriorityInferButton
-                form={mergedForm}
-                onChange={handleChange}
-              />
-              <ProtagonistInterioritySection
-                form={mergedForm}
-                onChange={handleChange}
-              />
-            </div>
-          )}
+          <div className="p1-card-body">
+            <StoryBibleEditor
+              form={mergedForm}
+              onChange={handleChange}
+              projectId={projectId}
+            />
+          </div>
         </div>
-      )}
 
-      {/* Footer Buttons */}
-      <div className="flex justify-end gap-3 py-6 mt-4 border-t border-slate-200 bg-white rounded-xl px-4">
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
-          {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-          Save Bible
-        </Button>
-        <Button onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700">
-          Proceed to Outline <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+        {/* Protagonist Interiority Card (fiction only) */}
+        {isFiction && (
+          <div className="p1-card" id="sec-interiority">
+            <div className="p1-card-header">
+              <div className="p1-card-icon" style={{ background: '#ede9fe', color: '#7c3aed' }}>💭</div>
+              <div>
+                <div className="p1-card-title">Protagonist Interiority</div>
+                <div className="p1-card-subtitle">Deep psychology that gets injected into every chapter prompt</div>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPsychOpen(o => !o)}
+                  className="text-xs font-semibold"
+                  style={{ color: '#5b50f0', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  {psychOpen ? 'Collapse ▲' : 'Expand ▼'}
+                </button>
+              </div>
+            </div>
+            {psychOpen && (
+              <div className="p1-card-body space-y-4">
+                <ProtagonistInteriorityInferButton
+                  form={mergedForm}
+                  onChange={handleChange}
+                />
+                <ProtagonistInterioritySection
+                  form={mergedForm}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer Buttons */}
+        <div className="flex justify-end gap-3 py-6 mt-4 border-t border-slate-200 bg-white rounded-xl px-4">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} variant="outline">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Bible
+          </Button>
+          <Button onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700">
+            Proceed to Outline <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );
