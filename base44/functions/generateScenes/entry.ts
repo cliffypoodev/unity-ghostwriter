@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
 
     const spec = specs[0];
     if (spec?.book_type === 'nonfiction') {
-      // Generate nonfiction beat sheet instead of fiction scenes
+      // ═══ NONFICTION BEAT SHEET — Scene-level beats using beat engine templates ═══
       const chapter = chapters.find(c => c.chapter_number === Number(chapterNumber));
       if (!chapter) return Response.json({ error: `Chapter ${chapterNumber} not found` }, { status: 404 });
 
@@ -239,12 +239,120 @@ Deno.serve(async (req) => {
       const thesis = spec?.topic || '';
       const genre = spec?.subgenre || spec?.genre || 'nonfiction';
       const beatStyle = spec?.beat_style || spec?.tone_style || 'Investigative / Nonfiction';
+      const targetLength = spec?.target_length || 'medium';
+      const wordsPerChapter = WORDS_PER_CHAPTER[targetLength] || 1600;
 
-      const nfContextHeader = buildContextHeader(spec);
-      const nfSystemPrompt = `You are a narrative nonfiction editor building a scene-level beat sheet for a single chapter. Return ONLY valid JSON. No markdown, no backticks, no explanation.
+      // ── Resolve the chapter's structural beat from the beat engine ──
+      const NF_BEAT_TEMPLATES = {
+        "argument-driven": {
+          beats: [
+            { position: 0,    name: "The Hook",           fn: "PROVOCATIVE_OPENING",    mode: "exposition",        tempo: "medium" },
+            { position: 0.08, name: "The Problem",         fn: "PROBLEM_STATEMENT",      mode: "exposition",        tempo: "medium" },
+            { position: 0.15, name: "Conventional Wisdom",fn: "DEMOLITION",             mode: "analysis",          tempo: "fast" },
+            { position: 0.22, name: "The Framework",       fn: "THESIS_INTRODUCTION",    mode: "exposition",        tempo: "slow" },
+            { position: 0.30, name: "Deep Dive A",         fn: "EVIDENCE_BLOCK",         mode: "case_study",        tempo: "medium" },
+            { position: 0.38, name: "Deep Dive B",         fn: "EVIDENCE_BLOCK",         mode: "case_study",        tempo: "medium" },
+            { position: 0.45, name: "The Objection",       fn: "COUNTERARGUMENT",        mode: "analysis",          tempo: "fast" },
+            { position: 0.52, name: "The Pivot",           fn: "REFRAME",                mode: "synthesis",         tempo: "slow" },
+            { position: 0.60, name: "Application A",       fn: "PRACTICAL_APPLICATION",  mode: "how_to",            tempo: "medium" },
+            { position: 0.68, name: "Application B",       fn: "PRACTICAL_APPLICATION",  mode: "how_to",            tempo: "medium" },
+            { position: 0.78, name: "The Bigger Picture",  fn: "SYNTHESIS",              mode: "analysis",          tempo: "slow" },
+            { position: 0.88, name: "The Transformation",  fn: "TRANSFORMATION_EVIDENCE",mode: "case_study",        tempo: "medium" },
+            { position: 1.00, name: "The Send-Off",        fn: "CALL_TO_ACTION",         mode: "synthesis",         tempo: "slow" },
+          ]
+        },
+        "narrative-nonfiction": {
+          beats: [
+            { position: 0,    name: "The Scene",          fn: "COLD_OPEN",              mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.08, name: "The World Before",    fn: "CONTEXT_SETTING",        mode: "exposition",        tempo: "slow" },
+            { position: 0.15, name: "The Cast",            fn: "CHARACTER_INTRODUCTION", mode: "profile",           tempo: "medium" },
+            { position: 0.22, name: "The Inciting Event",  fn: "INCITING_EVENT",         mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.30, name: "The Investigation",   fn: "EVIDENCE_TRAIL",         mode: "investigative",     tempo: "medium" },
+            { position: 0.40, name: "The Complications",   fn: "COMPLICATION",           mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.50, name: "The Turning Point",   fn: "TURNING_POINT",          mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.60, name: "The Reckoning",       fn: "CONSEQUENCES",           mode: "analysis",          tempo: "slow" },
+            { position: 0.70, name: "The Unraveling",      fn: "ESCALATION_NF",          mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.80, name: "The Aftermath",       fn: "AFTERMATH",              mode: "profile",           tempo: "slow" },
+            { position: 0.90, name: "The Meaning",         fn: "THEMATIC_SYNTHESIS",     mode: "analysis",          tempo: "slow" },
+            { position: 1.00, name: "The Echo",            fn: "CLOSING_IMAGE",          mode: "scene_recreation",  tempo: "medium" },
+          ]
+        },
+        "investigative-nonfiction": {
+          beats: [
+            { position: 0,    name: "Something Is Wrong", fn: "ANOMALY",                mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.08, name: "The Official Story",  fn: "OFFICIAL_NARRATIVE",     mode: "exposition",        tempo: "medium" },
+            { position: 0.15, name: "The First Crack",     fn: "FIRST_EVIDENCE",         mode: "investigative",     tempo: "fast" },
+            { position: 0.25, name: "The Pattern",         fn: "PATTERN_RECOGNITION",    mode: "analysis",          tempo: "medium" },
+            { position: 0.35, name: "The Players",         fn: "CAST_OF_CHARACTERS",     mode: "profile",           tempo: "slow" },
+            { position: 0.45, name: "The Mechanism",       fn: "MECHANISM",              mode: "analysis",          tempo: "medium" },
+            { position: 0.55, name: "The Cover-Up",        fn: "COVER_UP",               mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.65, name: "The Human Cost",      fn: "IMPACT",                 mode: "profile",           tempo: "slow" },
+            { position: 0.75, name: "The Reckoning",       fn: "CONFRONTATION_NF",       mode: "scene_recreation",  tempo: "fast" },
+            { position: 0.85, name: "The Fallout",         fn: "AFTERMATH_NF",           mode: "analysis",          tempo: "medium" },
+            { position: 1.00, name: "The Lesson",          fn: "SYSTEMIC_ANALYSIS",      mode: "synthesis",         tempo: "slow" },
+          ]
+        },
+        "reference-structured": {
+          beats: [
+            { position: 0,    name: "Why This Matters",   fn: "MOTIVATION",             mode: "exposition",        tempo: "medium" },
+            { position: 0.10, name: "Foundations",          fn: "FOUNDATION",             mode: "teaching",          tempo: "slow" },
+            { position: 0.20, name: "Core Concept A",      fn: "CONCEPT_BLOCK",          mode: "teaching",          tempo: "medium" },
+            { position: 0.30, name: "Core Concept B",      fn: "CONCEPT_BLOCK",          mode: "teaching",          tempo: "medium" },
+            { position: 0.40, name: "Core Concept C",      fn: "CONCEPT_BLOCK",          mode: "teaching",          tempo: "medium" },
+            { position: 0.50, name: "Integration",          fn: "INTEGRATION",            mode: "synthesis",         tempo: "slow" },
+            { position: 0.60, name: "Common Mistakes",      fn: "TROUBLESHOOTING",        mode: "analysis",          tempo: "fast" },
+            { position: 0.70, name: "Advanced Technique A", fn: "ADVANCED_BLOCK",         mode: "teaching",          tempo: "medium" },
+            { position: 0.80, name: "Advanced Technique B", fn: "ADVANCED_BLOCK",         mode: "teaching",          tempo: "medium" },
+            { position: 0.90, name: "Real-World Application",fn: "CASE_STUDY_NF",        mode: "case_study",        tempo: "medium" },
+            { position: 1.00, name: "What's Next",          fn: "ROADMAP",                mode: "synthesis",         tempo: "slow" },
+          ]
+        },
+      };
 
-${nfContextHeader}`;
-      // Build full outline summary for NEW_GROUND cross-reference
+      // Auto-detect template from genre
+      function detectNFTemplate(g) {
+        const gl = (g || '').toLowerCase();
+        if (/self.help|business|psychology|science|health/.test(gl)) return 'argument-driven';
+        if (/memoir|biography|history|true crime/.test(gl)) return 'narrative-nonfiction';
+        if (/reference|education|how.to|technical|cooking|technology/.test(gl)) return 'reference-structured';
+        if (/investigat|journalism|expos|politic/.test(gl)) return 'investigative-nonfiction';
+        return 'narrative-nonfiction';
+      }
+
+      // Resolve the template and find this chapter's structural beat
+      const templateKey = spec?.beat_sheet_template && spec.beat_sheet_template !== 'auto'
+        ? spec.beat_sheet_template
+        : detectNFTemplate(genre);
+      const nfTemplate = NF_BEAT_TEMPLATES[templateKey] || NF_BEAT_TEMPLATES['narrative-nonfiction'];
+      const chapterPosition = totalChapters > 1 ? (chapterNumber - 1) / (totalChapters - 1) : 0;
+
+      // Find closest beat for this chapter position
+      let closestBeat = nfTemplate.beats[0];
+      let minDist = 999;
+      for (const b of nfTemplate.beats) {
+        const dist = Math.abs(b.position - chapterPosition);
+        if (dist < minDist) { minDist = dist; closestBeat = b; }
+      }
+
+      // ── NF SECTION MODE DESCRIPTIONS ──
+      const NF_MODE_DESC = {
+        'exposition': 'Author explains. Analytical voice carries this section. Context, definitions, argument building.',
+        'case_study': 'One deep example. A specific person, event, or study examined in detail. Names, dates, outcomes.',
+        'analysis': 'Author argues. Weigh evidence, compare viewpoints, draw conclusions.',
+        'how_to': 'Actionable steps. Specific enough the reader can start today.',
+        'synthesis': 'Connect ideas from earlier sections. Zoom out. Find patterns.',
+        'scene_recreation': 'Reconstruct a real event with cinematic detail. Primary sources only. Label as reconstruction.',
+        'profile': 'Introduce real people as three-dimensional humans. Use their own words.',
+        'investigative': 'Follow the trail. Documents, interviews, evidence in discovery order.',
+        'teaching': 'Instruct. Concept → Example → Counter-example → Practice.',
+      };
+
+      // Determine section count based on target length
+      const sectionCounts = { short: 4, medium: 5, long: 6, epic: 8 };
+      const sectionCount = sectionCounts[targetLength] || 5;
+      const wordPerSection = Math.round(wordsPerChapter / sectionCount);
+
+      // Build full outline summary for cross-reference
       const outlineSummaryLines = outlineChapters.map(oc => {
         const num = oc.number || oc.chapter_number;
         return `Ch ${num}: "${oc.title || 'Untitled'}" — ${(oc.summary || '').slice(0, 150)}`;
@@ -252,6 +360,25 @@ ${nfContextHeader}`;
 
       const prevChapterRef = chapterNumber > 1 ? chapters.find(c => c.chapter_number === chapterNumber - 1) : null;
       const nextChapterRef = chapters.find(c => c.chapter_number === chapterNumber + 1);
+
+      const nfContextHeader = buildContextHeader(spec);
+
+      const nfSystemPrompt = `You are a narrative nonfiction editor creating a section-by-section beat sheet for a single chapter. You MUST return ONLY a valid JSON object. No markdown, no backticks, no explanation.
+
+${nfContextHeader}
+
+STRUCTURAL TEMPLATE: "${templateKey}"
+THIS CHAPTER'S STRUCTURAL ROLE: Beat "${closestBeat.name}" | Function: ${closestBeat.fn} | Mode: ${closestBeat.mode} | Tempo: ${closestBeat.tempo}
+
+MODE "${closestBeat.mode}": ${NF_MODE_DESC[closestBeat.mode] || 'Follow the chapter description.'}
+
+NONFICTION SECTION RULES:
+1. Each section is a self-contained unit of argument/evidence that the prose writer will generate independently.
+2. Sections must FLOW — each one picks up where the previous left off.
+3. Every section needs a clear PURPOSE (what it adds to the chapter's argument).
+4. NEVER invent specific quotes, dates, case numbers, or named individuals not in the source material.
+5. Vary section modes — do NOT make every section the same type.
+6. The first section must HOOK the reader. The last section must BRIDGE to the next chapter.`;
 
       const nfUserMessage = `BOOK THESIS / THROUGHLINE:
 ${thesis}
@@ -262,38 +389,52 @@ ${outlineSummaryLines}
 CHAPTER ${chapterNumber} of ${totalChapters}: "${chapter.title}"
 DESCRIPTION: ${chapter.summary || outlineEntry.summary || 'No description provided'}
 CHAPTER PROMPT: ${chapter.prompt || outlineEntry.prompt || ''}
-BEAT STYLE: ${beatStyle}
 GENRE: ${genre}
-${outlineEntry.beat_function ? `STRUCTURAL ROLE: ${outlineEntry.beat_function} (${outlineEntry.beat_name || ''})` : ''}
-${outlineEntry.beat_scene_type ? `MODE: ${outlineEntry.beat_scene_type}` : ''}
+BEAT STYLE: ${beatStyle}
+${outlineEntry.beat_function ? `STRUCTURAL ROLE: ${outlineEntry.beat_function} (${outlineEntry.beat_name || ''})` : `STRUCTURAL ROLE: ${closestBeat.fn} (${closestBeat.name})`}
+${outlineEntry.beat_scene_type ? `MODE: ${outlineEntry.beat_scene_type}` : `MODE: ${closestBeat.mode}`}
 ${prevChapterRef ? `PREVIOUS CHAPTER: Ch ${prevChapterRef.chapter_number}: "${prevChapterRef.title}" — ${(prevChapterRef.summary || '').slice(0, 200)}` : 'THIS IS THE FIRST CHAPTER.'}
 ${nextChapterRef ? `NEXT CHAPTER: Ch ${nextChapterRef.chapter_number}: "${nextChapterRef.title}" — ${(nextChapterRef.summary || '').slice(0, 200)}` : 'THIS IS THE FINAL CHAPTER.'}
 
-Generate a structured beat sheet for this nonfiction chapter.
-Return ONLY a JSON object with these exact fields:
+Generate a structured beat sheet with exactly ${sectionCount} sections AND an argument_progression object.
 
+Return ONLY a JSON object with this EXACT structure:
 {
   "chapter_number": ${chapterNumber},
   "chapter_title": "${chapter.title}",
+  "template_key": "${templateKey}",
+  "structural_beat": "${closestBeat.name}",
+  "structural_function": "${closestBeat.fn}",
   "argument_progression": {
-    "prior_chapter_endpoint": "What the previous chapter established as its final conclusion or revelation. For Ch 1, state the book's starting premise.",
-    "this_chapter_advances": "The specific NEW claim, evidence, or argument this chapter adds that did not exist before it.",
-    "new_ground": "Material covered here that appears NOWHERE else in the outline. Be specific — name the people, events, documents, or analysis unique to this chapter.",
-    "handoff": "What this chapter sets up for the next chapter. The question it leaves open or the tension it creates."
+    "prior_chapter_endpoint": "What the previous chapter concluded. For Ch 1, state the book's starting premise.",
+    "this_chapter_advances": "The specific NEW claim or evidence this chapter adds.",
+    "new_ground": "Material covered here that appears NOWHERE else in the outline. Name specific people, events, documents.",
+    "handoff": "What this chapter sets up for the next chapter."
   },
-  "opening_hook": "The specific scene, person, or fact that opens this chapter cinematically. Concrete and immediate — not a thesis statement.",
-  "context_block": "What historical, political, social, or geographic background the reader needs before the central evidence. Keep to essential minimum.",
-  "central_evidence": "The primary documented events, records, or facts being reconstructed in this chapter. What actually happened, and to whom.",
-  "human_focus": "Which real person or people carry this chapter emotionally. What were their motivations, decisions, and consequences.",
-  "myth_vs_fact": "Any commonly believed version of these events that is wrong or disputed. Label speculation separately from documented fact.",
-  "complication": "The contradiction, gap in the record, unanswered question, or institutional failure this chapter exposes.",
-  "implication": "What this chapter proves or advances toward the book's central thesis. The 'so what.'",
-  "closing_beat": "The specific unresolved thread, question, or revelation that pulls the reader into the next chapter.",
-  "word_target": 2500,
-  "fabrication_warnings": ["List any claims in the chapter description that cannot be verified from public record"]
+  "sections": [
+    {
+      "section_number": 1,
+      "title": "3-6 word title",
+      "mode": "one of: exposition | case_study | analysis | scene_recreation | profile | investigative | synthesis | teaching | how_to",
+      "tempo": "fast | medium | slow",
+      "purpose": "What this section accomplishes for the chapter's argument",
+      "content_direction": "Specific guidance on WHAT to write — which evidence, which person, which event, which argument",
+      "evidence_needed": "What documented sources, facts, or data this section should draw on",
+      "key_claim": "The ONE specific factual claim or argument this section makes",
+      "opens_with": "How to open this section — a fact, a scene, a question, a quote",
+      "closes_with": "How to close — a bridge to the next section, an unresolved question, a reframed understanding",
+      "word_target": ${wordPerSection},
+      "fabrication_warnings": ["Any claims that need verification"]
+    }
+  ]
 }
 
-CRITICAL VALIDATION: The "new_ground" field must identify material that is NOT covered in any other chapter listed in the outline above. If you cannot identify distinct new ground, set "new_ground" to "[RESTRUCTURE NEEDED: overlaps with Ch X]" so the user knows this chapter concept needs revision before generation.`;
+RULES:
+- Section 1 must HOOK the reader with something concrete and immediate (not a thesis statement).
+- The last section must BRIDGE to the next chapter (or close the book's argument for the final chapter).
+- Vary the modes — do NOT give every section the same mode. Mix exposition, case_study, analysis, scene_recreation.
+- Each section must advance a DIFFERENT aspect of the chapter's argument. No repeated points.
+- "new_ground" must identify material NOT covered in other chapters. If it overlaps, write "[RESTRUCTURE NEEDED: overlaps with Ch X]".`;
 
       const nfModelKey = 'gemini-pro';
       let nfRaw;
@@ -308,7 +449,7 @@ CRITICAL VALIDATION: The "new_ground" field must identify material that is NOT c
       // Store in the scenes field (reused for nonfiction beat sheet)
       await base44.entities.Chapter.update(chapter.id, { scenes: JSON.stringify(nfBeatSheet) });
 
-      console.log(`Generated nonfiction beat sheet for Chapter ${chapterNumber} (model: ${nfModelKey})`);
+      console.log(`Generated NF beat sheet for Ch ${chapterNumber}: template=${templateKey}, beat=${closestBeat.name}, sections=${nfBeatSheet.sections?.length || 0}`);
       return Response.json({ beatSheet: nfBeatSheet, chapterNumber: Number(chapterNumber), chapterId: chapter.id, nonfiction: true });
     }
 
