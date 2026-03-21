@@ -707,7 +707,7 @@ export default function SpecificationTab({ projectId, onProceed }) {
       const payload = { ...form };
       ["id", "created_date", "updated_date", "created_by"].forEach(k => delete payload[k]);
       
-      // Persist protagonist interiority on the Project entity for cross-phase access
+      // Build protagonist interiority — merge explicit fields with story bible protagonist data
       const interiority = {
         core_wound: form.protagonist_core_wound || "",
         self_belief: form.protagonist_self_belief || "",
@@ -715,6 +715,19 @@ export default function SpecificationTab({ projectId, onProceed }) {
         behavioral_tells: form.protagonist_behavioral_tells || "",
         life_purpose: form.protagonist_life_purpose || "",
       };
+      // Auto-fill from story bible protagonist if explicit fields are empty
+      if (form.story_bible_data) {
+        try {
+          const bible = JSON.parse(form.story_bible_data);
+          const protag = (bible.characters || []).find(c => c.role === 'protagonist');
+          if (protag) {
+            if (!interiority.core_wound && protag.core_wound) interiority.core_wound = protag.core_wound;
+            if (!interiority.self_belief && protag.misbelief) interiority.self_belief = protag.misbelief;
+            if (!interiority.secret_desire && protag.desire) interiority.secret_desire = protag.desire;
+            if (!interiority.behavioral_tells && protag.physical_tells) interiority.behavioral_tells = protag.physical_tells;
+          }
+        } catch {}
+      }
       const hasInteriority = Object.values(interiority).some(v => v.trim());
       if (hasInteriority) {
         base44.entities.Project.update(projectId, {
