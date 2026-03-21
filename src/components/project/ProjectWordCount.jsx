@@ -9,7 +9,7 @@ const TARGET_WORDS = {
 };
 
 export default function ProjectWordCount({ chapters, targetLength }) {
-  const generatedChapters = chapters.filter(c => c.status === "generated" && c.content && c.content.trim() !== '' && (c.word_count || 0) > 0);
+  const generatedChapters = chapters.filter(c => c.status === "generated" && c.content && c.content.trim() !== '');
   const totalWords = generatedChapters.reduce((sum, c) => sum + (c.word_count || 0), 0);
   const target = TARGET_WORDS[targetLength] || TARGET_WORDS.medium;
   const completedCount = generatedChapters.length;

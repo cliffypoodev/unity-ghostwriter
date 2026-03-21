@@ -54,6 +54,11 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
 
+  // Determine if chapter actually has content by checking both the raw field AND the resolved text
+  const rawFieldPresent = !!(chapter.content && chapter.content.trim() !== '');
+  const resolvedHasText = !!(resolvedContent && resolvedContent.trim().length > 50);
+  const hasActualContent = rawFieldPresent && resolvedHasText;
+
   const handleCopy = () => { navigator.clipboard.writeText(content); setCopied(true); setTimeout(() => setCopied(false), 1500); };
 
   const savePrompt = async () => {
@@ -92,7 +97,6 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
     finally { setGeneratingScenesThenWrite(false); onWrite(chapter); }
   };
 
-  const hasActualContent = !!(chapter.content && chapter.content.trim() !== '') || chapter.word_count > 100;
   const hasContentDespiteError = chapter.status === "error" && hasActualContent;
   const isGeneratedButEmpty = chapter.status === "generated" && !hasActualContent;
   const statusConfig = {
@@ -110,7 +114,7 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
 
   return (
     <div className={cn("rounded-[10px] overflow-hidden bg-white mb-2.5 border",
-      hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" : chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" : isWriting ? "border-blue-200" : isComplete ? "border-green-200 bg-[#f9fffe]" : "border-gray-200"
+      isGeneratedButEmpty ? "border-amber-300 bg-[#fffbf0]" : hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" : chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" : isWriting ? "border-blue-200" : isComplete ? "border-green-200 bg-[#f9fffe]" : "border-gray-200"
     )}>
       {/* ROW 1 — Status */}
       <div className={cn("flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-bold tracking-[0.8px] uppercase border-b border-gray-100", st.row)}>
@@ -129,7 +133,8 @@ export default function ChapterItem({ chapter, spec, onWrite, onRewrite, onResum
         <div className="flex-1 min-w-0">
           <span className="text-[14px] font-medium text-gray-900 block truncate mb-0.5">{chapter.title}</span>
           <div className="flex items-center gap-2 flex-wrap">
-            {chapter.word_count > 0 && <span className="text-xs text-gray-500">~{chapter.word_count.toLocaleString()} words</span>}
+            {hasActualContent && chapter.word_count > 0 && <span className="text-xs text-gray-500">~{chapter.word_count.toLocaleString()} words</span>}
+            {isGeneratedButEmpty && <span className="text-xs text-amber-600 font-semibold">⚠ Content missing — needs rewrite</span>}
             {(() => { try { const qs = chapter.quality_scan ? JSON.parse(chapter.quality_scan) : null; if (!qs) return null; return (<>
               {qs.genAttempts > 1 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">{qs.genAttempts} attempts</span>}
               {qs.structural?.needsRetry && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 font-bold border border-red-200" title={`Retry reason: ${qs.structural.retryReason}`}>structure issue</span>}
