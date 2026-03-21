@@ -565,7 +565,7 @@ function scanNonfictionPatterns(text) {
   const totalDialogueWords = dialogueChunks.reduce((s, c) => s + c.split(/\s+/).length, 0);
   const totalWords = text.split(/\s+/).length;
   if (totalWords > 0 && totalDialogueWords / totalWords > 0.20) { warnings.push({ type: 'nf_fiction_trap', label: `${Math.round(totalDialogueWords / totalWords * 100)}% dialogue (max 20%)`, count: 1, max: 0, fixed: false }); }
-  const paras = text.trim().split(/\n\n+/);
+  const paras = splitIntoSegments(text);
   const lastPara = paras[paras.length - 1] || '';
   if (NF_ENDING_BANS.some(p => p.test(lastPara))) { warnings.push({ type: 'nf_thesis_ending', label: 'Final paragraph restates thesis', count: 1, max: 0, fixed: false }); }
 
@@ -600,7 +600,7 @@ function scanNonfictionPatterns(text) {
   }
 
   // NF PADDING DETECTION: flag chapters where consecutive paragraphs make the same point
-  const paraTexts = text.trim().split(/\n\n+/).filter(p => p.length > 100);
+  const paraTexts = splitIntoSegments(text).filter(p => p.length > 100);
   const impactSynonyms = /\b(impact|toll|cost|consequences?|effect|damage|destruction|devastation|implications?)\b/gi;
   let consecutiveImpactParas = 0;
   for (const p of paraTexts) {
@@ -650,7 +650,7 @@ function scanGeminiNonfictionBans(text) {
 
 function scanGeminiEndingEnforcement(text) {
   const violations = [];
-  const paras = text.trim().split(/\n\n+/);
+  const paras = splitIntoSegments(text);
   const lastPara = paras[paras.length - 1] || '';
 
   for (const rx of GEMINI_NF_ENDING_BANS) {
