@@ -570,27 +570,22 @@ async function exportMd(projectId, ds) {
   }
 }
 
-// Server-side DOCX export (proper Open XML)
+// Server-side DOCX export — downloads via file URL
 async function exportDocx(projectId, quill, ds) {
   const { base44: sdk } = await import("@/api/base44Client");
   const resp = await sdk.functions.invoke("exportProject", {
     projectId,
     format: "docx",
-    html: quill.root.innerHTML,
     settings: ds,
   });
-  // Check for error response
   if (resp.data?.error) throw new Error(resp.data.error);
-  // Response is base64-encoded JSON — decode to binary
-  const base64 = resp.data?.base64;
-  if (!base64) throw new Error("No DOCX data returned from server");
-  const binaryStr = atob(base64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
-  }
-  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-  download(blob, resp.data?.filename || `${ds.bookTitle || "book"}.docx`);
+  const { file_url, filename } = resp.data || {};
+  if (!file_url) throw new Error("No DOCX file returned from server");
+  const a = document.createElement("a");
+  a.href = file_url;
+  a.download = filename || `${ds.bookTitle || "book"}.docx`;
+  a.target = "_blank";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 // Print/PDF — opens styled window and triggers print dialog
