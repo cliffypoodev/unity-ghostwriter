@@ -136,8 +136,8 @@ function DocSettingsSidebar({ settings, onChange }) {
   const set = (key, val) => onChange({ ...settings, [key]: val });
 
   return (
-    <aside className="flex-shrink-0 bg-slate-50 border-r border-slate-200 overflow-y-auto p-4 space-y-4" style={{ width: 280 }}>
-      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-200">Document Settings</h3>
+    <aside className="flex-shrink-0 border-r overflow-y-auto p-4 space-y-4" style={{ width: 280, background: 'var(--pgAlt, #FFFDF8)', borderColor: 'var(--nb-border, #D8D0C0)' }}>
+      <h3 className="text-xs font-semibold uppercase tracking-widest pb-1 border-b" style={{ color: 'var(--ink2, #5A5348)', borderColor: 'var(--nb-border, #D8D0C0)' }}>Document Settings</h3>
 
       <div className="space-y-3">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Book Info</p>
@@ -886,11 +886,11 @@ export default function EditExportTab({ projectId }) {
         )}
 
         {/* Editor Area */}
-        <div className="flex-1 overflow-auto bg-slate-100 relative" style={{
+        <div className="flex-1 overflow-auto relative" style={{ background: 'var(--pg, #F5EFE4)',
           lineHeight: docSettings.lineSpacing,
         }}>
           {!quillReady && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-100">
+            <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: 'var(--pg, #F5EFE4)' }}>
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-2" />
                 <p className="text-sm text-slate-500">Loading editor…</p>
