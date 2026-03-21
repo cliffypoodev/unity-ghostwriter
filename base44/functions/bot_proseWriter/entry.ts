@@ -23,6 +23,7 @@ const MODEL_MAP = {
   "deepseek-chat":     { provider: "deepseek",  modelId: "deepseek-chat",            defaultTemp: 0.72, maxTokensLimit: 16384 },
   "openrouter":        { provider: "openrouter", modelId: "deepseek/deepseek-chat",  defaultTemp: 0.72, maxTokensLimit: 32768 },
   "trinity":           { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: 32768 },
+  "lumimaid":          { provider: "openrouter", modelId: "neversleep/llama-3.1-lumimaid-70b", defaultTemp: 0.72, maxTokensLimit: 16384 },
 };
 
 // Maximum time for any single AI API call
