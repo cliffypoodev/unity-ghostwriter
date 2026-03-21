@@ -496,19 +496,23 @@ export async function resolveChapterContent(chapter) {
 // FRONTEND AUTO-FIX — pure JS, no backend calls, no AI, runs in <1 second
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Determine the joiner string for the paragraph splitter
+function getParaJoin(text) {
+  if (/\n\n/.test(text)) return "\n\n";
+  if (/\n/.test(text)) return "\n";
+  return " ";
+}
+
 export function autoFixChapter(text) {
   if (!text || text.length < 100) return text;
 
   console.log("[autoFix] Starting. Input length:", text.length);
   var changeLog = [];
 
-  // Normalize paragraph breaks — if no double-newlines exist, treat single newlines as breaks
-  var hasDoubleBreaks = /\n\n/.test(text);
-  var PARA_SEP = hasDoubleBreaks ? /\n\n+/ : /\n/;
-  var PARA_JOIN = hasDoubleBreaks ? "\n\n" : "\n";
+  var PARA_JOIN = getParaJoin(text);
 
   // 1. REMOVE DUPLICATE PARAGRAPHS
-  var paras = text.split(PARA_SEP);
+  var paras = splitParas(text);
   var seen = [];
   var deduped = [];
   for (var i = 0; i < paras.length; i++) {
