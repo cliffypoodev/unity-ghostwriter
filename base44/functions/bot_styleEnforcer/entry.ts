@@ -842,7 +842,85 @@ function applyCodeFixes(prose) {
   }
   if (finalParas.length < openerParas.length) text = finalParas.join('\n\n');
 
-  // 7. CAP "Consider the/a..." openers — max 1 per chapter
+  // 7. INTERIORITY WORD CAPS — enforce per-chapter limits
+  const INTERIORITY_FIXES = [
+    { rx: /\bhollowness\b/gi, max: 0, alts: ['emptiness', 'barrenness', 'desolation'] },
+    { rx: /\bhollow place\b/gi, max: 0, alts: ['empty space', 'void within', 'barren core'] },
+    { rx: /\bhollow\b/gi, max: 1, alts: ['empty', 'barren', 'vacant', 'desolate'] },
+    { rx: /\bemptiness\b/gi, max: 1, alts: ['void', 'absence', 'blankness'] },
+    { rx: /\bempty\b/gi, max: 1, alts: ['vacant', 'bare', 'devoid', 'barren'] },
+    { rx: /\bshattered\b/gi, max: 1, alts: ['fractured', 'splintered', 'crumbled', 'ruined'] },
+    { rx: /\bbroken\b/gi, max: 1, alts: ['damaged', 'fractured', 'ruined', 'wrecked'] },
+    { rx: /\bnumbness\b/gi, max: 0, alts: ['detachment', 'dissociation', 'blankness'] },
+    { rx: /\bnumb\b/gi, max: 1, alts: ['insensate', 'deadened', 'detached'] },
+    { rx: /\bvoid\b/gi, max: 1, alts: ['absence', 'gap', 'chasm', 'vacuum'] },
+    { rx: /\baching\b/gi, max: 1, alts: ['throbbing', 'persistent', 'gnawing'] },
+    { rx: /\bache\b/gi, max: 1, alts: ['pang', 'throb', 'sting'] },
+    { rx: /\bfragile\b/gi, max: 1, alts: ['delicate', 'vulnerable', 'tenuous'] },
+    { rx: /\bunlovable\b/gi, max: 1, alts: ['unwanted', 'rejected', 'cast aside'] },
+    { rx: /\bweight (of|in) (his|her|their) chest\b/gi, max: 1, alts: ['pressure behind the ribs', 'tightness in the sternum', 'constriction across the torso'] },
+    { rx: /\bscraped raw\b/gi, max: 0, alts: ['worn thin', 'rubbed bare', 'stripped down'] },
+    { rx: /\blaid bare\b/gi, max: 0, alts: ['exposed', 'uncovered', 'stripped'] },
+    { rx: /\bcore wound\b/gi, max: 0, alts: ['deepest injury', 'fundamental trauma', 'central damage'] },
+    { rx: /\bold wound\b/gi, max: 0, alts: ['lingering injury', 'unhealed damage', 'persistent scar'] },
+  ];
+  for (const { rx, max, alts } of INTERIORITY_FIXES) {
+    let count = 0;
+    text = text.replace(rx, function(match) {
+      count++;
+      if (count <= max) return match;
+      fixCount++;
+      return alts[(count - max - 1) % alts.length];
+    });
+  }
+
+  // 8. NF BANNED PHRASE REMOVAL — delete sentences with absolute bans
+  const NF_BAN_PATTERNS = [
+    /\bconditions\s+where\s+\w+\s+could\s+(?:flourish|thrive)\b/gi,
+    /\bleaving\s+behind\s+a\s+trail\s+of\b/gi,
+    /\bfor\s+(?:generations|decades)\s+to\s+come\b/gi,
+  ];
+  for (const rx of NF_BAN_PATTERNS) {
+    if (rx.test(text)) {
+      rx.lastIndex = 0;
+      const sentences = text.split(/(?<=[.!?])\s+/);
+      const before = sentences.length;
+      const cleaned = sentences.filter(s => { rx.lastIndex = 0; return !rx.test(s); });
+      if (cleaned.length < before) {
+        fixCount += before - cleaned.length;
+        text = cleaned.join(' ');
+      }
+      rx.lastIndex = 0;
+    }
+  }
+
+  // 9. NF FREQUENCY CAPS — enforce per-chapter limits
+  const NF_FREQ_FIXES = [
+    { rx: /(?:^|\.\s+)The\s+[a-z]+\s+that\s+[a-z]+ed\b/gim, max: 2 },
+    { rx: /\bwould\s+(?:prove|manifest|haunt|become)\b/gi, max: 1 },
+    { rx: /\bthe human cost of\b/gi, max: 1 },
+  ];
+  for (const { rx, max } of NF_FREQ_FIXES) {
+    let count = 0;
+    text = text.replace(rx, function(match) {
+      count++;
+      if (count <= max) return match;
+      fixCount++;
+      return ''; // remove excess instances
+    });
+  }
+
+  // 9.5. NF MANUSCRIPT CAPS — dream factory / nightmare machine max 1 per chapter
+  let dreamFactoryCount = 0;
+  text = text.replace(/\b(?:nightmare\s+machine|dream\s+factory)\b/gi, function(match) {
+    dreamFactoryCount++;
+    if (dreamFactoryCount <= 1) return match;
+    fixCount++;
+    const alts = ['studio apparatus', 'Hollywood machine', 'entertainment complex', 'cinematic engine'];
+    return alts[(dreamFactoryCount - 2) % alts.length];
+  });
+
+  // 10. CAP "Consider the/a..." openers — max 1 per chapter
   let considerCount = 0;
   text = text.replace(/\bConsider (the|a|an|how|what)\b/gi, function(match) {
     considerCount++;
