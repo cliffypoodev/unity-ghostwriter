@@ -41,6 +41,7 @@ export const SCAN_CATEGORIES = {
   grammar_a_an: { label: "a/an Grammar Error", icon: "✏️", weight: 5, color: "red" },
   ai_sensory_default: { label: "AI Default Sensory Cliché", icon: "👃", weight: 8, color: "amber" },
   concept_reexplanation: { label: "Concept Re-Explanation", icon: "📚", weight: 12, color: "red" },
+  sentence_rhythm: { label: "Sentence Length Monotony", icon: "📐", weight: 8, color: "amber" },
 };
 
 export const PATTERNS = {
