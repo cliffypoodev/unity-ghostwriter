@@ -299,6 +299,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
           ))}
         </div>
       )}
-    </div></div>
+    </div>
+    </div>
   );
 }
