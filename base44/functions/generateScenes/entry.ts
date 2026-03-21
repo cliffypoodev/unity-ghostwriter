@@ -504,13 +504,13 @@ RULES:
       prevChapterTail = content.trim().slice(-200);
     }
 
+    const isErotica = /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase());
+
     // callType: beat_sheet → scene generation. Erotica → Lumimaid, others → Gemini
     const modelKey = isErotica ? 'lumimaid' : 'gemini-pro';
     const characters = storyBible?.characters || [];
     const world = storyBible?.world || storyBible?.settings;
     const rules = storyBible?.rules;
-
-    const isErotica = /erotica|erotic/.test(((spec?.genre||'')+ ' '+(spec?.subgenre||'')).toLowerCase());
 
     const explicitTaggingInstruction = isErotica ? `\n\nMANDATORY — EXPLICIT SCENE TAGGING (EROTICA PROJECT):
 This is an EROTICA project. Most scenes MUST contain on-page explicit sexual content.
