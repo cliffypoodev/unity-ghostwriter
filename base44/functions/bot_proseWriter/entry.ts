@@ -925,7 +925,7 @@ function buildProsePrompt(ctx, chCtx) {
   const authorVoice = spec?.author_voice || 'basic';
   const authorInstructions = ASP[authorVoice] || '';
 
-  // Protagonist interiority
+  // Protagonist interiority — check project-level first, then fall back to story bible protagonist
   let interiorityBlock = '';
   if (ctx.project?.protagonist_interiority) {
     try {
@@ -937,6 +937,22 @@ function buildProsePrompt(ctx, chCtx) {
       if (pi.secret_desire) lines.push(`Secret desire: ${pi.secret_desire}`);
       if (pi.behavioral_tells) lines.push(`Behavioral tells: ${pi.behavioral_tells}`);
       if (lines.length > 0) interiorityBlock = '\nPROTAGONIST INTERIORITY (weave at least one layer into a scene beat):\n' + lines.join('\n');
+    } catch {}
+  }
+  // Fall back to story bible protagonist data if no explicit interiority
+  if (!interiorityBlock && ctx.spec?.story_bible_data) {
+    try {
+      const bible = JSON.parse(ctx.spec.story_bible_data);
+      const protag = (bible.characters || []).find(c => c.role === 'protagonist');
+      if (protag) {
+        const lines = [];
+        if (protag.core_wound) lines.push(`Core wound: ${protag.core_wound}`);
+        if (protag.misbelief) lines.push(`Hidden self-belief: ${protag.misbelief}`);
+        if (protag.desire) lines.push(`Secret desire: ${protag.desire}`);
+        if (protag.fear) lines.push(`Deepest fear: ${protag.fear}`);
+        if (protag.physical_tells) lines.push(`Behavioral tells: ${protag.physical_tells}`);
+        if (lines.length > 0) interiorityBlock = '\nPROTAGONIST INTERIORITY (from Story Bible — weave at least one layer into a scene beat):\n' + lines.join('\n');
+      }
     } catch {}
   }
 
