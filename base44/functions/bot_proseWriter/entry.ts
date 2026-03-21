@@ -711,9 +711,13 @@ Use subjects' NAMES or roles, never "the human" or "the subject."
 2. NO INSTRUCTION LEAKS: If the prompt contains editing directives (Remove, Replace, Either, Frame, Provide, Label, Cite), OBEY them silently. Never print instruction text in output.
 3. DIVERSITY: Vary chapter openings (scene, quote, fact, question, in media res), structures (chronological, thematic, case study, comparative), and transitions. No "archive narrator" framing more than twice per book.
 4. REAL PEOPLE: Never fabricate deaths, medical records, quotes, or legal cases for named real people. Use verified facts only. For unnamed figures, use role descriptions ("a studio physician").
-5. COMPOSITES: Label all composite characters explicitly. Do not give composites full names or specific biographical details.
+5. COMPOSITES: Label all composite characters explicitly. Give composites specific physical details and contradictions that make them feel REAL and MESSY, not smooth narrative devices. A composite should have a chipped tooth, a nervous habit, a mispronunciation — details too specific to seem invented.
 6. NO PADDING: Every paragraph must advance a NEW point. No restating arguments in different words.
 7. CHAPTER PROGRESSION: Build on prior chapter, add NEW evidence, set up next chapter. No standalone essays.
+8. CROSS-CHAPTER DEDUP: If a concept was explained in a prior chapter (e.g., morality clauses, studio contracts, vertical integration), do NOT re-explain it. Reference it briefly ("the morality clause that had already ended three careers") and move to NEW material. The reader has read the prior chapters.
+9. NARRATIVE OVER ESSAY: Do NOT write in essay format (thesis sentence → evidence → analysis → conclusion). Instead, OPEN each section with a specific scene, anecdote, or moment. Let evidence accumulate through narrative. The reader should feel like they are watching events unfold, not reading a lecture. Weave analytical points INTO scenes rather than separating "narrative sections" from "analysis sections."
+10. PERIOD-SPECIFIC DETAILS: Use actual brand names, street addresses, restaurant names, car models, perfume names, and fashion details from the era. "A glass of whiskey at Musso & Frank's" beats "a drink at a popular restaurant." "The scent of Shalimar on her collar" beats "expensive perfume." These details are what separate professional nonfiction from AI-generated summaries.
+11. DIRECT QUOTES: Include verbatim historical quotes from court records, letters, interviews, memoirs, or testimony wherever possible. Quote first, then contextualize. A direct quote from a studio head is worth more than ten sentences of narrative paraphrase.
 === END NONFICTION RULES ===`;
 }
 
