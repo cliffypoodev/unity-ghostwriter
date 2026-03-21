@@ -397,16 +397,28 @@ function scanTheNounOpener(text, chapterNum) {
 
 function scanFormulaicIntros(text, chapterNum) {
   var findings = [];
-  // "[Name], a man/woman of [adj] [noun], sat/stood/leaned behind/at..."
-  var rx = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s+a\s+(?:man|woman|figure|person)\s+(?:of|with|whose)\s+\w+\s+\w+/g;
+  // "[Name], a man/woman of [adj] [noun]..." — flag even 1 occurrence
+  var rx = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s+a\s+(?:man|woman|figure|person|presence|voice|build|frame|stature)\s+(?:of|with|whose)\s+\w+\s+\w+/g;
   var m = text.match(rx);
-  if (m && m.length >= 2) {
+  if (m && m.length >= 1) {
     findings.push({
       category: "formulaic_intro",
       label: m.length + " formulaic character intros (\"[Name], a man/woman of [adj]...\")",
       count: m.length,
       chapter: chapterNum,
       samples: m.slice(0, 3).map(function(s) { return s.slice(0, 80); }),
+    });
+  }
+  // Also catch "[Name] was a [adj] man/woman" variant
+  var rx2 = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+was\s+a\s+(?:\w+\s+){0,2}(?:man|woman|figure|presence)\b/g;
+  var m2 = text.match(rx2);
+  if (m2 && m2.length >= 1) {
+    findings.push({
+      category: "formulaic_intro",
+      label: m2.length + " formulaic intros (\"[Name] was a [adj] man/woman\")",
+      count: m2.length,
+      chapter: chapterNum,
+      samples: m2.slice(0, 3).map(function(s) { return s.slice(0, 80); }),
     });
   }
   return findings;
