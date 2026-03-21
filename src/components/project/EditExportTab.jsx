@@ -420,12 +420,12 @@ function StatusBar({ text }) {
   const pages = Math.ceil(words / 275);
 
   return (
-    <div className="flex items-center gap-5 px-5 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex-wrap">
-      <span><b className="text-slate-700">{words.toLocaleString()}</b> words</span>
-      <span><b className="text-slate-700">{chars.toLocaleString()}</b> characters</span>
-      <span><b className="text-slate-700">{paragraphs.toLocaleString()}</b> paragraphs</span>
-      <span>~<b className="text-slate-700">{readMins}</b> min read</span>
-      <span>~<b className="text-slate-700">{pages}</b> {pages === 1 ? "page" : "pages"}</span>
+    <div className="flex items-center gap-5 px-5 py-2 border-t text-xs flex-wrap editor-status-bar" style={{ background: 'var(--pgAlt, #FFFDF8)', borderColor: 'var(--nb-border, #D8D0C0)', color: 'var(--ink2, #5A5348)' }}>
+      <span><b style={{ color: 'var(--ink, #3A3530)' }}>{words.toLocaleString()}</b> words</span>
+      <span><b style={{ color: 'var(--ink, #3A3530)' }}>{chars.toLocaleString()}</b> characters</span>
+      <span><b style={{ color: 'var(--ink, #3A3530)' }}>{paragraphs.toLocaleString()}</b> paragraphs</span>
+      <span>~<b style={{ color: 'var(--ink, #3A3530)' }}>{readMins}</b> min read</span>
+      <span>~<b style={{ color: 'var(--ink, #3A3530)' }}>{pages}</b> {pages === 1 ? "page" : "pages"}</span>
     </div>
   );
 }
@@ -814,14 +814,15 @@ export default function EditExportTab({ projectId }) {
   const title = project?.name || "Untitled";
 
   const wrapperClass = fullscreen
-    ? "fixed inset-0 z-50 bg-slate-100 flex flex-col"
+    ? "fixed inset-0 z-50 flex flex-col"
     : "flex flex-col";
+  const wrapperStyle = fullscreen ? { background: 'var(--pg, #F5EFE4)' } : {};
 
   return (
-    <div className={wrapperClass}>
+    <div className={wrapperClass} style={wrapperStyle}>
       {/* Top Bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-200 flex-wrap">
-        <h2 className="text-sm font-semibold text-slate-700 mr-2 whitespace-nowrap">Phase 3: Edit & Export</h2>
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b flex-wrap" style={{ background: 'var(--pgAlt, #FFFDF8)', borderColor: 'var(--nb-border, #D8D0C0)' }}>
+        <h2 className="text-sm font-semibold mr-2 whitespace-nowrap" style={{ color: 'var(--ink, #3A3530)' }}>Edit & Export</h2>
 
         <Button size="sm" variant={showSettings ? "secondary" : "outline"} className="h-7 text-xs gap-1.5" onClick={() => setShowSettings(s => !s)}>
           <Settings className="w-3.5 h-3.5" /> Settings
