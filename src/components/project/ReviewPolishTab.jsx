@@ -179,29 +179,16 @@ export default function ReviewPolishTab({ projectId }) {
       const ch = generatedChapters.find(c => c.chapter_number === cd.number);
       if (!ch) continue;
 
-      setFixProgress(`Pass 1/3: Ch ${cd.number} (${i + 1}/${total}) — style enforcer…`);
-
       try {
-        // ── PASS 1: Backend bot_styleEnforcer ──
-        const response = await base44.functions.invoke("bot_styleEnforcer", {
-          project_id: projectId,
-          chapter_id: ch.id,
-        });
-        const result = response.data || response;
-        console.log("[fixAll] Ch", cd.number, "P1 styleEnforcer:", result.violations_found, "found,", result.violations_remaining?.length || 0, "remaining");
-
-        // Re-fetch content after bot save
-        let [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
-        if (!updatedCh) continue;
-        let content = await resolveChapterContent(updatedCh);
+        // ── PASS 1: Frontend autoFixChapter (regex cleanup — instant) ──
+        setFixProgress(`Pass 1/2: Ch ${cd.number} (${i + 1}/${total}) — regex cleanup…`);
+        let content = await resolveChapterContent(ch);
         if (!content || content.trim().length < 100) continue;
 
-        // ── PASS 2: Frontend autoFixChapter ──
-        setFixProgress(`Pass 2/3: Ch ${cd.number} (${i + 1}/${total}) — regex cleanup…`);
         const fixedContent = autoFixChapter(content);
 
         if (fixedContent !== content && fixedContent.length > 0 && fixedContent.length >= content.length * 0.8) {
-          console.log("[fixAll] Ch", cd.number, "P2 frontend fix applied");
+          console.log("[fixAll] Ch", cd.number, "P1 frontend fix applied");
           const blob = new Blob([fixedContent], { type: "text/plain" });
           const file = new File([blob], `chapter_${ch.id}_fixed.txt`, { type: "text/plain" });
           try {
@@ -210,7 +197,7 @@ export default function ReviewPolishTab({ projectId }) {
               await base44.entities.Chapter.update(ch.id, { content: uploadResult.file_url });
             }
           } catch (upErr) {
-            console.warn("[fixAll] Ch", cd.number, "P2 upload failed:", upErr.message);
+            console.warn("[fixAll] Ch", cd.number, "P1 upload failed:", upErr.message);
           }
           content = fixedContent;
         }
@@ -218,17 +205,15 @@ export default function ReviewPolishTab({ projectId }) {
         // ── INTERMEDIATE SCAN — check what's left ──
         const midScan = scanChapter(content, cd.number, tense, targetWords);
 
-        // ── PASS 3: AI Targeted Rewrite ──
-        // Combine per-chapter findings with manuscript-wide findings for this chapter
+        // ── PASS 2: AI Targeted Rewrite ──
         const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending', 'fiction_cliche', 'recap_bloat', 'formulaic_intro', 'car_opening_cliche', 'simile_overload', 'narrator_repetition', 'participle_chain', 'ai_sensory_default', 'sentence_rhythm', 'concept_reexplanation'];
         const aiFindings = [
           ...midScan.findings.filter(f => aiFixableCategories.includes(f.category)),
-          // Include manuscript-wide findings that the AI can fix per-chapter
           ...manuscriptFindings.filter(f => aiFixableCategories.includes(f.category)),
         ];
 
         if (aiFindings.length > 0) {
-          setFixProgress(`Pass 3/3: Ch ${cd.number} (${i + 1}/${total}) — AI rewrite (${aiFindings.length} issues)…`);
+          setFixProgress(`Pass 2/2: Ch ${cd.number} (${i + 1}/${total}) — AI rewrite (${aiFindings.length} issues)…`);
           try {
             const rwResponse = await base44.functions.invoke("bot_targetedRewrite", {
               project_id: projectId,
@@ -236,15 +221,14 @@ export default function ReviewPolishTab({ projectId }) {
               findings: aiFindings,
             });
             const rwResult = rwResponse.data || rwResponse;
-            console.log("[fixAll] Ch", cd.number, "P3 AI rewrite:", rwResult.rewritten ? `${rwResult.tasks} tasks, ${rwResult.paragraphs_affected} paras` : rwResult.reason || "skipped");
+            console.log("[fixAll] Ch", cd.number, "P2 AI rewrite:", rwResult.rewritten ? `${rwResult.tasks} tasks, ${rwResult.paragraphs_affected} paras` : rwResult.reason || "skipped");
 
-            // Re-fetch after AI rewrite
             if (rwResult.rewritten) {
-              [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
+              let [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
               if (updatedCh) content = await resolveChapterContent(updatedCh);
             }
           } catch (rwErr) {
-            console.warn("[fixAll] Ch", cd.number, "P3 AI rewrite error:", rwErr.message);
+            console.warn("[fixAll] Ch", cd.number, "P2 AI rewrite error:", rwErr.message);
           }
         }
 
