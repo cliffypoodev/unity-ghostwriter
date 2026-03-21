@@ -895,8 +895,8 @@ generic descriptor (e.g., "the defense attorney") rather than inventing a name.`
 
 function buildBannedPhrasesContext(bannedPhrases) {
   if (!bannedPhrases || bannedPhrases.length === 0) return '';
-  const recent = bannedPhrases.slice(-60);
-  return 'BANNED PHRASES (used in prior chapters — do NOT reuse):\n' + recent.map(p => `- ${p}`).join('\n');
+  const recent = bannedPhrases.slice(-30);
+  return 'BANNED PHRASES (do NOT reuse):\n' + recent.map(p => `- ${p}`).join('\n');
 }
 
 function buildPreviousChapterContext(previousChapters) {
@@ -1063,7 +1063,7 @@ This is a SHORT-FORM story. The ENTIRE story must be COMPLETE within ${totalChap
     '',
     buildSceneContext(scenes, ctx.isNonfiction),
     '',
-    lastStateDoc ? `PREVIOUS STATE DOCUMENT:\n${lastStateDoc.slice(0, 3000)}` : '',
+    lastStateDoc ? `PREVIOUS STATE DOCUMENT:\n${lastStateDoc.slice(0, 1500)}` : '',
     '',
     buildPreviousChapterContext(previousChapters),
     '',
