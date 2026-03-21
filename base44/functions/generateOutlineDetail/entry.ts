@@ -186,7 +186,8 @@ Deno.serve(async (req) => {
     const targetChapters = shellChapters.length || 20;
     const truncatedTopic = spec.topic?.length > 400 ? spec.topic.slice(0, 400) : spec.topic;
     const isNonfiction = spec.book_type === 'nonfiction';
-    const modelKey = 'gemini-pro';
+    const isErotica = /erotica|erotic/i.test(((spec.genre || '') + ' ' + (spec.subgenre || '')));
+    const modelKey = isErotica ? 'lumimaid' : 'gemini-pro';
 
     const shellContext = `EXISTING SHELL (titles and summaries already approved — do NOT change titles):\n${shellChapters.map(c => `Ch ${c.number}: "${c.title}" — ${c.summary}`).join('\n')}\n\nCharacter names: ${shellCharacters.join(', ')}`;
 
