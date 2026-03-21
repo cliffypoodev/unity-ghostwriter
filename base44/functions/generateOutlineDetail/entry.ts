@@ -4,6 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 const MODEL_MAP = {
   "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.6 },
+  "lumimaid": { provider: "openrouter", modelId: "neversleep/llama-3.1-lumimaid-70b", defaultTemp: 0.7 },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
