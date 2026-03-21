@@ -101,6 +101,10 @@ export default function BibleTab({ projectId, onProceed }) {
 
   const [psychOpen, setPsychOpen] = useState(true);
 
+  // Build a merged form object that includes spec fields (topic, genre, subgenre) 
+  // needed by ProtagonistInterioritySection and InferButton
+  const mergedForm = { ...spec, ...form };
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 24px 100px" }}>
       {/* Story Bible Card */}
@@ -122,7 +126,7 @@ export default function BibleTab({ projectId, onProceed }) {
         </div>
         <div className="p1-card-body">
           <StoryBibleEditor
-            form={{ ...spec, ...form }}
+            form={mergedForm}
             onChange={handleChange}
             projectId={projectId}
           />
@@ -152,19 +156,11 @@ export default function BibleTab({ projectId, onProceed }) {
           {psychOpen && (
             <div className="p1-card-body space-y-4">
               <ProtagonistInteriorityInferButton
-                projectId={projectId}
-                premise={spec?.topic}
-                genre={spec?.genre}
-                onInferred={(data) => {
-                  if (data.core_wound) handleChange("protagonist_core_wound", data.core_wound);
-                  if (data.self_belief) handleChange("protagonist_self_belief", data.self_belief);
-                  if (data.secret_desire) handleChange("protagonist_secret_desire", data.secret_desire);
-                  if (data.behavioral_tells) handleChange("protagonist_behavioral_tells", data.behavioral_tells);
-                  if (data.life_purpose) handleChange("protagonist_life_purpose", data.life_purpose);
-                }}
+                form={mergedForm}
+                onChange={handleChange}
               />
               <ProtagonistInterioritySection
-                form={form}
+                form={mergedForm}
                 onChange={handleChange}
               />
             </div>
