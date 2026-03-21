@@ -735,30 +735,30 @@ export function computeScore(allFindings) {
   for (var i = 0; i < allFindings.length; i++) {
     var f = allFindings[i];
     if (f.category === "duplicate_paragraph") deductions += f.count * 15;
-    else if (f.category === "instruction_leak") deductions += f.count * 8;
-    else if (f.category === "nf_banned_phrase") deductions += f.count * 3;
-    else if (f.category === "coffee_scene") deductions += f.count * 5;
-    else if (f.category === "archive_framing") deductions += f.count * 3;
-    else if (f.category === "tense_drift") deductions += Math.min(f.count * 0.5, 15);
-    else if (f.category === "interiority_repetition") deductions += f.count * 1;
-    else if (f.category === "sensory_opener") deductions += f.count * 1.5;
-    else if (f.category === "repetitive_padding") deductions += f.count * 2;
-    else if (f.category === "nf_manuscript_cap") deductions += f.count * 2;
+    else if (f.category === "instruction_leak") deductions += f.count * 10;
+    else if (f.category === "nf_banned_phrase") deductions += f.count * 4;
+    else if (f.category === "coffee_scene") deductions += f.count * 6;
+    else if (f.category === "archive_framing") deductions += f.count * 4;
+    else if (f.category === "tense_drift") deductions += Math.min(f.count * 0.8, 20);
+    else if (f.category === "interiority_repetition") deductions += f.count * 1.5;
+    else if (f.category === "sensory_opener") deductions += f.count * 3;
+    else if (f.category === "repetitive_padding") deductions += f.count * 3;
+    else if (f.category === "nf_manuscript_cap") deductions += f.count * 3;
     else if (f.category === "word_count") deductions += f.count * 2;
-    else if (f.category === "ai_adjective") deductions += f.count * 2;
-    else if (f.category === "philosophical_ending") deductions += f.count * 5;
-    else if (f.category === "the_noun_opener") deductions += f.count * 1.5;
-    // v14 AI DNA detectors
-    else if (f.category === "formulaic_intro") deductions += f.count * 3;
-    else if (f.category === "car_opening_cliche") deductions += f.count * 4;
-    else if (f.category === "simile_overload") deductions += f.count * 2;
-    else if (f.category === "passive_voice_density") deductions += Math.min(f.count * 0.3, 8);
-    else if (f.category === "narrator_repetition") deductions += f.count * 2;
-    else if (f.category === "participle_chain") deductions += f.count * 1;
+    else if (f.category === "ai_adjective") deductions += f.count * 3;
+    else if (f.category === "philosophical_ending") deductions += f.count * 6;
+    else if (f.category === "the_noun_opener") deductions += f.count * 2;
+    // v14 AI DNA detectors — higher weights to actually impact score
+    else if (f.category === "formulaic_intro") deductions += f.count * 5;
+    else if (f.category === "car_opening_cliche") deductions += f.count * 5;
+    else if (f.category === "simile_overload") deductions += f.count * 3;
+    else if (f.category === "passive_voice_density") deductions += Math.min(f.count * 0.5, 12);
+    else if (f.category === "narrator_repetition") deductions += f.count * 4;
+    else if (f.category === "participle_chain") deductions += f.count * 2;
     else if (f.category === "grammar_a_an") deductions += f.count * 2;
-    else if (f.category === "ai_sensory_default") deductions += f.count * 3;
-    else if (f.category === "concept_reexplanation") deductions += f.count * 4;
-    else deductions += f.count * 0.5;
+    else if (f.category === "ai_sensory_default") deductions += f.count * 5;
+    else if (f.category === "concept_reexplanation") deductions += f.count * 5;
+    else deductions += f.count * 1;
   }
   return Math.max(0, Math.min(100, Math.round(100 - deductions)));
 }
