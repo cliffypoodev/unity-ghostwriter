@@ -25,8 +25,9 @@ const MODEL_MAP = {
   "trinity":           { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: 32768 },
 };
 
-// Maximum time for any single AI API call — must complete well within Deno Deploy's isolate limit
-const AI_CALL_TIMEOUT = 50000; // 50 seconds
+// Maximum time for any single AI API call
+// DeepSeek V3.2 needs more time for long chapters — Deno Deploy allows up to ~120s per request
+const AI_CALL_TIMEOUT = 90000; // 90 seconds
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   const config = MODEL_MAP[modelKey];
@@ -1295,8 +1296,8 @@ async function runProseWriter(base44, projectId, chapterId) {
     await base44.entities.Chapter.update(chapterId, { status: 'generating' });
   } catch {}
 
-  const PRIMARY_TIMEOUT = 55000; // 55s — must finish before Deno Deploy's ~60s isolate limit
-  const FALLBACK_TIMEOUT = 50000;
+  const PRIMARY_TIMEOUT = 90000; // 90s — DeepSeek V3.2 needs time for long chapters
+  const FALLBACK_TIMEOUT = 80000;
 
   try {
     const controller = new AbortController();
@@ -1333,7 +1334,7 @@ async function runProseWriter(base44, projectId, chapterId) {
   const maxContinuations = wordTarget >= 5000 ? 2 : 1;
   let continuationCount = 0;
 
-  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 50000) {
+  while (currentWords < continuationThreshold && currentWords > 100 && continuationCount < maxContinuations && (Date.now() - startMs) < 110000) {
     continuationCount++;
     const wordsNeeded = wordTarget - currentWords;
     console.log(`ProseWriter: Ch ${chCtx.chapter.chapter_number} — only ${currentWords}/${wordTarget} words. Continuation ${continuationCount}/${maxContinuations}...`);
