@@ -31,6 +31,16 @@ export const SCAN_CATEGORIES = {
   ai_adjective: { label: "AI-Preferred Adjective Overuse", icon: "🤖", weight: 8, color: "amber" },
   philosophical_ending: { label: "Philosophical Platitude Ending", icon: "🎓", weight: 10, color: "red" },
   the_noun_opener: { label: "\"The [Noun] [Verb]\" Monotony", icon: "📄", weight: 8, color: "amber" },
+  // ── AI DNA DETECTORS (v14) ──
+  formulaic_intro: { label: "Formulaic Character Intro", icon: "🎭", weight: 10, color: "amber" },
+  car_opening_cliche: { label: "Car/Vehicle Opening Cliché", icon: "🚗", weight: 8, color: "amber" },
+  simile_overload: { label: "Simile/Metaphor Overload", icon: "💎", weight: 8, color: "amber" },
+  passive_voice_density: { label: "Passive Voice Density", icon: "😴", weight: 6, color: "blue" },
+  narrator_repetition: { label: "Narrator Transition Repetition", icon: "🎙", weight: 10, color: "amber" },
+  participle_chain: { label: "-ing Participle Chain", icon: "🔗", weight: 6, color: "blue" },
+  grammar_a_an: { label: "a/an Grammar Error", icon: "✏️", weight: 5, color: "red" },
+  ai_sensory_default: { label: "AI Default Sensory Cliché", icon: "👃", weight: 8, color: "amber" },
+  concept_reexplanation: { label: "Concept Re-Explanation", icon: "📚", weight: 12, color: "red" },
 };
 
 export const PATTERNS = {
