@@ -31,10 +31,10 @@ function CategoryRow({ category, findings }) {
     blue: "bg-blue-100 text-blue-700 border-blue-200",
   };
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/60 border border-[var(--nb-border)]">
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-[#fafafa] border border-[#e8e8ec]">
       <div className="flex items-center gap-2">
         <span className="text-base">{cat.icon}</span>
-        <span className="text-sm" style={{ color: 'var(--ink)' }}>{cat.label}</span>
+        <span className="text-sm text-[#18171f]">{cat.label}</span>
       </div>
       <Badge className={cn("text-xs border", findings.length === 0 ? "bg-emerald-100 text-emerald-700 border-emerald-200" : colorMap[cat.color])}>
         {findings.length === 0 ? "✓ Clean" : `${totalInstances} instance${totalInstances !== 1 ? "s" : ""}`}
