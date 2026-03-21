@@ -350,20 +350,17 @@ Deno.serve(async (req) => {
     try {
       const doc = buildDocxDocument(projectTitle, generatedChapters, spec, mergedSettings);
       const buffer = await Packer.toBuffer(doc);
-      // Convert buffer to base64 in chunks to avoid stack overflow on large documents
-      const bytes = new Uint8Array(buffer);
-      let binaryStr = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        binaryStr += String.fromCharCode.apply(null, chunk);
-      }
-      const base64 = btoa(binaryStr);
       const safeTitle = projectTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'book';
+      const filename = `${safeTitle}.docx`;
+
+      // Upload the DOCX as a file to avoid response size limits
+      const docxBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const docxFile = new File([docxBlob], filename, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: docxFile });
 
       return Response.json({
-        base64,
-        filename: `${safeTitle}.docx`,
+        file_url,
+        filename,
       });
     } catch (err) {
       console.error('DOCX generation error:', err.message);
