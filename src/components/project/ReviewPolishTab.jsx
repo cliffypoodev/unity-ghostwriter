@@ -139,7 +139,7 @@ export default function ReviewPolishTab({ projectId }) {
     refetchChapters();
   }, [refetchChapters]);
 
-  // ── Fix All — calls backend bot_styleEnforcer for each chapter with issues ──
+  // ── Fix All — backend bot_styleEnforcer + frontend autoFix for each chapter ──
   const handleFixAll = async () => {
     if (!scanResults) return;
     setFixingAll(true);
@@ -154,26 +154,49 @@ export default function ReviewPolishTab({ projectId }) {
       setFixProgress(`Fixing chapter ${cd.number} (${i + 1} of ${total})…`);
 
       try {
-        // Call backend bot_styleEnforcer — it saves the fixed content automatically
+        // Step 1: Call backend bot_styleEnforcer for banned phrase caps, vague sensations,
+        // interiority caps, duplicate paragraphs, instruction leak stripping, etc.
         const response = await base44.functions.invoke("bot_styleEnforcer", {
           project_id: projectId,
           chapter_id: ch.id,
         });
         const result = response.data || response;
-        console.log("[fixAll] Ch", cd.number, "styleEnforcer result:", result.violations_found, "violations,", result.violations_remaining?.length || 0, "remaining", result.safety_blocked ? "(SAFETY BLOCKED)" : "");
+        console.log("[fixAll] Ch", cd.number, "styleEnforcer:", result.violations_found, "found,", result.violations_remaining?.length || 0, "remaining", result.safety_blocked ? "(BLOCKED)" : "");
 
-        // Re-fetch chapter content and re-scan locally to update the UI
+        // Step 2: Re-fetch the chapter content (bot may have saved a new file URL)
         const updatedChapters = await base44.entities.Chapter.filter({ id: ch.id });
         const updatedCh = updatedChapters[0];
-        if (updatedCh) {
-          const newContent = await resolveChapterContent(updatedCh);
-          if (newContent && newContent.length > 50) {
-            const { findings, words } = scanChapter(newContent, cd.number, tense, targetWords);
-            handleChapterScanUpdated(cd.number, findings, words);
+        if (!updatedCh) continue;
+
+        let content = await resolveChapterContent(updatedCh);
+        if (!content || content.length < 100) continue;
+
+        // Step 3: Run frontend autoFixChapter for transition crutches, scaffolding,
+        // hedging, recap bloat, generic conclusions, repeated openers — patterns the
+        // backend bot detects but doesn't fix via code-level passes.
+        const fixedContent = autoFixChapter(content);
+
+        if (fixedContent !== content && fixedContent.length >= content.length * 0.8) {
+          console.log("[fixAll] Ch", cd.number, "frontend fix applied, saving...");
+          const blob = new Blob([fixedContent], { type: "text/plain" });
+          const file = new File([blob], `chapter_${ch.id}_fixed.txt`, { type: "text/plain" });
+          try {
+            const uploadResult = await base44.integrations.Core.UploadFile({ file });
+            if (uploadResult?.file_url) {
+              await base44.entities.Chapter.update(ch.id, { content: uploadResult.file_url });
+            }
+          } catch (upErr) {
+            console.warn("[fixAll] Ch", cd.number, "upload failed:", upErr.message);
           }
+          content = fixedContent;
         }
+
+        // Step 4: Re-scan to update UI
+        const { findings, words } = scanChapter(content, cd.number, tense, targetWords);
+        handleChapterScanUpdated(cd.number, findings, words);
+        console.log("[fixAll] Ch", cd.number, "post-fix issues:", findings.length);
       } catch (err) {
-        console.warn("[fixAll] Ch", cd.number, "bot_styleEnforcer error:", err.message);
+        console.warn("[fixAll] Ch", cd.number, "error:", err.message);
       }
     }
 
