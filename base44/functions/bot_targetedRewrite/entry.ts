@@ -415,7 +415,7 @@ CRITICAL Rules:
       textToSend = seg.slice(0, 4000) + '\n[... remainder of segment ...]';
     }
     const instructions = tasksBySeg[idx].map(t => t.instruction).join('; ');
-    parts.push(`[${idx}]\nINSTRUCTION: ${instructions}\nORIGINAL (${seg.length} chars):\n${textToSend}`);
+    parts.push(`[${idx}]\nINSTRUCTION: ${instructions}\nORIGINAL (${seg.length} chars — your response MUST be similar length, return the COMPLETE segment):\n${textToSend}`);
   }
 
   if (parts.length === 0) return prose;
