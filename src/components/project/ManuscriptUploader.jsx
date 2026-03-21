@@ -54,7 +54,7 @@ export default function ManuscriptUploader({ onTextLoaded }) {
         variant="outline"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="gap-2 hover:bg-white/60" style={{ borderColor: 'var(--nb-border)', color: 'var(--ink)' }}
+        className="gap-2 hover:bg-slate-50 border-[#e8e8ec] text-[#18171f]"
       >
         {uploading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -71,10 +71,10 @@ export default function ManuscriptUploader({ onTextLoaded }) {
         onChange={handleFile}
       />
       {fileName && !uploading && (
-        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ink2)' }}>
+        <span className="flex items-center gap-1.5 text-xs text-[#9997b0]">
           <FileText className="w-3 h-3" />
           {fileName}
-          <button onClick={() => { setFileName(null); onTextLoaded("", null); }} className="hover:opacity-70" style={{ color: 'var(--ink2)' }}>
+          <button onClick={() => { setFileName(null); onTextLoaded("", null); }} className="hover:opacity-70 text-[#9997b0]">
             <X className="w-3 h-3" />
           </button>
         </span>
