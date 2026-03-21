@@ -772,38 +772,68 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   return { findings: findings, words: words };
 }
 
+// Per-finding deduction value (used per chapter, then averaged)
+function findingDeduction(f) {
+  if (f.category === "duplicate_paragraph") return f.count * 12;
+  if (f.category === "instruction_leak") return f.count * 10;
+  if (f.category === "nf_banned_phrase") return f.count * 3;
+  if (f.category === "coffee_scene") return f.count * 4;
+  if (f.category === "archive_framing") return f.count * 3;
+  if (f.category === "tense_drift") return Math.min(f.count * 0.6, 15);
+  if (f.category === "interiority_repetition") return f.count * 1;
+  if (f.category === "sensory_opener") return f.count * 2;
+  if (f.category === "repetitive_padding") return f.count * 2;
+  if (f.category === "nf_manuscript_cap") return f.count * 2;
+  if (f.category === "word_count") return f.count * 1;
+  if (f.category === "ai_adjective") return f.count * 2;
+  if (f.category === "philosophical_ending") return f.count * 4;
+  if (f.category === "the_noun_opener") return f.count * 1;
+  if (f.category === "formulaic_intro") return Math.min(f.count * 3, 10);
+  if (f.category === "car_opening_cliche") return f.count * 3;
+  if (f.category === "simile_overload") return Math.min(f.count * 2, 8);
+  if (f.category === "passive_voice_density") return Math.min(f.count * 1, 6);
+  if (f.category === "narrator_repetition") return Math.min(f.count * 2, 8);
+  if (f.category === "participle_chain") return Math.min(f.count * 0.5, 6);
+  if (f.category === "grammar_a_an") return Math.min(f.count * 1, 5);
+  if (f.category === "ai_sensory_default") return f.count * 3;
+  if (f.category === "concept_reexplanation") return f.count * 3;
+  if (f.category === "sentence_rhythm") return f.count * 2;
+  return f.count * 0.5;
+}
+
 export function computeScore(allFindings) {
-  var deductions = 0;
+  // Group findings by chapter, compute per-chapter score, then average
+  var chapters = {};
+  var manuscriptDeductions = 0;
   for (var i = 0; i < allFindings.length; i++) {
     var f = allFindings[i];
-    if (f.category === "duplicate_paragraph") deductions += f.count * 15;
-    else if (f.category === "instruction_leak") deductions += f.count * 10;
-    else if (f.category === "nf_banned_phrase") deductions += f.count * 4;
-    else if (f.category === "coffee_scene") deductions += f.count * 6;
-    else if (f.category === "archive_framing") deductions += f.count * 4;
-    else if (f.category === "tense_drift") deductions += Math.min(f.count * 0.8, 20);
-    else if (f.category === "interiority_repetition") deductions += f.count * 1.5;
-    else if (f.category === "sensory_opener") deductions += f.count * 3;
-    else if (f.category === "repetitive_padding") deductions += f.count * 3;
-    else if (f.category === "nf_manuscript_cap") deductions += f.count * 3;
-    else if (f.category === "word_count") deductions += f.count * 2;
-    else if (f.category === "ai_adjective") deductions += f.count * 3;
-    else if (f.category === "philosophical_ending") deductions += f.count * 6;
-    else if (f.category === "the_noun_opener") deductions += f.count * 2;
-    // v14 AI DNA detectors — higher weights to actually impact score
-    else if (f.category === "formulaic_intro") deductions += f.count * 5;
-    else if (f.category === "car_opening_cliche") deductions += f.count * 5;
-    else if (f.category === "simile_overload") deductions += f.count * 3;
-    else if (f.category === "passive_voice_density") deductions += Math.min(f.count * 0.5, 12);
-    else if (f.category === "narrator_repetition") deductions += f.count * 4;
-    else if (f.category === "participle_chain") deductions += f.count * 2;
-    else if (f.category === "grammar_a_an") deductions += f.count * 2;
-    else if (f.category === "ai_sensory_default") deductions += f.count * 5;
-    else if (f.category === "concept_reexplanation") deductions += f.count * 5;
-    else if (f.category === "sentence_rhythm") deductions += f.count * 3;
-    else deductions += f.count * 1;
+    if (f.chapter === 0) {
+      // Manuscript-wide findings — apply small global penalty
+      manuscriptDeductions += findingDeduction(f);
+    } else {
+      if (!chapters[f.chapter]) chapters[f.chapter] = [];
+      chapters[f.chapter].push(f);
+    }
   }
-  return Math.max(0, Math.min(100, Math.round(100 - deductions)));
+  var chapterKeys = Object.keys(chapters);
+  if (chapterKeys.length === 0) {
+    // No per-chapter findings — just apply manuscript-wide
+    return Math.max(0, Math.min(100, Math.round(100 - Math.min(manuscriptDeductions, 30))));
+  }
+  var totalScore = 0;
+  for (var k = 0; k < chapterKeys.length; k++) {
+    var chFindings = chapters[chapterKeys[k]];
+    var chDeductions = 0;
+    for (var j = 0; j < chFindings.length; j++) {
+      chDeductions += findingDeduction(chFindings[j]);
+    }
+    // Cap per-chapter deductions at 100 (a chapter can't score below 0)
+    totalScore += Math.max(0, 100 - Math.min(chDeductions, 100));
+  }
+  var avgScore = totalScore / chapterKeys.length;
+  // Apply manuscript-wide penalty (capped at 15 points)
+  avgScore -= Math.min(manuscriptDeductions, 15);
+  return Math.max(0, Math.min(100, Math.round(avgScore)));
 }
 
 export async function resolveChapterContent(chapter) {
