@@ -207,7 +207,7 @@ function scanNfBannedPhraseCaps(text, chapterNum) {
 
 function scanCoffeeScenes(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/);
+  var paras = splitParas(text);
   var count = 0;
   for (var i = 0; i < paras.length; i++) {
     if (/\bcoffee\b/i.test(paras[i]) && /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i.test(paras[i])) {
@@ -227,7 +227,7 @@ function scanCoffeeScenes(text, chapterNum) {
 
 function scanArchiveFraming(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/);
+  var paras = splitParas(text);
   var count = 0;
   for (var i = 0; i < paras.length; i++) {
     if (/\b(brittle paper|yellowed|old paper|dust motes|close the folder|close the file|faded ink|manila folder|reading room)\b/i.test(paras[i])) {
@@ -273,7 +273,7 @@ export function scanManuscriptWideCaps(fullText) {
 
 function scanRepetitivePadding(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/).filter(function(p) { return p.trim().length > 30; });
+  var paras = splitParas(text).filter(function(p) { return p.trim().length > 30; });
   var openers = [];
   for (var i = 0; i < paras.length; i++) {
     var first = (paras[i].trim().split(/[.!?]/)[0] || "");
@@ -329,7 +329,7 @@ function scanAiAdjectives(text, chapterNum) {
 
 function scanPhilosophicalEndings(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/);
+  var paras = splitParas(text);
   if (paras.length < 2) return findings;
   var last = paras[paras.length - 1];
   var platitudes = [
@@ -359,7 +359,7 @@ function scanPhilosophicalEndings(text, chapterNum) {
 
 function scanTheNounOpener(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/);
+  var paras = splitParas(text);
   for (var i = 0; i < paras.length; i++) {
     var sents = paras[i].split(/(?<=[.!?])\s+/);
     var theCount = 0;
