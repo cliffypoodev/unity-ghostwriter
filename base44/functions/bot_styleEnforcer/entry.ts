@@ -106,6 +106,27 @@ function getChapterContext(ctx, chapterId) {
   return { chapter, chapterIndex, previousChapters };
 }
 
+// ═══ UNIVERSAL PARAGRAPH SPLITTER ═══
+// Handles content with \n\n, \n, or no line breaks at all
+function splitIntoSegments(text) {
+  if (/\n\n/.test(text)) return text.split(/\n\n+/);
+  if (/\n/.test(text)) return text.split(/\n/);
+  // No line breaks — split on sentence boundaries into ~1500 char chunks
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  const chunks = [];
+  let current = '';
+  for (const sent of sentences) {
+    if (current.length + sent.length > 1500 && current.length > 0) {
+      chunks.push(current.trim());
+      current = sent;
+    } else {
+      current += (current ? ' ' : '') + sent;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+
 // ═══ BANNED CONSTRUCTIONS ═══
 
 const ABSOLUTE_BANS = [
