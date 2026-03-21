@@ -98,7 +98,12 @@ export default function ChapterReviewCard({
     }
   }
 
-  // FIX ISSUES — pure frontend, no backend bot call
+  // Categories that need AI rewrite (can't be fixed by regex alone)
+  var AI_FIXABLE = ['formulaic_intro', 'car_opening_cliche', 'simile_overload', 'narrator_repetition',
+    'participle_chain', 'ai_sensory_default', 'sentence_rhythm', 'interiority_repetition',
+    'sensory_opener', 'tense_drift', 'the_noun_opener', 'philosophical_ending', 'fiction_cliche', 'recap_bloat'];
+
+  // FIX ISSUES — regex autoFix first, then AI targeted rewrite for remaining issues
   async function handleFix() {
     var issuesBefore = totalInstances;
     setAction("fixing");
@@ -116,23 +121,68 @@ export default function ChapterReviewCard({
         return;
       }
 
-      setActionStep("Running fixes...");
+      // Pass 1: Regex-based autoFix
+      setActionStep("Running regex fixes...");
       var fixedContent = autoFixChapter(content);
-      console.log("[handleFix] Fix complete. Original:", content.length, "Fixed:", fixedContent.length, "Changed:", content !== fixedContent);
+      var regexChanged = fixedContent !== content;
+      console.log("[handleFix] Regex pass. Changed:", regexChanged);
 
-      if (fixedContent !== content && fixedContent && fixedContent.trim().length >= 100) {
-        setActionStep("Saving fixed content...");
+      if (regexChanged && fixedContent && fixedContent.trim().length >= 100) {
+        setActionStep("Saving regex fixes...");
         await saveChapterContent(chapterEntity.id, fixedContent);
+      }
 
-        setActionStep("Re-scanning...");
-        var scanResult = scanChapter(fixedContent, chapterNum, tense, targetWords);
-        onScanUpdated(chapterNum, scanResult.findings, scanResult.words);
-        var issuesAfter = scanResult.findings.reduce(function(s, f) { return s + f.count; }, 0);
-        console.log("[handleFix] Done. Issues before:", issuesBefore, "after:", issuesAfter);
-        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: issuesBefore - issuesAfter });
+      // Re-scan after regex pass to see what's left
+      var currentContent = regexChanged ? fixedContent : content;
+      var midScan = scanChapter(currentContent, chapterNum, tense, targetWords);
+      var aiFindings = midScan.findings.filter(function(f) { return AI_FIXABLE.indexOf(f.category) >= 0; });
+
+      // Pass 2: AI targeted rewrite for remaining AI-fixable issues
+      if (aiFindings.length > 0) {
+        setActionStep("AI rewriting " + aiFindings.length + " issue type(s)...");
+        console.log("[handleFix] Sending", aiFindings.length, "AI-fixable finding types to bot_targetedRewrite");
+        try {
+          var rewriteResp = await base44.functions.invoke("bot_targetedRewrite", {
+            project_id: projectId,
+            chapter_id: chapterEntity.id,
+            findings: aiFindings,
+          });
+          var rewriteResult = rewriteResp.data;
+          console.log("[handleFix] AI rewrite result:", JSON.stringify(rewriteResult));
+
+          if (rewriteResult && rewriteResult.changed) {
+            console.log("[handleFix] AI rewrite made changes");
+          }
+        } catch (aiErr) {
+          if (isTimeoutError(aiErr)) {
+            console.warn("[handleFix] AI rewrite timed out, polling for update...");
+            setActionStep("AI rewrite running (waiting)...");
+            // Poll for update
+            var origResults = await base44.entities.Chapter.filter({ id: chapterEntity.id });
+            var origUpdated = origResults[0] ? origResults[0].updated_date : null;
+            for (var poll = 0; poll < 30; poll++) {
+              await new Promise(function(r) { setTimeout(r, 4000); });
+              setActionStep("AI rewrite running (" + ((poll + 1) * 4) + "s)...");
+              var polled = (await base44.entities.Chapter.filter({ id: chapterEntity.id }))[0];
+              if (polled && polled.updated_date !== origUpdated) break;
+            }
+          } else {
+            console.error("[handleFix] AI rewrite error:", aiErr.message);
+          }
+        }
+      }
+
+      // Final re-scan
+      setActionStep("Re-scanning...");
+      var finalFindings = await rescanAndUpdate();
+      var issuesAfter = finalFindings ? finalFindings.reduce(function(s, f) { return s + f.count; }, 0) : issuesBefore;
+      var delta = issuesBefore - issuesAfter;
+      console.log("[handleFix] Done. Issues before:", issuesBefore, "after:", issuesAfter, "fixed:", delta);
+
+      if (delta > 0) {
+        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: delta });
       } else {
-        console.log("[handleFix] No changes made by autoFixChapter");
-        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesBefore, fixed: 0, message: "No fixable issues found" });
+        setLastResult({ type: "fix", issuesBefore: issuesBefore, issuesAfter: issuesAfter, fixed: 0, message: "No fixable issues found" });
       }
     } catch (err) {
       console.error("[handleFix] Error:", err);
