@@ -176,7 +176,7 @@ export default function ReviewPolishTab({ projectId }) {
         setFixProgress(`Pass 2/3: Ch ${cd.number} (${i + 1}/${total}) — regex cleanup…`);
         const fixedContent = autoFixChapter(content);
 
-        if (fixedContent !== content && fixedContent.length >= content.length * 0.8) {
+        if (fixedContent !== content && fixedContent.length > 0 && fixedContent.length >= content.length * 0.8) {
           console.log("[fixAll] Ch", cd.number, "P2 frontend fix applied");
           const blob = new Blob([fixedContent], { type: "text/plain" });
           const file = new File([blob], `chapter_${ch.id}_fixed.txt`, { type: "text/plain" });
