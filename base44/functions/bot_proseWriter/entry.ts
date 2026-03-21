@@ -568,10 +568,58 @@ const OUTPUT_FORMAT_RULES = `OUTPUT FORMAT RULES:
 
 const QUALITY_UPGRADES = `INTERIORITY: Internal monologue max 2 consecutive sentences before action/dialogue/sensory.
 DIALOGUE SUBTEXT: Every exchange >2 lines must contain subtext. Direct on-the-nose max 1x/chapter.
-SCENE ENDING: Final paragraph ends on: physical image, dialogue, concrete action, or sensory detail. NOT: emotional summary, stated realization, thematic declaration.
+SCENE ENDING: Final paragraph ends on: physical image, dialogue, concrete action, or sensory detail. NOT: emotional summary, stated realization, thematic declaration. NEVER end a chapter with a grand philosophical statement like "the past is never truly past" or "the truth was always there."
 OPENING: First sentence mid-action/sensation/dialogue. No character name in first 5 words.
 CHARACTER ARC DIVERSITY: Each chapter must reveal a NEW dimension of the protagonist — a new fear, desire, memory, or contradiction. Do NOT restate the same emotional wound using the same vocabulary across multiple chapters.
 DIALOGUE MODE DIVERSITY: Each major character must demonstrate at least 3 distinct conversational modes across the manuscript. If a character only psychoanalyzes the protagonist, they are not a character — they are a device. Give them mundane moments, uncertainty, humor, or genuine questions.`;
+
+// ═══ AI DNA PREVENTION BLOCK (injected into every prompt) ═══
+// Addresses specific AI-generated text patterns identified through editorial review.
+const AI_DNA_PREVENTION = `=== AI DNA PREVENTION — MANDATORY ===
+Your prose must pass as human-written by a professional editor. The following patterns are AI giveaways that MUST be avoided:
+
+1. SCENE-SETTING TROPE REUSE: Do NOT open multiple scenes with the same device (e.g., "the ring of a telephone," "a knock at the door," "the screech of tires"). If you used a device in a prior scene, it is DEAD. Find a completely different entry point.
+
+2. ADJECTIVE SYNDROME — BANNED WORDS (max 1 use each per chapter):
+   shimmering, luminous, tapestry, intricate, meticulously, insatiable, palpable,
+   unmistakable, undeniable, relentless, sprawling, labyrinthine, opulent,
+   resplendent, ethereal, visceral, cacophony, crescendo, juxtaposition,
+   myriad, plethora, testament, harbinger, paradigm, dichotomy
+   If you catch yourself reaching for these, use a SPECIFIC concrete noun instead.
+
+3. SENTENCE OPENER DIVERSITY — MANDATORY:
+   Do NOT start more than 2 sentences per paragraph with "The [Noun]..."
+   Vary with: prepositional phrases ("In the corridor..."), participial phrases
+   ("Gripping the railing..."), adverbial ("Quietly, she..."), dialogue, or
+   dependent clauses ("When the door opened...").
+   Count your sentence openers. If 3+ start with "The," rewrite.
+
+4. PHILOSOPHICAL BOOKENDING — BANNED:
+   Do NOT end chapters with grand platitudes like "The truth was that...",
+   "The final, unsettling truth is that...", "In the end, what mattered was...",
+   "Perhaps the real lesson was...", "The past is never truly past."
+   End on a CONCRETE IMAGE, a line of dialogue, or a specific physical action.
+
+5. SENSORY SPECIFICITY — USE REAL DETAILS:
+   Do NOT write "expensive perfume" — write "Shalimar" or "Chanel No. 5."
+   Do NOT write "a popular restaurant" — write "Chasen's" or "the Brown Derby."
+   Do NOT write "a luxury car" — write "a Packard sedan" or "a cream Duesenberg."
+   Period-specific brand names, street names, and place names signal authenticity.
+   When you don't know the specific name, use a vivid physical description instead
+   of a generic category label.
+
+6. COMPOSITE CHARACTER INTEGRATION:
+   Composite characters must feel MESSY and specific, not smooth narrative devices.
+   Give them contradictions, ugly habits, moments of pettiness. They should have
+   details that feel too specific to be invented: a chipped front tooth, a habit
+   of folding napkins into triangles, a particular way of mispronouncing "boulevard."
+
+7. SHOW VS TELL — NONFICTION NARRATIVE:
+   Do NOT write analytical topic sentences followed by evidence ("The studio system
+   was built on control. For example..."). Instead, OPEN with the specific scene,
+   quote, or incident, then let the analysis EMERGE from it. The reader should
+   reach the conclusion before you state it.
+=== END AI DNA PREVENTION ===`;
 
 // ═══ EROTICA PROSE REGISTER (v6) ═══
 // Controls VOCABULARY and TONE of intimate scenes only. Non-intimate prose
