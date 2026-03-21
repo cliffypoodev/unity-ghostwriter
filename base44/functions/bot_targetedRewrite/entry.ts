@@ -310,14 +310,18 @@ function extractIssueContext(prose, findings) {
       }
     }
 
-    // v14: AI sensory defaults
+    // v14: AI sensory defaults — must match all patterns from ScanPatterns scanner
     if (f.category === 'ai_sensory_default') {
       const aiDefRx = [
         /\bdust motes\s+(?:dancing|floating|swirling|drifting|spinning|suspended)\b/gi,
-        /\bscent of\s+(?:polished wood|old leather|expensive cigar|cigar smoke|aged paper)\b/gi,
-        /\b(?:mahogany|oak|walnut)\s+desk\s+(?:that |which )?(?:dominated|commanded|anchored)\b/gi,
+        /\bscent of\s+(?:polished wood|old leather|expensive cigar|cigar smoke|aged paper|ancient leather)\b/gi,
+        /\b(?:mahogany|oak|walnut)\s+desk\s+(?:that |which )?(?:dominated|commanded|anchored|occupied)\b/gi,
         /\bwindowless\s+cathedral/gi,
+        /\bdistilled and shimmering\b/gi,
+        /\blike\s+(?:green |emerald |jade )?sequins\b/gi,
+        /\bpolished\s+(?:mahogany|oak|wood)\s+(?:gleamed|glowed|reflected)\b/gi,
         /\b(?:amber|golden|warm)\s+(?:light|glow)\s+(?:spilled|pooled|washed|bathed|filtered)\b/gi,
+        /\bheavy\s+(?:velvet|silk)\s+(?:curtains?|drapes?)\b/gi,
       ];
       for (let i = 0; i < segments.length; i++) {
         for (const arx of aiDefRx) {
