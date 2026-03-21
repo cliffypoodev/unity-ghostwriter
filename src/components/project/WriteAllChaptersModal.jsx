@@ -94,7 +94,7 @@ export default function WriteAllChaptersModal({
             font-size: 52px;
             font-weight: 700;
             text-align: center;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            background: linear-gradient(135deg, #5b50f0, #7c6af0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -108,7 +108,7 @@ export default function WriteAllChaptersModal({
           }
           .wac-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #7c3aed, #3b82f6);
+            background: linear-gradient(90deg, #5b50f0, #7c6af0);
             border-radius: 6px;
             transition: width 0.3s ease;
           }
@@ -145,7 +145,7 @@ export default function WriteAllChaptersModal({
             {done ? (paused ? "Writing Paused" : "Book Complete! 🎉") : "Writing Your Book..."}
           </DialogTitle>
           {phaseLabel && !done && (
-            <p className="text-sm font-semibold text-indigo-600 mt-1">{phaseLabel}</p>
+            <p className="text-sm font-semibold text-[#5b50f0] mt-1">{phaseLabel}</p>
           )}
         </DialogHeader>
 
@@ -271,7 +271,7 @@ export default function WriteAllChaptersModal({
             <>
               <Button variant="outline" onClick={onClose}>Close</Button>
               {onProceed && (
-                <Button onClick={() => { onClose(); onProceed(); }} className="bg-indigo-600 hover:bg-indigo-700">
+                <Button onClick={() => { onClose(); onProceed(); }} className="bg-[#5b50f0] hover:bg-[#4a40d0]">
                   Proceed to Editor <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               )}

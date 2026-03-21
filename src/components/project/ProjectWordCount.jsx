@@ -26,7 +26,7 @@ export default function ProjectWordCount({ chapters, targetLength }) {
           </span>
           <span className="text-slate-400 text-xs">{chapterProgress}%</span>
         </div>
-        <Progress value={chapterProgress} className="h-2 [&>div]:bg-slate-400" />
+        <Progress value={chapterProgress} className="h-2 [&>div]:bg-[#5b50f0]" />
       </div>
 
       {/* Word count */}
