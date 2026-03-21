@@ -35,7 +35,8 @@ async function callAI(systemPrompt, userMessage) {
 
 function extractIssueContext(prose, findings) {
   const tasks = [];
-  const paras = prose.split(/\n\n+/);
+  const hasDoubleBreaks = /\n\n/.test(prose);
+  const paras = hasDoubleBreaks ? prose.split(/\n\n+/) : prose.split(/\n/);
 
   for (const f of findings) {
     if (f.category === 'interiority_repetition') {
@@ -111,7 +112,9 @@ function extractIssueContext(prose, findings) {
 async function batchRewrite(prose, tasks) {
   if (tasks.length === 0) return prose;
 
-  const paras = prose.split(/\n\n+/);
+  const hasDoubleBreaks = /\n\n/.test(prose);
+  const paras = hasDoubleBreaks ? prose.split(/\n\n+/) : prose.split(/\n/);
+  const PARA_JOIN = hasDoubleBreaks ? '\n\n' : '\n';
 
   // Group tasks by paragraph index
   const tasksByPara = {};
@@ -190,7 +193,7 @@ Rules:
   }
 
   console.log(`Targeted rewrite: ${fixCount}/${paraIndices.length} paragraphs rewritten`);
-  return paras.join('\n\n');
+  return paras.join(PARA_JOIN);
 }
 
 // ═══ MAIN ═══
