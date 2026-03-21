@@ -139,7 +139,7 @@ export default function ReviewPolishTab({ projectId }) {
     refetchChapters();
   }, [refetchChapters]);
 
-  // ── Fix All — backend bot_styleEnforcer + frontend autoFix for each chapter ──
+  // ── Fix All — 3-pass pipeline: backend bot → frontend autoFix → AI rewrite ──
   const handleFixAll = async () => {
     if (!scanResults) return;
     setFixingAll(true);
@@ -151,33 +151,33 @@ export default function ReviewPolishTab({ projectId }) {
       const ch = generatedChapters.find(c => c.chapter_number === cd.number);
       if (!ch) continue;
 
-      setFixProgress(`Fixing chapter ${cd.number} (${i + 1} of ${total})…`);
+      setFixProgress(`Pass 1/3: Ch ${cd.number} (${i + 1}/${total}) — style enforcer…`);
 
       try {
-        // Step 1: Call backend bot_styleEnforcer for banned phrase caps, vague sensations,
-        // interiority caps, duplicate paragraphs, instruction leak stripping, etc.
+        // ── PASS 1: Backend bot_styleEnforcer ──
+        // Handles: banned phrases, interiority word caps (synonym replacement),
+        // duplicate paragraphs, instruction leaks, frequency caps, etc.
         const response = await base44.functions.invoke("bot_styleEnforcer", {
           project_id: projectId,
           chapter_id: ch.id,
         });
         const result = response.data || response;
-        console.log("[fixAll] Ch", cd.number, "styleEnforcer:", result.violations_found, "found,", result.violations_remaining?.length || 0, "remaining", result.safety_blocked ? "(BLOCKED)" : "");
+        console.log("[fixAll] Ch", cd.number, "P1 styleEnforcer:", result.violations_found, "found,", result.violations_remaining?.length || 0, "remaining");
 
-        // Step 2: Re-fetch the chapter content (bot may have saved a new file URL)
-        const updatedChapters = await base44.entities.Chapter.filter({ id: ch.id });
-        const updatedCh = updatedChapters[0];
+        // Re-fetch content after bot save
+        let [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
         if (!updatedCh) continue;
-
         let content = await resolveChapterContent(updatedCh);
         if (!content || content.length < 100) continue;
 
-        // Step 3: Run frontend autoFixChapter for transition crutches, scaffolding,
-        // hedging, recap bloat, generic conclusions, repeated openers — patterns the
-        // backend bot detects but doesn't fix via code-level passes.
+        // ── PASS 2: Frontend autoFixChapter ──
+        // Handles: transition crutches, scaffolding, hedging, recap bloat,
+        // generic conclusions, repeated openers, coffee scenes, archive framing
+        setFixProgress(`Pass 2/3: Ch ${cd.number} (${i + 1}/${total}) — regex cleanup…`);
         const fixedContent = autoFixChapter(content);
 
         if (fixedContent !== content && fixedContent.length >= content.length * 0.8) {
-          console.log("[fixAll] Ch", cd.number, "frontend fix applied, saving...");
+          console.log("[fixAll] Ch", cd.number, "P2 frontend fix applied");
           const blob = new Blob([fixedContent], { type: "text/plain" });
           const file = new File([blob], `chapter_${ch.id}_fixed.txt`, { type: "text/plain" });
           try {
@@ -186,15 +186,45 @@ export default function ReviewPolishTab({ projectId }) {
               await base44.entities.Chapter.update(ch.id, { content: uploadResult.file_url });
             }
           } catch (upErr) {
-            console.warn("[fixAll] Ch", cd.number, "upload failed:", upErr.message);
+            console.warn("[fixAll] Ch", cd.number, "P2 upload failed:", upErr.message);
           }
           content = fixedContent;
         }
 
-        // Step 4: Re-scan to update UI
+        // ── INTERMEDIATE SCAN — check what's left ──
+        const midScan = scanChapter(content, cd.number, tense, targetWords);
+
+        // ── PASS 3: AI Targeted Rewrite ──
+        // Handles: interiority repetition (contextual synonym), sensory opener
+        // monotony (rewrite opening), tense drift (fix verbs in context)
+        const aiFixableCategories = ['interiority_repetition', 'sensory_opener', 'tense_drift'];
+        const aiFindings = midScan.findings.filter(f => aiFixableCategories.includes(f.category));
+
+        if (aiFindings.length > 0) {
+          setFixProgress(`Pass 3/3: Ch ${cd.number} (${i + 1}/${total}) — AI rewrite (${aiFindings.length} issues)…`);
+          try {
+            const rwResponse = await base44.functions.invoke("bot_targetedRewrite", {
+              project_id: projectId,
+              chapter_id: ch.id,
+              findings: aiFindings,
+            });
+            const rwResult = rwResponse.data || rwResponse;
+            console.log("[fixAll] Ch", cd.number, "P3 AI rewrite:", rwResult.rewritten ? `${rwResult.tasks} tasks, ${rwResult.paragraphs_affected} paras` : rwResult.reason || "skipped");
+
+            // Re-fetch after AI rewrite
+            if (rwResult.rewritten) {
+              [updatedCh] = await base44.entities.Chapter.filter({ id: ch.id });
+              if (updatedCh) content = await resolveChapterContent(updatedCh);
+            }
+          } catch (rwErr) {
+            console.warn("[fixAll] Ch", cd.number, "P3 AI rewrite error:", rwErr.message);
+          }
+        }
+
+        // ── FINAL SCAN — update UI ──
         const { findings, words } = scanChapter(content, cd.number, tense, targetWords);
         handleChapterScanUpdated(cd.number, findings, words);
-        console.log("[fixAll] Ch", cd.number, "post-fix issues:", findings.length);
+        console.log("[fixAll] Ch", cd.number, "final issues:", findings.length);
       } catch (err) {
         console.warn("[fixAll] Ch", cd.number, "error:", err.message);
       }
