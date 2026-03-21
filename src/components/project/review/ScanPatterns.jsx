@@ -793,6 +793,7 @@ export function computeScore(allFindings) {
     else if (f.category === "grammar_a_an") deductions += f.count * 2;
     else if (f.category === "ai_sensory_default") deductions += f.count * 5;
     else if (f.category === "concept_reexplanation") deductions += f.count * 5;
+    else if (f.category === "sentence_rhythm") deductions += f.count * 3;
     else deductions += f.count * 1;
   }
   return Math.max(0, Math.min(100, Math.round(100 - deductions)));
