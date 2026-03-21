@@ -173,8 +173,11 @@ RULES:
       return Response.json({ outline_id: outlineId, status: 'partial' });
     }
 
-    console.log('Shell: Calling Gemini for titles+summaries...');
-    const rawText = await callGemini(systemPrompt, userPrompt, 4000);
+    const erotica = isEroticaGenre(spec.genre, spec.subgenre);
+    console.log('Shell: Calling ' + (erotica ? 'Lumimaid' : 'Gemini') + ' for titles+summaries...');
+    const rawText = erotica
+      ? await callLumimaid(systemPrompt, userPrompt, 4000)
+      : await callGemini(systemPrompt, userPrompt, 4000);
 
     // Timeout check after AI call
     if (Date.now() > DEADLINE) {
