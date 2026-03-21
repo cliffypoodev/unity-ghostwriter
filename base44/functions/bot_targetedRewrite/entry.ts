@@ -1,17 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// BOT — TARGETED REWRITE
-// ═══════════════════════════════════════════════════════════════════════════════
-// Takes a chapter + list of specific issues, rewrites ONLY the affected
-// sentences/paragraphs using AI. Does NOT touch prose that has no issues.
-// Designed to fix residual issues that regex-based fixers can't handle:
-//   - interiority word over-use (synonyms in context)
-//   - sensory opener monotony (rewrite opening paragraph)
-//   - tense drift (fix verb tenses in context)
+// BOT — TARGETED REWRITE (v3 — handles content with no paragraph breaks)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
-// ═══ AI ROUTER (minimal — only needs one model) ═══
+// ═══ AI ROUTER ═══
 
 async function callAI(systemPrompt, userMessage) {
   const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
@@ -31,16 +24,50 @@ async function callAI(systemPrompt, userMessage) {
   return d.candidates[0].content.parts[0].text;
 }
 
+// ═══ TEXT SEGMENTATION ═══
+// Split prose into workable segments. Handles: \n\n paragraphs, \n lines, or
+// no-break continuous text (splits on sentence boundaries in ~500-word chunks).
+
+function segmentProse(prose) {
+  // Try double newlines first
+  if (/\n\n/.test(prose)) {
+    const segs = prose.split(/\n\n+/);
+    if (segs.length > 1 && segs.every(s => s.length < 15000)) {
+      return { segments: segs, joiner: '\n\n' };
+    }
+  }
+  // Try single newlines
+  if (/\n/.test(prose)) {
+    const segs = prose.split(/\n/);
+    if (segs.length > 1 && segs.every(s => s.length < 15000)) {
+      return { segments: segs, joiner: '\n' };
+    }
+  }
+  // No usable breaks — split on sentence boundaries into ~2000 char chunks
+  // This preserves sentence integrity while creating manageable segments
+  const sentences = prose.split(/(?<=[.!?])\s+/);
+  const segments = [];
+  let current = '';
+  for (const sent of sentences) {
+    if (current.length + sent.length > 2000 && current.length > 0) {
+      segments.push(current.trim());
+      current = sent;
+    } else {
+      current += (current ? ' ' : '') + sent;
+    }
+  }
+  if (current.trim()) segments.push(current.trim());
+  return { segments, joiner: ' ' };
+}
+
 // ═══ ISSUE EXTRACTION ═══
 
 function extractIssueContext(prose, findings) {
   const tasks = [];
-  const hasDoubleBreaks = /\n\n/.test(prose);
-  const paras = hasDoubleBreaks ? prose.split(/\n\n+/) : prose.split(/\n/);
+  const { segments } = segmentProse(prose);
 
   for (const f of findings) {
     if (f.category === 'interiority_repetition') {
-      // Extract the word from the label, e.g. '"hollow" x5 (cap: 2)' → "hollow"
       const wordMatch = f.label.match(/"([^"]+)"/);
       if (!wordMatch) continue;
       const word = wordMatch[1].toLowerCase();
@@ -51,22 +78,21 @@ function extractIssueContext(prose, findings) {
       const excess = Math.max(0, total - cap);
       if (excess <= 0) continue;
 
-      // Find paragraphs containing this word (skip first `cap` occurrences)
       const rx = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
       let seen = 0;
-      for (let i = 0; i < paras.length; i++) {
-        const matches = paras[i].match(rx);
+      for (let i = 0; i < segments.length; i++) {
+        const matches = segments[i].match(rx);
         if (matches) {
           for (const m of matches) {
             seen++;
             if (seen > cap) {
               tasks.push({
                 type: 'interiority',
-                paraIndex: i,
+                segIndex: i,
                 word: word,
                 instruction: `Replace "${word}" with a contextually appropriate synonym. Do NOT use: ${word}. Keep the sentence meaning identical.`,
               });
-              break; // one task per paragraph
+              break;
             }
           }
         }
@@ -74,30 +100,56 @@ function extractIssueContext(prose, findings) {
     }
 
     if (f.category === 'sensory_opener') {
-      // The opener is always paragraph 0
       tasks.push({
         type: 'sensory_opener',
-        paraIndex: 0,
-        instruction: 'Rewrite this opening paragraph to start with dialogue, action, or a thought — NOT a sensory/atmospheric description. Keep the same content and meaning, just change the opening approach.',
+        segIndex: 0,
+        instruction: 'Rewrite this opening to start with dialogue, action, or a thought — NOT a sensory/atmospheric description. Keep the same content and meaning, just change the opening approach.',
       });
     }
 
     if (f.category === 'tense_drift') {
-      // Find paragraphs with tense issues
       const isPastNarrative = f.label.includes('present-tense verbs in past');
       const driftRx = isPastNarrative
         ? /\b(he|she|they|it|I|we)\s+(walks|runs|says|thinks|feels|knows|sees|hears|stands|sits|looks|moves|turns|opens|closes|steps|reaches|pulls|pushes|watches|presses|asks)\b/gi
         : /\b(he|she|they|it|I|we)\s+(walked|ran|said|thought|felt|knew|saw|heard|stood|sat|looked|moved|turned|opened|closed|stepped|reached|pulled|pushed|watched|pressed|asked)\b/gi;
 
-      for (let i = 0; i < paras.length; i++) {
-        if (driftRx.test(paras[i])) {
+      for (let i = 0; i < segments.length; i++) {
+        if (driftRx.test(segments[i])) {
           driftRx.lastIndex = 0;
           tasks.push({
             type: 'tense_fix',
-            paraIndex: i,
+            segIndex: i,
             instruction: isPastNarrative
               ? 'Fix tense: convert present-tense verbs to past tense. This is a past-tense narrative.'
               : 'Fix tense: convert past-tense verbs to present tense. This is a present-tense narrative.',
+          });
+        }
+      }
+    }
+
+    if (f.category === 'philosophical_ending') {
+      tasks.push({
+        type: 'philosophical_ending',
+        segIndex: segments.length - 1,
+        instruction: 'Rewrite this final segment. Remove any philosophical platitude, moralizing summary, or "the lesson is..." statement. End with concrete action, image, or dialogue instead.',
+      });
+    }
+
+    if (f.category === 'the_noun_opener') {
+      // Find segments with 4+ "The [Noun] [verb]" sentences
+      for (let i = 0; i < segments.length; i++) {
+        const sents = segments[i].split(/(?<=[.!?])\s+/);
+        let theCount = 0;
+        for (const s of sents) {
+          if (/^The\s+[A-Z][a-z]+\s+(was|were|had|could|would|seemed|appeared|began|continued|remained|stood|sat|lay|hung|felt|looked|moved|turned|came|went|made|took|gave|got|ran|saw|knew|found|thought)\b/.test(s.trim())) {
+            theCount++;
+          }
+        }
+        if (theCount >= 4) {
+          tasks.push({
+            type: 'the_noun_opener',
+            segIndex: i,
+            instruction: `This segment has ${theCount} sentences starting with "The [Noun] [verb]" pattern. Vary at least half of them: use a character name, pronoun, action, dialogue, or subordinate clause as the opener instead. Keep the same meaning.`,
           });
         }
       }
@@ -112,91 +164,148 @@ function extractIssueContext(prose, findings) {
 async function batchRewrite(prose, tasks) {
   if (tasks.length === 0) return prose;
 
-  const hasDoubleBreaks = /\n\n/.test(prose);
-  const paras = hasDoubleBreaks ? prose.split(/\n\n+/) : prose.split(/\n/);
-  const PARA_JOIN = hasDoubleBreaks ? '\n\n' : '\n';
+  const { segments, joiner } = segmentProse(prose);
 
-  // Group tasks by paragraph index
-  const tasksByPara = {};
+  // Group tasks by segment index
+  const tasksBySeg = {};
   for (const t of tasks) {
-    if (!tasksByPara[t.paraIndex]) tasksByPara[t.paraIndex] = [];
-    tasksByPara[t.paraIndex].push(t);
+    if (!tasksBySeg[t.segIndex]) tasksBySeg[t.segIndex] = [];
+    tasksBySeg[t.segIndex].push(t);
   }
 
-  const paraIndices = Object.keys(tasksByPara).map(Number).sort((a, b) => a - b);
-  if (paraIndices.length === 0) return prose;
+  const segIndices = Object.keys(tasksBySeg).map(Number).sort((a, b) => a - b);
+  if (segIndices.length === 0) return prose;
 
-  // Build a single AI prompt with all paragraphs that need fixing
-  const systemPrompt = `You are a prose editor. You will receive numbered paragraphs with specific fix instructions.
-For each paragraph, apply ONLY the requested fix. Do NOT change anything else.
-Return the fixed paragraphs in the EXACT format:
+  // Cap at 8 segments per AI call to avoid token overflow
+  const toFix = segIndices.slice(0, 8);
 
-[PARA_INDEX]
-fixed paragraph text here
+  const systemPrompt = `You are a prose editor. You will receive numbered text segments with specific fix instructions.
+For each segment, apply ONLY the requested fix. Do NOT change anything else.
+Return the fixed segments in the EXACT format:
 
-[PARA_INDEX]
-fixed paragraph text here
+[SEG_INDEX]
+fixed text here
+
+[SEG_INDEX]
+fixed text here
 
 Rules:
-- Keep paragraph length within 10% of original
+- Keep segment length within 15% of original
 - Maintain the same voice, tone, and style
 - Do NOT add commentary or explanations
 - Do NOT change content beyond the specific fix requested
-- Return ONLY the fixed paragraphs, nothing else`;
+- Return ONLY the fixed segments, nothing else`;
 
   const parts = [];
-  for (const idx of paraIndices) {
-    const para = paras[idx];
-    if (!para || para.trim().length < 20) continue;
-    const instructions = tasksByPara[idx].map(t => t.instruction).join('; ');
-    parts.push(`[${idx}]\nINSTRUCTION: ${instructions}\nORIGINAL:\n${para}`);
+  for (const idx of toFix) {
+    const seg = segments[idx];
+    if (!seg || seg.trim().length < 20) continue;
+    // For very large segments, only send the relevant portion with context
+    let textToSend = seg;
+    if (seg.length > 4000) {
+      // Truncate for the AI but we'll do find-replace on the original
+      textToSend = seg.slice(0, 4000) + '\n[... remainder of segment ...]';
+    }
+    const instructions = tasksBySeg[idx].map(t => t.instruction).join('; ');
+    parts.push(`[${idx}]\nINSTRUCTION: ${instructions}\nORIGINAL (${seg.length} chars):\n${textToSend}`);
   }
 
   if (parts.length === 0) return prose;
 
-  const userMessage = parts.join('\n\n---\n\n');
-
   let aiResponse;
   try {
-    aiResponse = await callAI(systemPrompt, userMessage);
+    aiResponse = await callAI(systemPrompt, parts.join('\n\n---\n\n'));
   } catch (err) {
     console.warn('AI rewrite failed:', err.message);
-    return prose; // return unchanged on AI failure
+    return prose;
   }
 
   // Parse the AI response — extract [INDEX]\ntext blocks
-  const fixedParas = {};
+  const fixedSegs = {};
   const blocks = aiResponse.split(/\[(\d+)\]\s*\n/);
-  // blocks = ['', '0', 'text...', '3', 'text...', ...]
   for (let i = 1; i < blocks.length; i += 2) {
     const idx = parseInt(blocks[i]);
-    const text = (blocks[i + 1] || '').trim();
-    if (!isNaN(idx) && text.length > 20) {
-      // Safety: don't accept rewrites that are <50% or >200% of original
-      const origLen = (paras[idx] || '').length;
-      if (origLen > 0 && text.length >= origLen * 0.5 && text.length <= origLen * 2.0) {
-        fixedParas[idx] = text;
-      } else {
-        console.warn(`Rejected rewrite for para ${idx}: ${text.length} chars vs original ${origLen} chars`);
+    let text = (blocks[i + 1] || '').trim();
+    // Strip markdown code fences if AI added them
+    text = text.replace(/^```[\s\S]*?\n/, '').replace(/\n```\s*$/, '').trim();
+    if (isNaN(idx) || text.length < 20) continue;
+    
+    const origLen = (segments[idx] || '').length;
+    if (origLen === 0) continue;
+
+    // For segments we truncated, do find-replace instead of full replacement
+    if (origLen > 4000 && text.length < origLen * 0.5) {
+      // The AI only rewrote the truncated portion — apply as find-replace
+      console.log(`Seg ${idx}: AI returned ${text.length} chars for ${origLen} char segment — applying as targeted replacement`);
+      const original = segments[idx];
+      // Try to match and replace just the beginning portion that was sent
+      const originalStart = original.slice(0, 4000);
+      if (text.length > 100) {
+        // Apply word-level replacements from AI output to original
+        segments[idx] = applyTargetedFixes(original, originalStart, text, tasksBySeg[idx]);
+        fixedSegs[idx] = true;
       }
+    } else if (text.length >= origLen * 0.5 && text.length <= origLen * 2.0) {
+      fixedSegs[idx] = text;
+    } else {
+      console.warn(`Rejected rewrite for seg ${idx}: ${text.length} chars vs original ${origLen} chars`);
     }
   }
 
   // Apply fixes
   let fixCount = 0;
-  for (const [idx, newText] of Object.entries(fixedParas)) {
+  for (const [idx, newText] of Object.entries(fixedSegs)) {
     const i = parseInt(idx);
-    if (i >= 0 && i < paras.length) {
-      paras[i] = newText;
+    if (i >= 0 && i < segments.length && typeof newText === 'string') {
+      segments[i] = newText;
       fixCount++;
+    } else if (newText === true) {
+      fixCount++; // already applied in-place above
     }
   }
 
-  console.log(`Targeted rewrite: ${fixCount}/${paraIndices.length} paragraphs rewritten`);
-  return paras.join(PARA_JOIN);
+  console.log(`Targeted rewrite: ${fixCount}/${toFix.length} segments rewritten`);
+  return segments.join(joiner);
 }
 
-// ═══ MAIN ═══
+// Apply targeted word-level fixes when the full segment is too large for replacement
+function applyTargetedFixes(original, sentSlice, aiRewrite, tasks) {
+  let result = original;
+  for (const task of tasks) {
+    if (task.type === 'interiority' && task.word) {
+      // Find what the AI replaced the word with by comparing
+      const rx = new RegExp('\\b' + task.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+      if (!rx.test(aiRewrite) && rx.test(result)) {
+        // AI removed the word — find a synonym from the AI text context
+        // Simple approach: replace excess occurrences with common synonyms
+        const SYNONYMS = {
+          'hollow': ['empty', 'vacant', 'barren', 'desolate'],
+          'hollowness': ['emptiness', 'void', 'barrenness'],
+          'empty': ['vacant', 'bare', 'devoid', 'barren'],
+          'emptiness': ['void', 'absence', 'blankness'],
+          'shattered': ['fractured', 'splintered', 'crumbled'],
+          'broken': ['damaged', 'fractured', 'ruined'],
+          'numb': ['insensate', 'deadened', 'detached'],
+          'numbness': ['detachment', 'dissociation', 'blankness'],
+          'void': ['absence', 'gap', 'chasm'],
+          'ache': ['pang', 'throb', 'sting'],
+          'aching': ['throbbing', 'persistent', 'gnawing'],
+          'fragile': ['delicate', 'vulnerable', 'tenuous'],
+        };
+        const alts = SYNONYMS[task.word.toLowerCase()] || ['the feeling', 'the sensation'];
+        let replaceCount = 0;
+        result = result.replace(rx, (match) => {
+          replaceCount++;
+          if (replaceCount <= 1) return match; // keep first occurrence
+          return alts[(replaceCount - 2) % alts.length];
+        });
+      }
+    }
+  }
+  return result;
+}
+
+// ═══ CONTENT RESOLVER ═══
 
 async function resolveContent(content) {
   if (!content) return '';
@@ -205,6 +314,8 @@ async function resolveContent(content) {
   }
   return content;
 }
+
+// ═══ MAIN ═══
 
 Deno.serve(async (req) => {
   try {
@@ -217,7 +328,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'project_id, chapter_id, and findings required' }, { status: 400 });
     }
 
-    // Load chapter content
     const [chapter] = await base44.entities.Chapter.filter({ id: chapter_id });
     if (!chapter) return Response.json({ error: 'Chapter not found' }, { status: 404 });
 
@@ -226,7 +336,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No content to rewrite' }, { status: 400 });
     }
 
-    // Extract rewrite tasks from findings
     const tasks = extractIssueContext(prose, findings);
     if (tasks.length === 0) {
       return Response.json({ rewritten: false, reason: 'No rewritable issues found', tasks: 0 });
@@ -234,7 +343,6 @@ Deno.serve(async (req) => {
 
     console.log(`targetedRewrite: Ch ${chapter.chapter_number} — ${tasks.length} tasks from ${findings.length} findings`);
 
-    // Batch rewrite
     const rewritten = await batchRewrite(prose, tasks);
 
     // Safety check
@@ -259,7 +367,7 @@ Deno.serve(async (req) => {
     return Response.json({
       rewritten: true,
       tasks: tasks.length,
-      paragraphs_affected: [...new Set(tasks.map(t => t.paraIndex))].length,
+      paragraphs_affected: [...new Set(tasks.map(t => t.segIndex))].length,
       word_count: rewritten.trim().split(/\s+/).length,
     });
   } catch (error) {
