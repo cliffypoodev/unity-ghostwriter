@@ -132,9 +132,29 @@ function stripDialogue(text) {
   return text.replace(/["\u201C][^"\u201D]*["\u201D]/g, "").replace(/'[^']*'/g, "");
 }
 
+// ═══ Universal paragraph splitter — handles \n\n, \n, or no breaks ═══
+function splitParas(text) {
+  if (/\n\n/.test(text)) return text.split(/\n\n+/);
+  if (/\n/.test(text)) return text.split(/\n/);
+  // No line breaks — split on sentence boundaries into ~1500 char chunks
+  var sentences = text.split(/(?<=[.!?])\s+/);
+  var chunks = [];
+  var current = '';
+  for (var i = 0; i < sentences.length; i++) {
+    if (current.length + sentences[i].length > 1500 && current.length > 0) {
+      chunks.push(current.trim());
+      current = sentences[i];
+    } else {
+      current += (current ? ' ' : '') + sentences[i];
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+
 function scanDuplicateParagraphs(text, chapterNum) {
   var findings = [];
-  var paras = text.split(/\n\n+/).filter(function(p) { return p.trim().split(/\s+/).length > 40; });
+  var paras = splitParas(text).filter(function(p) { return p.trim().split(/\s+/).length > 40; });
   for (var i = 0; i < paras.length; i++) {
     var wordsA = new Set((paras[i].toLowerCase().match(/\b[a-z]{3,}\b/g) || []));
     if (wordsA.size === 0) continue;
