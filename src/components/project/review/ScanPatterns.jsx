@@ -482,8 +482,13 @@ export function autoFixChapter(text) {
   console.log("[autoFix] Starting. Input length:", text.length);
   var changeLog = [];
 
+  // Normalize paragraph breaks — if no double-newlines exist, treat single newlines as breaks
+  var hasDoubleBreaks = /\n\n/.test(text);
+  var PARA_SEP = hasDoubleBreaks ? /\n\n+/ : /\n/;
+  var PARA_JOIN = hasDoubleBreaks ? "\n\n" : "\n";
+
   // 1. REMOVE DUPLICATE PARAGRAPHS
-  var paras = text.split(/\n\n+/);
+  var paras = text.split(PARA_SEP);
   var seen = [];
   var deduped = [];
   for (var i = 0; i < paras.length; i++) {
@@ -505,7 +510,14 @@ export function autoFixChapter(text) {
       seen.push(wordSet);
     }
   }
-  var fixed = deduped.join("\n\n");
+  var fixed = deduped.join(PARA_JOIN);
+
+  // SAFETY: if dedup removed too much, bail early
+  if (fixed.length < text.length * 0.5) {
+    console.warn("[autoFix] Dedup removed >50% of content, reverting");
+    fixed = text;
+    changeLog = [];
+  }
 
   // 2. STRIP INSTRUCTION LEAKS
   var leakPatterns = [
@@ -529,21 +541,21 @@ export function autoFixChapter(text) {
     if (fixed !== before) changeLog.push("Stripped instruction leak pattern");
   }
 
-  // 3. REMOVE COFFEE SCENE PARAGRAPHS
-  var coffeeParas = fixed.split(/\n\n+/);
+  // 3. REMOVE COFFEE SCENE PARAGRAPHS (only remove short paragraphs, not entire chapters)
+  var coffeeParas = fixed.split(PARA_SEP);
   var afterCoffee = [];
   for (var c = 0; c < coffeeParas.length; c++) {
     var cp = coffeeParas[c];
-    if (/\bcoffee\b/i.test(cp) && /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i.test(cp)) {
+    if (cp.length < 2000 && /\bcoffee\b/i.test(cp) && /\b(mug|cup|brew|kitchen|kettle|espresso|caffeine)\b/i.test(cp)) {
       changeLog.push("Removed coffee scene paragraph");
     } else {
       afterCoffee.push(cp);
     }
   }
-  fixed = afterCoffee.join("\n\n");
+  fixed = afterCoffee.join(PARA_JOIN);
 
   // 4. CAP ARCHIVE FRAMING (keep first, remove rest)
-  var archiveParas2 = fixed.split(/\n\n+/);
+  var archiveParas2 = fixed.split(PARA_SEP);
   var archiveFound = 0;
   var afterArchive2 = [];
   for (var a = 0; a < archiveParas2.length; a++) {
@@ -557,7 +569,7 @@ export function autoFixChapter(text) {
     }
     afterArchive2.push(ap);
   }
-  fixed = afterArchive2.join("\n\n");
+  fixed = afterArchive2.join(PARA_JOIN);
 
   // 5. REMOVE TRANSITION CRUTCH PHRASES
   var transitionRx = [
@@ -644,7 +656,7 @@ export function autoFixChapter(text) {
   }
 
   // 11. STRIP PHILOSOPHICAL PLATITUDE ENDINGS
-  var platParas = fixed.split(/\n\n+/);
+  var platParas = fixed.split(PARA_SEP);
   if (platParas.length > 2) {
     var lastP = platParas[platParas.length - 1];
     var platBefore = lastP;
@@ -652,13 +664,13 @@ export function autoFixChapter(text) {
     lastP = lastP.trim();
     if (lastP !== platBefore.trim() && lastP.length > 20) {
       platParas[platParas.length - 1] = lastP;
-      fixed = platParas.join("\n\n");
+      fixed = platParas.join(PARA_JOIN);
       changeLog.push("Stripped philosophical platitude ending");
     }
   }
 
   // 12. REPEATED PARAGRAPH OPENER COMPRESSION
-  var openerParas = fixed.split(/\n\n+/);
+  var openerParas = fixed.split(PARA_SEP);
   var finalParas = [];
   for (var op = 0; op < openerParas.length; op++) {
     var prefix = ((openerParas[op].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(" "));
@@ -671,10 +683,16 @@ export function autoFixChapter(text) {
     }
     finalParas.push(openerParas[op]);
   }
-  fixed = finalParas.join("\n\n");
+  fixed = finalParas.join(PARA_JOIN);
 
   // 13. CLEAN UP WHITESPACE
   fixed = fixed.replace(/\n{3,}/g, "\n\n").replace(/  +/g, " ").trim();
+
+  // FINAL SAFETY: never return content that lost >30% of original
+  if (fixed.length < text.length * 0.7) {
+    console.warn("[autoFix] Output too short (" + fixed.length + " vs " + text.length + "), returning original");
+    return text;
+  }
 
   console.log("[autoFix] Done. Changes:", changeLog.length, "Output length:", fixed.length);
   if (changeLog.length > 0) {
