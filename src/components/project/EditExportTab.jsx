@@ -816,7 +816,7 @@ export default function EditExportTab({ projectId }) {
   const wrapperClass = fullscreen
     ? "fixed inset-0 z-50 flex flex-col"
     : "flex flex-col";
-  const wrapperStyle = fullscreen ? { background: 'var(--pg, #F5EFE4)' } : {};
+  const wrapperStyle = fullscreen ? { background: '#f8f8fa' } : {};
 
   return (
     <div className={wrapperClass} style={wrapperStyle}>
