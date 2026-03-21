@@ -714,6 +714,7 @@ export function scanChapter(chapterText, chapterNum, tense, targetWords) {
   findings.push.apply(findings, scanParticipleChains(chapterText, chapterNum));
   findings.push.apply(findings, scanGrammarAAn(chapterText, chapterNum));
   findings.push.apply(findings, scanAiSensoryDefaults(chapterText, chapterNum));
+  findings.push.apply(findings, scanSentenceRhythm(chapterText, chapterNum));
 
   if (targetWords && targetWords > 0) {
     var overPercent = Math.round(((words - targetWords) / targetWords) * 100);
