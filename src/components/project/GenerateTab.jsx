@@ -2,649 +2,34 @@
 //
 // Permitted AI calls: writeChapter, generateScenes, generateAllScenes,
 //   writeAllChapters, generateChapterState, resumeFromChapter
-// Prose quality gates (enforceProseCompliance, verifyGeminiProse, verifyGPTVolume,
-//   verifyNonfictionVolume) run INSIDE writeChapter on the backend — not called from here directly.
+// Prose quality gates run INSIDE writeChapter on the backend.
 //
 // Forbidden: developIdea, expandPremise, generateOutline (Phase 1/2),
 //            consistencyCheck, rewriteInVoice (Phase 4).
 //
-// This file may read Specification + Outline data for display but must NOT
-// call Phase 1 metadata or Phase 4 review functions.
+// This file is the STATE PARENT — all polling, write pipeline logic, and
+// data queries live here. Rendering is delegated to:
+//   OutlineSection  — outline generation / display
+//   WriterSection   — chapter list, act headers, action bar, write-all modal
 
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import {
-  Loader2, Sparkles, ChevronDown, ChevronRight, Copy, RefreshCw,
-  Pencil, BookOpen, Users, Globe, ArrowRight, Check, Zap, LayoutGrid, AlertTriangle
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import WriteAllChaptersModal from "./WriteAllChaptersModal";
-import SpecSettingsSummary from "./SpecSettingsSummary";
-import SceneSection from "./SceneSection";
-import NonfictionBeatSection from "./NonfictionBeatSection";
-import BeatBadge from "./BeatBadge";
-import ChapterStatusDot from "./ChapterStatusDot";
-import ConsistencyFlagsBanner from "./ConsistencyFlagsBanner";
-import RewriteInVoiceModal from "./RewriteInVoiceModal";
-import ProjectWordCount from "./ProjectWordCount";
-import ExplicitTagsWarning from "./ExplicitTagsWarning";
-import InteriorityGateBanner, { hasProtagonistInteriority, needsInteriorityGate } from "./InteriorityGateBanner";
-import { detectActBoundaries, getActChapters, getActStatus } from "./ActDetection";
-import ActHeader from "./ActHeader";
-import ActSplitEditor from "./ActSplitEditor";
+import { detectActBoundaries } from "./ActDetection";
+import { needsInteriorityGate, hasProtagonistInteriority } from "./InteriorityGateBanner";
 import { healthMonitor } from "../utils/appHealthMonitor";
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-// DISPLAY RULE: Chapter numbers shown in UI must ALWAYS come from
-// chapter.chapter_number — never from loop index, array position,
-// or queue order. These diverge whenever chapters are skipped,
-// retried, or written out of order.
-
-// Status dots now handled by ChapterStatusDot component
-
-const ROLE_COLORS = {
-  protagonist: "bg-indigo-100 text-indigo-700",
-  antagonist:  "bg-red-100 text-red-700",
-  supporting:  "bg-amber-100 text-amber-700",
-  minor:       "bg-slate-100 text-slate-600",
-};
-
-const THEME_COLORS = ["bg-violet-100 text-violet-700","bg-sky-100 text-sky-700","bg-emerald-100 text-emerald-700","bg-amber-100 text-amber-700","bg-pink-100 text-pink-700","bg-indigo-100 text-indigo-700"];
-
-function safeParse(str) {
-  try { return JSON.parse(str); } catch { return null; }
-}
-
-// ── Collapsible wrapper ───────────────────────────────────────────────────────
-
-function CollapsibleCard({ title, icon: CardIcon, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen);
-  
-  // Prevent scroll when expanding
-  const handleToggle = () => {
-    const scrollPos = window.scrollY;
-    setOpen(o => !o);
-    setTimeout(() => window.scrollTo(0, scrollPos), 0);
-  };
-  
-  return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="py-3 px-4 cursor-pointer" onClick={handleToggle}>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <CardIcon className="w-4 h-4 text-indigo-500" />
-            {title}
-          </CardTitle>
-          {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-        </div>
-      </CardHeader>
-      {open && <CardContent className="pt-0 px-4 pb-4">{children}</CardContent>}
-    </Card>
-  );
-}
-
-// ── Book Metadata card ────────────────────────────────────────────────────────
-
-const KEYWORD_COLORS = [
-  "bg-violet-100 text-violet-700", "bg-sky-100 text-sky-700",
-  "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
-  "bg-pink-100 text-pink-700", "bg-indigo-100 text-indigo-700",
-  "bg-rose-100 text-rose-700",
-];
-
-function BookMetadataCard({ metadataRaw }) {
-  const meta = safeParse(metadataRaw);
-  if (!meta) return null;
-  return (
-    <CollapsibleCard title="Book Metadata — Publishing Details" icon={BookOpen} defaultOpen={false}>
-      <div className="space-y-4">
-        {meta.title && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Title</p>
-            <p className="font-bold text-slate-900 leading-tight" style={{ fontSize: "18px" }}>{meta.title}</p>
-          </div>
-        )}
-        {meta.subtitle && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Subtitle</p>
-            <p className="text-sm text-slate-700 italic">{meta.subtitle}</p>
-          </div>
-        )}
-        {meta.description && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Book Description</p>
-            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{meta.description}</p>
-          </div>
-        )}
-        {meta.keywords?.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Keywords</p>
-            <div className="flex flex-wrap gap-1.5">
-              {meta.keywords.map((kw, i) => (
-                <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", KEYWORD_COLORS[i % KEYWORD_COLORS.length])}>
-                  {kw}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </CollapsibleCard>
-  );
-}
-
-// ── Outline display ───────────────────────────────────────────────────────────
-
-function OutlineCard({ outlineData }) {
-  const outline = safeParse(outlineData);
-  if (!outline) return null;
-  return (
-    <CollapsibleCard title={`Book Outline — ${outline.title || "Untitled"}`} icon={BookOpen} defaultOpen={false}>
-      <div className="space-y-4">
-        {outline.narrative_arc && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Narrative Arc</p>
-            <p className="text-sm text-slate-700 leading-relaxed">{outline.narrative_arc}</p>
-          </div>
-        )}
-        {outline.themes && outline.themes.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Themes</p>
-            <div className="flex gap-2 flex-wrap">
-              {outline.themes.map((t, i) => (
-                <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", THEME_COLORS[i % THEME_COLORS.length])}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-        {outline.chapters && outline.chapters.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Chapter Overview</p>
-            <div className="space-y-2">
-              {outline.chapters.map((ch, i) => (
-                <div key={i} className="text-sm p-2 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-slate-800">Ch {ch.number}: {ch.title}</p>
-                    {ch.beat_function && <BeatBadge beatFunction={ch.beat_function} beatName={ch.beat_name} />}
-                  </div>
-                  {ch.summary && <p className="text-xs text-slate-600 mt-1 opacity-80">{ch.summary}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {!outline.narrative_arc && (!outline.themes || outline.themes.length === 0) && (!outline.chapters || outline.chapters.length === 0) && (
-          <p className="text-sm text-slate-500">Outline data is available but contains no displayable summary fields.</p>
-        )}
-      </div>
-    </CollapsibleCard>
-  );
-}
-
-// ── Story Bible display ───────────────────────────────────────────────────────
-
-function toStr(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (Array.isArray(val)) return val.map(toStr).join(', ');
-  if (typeof val === 'object') return JSON.stringify(val);
-  return String(val);
-}
-
-function StoryBibleCard({ storyBible }) {
-  const bible = safeParse(storyBible);
-  if (!bible) return null;
-
-  const fields = [
-    { key: 'world', label: 'World & Setting' },
-    { key: 'setting', label: 'Setting' },
-    { key: 'tone_voice', label: 'Tone & Voice' },
-    { key: 'tone', label: 'Tone' },
-    { key: 'style_guidelines', label: 'Style Guidelines' },
-    { key: 'atmosphere', label: 'Atmosphere' },
-    { key: 'geography', label: 'Geography' },
-    { key: 'magic_system', label: 'Magic System' },
-    { key: 'technology', label: 'Technology' },
-    { key: 'society', label: 'Society' },
-    { key: 'history', label: 'History' },
-  ];
-
-  return (
-    <CollapsibleCard title="Story Bible" icon={Globe} defaultOpen={false}>
-      <div className="space-y-4">
-        {fields.map(({ key, label }) => {
-          const val = bible[key];
-          if (!val) return null;
-          const text = toStr(val);
-          if (!text) return null;
-          return (
-            <div key={key}>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{label}</p>
-              <p className="text-sm text-slate-700 leading-relaxed">{text}</p>
-            </div>
-          );
-        })}
-
-        {bible.characters?.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Characters</p>
-            <div className="space-y-2">
-              {bible.characters.map((char, i) => (
-                <div key={i} className="bg-slate-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-slate-800">{toStr(char.name)}</span>
-                    {char.role && (
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", ROLE_COLORS[toStr(char.role).toLowerCase()] || ROLE_COLORS.minor)}>
-                        {toStr(char.role)}
-                      </span>
-                    )}
-                  </div>
-                  {char.description && <p className="text-xs text-slate-600 mb-1">{toStr(char.description)}</p>}
-                  {char.arc && <p className="text-xs text-slate-500 italic">{toStr(char.arc)}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {bible.rules && (
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Consistency Rules</p>
-            {Array.isArray(bible.rules)
-              ? <ul className="list-disc list-inside space-y-1">{bible.rules.map((r, i) => <li key={i} className="text-sm text-slate-700">{toStr(r)}</li>)}</ul>
-              : <p className="text-sm text-slate-700">{toStr(bible.rules)}</p>
-            }
-          </div>
-        )}
-      </div>
-    </CollapsibleCard>
-  );
-}
-
-// ── Chapter item ──────────────────────────────────────────────────────────────
-
-function useResolvedContent(rawContent) {
-  const isUrl = rawContent && (rawContent.startsWith('http://') || rawContent.startsWith('https://'));
-  const { data: fetched } = useQuery({
-    queryKey: ["chapter_content", rawContent],
-    enabled: !!isUrl,
-    queryFn: () => fetch(rawContent).then(r => r.text()),
-    staleTime: Infinity,
-  });
-  return isUrl ? (fetched || "") : (rawContent || "");
-}
-
-function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingContent, isStreaming, isWriting, chapterProgress, onScenesUpdated, beatData, isResuming, project }) {
-  const [expanded, setExpanded] = useState(false);
-  const [editingPrompt, setEditingPrompt] = useState(false);
-  const [promptValue, setPromptValue] = useState(chapter.prompt || "");
-  const [copied, setCopied] = useState(false);
-  const [writeConfirm, setWriteConfirm] = useState(false);
-  const [generatingScenesThenWrite, setGeneratingScenesThenWrite] = useState(false);
-  const [rewriting, setRewriting] = useState(false);
-  const [showRewriteModal, setShowRewriteModal] = useState(false);
-  const queryClient = useQueryClient();
-
-  let hasFlags = false;
-  try {
-    if (chapter.consistency_flags) {
-      const flags = JSON.parse(chapter.consistency_flags);
-      hasFlags = flags.some(f => !f.dismissed);
-    }
-  } catch {}
-
-  const isFiction = spec?.book_type !== 'nonfiction';
-  function safeParseCh(str) {
-    try { if (!str || str.trim() === 'null' || str.trim() === '[]' || str.trim() === '{}') return null; return JSON.parse(str); } catch { return null; }
-  }
-  const parsedScenes = safeParseCh(chapter.scenes);
-  const hasScenes = isFiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
-  const hasNfBeatSheet = !isFiction && parsedScenes && typeof parsedScenes === 'object' && (parsedScenes.opening_hook || parsedScenes.sections);
-
-  const resolvedContent = useResolvedContent(chapter.content);
-  const content = isStreaming ? streamingContent : resolvedContent;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  const savePrompt = async () => {
-    await base44.entities.Chapter.update(chapter.id, { prompt: promptValue });
-    queryClient.invalidateQueries({ queryKey: ["chapters", chapter.project_id] });
-    setEditingPrompt(false);
-  };
-
-  const handleWriteClick = () => {
-    if (isFiction && !hasScenes) {
-      setWriteConfirm(true);
-    } else {
-      onWrite(chapter);
-    }
-  };
-
-  const handleRewrite = async () => {
-    setRewriting(true);
-    try {
-      await base44.entities.Chapter.update(chapter.id, {
-        content: "",
-        status: "pending",
-        word_count: 0,
-        quality_scan: "",
-        distinctive_phrases: "",
-        state_document: "",
-        generated_at: "",
-      });
-      queryClient.invalidateQueries({ queryKey: ["chapters", chapter.project_id] });
-      onRewrite(chapter);
-    } catch (err) {
-      console.error('Rewrite clear error:', err.message);
-    } finally {
-      setRewriting(false);
-    }
-  };
-
-  const handleGenerateScenesThenWrite = async () => {
-    setWriteConfirm(false);
-    setGeneratingScenesThenWrite(true);
-    try {
-      await base44.functions.invoke('generateScenes', {
-        projectId: chapter.project_id,
-        chapterNumber: chapter.chapter_number,
-      });
-      let polls = 0;
-      while (polls < 45) {
-        await new Promise(r => setTimeout(r, 2000));
-        polls++;
-        const updated = await base44.entities.Chapter.filter({ project_id: chapter.project_id });
-        const updCh = updated.find(c => c.id === chapter.id);
-        if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') {
-          if (onScenesUpdated) onScenesUpdated();
-          break;
-        }
-      }
-    } catch (err) {
-      console.error('generateScenesThenWrite error:', err.message);
-    } finally {
-      setGeneratingScenesThenWrite(false);
-      onWrite(chapter);
-    }
-  };
-
-  // Detect error-but-has-content — treat as "generated" with warnings
-  const hasContentDespiteError = chapter.status === "error" && chapter.word_count > 100;
-
-  // Status label + color
-  const statusConfig = {
-    generated:  { label: "COMPLETE",  color: "text-green-700",  dot: "bg-green-500",  row: "bg-green-50" },
-    generating: { label: "WRITING…",  color: "text-blue-600",   dot: "bg-blue-500",   row: "bg-blue-50" },
-    error:      { label: "ERROR",     color: "text-red-600",    dot: "bg-red-500",    row: "bg-red-50" },
-    error_with_content: { label: "NEEDS REVIEW", color: "text-amber-700", dot: "bg-amber-500", row: "bg-amber-50" },
-    pending:    { label: "PENDING",   color: "text-gray-400",   dot: "bg-gray-300",   row: "bg-gray-50" },
-  };
-  const effectiveStatus = isWriting ? "generating" : hasContentDespiteError ? "error_with_content" : chapter.status;
-  const st = statusConfig[effectiveStatus] || statusConfig.pending;
-
-  const isComplete = chapter.status === "generated" || hasContentDespiteError;
-  const isPendingOrError = (chapter.status === "error" && !hasContentDespiteError) || chapter.status === "pending";
-
-  return (
-    <div className={cn(
-      "rounded-[10px] overflow-hidden bg-white mb-2.5",
-      "border",
-      hasContentDespiteError ? "border-amber-200 bg-[#fffbf5]" :
-      chapter.status === "error" ? "border-red-200 bg-[#fff8f8]" :
-      isWriting ? "border-blue-200" :
-      isComplete ? "border-green-200 bg-[#f9fffe]" :
-      "border-gray-200"
-    )}>
-      {/* ROW 1 — Status */}
-      <div className={cn(
-        "flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-bold tracking-[0.8px] uppercase border-b border-gray-100",
-        st.row
-      )}>
-        <span className={cn("w-[7px] h-[7px] rounded-full shrink-0", st.dot, isWriting && "animate-pulse")} />
-        <span className={st.color}>{st.label}</span>
-        {hasFlags && (
-          <span className="text-amber-500 ml-auto" title="Continuity flags detected">
-            <AlertTriangle className="w-3 h-3" />
-          </span>
-        )}
-        {chapterProgress && isWriting && (
-          <span className="ml-auto text-[10px] font-medium text-blue-500 normal-case tracking-normal truncate max-w-[220px]">{chapterProgress}</span>
-        )}
-      </div>
-
-      {/* ROW 2 — Chapter info (clickable to expand) */}
-      <div
-        className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors"
-        onClick={() => setExpanded(e => !e)}
-      >
-        <button className="text-gray-400 shrink-0" onClick={e => { e.stopPropagation(); setExpanded(e2 => !e2); }}>
-          {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-        </button>
-        <span className="w-8 h-8 rounded-full bg-gray-100 text-gray-700 text-[13px] font-semibold flex items-center justify-center shrink-0">
-          {chapter.chapter_number}
-        </span>
-        <div className="flex-1 min-w-0">
-          <span className="text-[14px] font-medium text-gray-900 block truncate mb-0.5">{chapter.title}</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {chapter.word_count > 0 && (
-              <span className="text-xs text-gray-500">~{chapter.word_count.toLocaleString()} words</span>
-            )}
-            {(() => { try { const qs = chapter.quality_scan ? JSON.parse(chapter.quality_scan) : null; if (!qs) return null; return (<>
-              {qs.genAttempts > 1 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">{qs.genAttempts} attempts</span>}
-              {qs.structural?.needsRetry && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 font-bold border border-red-200" title={`Retry reason: ${qs.structural.retryReason}`}>structure issue</span>}
-              {qs.warnings?.length > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 cursor-help" title={qs.warnings.join('\n')}>⚠ {qs.warnings.length} warning{qs.warnings.length > 1 ? 's' : ''}</span>}
-            </>); } catch { return null; } })()}
-            {content && (
-              <button
-                className="text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-200 transition-colors"
-                onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-              >
-                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                {copied ? "copied" : "copy"}
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-          {beatData?.beat_function && <BeatBadge beatFunction={beatData.beat_function} beatName={beatData.beat_name} />}
-          {hasScenes && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold border border-green-200">{parsedScenes.length} scenes</span>
-          )}
-          {hasNfBeatSheet && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold border border-green-200">beat sheet</span>
-          )}
-        </div>
-      </div>
-
-      {/* ROW 3 — Action buttons */}
-      <div className={cn(
-        "flex gap-2 px-3.5 py-2.5 border-t border-gray-100",
-        isComplete && "flex-wrap",
-      )}>
-        {isComplete && (
-          <>
-            <button
-              className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap"
-              onClick={() => setShowRewriteModal(true)}
-            >
-              <Pencil className="w-3.5 h-3.5" />Voice
-            </button>
-            <button
-              className={cn("flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap", (isWriting || rewriting) && "opacity-50 cursor-not-allowed")}
-              disabled={isWriting || generatingScenesThenWrite || rewriting}
-              onClick={handleRewrite}
-            >
-              {rewriting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Clearing…</> : <><RefreshCw className="w-3.5 h-3.5" />Rewrite</>}
-            </button>
-            <button
-              className={cn("flex-1 basis-full sm:basis-0 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) && "opacity-50 cursor-not-allowed")}
-              disabled={isWriting || generatingScenesThenWrite || rewriting}
-              onClick={handleWriteClick}
-            >
-              {generatingScenesThenWrite
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Scenes…</>
-                : isWriting
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Writing…</>
-                  : <><RefreshCw className="w-3.5 h-3.5" />Regenerate</>}
-            </button>
-          </>
-        )}
-        {isPendingOrError && (
-          <>
-            {chapter.chapter_number > 1 && onResume && (
-              <button
-                className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors whitespace-nowrap", (isWriting || isResuming) && "opacity-50 cursor-not-allowed")}
-                disabled={isWriting || isResuming}
-                onClick={() => onResume(chapter)}
-              >
-                {isResuming ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Resuming…</> : <><ArrowRight className="w-3.5 h-3.5" />Resume from here</>}
-              </button>
-            )}
-            <button
-              className={cn("flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-white border-0 transition-colors whitespace-nowrap", (isWriting || generatingScenesThenWrite) ? "bg-yellow-500 hover:bg-yellow-600" : "bg-indigo-600 hover:bg-indigo-700", (isWriting || generatingScenesThenWrite || rewriting) && "opacity-50 cursor-not-allowed")}
-              disabled={isWriting || generatingScenesThenWrite || rewriting}
-              onClick={handleWriteClick}
-            >
-              {generatingScenesThenWrite
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Scenes…</>
-                : isWriting
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Writing…</>
-                  : <><RefreshCw className="w-3.5 h-3.5" />Write</>}
-            </button>
-          </>
-        )}
-        {effectiveStatus === "generating" && !isComplete && !isPendingOrError && (
-          <button
-            className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-white bg-yellow-500 opacity-50 cursor-not-allowed whitespace-nowrap"
-            disabled
-          >
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />Writing…
-          </button>
-        )}
-      </div>
-
-      {/* Write-without-scenes confirmation */}
-      {writeConfirm && (
-        <div className="border-t border-slate-100 bg-amber-50 px-4 py-3 flex items-center gap-3 flex-wrap">
-          <span className="text-xs text-amber-800 font-medium flex-1">This chapter has no scenes. Generate scenes first for better results?</span>
-          <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700" onClick={handleGenerateScenesThenWrite}>
-            <LayoutGrid className="w-3 h-3 mr-1" />Generate Scenes First
-          </Button>
-          <button
-            className="text-xs text-slate-400 hover:text-slate-600 underline"
-            onClick={() => { setWriteConfirm(false); onWrite(chapter); }}
-          >Write Without Scenes</button>
-          <button className="text-xs text-slate-400 hover:text-slate-600" onClick={() => setWriteConfirm(false)}>Cancel</button>
-        </div>
-      )}
-
-      {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-3">
-          {chapterProgress && !isWriting && (
-            <div className="text-xs text-indigo-600 font-medium">{chapterProgress}</div>
-          )}
-          {chapter.status === "error" && chapter.quality_scan && (() => {
-            try { const qs = JSON.parse(chapter.quality_scan); if (qs.error) return <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2"><span className="font-semibold">Error:</span> {qs.error}</div>; } catch {}
-            return null;
-          })()}
-          <ConsistencyFlagsBanner chapter={chapter} />
-          {chapter.summary && (
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Summary</p>
-              <p className="text-sm text-slate-700 leading-relaxed">{chapter.summary}</p>
-            </div>
-          )}
-          {isFiction ? (
-            <SceneSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
-          ) : (
-            <NonfictionBeatSection chapter={chapter} onScenesUpdated={onScenesUpdated} />
-          )}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                {hasScenes ? "Extra Instructions" : "Writing Prompt"}
-              </p>
-              <Button size="sm" variant="ghost" className="h-6 text-xs text-slate-500 px-2" onClick={() => setEditingPrompt(e => !e)}>
-                <Pencil className="w-3 h-3 mr-1" />{editingPrompt ? "Cancel" : "Edit"}
-              </Button>
-            </div>
-            {editingPrompt ? (
-              <div className="space-y-2">
-                <Textarea className="text-xs font-mono" rows={4} value={promptValue} onChange={e => setPromptValue(e.target.value)} />
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs" onClick={savePrompt}>Save</Button>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-600 leading-relaxed">{chapter.prompt}</p>
-            )}
-          </div>
-          {(content || isStreaming) && (
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Content</p>
-              <div className="bg-white rounded-lg border border-slate-200 p-3 max-h-80 overflow-y-auto">
-                <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{content}{isStreaming && <span className="inline-block w-2 h-4 bg-indigo-400 animate-pulse ml-0.5 align-text-bottom" />}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <RewriteInVoiceModal
-        isOpen={showRewriteModal}
-        onClose={() => setShowRewriteModal(false)}
-        chapter={chapter}
-        spec={spec}
-        project={project}
-      />
-    </div>
-  );
-}
-
-// ── Main GenerateTab ──────────────────────────────────────────────────────────
+import OutlineSection, { safeParse } from "./generate/OutlineSection";
+import WriterSection from "./generate/WriterSection";
 
 export default function GenerateTab({ projectId, onProceed }) {
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [retryCountdown, setRetryCountdown] = useState(0);
-
-  // CHANGE 5 FIX: Countdown timer for rate limit retry
-  useEffect(() => {
-    if (retryCountdown <= 0) return;
-    const interval = setInterval(() => {
-      setRetryCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [retryCountdown]);
-
-  // Scroll to top on component mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
   const [generationProgress, setGenerationProgress] = useState("");
   const [streamingChapterId, setStreamingChapterId] = useState(null);
-  const [activeChapterIds, setActiveChapterIds] = useState(new Set()); // tracks chapters being written (polling)
+  const [activeChapterIds, setActiveChapterIds] = useState(new Set());
   const [streamingContent, setStreamingContent] = useState({});
   const [chapterProgress, setChapterProgress] = useState({});
   const [generatingAllScenes, setGeneratingAllScenes] = useState(false);
@@ -652,34 +37,32 @@ export default function GenerateTab({ projectId, onProceed }) {
   const [writeAllModalOpen, setWriteAllModalOpen] = useState(false);
   const [writeAllActive, setWriteAllActive] = useState(false);
   const [writeAllProgress, setWriteAllProgress] = useState({
-    current: 0,
-    total: 0,
-    currentTitle: "",
-    successes: 0,
-    failures: [],
-    startTime: null,
-    done: false,
-    elapsed: "",
-    wordsWritten: 0,
-    totalWords: 0,
-    chapterWords: 0,
-    targetChapterWords: 3750,
+    current: 0, total: 0, currentTitle: "", successes: 0, failures: [],
+    startTime: null, done: false, elapsed: "", wordsWritten: 0, totalWords: 0,
+    chapterWords: 0, targetChapterWords: 3750,
   });
   const writeAllAbortRef = useRef(false);
   const generatingRef = useRef(false);
   const [targetLength, setTargetLength] = useState("medium");
   const [resumingFromChapter, setResumingFromChapter] = useState(null);
-  const [regenOutlineConfirm, setRegenOutlineConfirm] = useState(false);
   const [writingActNumber, setWritingActNumber] = useState(null);
-  
   const [customActSplits, setCustomActSplits] = useState(null);
 
+  // Countdown timer for rate limit retry
+  useEffect(() => {
+    if (retryCountdown <= 0) return;
+    const interval = setInterval(() => {
+      setRetryCountdown(prev => { if (prev <= 1) { clearInterval(interval); return 0; } return prev - 1; });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [retryCountdown]);
+
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // ── Queries ──
   const { data: projectData } = useQuery({
     queryKey: ["project", projectId],
-    queryFn: async () => {
-      const ps = await base44.entities.Project.filter({ id: projectId });
-      return ps[0];
-    },
+    queryFn: async () => { const ps = await base44.entities.Project.filter({ id: projectId }); return ps[0]; },
   });
 
   const { data: specifications = [] } = useQuery({
@@ -703,24 +86,20 @@ export default function GenerateTab({ projectId, onProceed }) {
   const hasOutline = !!(outline?.outline_data || outline?.outline_url);
   const isPartial = outline?.status === 'partial' || outline?.status === 'shell_complete';
 
-  // If the outline query picks up completion via auto-refetch, stop the spinner
+  // Auto-stop spinner when outline completes
   useEffect(() => {
     if (generating && (outline?.status === 'complete' || outline?.status === 'shell_complete')) {
-      // Don't stop spinner for shell_complete — detail phase follows
       if (outline?.status === 'complete') {
-        generatingRef.current = false;
-        setGenerating(false);
-        setGenerationProgress("");
+        generatingRef.current = false; setGenerating(false); setGenerationProgress("");
         queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
         queryClient.invalidateQueries({ queryKey: ["projects"] });
       }
     } else if (generating && outline?.status === 'error') {
-      generatingRef.current = false;
-      setGenerating(false);
-      setGenerationProgress("");
+      generatingRef.current = false; setGenerating(false); setGenerationProgress("");
       setGenerateError(outline.error_message || 'Generation failed');
     }
   }, [outline?.status]);
+
   const spec = specifications[0] ? {
     ...specifications[0],
     beat_style: specifications[0].beat_style || specifications[0].tone_style || "",
@@ -732,84 +111,44 @@ export default function GenerateTab({ projectId, onProceed }) {
   const { data: outlineData } = useQuery({
     queryKey: ["outline_data", outline?.id],
     enabled: !!outline?.outline_url && !outline?.outline_data,
-    queryFn: async () => {
-      const res = await fetch(outline.outline_url);
-      return res.text();
-    },
+    queryFn: async () => { const res = await fetch(outline.outline_url); return res.text(); },
   });
   const { data: storyBibleData } = useQuery({
     queryKey: ["story_bible_data", outline?.id],
     enabled: !!outline?.story_bible_url && !outline?.story_bible,
-    queryFn: async () => {
-      const res = await fetch(outline.story_bible_url);
-      return res.text();
-    },
+    queryFn: async () => { const res = await fetch(outline.story_bible_url); return res.text(); },
   });
 
   const resolvedOutlineData = outline?.outline_data || outlineData;
   const resolvedStoryBible = outline?.story_bible || storyBibleData;
   const resolvedBookMetadata = outline?.book_metadata || null;
 
-  // ── Auto-unstick chapters left in "generating" status from a previous session ──
-  // IMPORTANT: This ONLY runs when NO chapters are actively being written.
-  // During active generation, the writeAndPoll loop handles its own timeouts.
-  // This catches orphaned "generating" statuses from crashed sessions or page refreshes.
+  // Auto-unstick stale "generating" chapters
   useEffect(() => {
     const unstickInterval = setInterval(async () => {
-      if (chapters.length === 0) return;
-      // NEVER fire during active generation — the polling loop handles that
-      if (activeChapterIds.size > 0) return;
-      const staleGenerating = chapters.filter(
-        c => c.status === 'generating'
-      );
-      if (staleGenerating.length > 0) {
-        console.warn(`Auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
+      if (chapters.length === 0 || activeChapterIds.size > 0) return;
+      const stale = chapters.filter(c => c.status === 'generating');
+      if (stale.length > 0) {
         try {
-          await Promise.all(
-            staleGenerating.map(c =>
-              base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
-            )
-          );
-          refetchChapters();
-          toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
-        } catch (e) {
-          // Swallow rate limit errors silently
-          if (!String(e?.message).includes('429')) console.warn('Unstick failed:', e.message);
-        }
+          await Promise.all(stale.map(c => base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})));
+          refetchChapters(); toast.info(`${stale.length} stuck chapter(s) reset to pending.`);
+        } catch (e) { if (!String(e?.message).includes('429')) console.warn('Unstick failed:', e.message); }
       }
-    }, 60000); // Check every 60 seconds (not 15 — avoids rate limit pressure)
-
-    // Run once on mount with a generous delay (catches chapters stuck from previous session)
+    }, 60000);
     const mountCheck = setTimeout(async () => {
       if (chapters.length === 0 || activeChapterIds.size > 0) return;
-      const staleGenerating = chapters.filter(
-        c => c.status === 'generating'
-      );
-      if (staleGenerating.length > 0) {
-        console.warn(`Mount: auto-unsticking ${staleGenerating.length} stale "generating" chapter(s)`);
+      const stale = chapters.filter(c => c.status === 'generating');
+      if (stale.length > 0) {
         try {
-          await Promise.all(
-            staleGenerating.map(c =>
-              base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})
-            )
-          );
-          refetchChapters();
-          toast.info(`${staleGenerating.length} stuck chapter(s) reset to pending.`);
-        } catch (e) {
-          if (!String(e?.message).includes('429')) console.warn('Mount unstick failed:', e.message);
-        }
+          await Promise.all(stale.map(c => base44.entities.Chapter.update(c.id, { status: 'pending' }).catch(() => {})));
+          refetchChapters(); toast.info(`${stale.length} stuck chapter(s) reset to pending.`);
+        } catch (e) { if (!String(e?.message).includes('429')) console.warn('Mount unstick failed:', e.message); }
       }
-    }, 5000); // 5-second delay on mount
-
+    }, 5000);
     return () => { clearInterval(unstickInterval); clearTimeout(mountCheck); };
-  }, [chapters.length, activeChapterIds.size]); // Re-establish interval when chapter count or active set changes
+  }, [chapters.length, activeChapterIds.size]);
 
-  const generatedCount = chapters.filter(c => c.status === "generated" || (c.status === "error" && c.word_count > 100)).length;
   const totalCount = chapters.length;
-  const allGenerated = totalCount > 0 && generatedCount === totalCount;
-  const progress = totalCount > 0 ? Math.round((generatedCount / totalCount) * 100) : 0;
-
-  // ── Act Detection (auto-detected, overridable by user) ──
   const parsedOutline = safeParse(resolvedOutlineData);
   const autoActs = totalCount > 0 ? detectActBoundaries(chapters, parsedOutline) : null;
   const acts = (autoActs && customActSplits && totalCount > 3) ? {
@@ -818,234 +157,105 @@ export default function GenerateTab({ projectId, onProceed }) {
     act3: { start: customActSplits.act2End + 1, end: totalCount, label: 'Act 3 — Fracture & Resolve' },
   } : autoActs;
 
-  
+  const interiorityMissing = needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData);
 
+  // ── Outline Generation ──
   const handleGenerateOutline = async () => {
-    setGenerating(true);
-    generatingRef.current = true;
-    setGenerationProgress("Step 1/2 — Building structure…");
-    setGenerateError("");
-
+    setGenerating(true); generatingRef.current = true;
+    setGenerationProgress("Step 1/2 — Building structure…"); setGenerateError("");
     try {
-      // ── STEP 1: Shell (fast — titles + summaries) ──
       const shellRes = await base44.functions.invoke('generateOutlineShell', { project_id: projectId });
-      if (shellRes.status !== 200) {
-        setGenerateError(shellRes.data?.error || 'Failed to generate shell');
-        setGenerating(false);
-        setGenerationProgress("");
-        return;
-      }
-
-      const shellStatus = shellRes.data?.status;
-      if (shellStatus === 'partial') {
-        // Shell timed out — save what we have, let user resume
+      if (shellRes.status !== 200) { setGenerateError(shellRes.data?.error || 'Failed to generate shell'); setGenerating(false); setGenerationProgress(""); return; }
+      if (shellRes.data?.status === 'partial') {
         await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
         await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
-        setGenerating(false);
-        setGenerationProgress("");
-        setGenerateError("Structure was partially generated. Click 'Resume Detail' to continue.");
-        return;
+        setGenerating(false); setGenerationProgress(""); setGenerateError("Structure was partially generated. Click 'Resume Detail' to continue."); return;
       }
-
-      // Shell complete — refresh chapters list, then start detail
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
-
       setGenerationProgress("Step 2/2 — Filling in detail…");
-
-      // ── STEP 2: Detail (story bible, prompts, beats) ──
       const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId });
-
-      const detailStatus = detailRes.data?.status;
-      
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
-
-      generatingRef.current = false;
-      setGenerating(false);
-      setGenerationProgress("");
-
-      if (detailStatus === 'partial') {
-        setGenerateError("Outline partially detailed — some chapters may lack prompts. Click 'Resume Detail' to complete.");
-      }
-
+      generatingRef.current = false; setGenerating(false); setGenerationProgress("");
+      if (detailRes.data?.status === 'partial') setGenerateError("Outline partially detailed — some chapters may lack prompts.");
     } catch (err) {
-      console.error('generateOutline error:', err);
       generatingRef.current = false;
-      
-      healthMonitor.report({
-        severity: err.message?.includes('rate limit') ? 'warning' : 'error',
-        category: 'pipeline',
-        message: `Outline generation failed: ${err.message}`,
-        context: { projectId },
-        raw: err,
-      });
-      if (err.message?.includes('rate limit') || err.message?.includes('Rate limit')) {
-        setGenerateError('AI rate limit reached — please wait 60 seconds and click Retry.');
-        setRetryCountdown(60);
-      } else {
-        setGenerateError(err.message || 'Failed to generate outline');
-      }
-      
-      setGenerating(false);
-      setGenerationProgress("");
+      healthMonitor.report({ severity: err.message?.includes('rate limit') ? 'warning' : 'error', category: 'pipeline', message: `Outline generation failed: ${err.message}`, context: { projectId }, raw: err });
+      if (err.message?.includes('rate limit') || err.message?.includes('Rate limit')) { setGenerateError('AI rate limit reached — please wait 60 seconds and click Retry.'); setRetryCountdown(60); }
+      else { setGenerateError(err.message || 'Failed to generate outline'); }
+      setGenerating(false); setGenerationProgress("");
     }
   };
 
   const handleResumeDetail = async () => {
-    setGenerating(true);
-    generatingRef.current = true;
-    setGenerationProgress("Resuming — Filling in detail…");
-    setGenerateError("");
-
+    setGenerating(true); generatingRef.current = true; setGenerationProgress("Resuming — Filling in detail…"); setGenerateError("");
     try {
-      const detailRes = await base44.functions.invoke('generateOutlineDetail', { project_id: projectId });
-      
+      await base44.functions.invoke('generateOutlineDetail', { project_id: projectId });
       await queryClient.invalidateQueries({ queryKey: ["outline", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
-
-      generatingRef.current = false;
-      setGenerating(false);
-      setGenerationProgress("");
-
-      if (detailRes.data?.status === 'partial') {
-        setGenerateError("Still partially detailed. You can retry or proceed with what's available.");
-      }
+      generatingRef.current = false; setGenerating(false); setGenerationProgress("");
     } catch (err) {
-      console.error('resumeDetail error:', err);
-      generatingRef.current = false;
-      setGenerateError(err.message || 'Failed to resume detail generation');
-      setGenerating(false);
-      setGenerationProgress("");
+      generatingRef.current = false; setGenerateError(err.message || 'Failed to resume detail generation');
+      setGenerating(false); setGenerationProgress("");
     }
   };
 
-  // Frontend-driven chapter write pipeline.
-  // Calls each bot sequentially as separate HTTP requests (no orchestrator).
-  // Returns "generated" | "error"
+  // ── Write Pipeline ──
   const writeAndPollChapter = async (chapterId, chapterNumber, onProgress) => {
     const startedAt = Date.now();
-    const elapsed = () => {
-      const s = Math.floor((Date.now() - startedAt) / 1000);
-      return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
-    };
-
+    const elapsed = () => { const s = Math.floor((Date.now() - startedAt) / 1000); return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`; };
     try {
-      // Mark chapter as generating
       await base44.entities.Chapter.update(chapterId, { status: "generating" });
-
-      // ── Step 1: Scene Architect (skip if scenes already exist) ──
       const chData = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
       const hasScenes = chData?.scenes && chData.scenes.trim() !== 'null' && chData.scenes.trim() !== '[]' && chData.scenes.trim() !== '' && chData.scenes.trim() !== '{}';
-      if (!hasScenes) {
-        if (onProgress) onProgress(`Building scenes… (${elapsed()})`);
-        await base44.functions.invoke('bot_sceneArchitect', {
-          project_id: projectId,
-          chapter_id: chapterId,
-        });
-      }
+      if (!hasScenes) { if (onProgress) onProgress(`Building scenes… (${elapsed()})`); await base44.functions.invoke('bot_sceneArchitect', { project_id: projectId, chapter_id: chapterId }); }
 
-      // ── Step 2: Prose Writer (saves content directly on the backend) ──
-      // The prose writer can take 60-120s. If the HTTP call times out,
-      // the backend is still running. We fire-and-forget, then poll for completion.
       if (onProgress) onProgress(`Writing prose… (${elapsed()})`);
       let proseData = null;
-      try {
-        const proseResult = await base44.functions.invoke('bot_proseWriter', {
-          project_id: projectId,
-          chapter_id: chapterId,
-        });
-        proseData = proseResult?.data || proseResult;
-      } catch (proseErr) {
-        // HTTP timeout or 500 — backend may still be running. Poll for content.
-        console.warn(`Ch ${chapterNumber}: Prose writer HTTP error (${proseErr.message}) — polling for content…`);
-        if (onProgress) onProgress(`Waiting for prose writer… (${elapsed()})`);
-      }
+      try { const proseResult = await base44.functions.invoke('bot_proseWriter', { project_id: projectId, chapter_id: chapterId }); proseData = proseResult?.data || proseResult; }
+      catch (proseErr) { console.warn(`Ch ${chapterNumber}: Prose writer HTTP error — polling…`); if (onProgress) onProgress(`Waiting for prose writer… (${elapsed()})`); }
 
-      // If the invoke failed or timed out, poll the chapter entity for content.
-      // The backend prose writer saves content directly (as text or file URL),
-      // so we poll until word_count appears or content becomes a URL.
       if (!proseData?.saved) {
         let pollAttempts = 0;
-        const maxPollAttempts = 60; // 60 × 5s = 300s (5 min) max wait
-        while (pollAttempts < maxPollAttempts) {
-          await new Promise(r => setTimeout(r, 5000));
-          pollAttempts++;
+        while (pollAttempts < 60) {
+          await new Promise(r => setTimeout(r, 5000)); pollAttempts++;
           if (onProgress) onProgress(`Waiting for prose… ${pollAttempts * 5}s (${elapsed()})`);
           try {
             const polledCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
             if (!polledCh) break;
-            // Check if content was saved (either word_count updated or content is now a URL)
-            const hasContent = polledCh.word_count > 50 || 
-              (polledCh.content && typeof polledCh.content === 'string' && polledCh.content.startsWith('http'));
-            if (hasContent) {
-              proseData = { saved: true, word_count: polledCh.word_count || 0 };
-              break;
+            if (polledCh.word_count > 50 || (polledCh.content && typeof polledCh.content === 'string' && polledCh.content.startsWith('http'))) {
+              proseData = { saved: true, word_count: polledCh.word_count || 0 }; break;
             }
-          } catch (pollErr) {
-            // Rate limit on polling — slow down
-            console.warn('Poll error:', pollErr.message);
-            await new Promise(r => setTimeout(r, 5000));
-          }
+          } catch (pollErr) { await new Promise(r => setTimeout(r, 5000)); }
         }
       }
 
       const wordCount = proseData?.word_count || 0;
-      if (!proseData?.saved || wordCount < 50) {
-        console.error(`Ch ${chapterNumber}: Prose writer failed or returned empty output`);
-        await base44.entities.Chapter.update(chapterId, { status: 'error' });
-        if (onProgress) onProgress(`Error — prose writer returned empty output`);
-        return "error";
-      }
+      if (!proseData?.saved || wordCount < 50) { await base44.entities.Chapter.update(chapterId, { status: 'error' }); return "error"; }
 
-      // ── Step 2.5: Code-level cleanup (runs in browser, <100ms) ──
+      // Code-level cleanup
       if (onProgress) onProgress(`Cleaning prose artifacts… (${elapsed()})`);
       try {
         const chBeforeClean = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
         let rawContent = chBeforeClean?.content || "";
-        if (rawContent.startsWith("http")) {
-          try { rawContent = await (await fetch(rawContent)).text(); } catch (e) { rawContent = ""; }
-        }
+        if (rawContent.startsWith("http")) { try { rawContent = await (await fetch(rawContent)).text(); } catch { rawContent = ""; } }
         if (rawContent && rawContent.length > 200) {
           let cleaned = rawContent;
-          // Strip diff/code block artifacts from Gemini
           cleaned = cleaned.replace(/```[\w]*\n?/g, '');
           cleaned = cleaned.replace(/^---\s*a\/.*$/gm, '');
           cleaned = cleaned.replace(/^\+\+\+\s*b\/.*$/gm, '');
           cleaned = cleaned.replace(/^@@[^@]*@@.*$/gm, '');
-          // Remove duplicate consecutive paragraphs (split on single newline)
           let lines = cleaned.split(/\n/);
-          // Remove exact consecutive duplicate lines (any length)
           const exactDeduped = [];
-          for (let k = 0; k < lines.length; k++) {
-            const trimmed = lines[k].trim();
-            if (trimmed.length > 0 && exactDeduped.length > 0 && exactDeduped[exactDeduped.length - 1].trim() === trimmed) {
-              continue; // skip exact duplicate
-            }
-            exactDeduped.push(lines[k]);
-          }
+          for (let k = 0; k < lines.length; k++) { const trimmed = lines[k].trim(); if (trimmed.length > 0 && exactDeduped.length > 0 && exactDeduped[exactDeduped.length - 1].trim() === trimmed) continue; exactDeduped.push(lines[k]); }
           lines = exactDeduped;
           const deduped = [];
-          for (let k = 0; k < lines.length; k++) {
-            const line = lines[k].trim();
-            if (line.length < 80) { deduped.push(lines[k]); continue; }
-            const words = new Set(line.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
-            if (words.size < 10) { deduped.push(lines[k]); continue; }
-            let isDupe = false;
-            for (let p = Math.max(0, deduped.length - 3); p < deduped.length; p++) {
-              const prevWords = new Set(deduped[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
-              if (prevWords.size < 10) continue;
-              let overlap = 0;
-              words.forEach(function(w) { if (prevWords.has(w)) overlap++; });
-              if (overlap / Math.min(words.size, prevWords.size) > 0.75) { isDupe = true; break; }
-            }
-            if (!isDupe) deduped.push(lines[k]);
-          }
+          for (let k = 0; k < lines.length; k++) { const line = lines[k].trim(); if (line.length < 80) { deduped.push(lines[k]); continue; } const words = new Set(line.toLowerCase().match(/\b[a-z]{4,}\b/g) || []); if (words.size < 10) { deduped.push(lines[k]); continue; } let isDupe = false; for (let p = Math.max(0, deduped.length - 3); p < deduped.length; p++) { const prevWords = new Set(deduped[p].trim().toLowerCase().match(/\b[a-z]{4,}\b/g) || []); if (prevWords.size < 10) continue; let overlap = 0; words.forEach(function(w) { if (prevWords.has(w)) overlap++; }); if (overlap / Math.min(words.size, prevWords.size) > 0.75) { isDupe = true; break; } } if (!isDupe) deduped.push(lines[k]); }
           cleaned = deduped.join('\n');
-          // Strip instruction leaks
           cleaned = cleaned.replace(/\[NOTE TO (AUTHOR|EDITOR|AI|SELF)\][^\n]*/gi, '');
           cleaned = cleaned.replace(/\[TODO[:\s][^\]]*\]/gi, '');
           cleaned = cleaned.replace(/as (instructed|requested|specified) (in|by) the (prompt|system|user|outline)[^\n]*/gi, '');
@@ -1055,874 +265,212 @@ export default function GenerateTab({ projectId, onProceed }) {
           cleaned = cleaned.replace(/\bProvide (documentary|specific|archival|real) (source|evidence|documentation)[^\n]*/gi, '');
           cleaned = cleaned.replace(/\bLabel as (representative|illustrative|composite|general|reconstructed)[^\n]*/gi, '');
           cleaned = cleaned.replace(/\bFrame as (hypothetical|composite|reconstructed|general|illustrative)[^\n]*/gi, '');
-          // Clean whitespace
           cleaned = cleaned.replace(/\n{3,}/g, '\n\n').replace(/  +/g, ' ').trim();
-          // Save cleaned version if it changed
           if (cleaned !== rawContent) {
-            console.log(`Ch ${chapterNumber}: Code cleanup removed ${rawContent.length - cleaned.length} chars`);
             const blob = new Blob([cleaned], { type: "text/plain" });
             const file = new File([blob], "chapter_" + chapterId + "_cleaned.txt", { type: "text/plain" });
-            try {
-              const uploadResult = await base44.integrations.Core.UploadFile({ file });
-              if (uploadResult?.file_url) {
-                await base44.entities.Chapter.update(chapterId, { content: uploadResult.file_url });
-              }
-            } catch (upErr) {
-              try { await base44.entities.Chapter.update(chapterId, { content: cleaned }); } catch (e) {}
-            }
+            try { const uploadResult = await base44.integrations.Core.UploadFile({ file }); if (uploadResult?.file_url) await base44.entities.Chapter.update(chapterId, { content: uploadResult.file_url }); }
+            catch { try { await base44.entities.Chapter.update(chapterId, { content: cleaned }); } catch {} }
           }
         }
-      } catch (cleanErr) {
-        console.warn(`Ch ${chapterNumber}: Code cleanup failed (non-fatal):`, cleanErr.message);
-      }
+      } catch (cleanErr) { console.warn(`Ch ${chapterNumber}: Code cleanup failed (non-fatal):`, cleanErr.message); }
 
-      // ── Step 3: Style Enforcer ──
       if (onProgress) onProgress(`Fixing style issues… ${wordCount} words (${elapsed()})`);
-      try {
-        await base44.functions.invoke('bot_styleEnforcer', {
-          project_id: projectId,
-          chapter_id: chapterId,
-        });
-      } catch (styleErr) {
-        console.warn(`Ch ${chapterNumber}: Style enforcer failed (non-fatal):`, styleErr.message);
-      }
-
-      // ── Step 4: Prose Polisher ──
+      try { await base44.functions.invoke('bot_styleEnforcer', { project_id: projectId, chapter_id: chapterId }); } catch {}
       if (onProgress) onProgress(`Polishing prose… (${elapsed()})`);
-      try {
-        await base44.functions.invoke('bot_prosePolisher', {
-          project_id: projectId,
-          chapter_id: chapterId,
-        });
-      } catch (polishErr) {
-        console.warn(`Ch ${chapterNumber}: Prose polisher failed (non-fatal):`, polishErr.message);
-      }
+      try { await base44.functions.invoke('bot_prosePolisher', { project_id: projectId, chapter_id: chapterId }); } catch {}
 
-      // ── Step 5: Mark complete ──
-      // Re-fetch to get updated word count after style/polish passes
       const finalCh = (await base44.entities.Chapter.filter({ id: chapterId }))?.[0];
       const finalWords = finalCh?.word_count || wordCount;
       await base44.entities.Chapter.update(chapterId, { status: 'generated' });
-
       if (onProgress) onProgress(`Complete — ${finalWords} words (${elapsed()})`);
       return "generated";
-
     } catch (err) {
-      console.error(`Ch ${chapterNumber} pipeline error:`, err.message);
-      try {
-        await base44.entities.Chapter.update(chapterId, { status: 'error' });
-      } catch (e) { console.warn('Failed to mark errored chapter:', e.message); }
+      try { await base44.entities.Chapter.update(chapterId, { status: 'error' }); } catch {}
       if (onProgress) onProgress(`Error: ${err.message}`);
       return "error";
     }
   };
 
-  const interiorityMissing = needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData);
-
   const handleWriteChapter = async (chapter) => {
-    if (interiorityMissing) {
-      toast.error("Complete Protagonist Interiority in Specifications before generating.");
-      return;
-    }
+    if (interiorityMissing) { toast.error("Complete Protagonist Interiority in Specifications before generating."); return; }
     setStreamingChapterId(chapter.id);
     setActiveChapterIds(prev => new Set([...prev, chapter.id]));
     setChapterProgress(prev => ({ ...prev, [chapter.id]: "Starting generation…" }));
-
-    // Update status optimistically in cache
-    queryClient.setQueryData(["chapters", projectId], old =>
-      (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c)
-    );
-
+    queryClient.setQueryData(["chapters", projectId], old => (old || []).map(c => c.id === chapter.id ? { ...c, status: "generating" } : c));
     try {
-      const result = await writeAndPollChapter(chapter.id, chapter.chapter_number, (msg) => {
-        setChapterProgress(prev => ({ ...prev, [chapter.id]: msg }));
-      });
-
-      if (result === "timeout") {
-        setChapterProgress(prev => ({ ...prev, [chapter.id]: "Generation timeout — refresh to check status." }));
-      }
+      await writeAndPollChapter(chapter.id, chapter.chapter_number, (msg) => setChapterProgress(prev => ({ ...prev, [chapter.id]: msg })));
       await refetchChapters();
     } catch (err) {
-      console.error('writeChapter error:', err.message);
-      healthMonitor.report({
-        severity: err.message === 'timeout' ? 'warning' : 'error',
-        category: 'generation',
-        message: `Chapter generation failed: Ch ${chapter.chapter_number}`,
-        context: { chapterNumber: chapter.chapter_number, chapterId: chapter.id },
-        raw: err,
-      });
+      healthMonitor.report({ severity: 'error', category: 'generation', message: `Chapter generation failed: Ch ${chapter.chapter_number}`, context: { chapterNumber: chapter.chapter_number }, raw: err });
       setChapterProgress(prev => ({ ...prev, [chapter.id]: `Error: ${err.message}` }));
-      // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
-      try {
-        await base44.entities.Chapter.update(chapter.id, { status: 'error' });
-      } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
+      try { await base44.entities.Chapter.update(chapter.id, { status: 'error' }); } catch {}
     } finally {
       setActiveChapterIds(prev => { const s = new Set(prev); s.delete(chapter.id); return s; });
       setStreamingChapterId(null);
     }
   };
 
-  const TARGET_WORDS_PER_CHAPTER = {
-    short: 3750,
-    medium: 3750,
-    long: 4166,
-    epic: 4375,
-  };
+  const TARGET_WORDS_PER_CHAPTER = { short: 3750, medium: 3750, long: 4166, epic: 4375 };
 
-  const handleWriteAllChapters = async () => {
-    if (interiorityMissing) {
-      toast.error("Complete Protagonist Interiority in Specifications before generating.");
-      return;
-    }
-    // Filter chapters that don't have content yet (not generated)
-    const toWrite = chapters.filter(c => c.status !== 'generated');
-    
-    if (toWrite.length === 0) {
-      alert("All chapters are already written!");
-      return;
-    }
-
-    // Get target length from spec
-    const spec = specifications?.[0];
+  // ── Shared write-loop logic ──
+  const runWriteLoop = async (toWrite, label) => {
     const tLen = spec?.target_length || "medium";
     setTargetLength(tLen);
-
     const targetChapterWords = TARGET_WORDS_PER_CHAPTER[tLen];
-    const targetTotalWords = toWrite.length * targetChapterWords;
-
     writeAllAbortRef.current = false;
-    setWriteAllActive(true);
-    setWriteAllModalOpen(true);
-
+    setWriteAllActive(true); setWriteAllModalOpen(true);
     const startTime = Date.now();
-    setWriteAllProgress({
-      current: 0,
-      total: toWrite.length,
-      currentTitle: toWrite[0]?.title || "",
-      successes: 0,
-      failures: [],
-      startTime,
-      done: false,
-      elapsed: "",
-      wordsWritten: 0,
-      totalWords: targetTotalWords,
-      chapterWords: 0,
-      targetChapterWords,
-      error: null,
-    });
+    setWriteAllProgress({ current: 0, total: toWrite.length, currentTitle: toWrite[0]?.title || "", successes: 0, failures: [], startTime, done: false, elapsed: "", wordsWritten: 0, totalWords: toWrite.length * targetChapterWords, chapterWords: 0, targetChapterWords, phase: 1, phaseLabel: label });
 
-    // ── PHASE 1: Generate scenes (fiction) or beat sheets (nonfiction) ──
-    {
-      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}');
-      if (needScenes.length > 0) {
-        const isNF = spec?.book_type === 'nonfiction';
-        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: isNF ? "Phase 1: Generating Beat Sheets" : "Phase 1: Generating Scenes", currentTitle: needScenes[0].title }));
-        for (let i = 0; i < needScenes.length; i++) {
-          if (writeAllAbortRef.current) break;
-          const ch = needScenes[i];
-          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: Ch ${ch.chapter_number} — ${ch.title} (${i + 1}/${needScenes.length})` }));
-          try {
-            await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
-            let polls = 0;
-            while (polls < 45) {
-              await new Promise(r => setTimeout(r, 2000));
-              polls++;
-              const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-              const updCh = updated.find(c => c.id === ch.id);
-              if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') break;
-            }
-          } catch (err) {
-            console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
-          }
-        }
-        await refetchChapters();
+    // Phase 1: Generate scenes for chapters that need them
+    const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}');
+    if (needScenes.length > 0) {
+      const isNF = spec?.book_type === 'nonfiction';
+      setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: isNF ? "Phase 1: Generating Beat Sheets" : "Phase 1: Generating Scenes" }));
+      for (let i = 0; i < needScenes.length; i++) {
+        if (writeAllAbortRef.current) break;
+        const ch = needScenes[i];
+        setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: Ch ${ch.chapter_number} — ${ch.title} (${i + 1}/${needScenes.length})` }));
+        try {
+          await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
+          let polls = 0;
+          while (polls < 45) { await new Promise(r => setTimeout(r, 2000)); polls++; const updated = await base44.entities.Chapter.filter({ project_id: projectId }); const updCh = updated.find(c => c.id === ch.id); if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') break; }
+        } catch {}
       }
-    }
-    // ── PHASE 2: Sequential chapter writing (frontend-driven to avoid backend timeout) ──
-    setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: "Phase 2: Writing Chapters" }));
-
-    // Call backend to prep (reset error statuses) and get ordered list
-    let chaptersToWrite = toWrite;
-    try {
-      const prepRes = await base44.functions.invoke('writeAllChapters', { projectId });
-      if (prepRes.data?.toWrite?.length > 0) {
-        // Use the backend's ordered list (may have refreshed statuses)
-        const backendIds = new Set(prepRes.data.toWrite.map(c => c.id));
-        chaptersToWrite = toWrite.filter(c => backendIds.has(c.id));
-      }
-    } catch (err) {
-      console.warn('writeAllChapters prep failed, proceeding with frontend list:', err.message);
+      await refetchChapters();
     }
 
-    let successes = 0;
-    let totalWordsWritten = 0;
+    // Phase 2: Write chapters
+    setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: label.replace('Phase 1', 'Phase 2') || "Phase 2: Writing Chapters" }));
+    let successes = 0, totalWordsWritten = 0;
     const failedChapters = [];
 
-    for (let i = 0; i < chaptersToWrite.length; i++) {
+    for (let i = 0; i < toWrite.length; i++) {
       if (writeAllAbortRef.current) break;
-
-      const ch = chaptersToWrite[i];
-      setWriteAllProgress(prev => ({
-        ...prev,
-        current: successes,
-        queueIndex: i,
-        successes,
-        failures: [...failedChapters],
-        currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
-        chapterNumber: ch.chapter_number,
-        chapterWords: 0,
-        wordsWritten: totalWordsWritten,
-      }));
-
+      const ch = toWrite[i];
+      setWriteAllProgress(prev => ({ ...prev, current: successes, queueIndex: i, successes, failures: [...failedChapters], currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`, chapterNumber: ch.chapter_number, chapterWords: 0, wordsWritten: totalWordsWritten }));
       let result;
-      try {
-        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-          setWriteAllProgress(prev => ({
-            ...prev,
-            currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
-            chapterNumber: ch.chapter_number,
-          }));
-        });
-      } catch (pollErr) {
-        console.error(`WriteAll Ch ${ch.chapter_number} poll error:`, pollErr.message);
-        healthMonitor.report({
-          severity: 'error',
-          category: 'generation',
-          message: `WriteAll Ch ${ch.chapter_number} failed: ${pollErr.message}`,
-          context: { chapterNumber: ch.chapter_number },
-          raw: pollErr,
-        });
+      try { result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}`, chapterNumber: ch.chapter_number }))); }
+      catch (pollErr) {
+        healthMonitor.report({ severity: 'error', category: 'generation', message: `${label} Ch ${ch.chapter_number} failed: ${pollErr.message}`, context: { chapterNumber: ch.chapter_number }, raw: pollErr });
         result = 'error';
-        // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
-        try {
-          await base44.entities.Chapter.update(ch.id, { status: 'error' });
-        } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
+        try { await base44.entities.Chapter.update(ch.id, { status: 'error' }); } catch {}
       }
-
       if (result === 'generated') {
         successes++;
-        try {
-          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
-        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
-
-        base44.functions.invoke('generateChapterState', {
-          project_id: projectId,
-          chapter_id: ch.id,
-        }).catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
-
-        if (i < chaptersToWrite.length - 1) {
-          await new Promise(r => setTimeout(r, 3000));
-        }
+        try { const updated = await base44.entities.Chapter.filter({ project_id: projectId }); totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0); } catch {}
+        base44.functions.invoke('generateChapterState', { project_id: projectId, chapter_id: ch.id }).catch(() => {});
+        if (i < toWrite.length - 1) await new Promise(r => setTimeout(r, 3000));
       } else {
         failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
       }
-
-      setWriteAllProgress(prev => ({
-        ...prev,
-        current: successes,
-        queueIndex: i + 1,
-        successes,
-        failures: [...failedChapters],
-        wordsWritten: totalWordsWritten,
-      }));
+      setWriteAllProgress(prev => ({ ...prev, current: successes, queueIndex: i + 1, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
     }
 
     const elapsed = Date.now() - startTime;
-    const mins = Math.floor(elapsed / 60000);
-    const secs = Math.floor((elapsed % 60000) / 1000);
-
-    setWriteAllProgress(prev => ({
-      ...prev,
-      current: successes,
-      successes,
-      failures: failedChapters,
-      done: true,
-      paused: writeAllAbortRef.current && successes < chaptersToWrite.length,
-      pausedAt: writeAllAbortRef.current ? successes + failedChapters.length + 1 : null,
-      elapsed: `${mins}m ${secs}s`,
-      wordsWritten: totalWordsWritten,
-      chapterWords: 0,
-      error: failedChapters.length > 0
-        ? `${failedChapters.length} chapter(s) failed. You can regenerate them individually.`
-        : null,
-    }));
-
+    setWriteAllProgress(prev => ({ ...prev, current: successes, successes, failures: failedChapters, done: true, paused: writeAllAbortRef.current && successes < toWrite.length, elapsed: `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s`, wordsWritten: totalWordsWritten, chapterWords: 0, error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed.` : null }));
     setWriteAllActive(false);
     await refetchChapters();
+    return { successes, failedChapters };
   };
 
-  const stopWriteAll = () => {
-    writeAllAbortRef.current = true;
+  const handleWriteAllChapters = async () => {
+    if (interiorityMissing) { toast.error("Complete Protagonist Interiority first."); return; }
+    const toWrite = chapters.filter(c => c.status !== 'generated');
+    if (toWrite.length === 0) { alert("All chapters are already written!"); return; }
+    // Call backend prep
+    try { const prepRes = await base44.functions.invoke('writeAllChapters', { projectId }); } catch {}
+    await runWriteLoop(toWrite, "Phase 2: Writing Chapters");
   };
 
   const handleResumeFromChapter = async (chapter) => {
     setResumingFromChapter(chapter.chapter_number);
-    setWriteAllModalOpen(true);
-    setWriteAllActive(true);
-
     const toWrite = chapters.filter(c => c.chapter_number >= chapter.chapter_number && c.status !== 'generated');
-    const startTime = Date.now();
-    const tLen = specifications?.[0]?.target_length || "medium";
-    setTargetLength(tLen);
-
-    setWriteAllProgress({
-      current: 0,
-      total: toWrite.length,
-      currentTitle: `Resuming from Ch ${chapter.chapter_number}...`,
-      successes: 0,
-      failures: [],
-      startTime,
-      done: false,
-      wordsWritten: 0,
-      chapterWords: 0,
-      phaseLabel: `Resuming from Chapter ${chapter.chapter_number}`,
-    });
-
-    let successes = 0;
-    let totalWordsWritten = 0;
-    const failedChapters = [];
-
-    for (let i = 0; i < toWrite.length; i++) {
-      if (writeAllAbortRef.current) break;
-
-      const ch = toWrite[i];
-      setWriteAllProgress(prev => ({
-        ...prev,
-        current: successes,
-        queueIndex: i,
-        successes,
-        failures: [...failedChapters],
-        currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
-        chapterNumber: ch.chapter_number,
-        chapterWords: 0,
-        wordsWritten: totalWordsWritten,
-      }));
-
-      let result;
-      try {
-        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-          setWriteAllProgress(prev => ({
-            ...prev,
-            currentTitle: `Ch ${ch.chapter_number}: ${msg}`,
-            chapterNumber: ch.chapter_number,
-          }));
-        });
-      } catch (pollErr) {
-        console.error(`Resume Ch ${ch.chapter_number} poll error:`, pollErr.message);
-        healthMonitor.report({
-          severity: 'error',
-          category: 'generation',
-          message: `Resume Ch ${ch.chapter_number} failed: ${pollErr.message}`,
-          context: { chapterNumber: ch.chapter_number },
-          raw: pollErr,
-        });
-        result = 'error';
-        // CRITICAL: Reset chapter status so it doesn't get stuck in "generating" forever
-        try {
-          await base44.entities.Chapter.update(ch.id, { status: 'error' });
-        } catch (resetErr) { console.warn('Failed to reset stuck chapter status:', resetErr.message); }
-      }
-
-      if (result === 'generated') {
-        successes++;
-        try {
-          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
-        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
-
-        base44.functions.invoke('generateChapterState', {
-          project_id: projectId,
-          chapter_id: ch.id,
-        }).catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
-
-        if (i < toWrite.length - 1) {
-          await new Promise(r => setTimeout(r, 3000));
-        }
-      } else {
-        failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
-      }
-
-      setWriteAllProgress(prev => ({
-        ...prev,
-        current: successes,
-        queueIndex: i + 1,
-        successes,
-        failures: [...failedChapters],
-        wordsWritten: totalWordsWritten,
-      }));
-    }
-
-    const elapsed = Date.now() - startTime;
-    const mins = Math.floor(elapsed / 60000);
-    const secs = Math.floor((elapsed % 60000) / 1000);
-
-    setWriteAllProgress(prev => ({
-      ...prev,
-      current: successes,
-      successes,
-      failures: failedChapters,
-      done: true,
-      paused: false,
-      pausedAt: null,
-      elapsed: `${mins}m ${secs}s`,
-      wordsWritten: totalWordsWritten,
-      chapterWords: 0,
-      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed. You can regenerate them individually.` : null,
-    }));
-
-    setWriteAllActive(false);
+    await runWriteLoop(toWrite, `Resuming from Chapter ${chapter.chapter_number}`);
     setResumingFromChapter(null);
-    await refetchChapters();
+  };
+
+  const handleWriteAct = async (actNumber) => {
+    if (interiorityMissing) { toast.error("Complete Protagonist Interiority first."); return; }
+    const act = acts?.[`act${actNumber}`];
+    if (!act) return;
+    const { getActChapters } = await import("./ActDetection");
+    const actChapters = getActChapters(chapters, acts, actNumber);
+    const toWrite = actChapters.filter(c => c.status !== 'generated');
+    if (toWrite.length === 0) { toast.info(`Act ${actNumber} is already complete!`); return; }
+    setWritingActNumber(actNumber);
+    await runWriteLoop(toWrite, `Writing Act ${actNumber} (Ch ${act.start}–${act.end})`);
+    setWritingActNumber(null);
+    if (toWrite.length > 0) toast.success(`Act ${actNumber} complete!`);
   };
 
   const handleGenerateAllScenes = async () => {
-    setGeneratingAllScenes(true);
-    setAllScenesProgress("Checking chapters…");
+    setGeneratingAllScenes(true); setAllScenesProgress("Checking chapters…");
     try {
-      // Find chapters needing scenes (fiction) or beat sheets (nonfiction)
-      const needScenes = chapters.filter(c => {
-        const s = c.scenes?.trim();
-        return !s || s === 'null' || s === '[]' || s === '{}';
-      });
-      if (needScenes.length === 0) {
-        setAllScenesProgress("All chapters already have scenes.");
-        setTimeout(() => setAllScenesProgress(""), 3000);
-        return;
-      }
-      // Generate scenes sequentially from frontend (avoids backend-to-backend 403)
+      const needScenes = chapters.filter(c => { const s = c.scenes?.trim(); return !s || s === 'null' || s === '[]' || s === '{}'; });
+      if (needScenes.length === 0) { setAllScenesProgress("All chapters already have scenes."); setTimeout(() => setAllScenesProgress(""), 3000); return; }
       for (let i = 0; i < needScenes.length; i++) {
         const ch = needScenes[i];
         setAllScenesProgress(`Generating scenes… ${i} of ${needScenes.length} done (Ch ${ch.chapter_number}: ${ch.title})`);
-        try {
-          await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
-        } catch (err) {
-          console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
-        }
-        // Brief delay between calls
+        try { await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number }); } catch {}
         if (i < needScenes.length - 1) await new Promise(r => setTimeout(r, 1000));
       }
-      setAllScenesProgress("Scenes ready!");
-      await refetchChapters();
-      setTimeout(() => setAllScenesProgress(""), 3000);
+      setAllScenesProgress("Scenes ready!"); await refetchChapters(); setTimeout(() => setAllScenesProgress(""), 3000);
     } catch (err) {
-      healthMonitor.report({
-        severity: 'error',
-        category: 'pipeline',
-        message: `Scene generation failed: ${err.message}`,
-        context: { projectId },
-        raw: err,
-      });
-      setAllScenesProgress(`Error: ${err.message}`);
-      setTimeout(() => setAllScenesProgress(""), 5000);
-    } finally {
-      setGeneratingAllScenes(false);
-    }
+      healthMonitor.report({ severity: 'error', category: 'pipeline', message: `Scene generation failed: ${err.message}`, context: { projectId }, raw: err });
+      setAllScenesProgress(`Error: ${err.message}`); setTimeout(() => setAllScenesProgress(""), 5000);
+    } finally { setGeneratingAllScenes(false); }
   };
 
-  // ── Write Act handler ──
-  // Writes only chapters within a single act (smaller blast radius: 5-8 calls vs 20-25).
-  // On per-chapter failure, continues to the next chapter (doesn't abort the act).
-  // After full completion, prompts user to generate a continuity bridge before moving on.
-  const handleWriteAct = async (actNumber) => {
-    if (interiorityMissing) {
-      toast.error("Complete Protagonist Interiority in Specifications before generating.");
-      return;
-    }
-    const act = acts?.[`act${actNumber}`];
-    if (!act) return;
-
-    const actChapters = getActChapters(chapters, acts, actNumber);
-    const toWrite = actChapters.filter(c => c.status !== 'generated');
-    if (toWrite.length === 0) {
-      toast.info(`Act ${actNumber} is already complete!`);
-      return;
-    }
-
-    // Use the Write All modal for act-based writing
-    const tLen = spec?.target_length || "medium";
-    setTargetLength(tLen);
-    const targetChapterWords = TARGET_WORDS_PER_CHAPTER[tLen];
-
-    writeAllAbortRef.current = false;
-    setWritingActNumber(actNumber);
-    setWriteAllActive(true);
-    setWriteAllModalOpen(true);
-
-    const startTime = Date.now();
-    setWriteAllProgress({
-      current: 0,
-      total: toWrite.length,
-      currentTitle: `Act ${actNumber}: ${toWrite[0]?.title || ""}`,
-      successes: 0,
-      failures: [],
-      startTime,
-      done: false,
-      elapsed: "",
-      wordsWritten: 0,
-      totalWords: toWrite.length * targetChapterWords,
-      chapterWords: 0,
-      targetChapterWords,
-      phase: 2,
-      phaseLabel: `Writing Act ${actNumber} (Ch ${act.start}–${act.end})`,
-    });
-
-    // Phase 1: Generate scenes (fiction) or beat sheets (nonfiction) for chapters that need them
-    {
-      const needScenes = toWrite.filter(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}');
-      if (needScenes.length > 0) {
-        const isNF = spec?.book_type === 'nonfiction';
-        setWriteAllProgress(prev => ({ ...prev, phase: 1, phaseLabel: `Act ${actNumber}: ${isNF ? 'Generating Beat Sheets' : 'Generating Scenes'}` }));
-        for (let i = 0; i < needScenes.length; i++) {
-          if (writeAllAbortRef.current) break;
-          const ch = needScenes[i];
-          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Scene gen: Ch ${ch.chapter_number} (${i + 1}/${needScenes.length})` }));
-          try {
-            await base44.functions.invoke('generateScenes', { projectId, chapterNumber: ch.chapter_number });
-            let polls = 0;
-            while (polls < 45) {
-              await new Promise(r => setTimeout(r, 2000));
-              polls++;
-              const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-              const updCh = updated.find(c => c.id === ch.id);
-              if (updCh?.scenes && updCh.scenes.trim() !== 'null' && updCh.scenes.trim() !== '[]') break;
-            }
-          } catch (err) {
-            console.warn(`Scene gen failed for ch ${ch.chapter_number}:`, err.message);
-            // Don't abort — continue with next chapter's scenes
-          }
-        }
-        await refetchChapters();
-      }
-    }
-    // Phase 2: Sequential chapter writing within the act
-    setWriteAllProgress(prev => ({ ...prev, phase: 2, phaseLabel: `Writing Act ${actNumber}` }));
-
-    let successes = 0;
-    let totalWordsWritten = 0;
-    const failedChapters = [];
-
-    for (let i = 0; i < toWrite.length; i++) {
-      if (writeAllAbortRef.current) break;
-      const ch = toWrite[i];
-      setWriteAllProgress(prev => ({
-        ...prev,
-        current: successes,
-        queueIndex: i,
-        successes,
-        failures: [...failedChapters],
-        currentTitle: `Ch ${ch.chapter_number}: ${ch.title}`,
-        chapterNumber: ch.chapter_number,
-        wordsWritten: totalWordsWritten,
-      }));
-
-      // Write chapter — on failure, log it and continue to next (don't abort the act)
-      let result;
-      try {
-        result = await writeAndPollChapter(ch.id, ch.chapter_number, (msg) => {
-          setWriteAllProgress(prev => ({ ...prev, currentTitle: `Ch ${ch.chapter_number}: ${msg}` }));
-        });
-      } catch (pollErr) {
-        console.error(`Act ${actNumber} Ch ${ch.chapter_number} poll error:`, pollErr.message);
-        healthMonitor.report({
-          severity: 'error',
-          category: 'generation',
-          message: `Act ${actNumber} Ch ${ch.chapter_number} failed: ${pollErr.message}`,
-          context: { chapterNumber: ch.chapter_number, actNumber },
-          raw: pollErr,
-        });
-        result = 'error';
-      }
-
-      if (result === 'generated') {
-        successes++;
-        try {
-          const updated = await base44.entities.Chapter.filter({ project_id: projectId });
-          totalWordsWritten = updated.filter(c => c.status === 'generated').reduce((sum, c) => sum + (c.word_count || 0), 0);
-        } catch (e) { console.warn('Failed to fetch updated word count:', e.message); }
-        base44.functions.invoke('generateChapterState', { project_id: projectId, chapter_id: ch.id })
-          .catch(err => console.warn(`State doc gen failed for ch ${ch.chapter_number}:`, err.message));
-        if (i < toWrite.length - 1) await new Promise(r => setTimeout(r, 3000));
-      } else {
-        // Per-chapter failure — record it but keep going
-        console.error(`Act ${actNumber} Ch ${ch.chapter_number} failed: ${result}`);
-        failedChapters.push({ number: ch.chapter_number, title: ch.title, error: result === 'timeout' ? 'Timed out' : 'Generation failed' });
-      }
-
-      setWriteAllProgress(prev => ({ ...prev, current: successes, queueIndex: i + 1, successes, failures: [...failedChapters], wordsWritten: totalWordsWritten }));
-    }
-
-    // Check if act is fully complete after writing
-    const actFullyComplete = failedChapters.length === 0 && successes === toWrite.length && successes > 0;
-
-    const elapsed = Date.now() - startTime;
-    setWriteAllProgress(prev => ({
-      ...prev, current: successes, successes, failures: failedChapters, done: true,
-      paused: writeAllAbortRef.current, elapsed: `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s`,
-      wordsWritten: totalWordsWritten,
-      error: failedChapters.length > 0 ? `${failedChapters.length} chapter(s) failed. You can retry them individually.` : null,
-    }));
-
-    setWriteAllActive(false);
-    setWritingActNumber(null);
-    await refetchChapters();
-
-    if (actFullyComplete) {
-      toast.success(`Act ${actNumber} complete!`);
-    }
-  };
-
-  // ── Empty state ──
-  if (!hasOutline && !generating) {
+  // ── Render ──
+  // If no outline yet or currently generating, show OutlineSection
+  if (!hasOutline || generating) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-indigo-500" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Your book starts here</h2>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            Generate your outline to begin. The AI will build your chapter structure based on your premise.
-          </p>
-          {generateError && (
-            <div className="mb-4 space-y-3">
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 text-left">
-                {generateError}
-              </div>
-              {retryCountdown > 0 && (
-                <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 text-center font-medium">
-                  Ready to retry in: {retryCountdown}s...
-                </div>
-              )}
-            </div>
-          )}
-          <Button 
-            onClick={handleGenerateOutline} 
-            disabled={retryCountdown > 0}
-            className="bg-indigo-600 hover:bg-indigo-700 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Sparkles className="w-4 h-4 mr-2" /> {generateError ? 'Retry Generation' : 'Generate Outline & Story Bible'}
-          </Button>
-          {spec && <div className="mt-4 text-left"><SpecSettingsSummary spec={spec} /></div>}
-        </div>
-      </div>
+      <OutlineSection
+        spec={spec} hasOutline={hasOutline} isPartial={isPartial}
+        generating={generating} generationProgress={generationProgress}
+        generateError={generateError} retryCountdown={retryCountdown}
+        onGenerateOutline={handleGenerateOutline} onResumeDetail={handleResumeDetail}
+        resolvedOutlineData={resolvedOutlineData} resolvedStoryBible={resolvedStoryBible}
+        resolvedBookMetadata={resolvedBookMetadata}
+      />
     );
   }
 
-  if (generating) {
-    const isStep2 = generationProgress.includes('2/2') || generationProgress.includes('Resuming');
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center max-w-sm">
-          <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Generating your book outline…</p>
-          {generationProgress && (
-            <p className="text-sm text-indigo-600 mt-2 font-medium">{generationProgress}</p>
-          )}
-          <div className="flex items-center gap-2 mt-4 justify-center">
-            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-500" : "bg-indigo-400 animate-pulse")} />
-            <div className={cn("h-2 flex-1 rounded-full", isStep2 ? "bg-indigo-400 animate-pulse" : "bg-slate-200")} />
-          </div>
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
-            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Structure</span>
-            <span className={isStep2 ? "text-indigo-600 font-medium" : ""}>Detail</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-3">Usually completes in under 2 minutes</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Outline exists — show outline cards + writer section
   return (
     <div className="space-y-6">
-      {/* Settings summary */}
-      <SpecSettingsSummary spec={spec} />
-
-      {/* Progress + Word Count */}
-      {totalCount > 0 && (
-        <ProjectWordCount chapters={chapters} targetLength={spec?.target_length || "medium"} />
-      )}
-
-      {/* Book Metadata */}
-      <BookMetadataCard metadataRaw={resolvedBookMetadata} />
-
-      {/* Outline & Story Bible */}
-      <OutlineCard outlineData={resolvedOutlineData} />
-      <StoryBibleCard storyBible={resolvedStoryBible} />
-
-      {/* Protagonist interiority gate for fiction */}
-      {needsInteriorityGate(spec) && !hasProtagonistInteriority(spec, projectData) && (
-        <InteriorityGateBanner onGoToSpec={() => window.dispatchEvent(new CustomEvent('navigateToPhase', { detail: 'specify' }))} />
-      )}
-
-      {/* Explicit tags warning for erotica projects */}
-      {spec && /erotica|erotic/i.test(((spec.genre || '') + ' ' + (spec.subgenre || ''))) && resolvedOutlineData && (() => {
-        const parsed = safeParse(resolvedOutlineData);
-        if (!parsed) return null;
-        return (
-          <ExplicitTagsWarning
-            outlineData={parsed}
-            outlineRaw={resolvedOutlineData}
-            outline={outline}
-            projectId={projectId}
-            onResolved={() => queryClient.invalidateQueries({ queryKey: ["outline", projectId] })}
-          />
-        );
-      })()}
-
-      {/* Partial outline banner */}
-      {isPartial && !generating && !generateError && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center justify-between">
-          <span>Outline structure is ready but detail is incomplete. Resume to add prompts and story bible.</span>
-          <Button size="sm" onClick={handleResumeDetail} className="bg-amber-600 hover:bg-amber-700 text-white ml-3 shrink-0">
-            <Sparkles className="w-3 h-3 mr-1" /> Resume
-          </Button>
-        </div>
-      )}
-
-      {/* Error banner */}
-      {generateError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {generateError}
-        </div>
-      )}
-
-      {/* Regenerate outline + One-click write buttons */}
-      <div className="flex flex-wrap justify-end gap-2">
-        {isPartial && (
-          <Button size="sm" onClick={handleResumeDetail} disabled={generating} className="bg-amber-600 hover:bg-amber-700 text-white">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Resume Detail Generation
-          </Button>
-        )}
-        <Button variant="outline" size="sm" onClick={() => {
-          const hasWrittenChapters = chapters.some(c => c.status === 'generated');
-          if (hasWrittenChapters) { setRegenOutlineConfirm(true); } else { handleGenerateOutline(); }
-        }} className="text-slate-500">
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {generateError ? 'Retry' : 'Regenerate Outline'}
-        </Button>
-        {totalCount > 0 && chapters.some(c => !c.scenes || c.scenes.trim() === 'null' || c.scenes.trim() === '[]' || c.scenes.trim() === '' || c.scenes.trim() === '{}') && (
-          <Button
-            onClick={handleGenerateAllScenes}
-            disabled={generatingAllScenes || writeAllActive}
-            className={spec?.book_type === 'nonfiction' ? "bg-teal-600 hover:bg-teal-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
-          >
-            {generatingAllScenes
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{spec?.book_type === 'nonfiction' ? 'Generating Beat Sheets…' : 'Generating Scenes…'}</>
-              : <><LayoutGrid className="w-4 h-4 mr-2" />{spec?.book_type === 'nonfiction' ? 'Generate All Beat Sheets' : 'Generate All Scenes'}</>}
-          </Button>
-        )}
-        {totalCount > 0 && generatedCount < totalCount && (
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleWriteAllChapters} 
-            disabled={generating || writeAllActive}
-            className="text-slate-500 border-slate-300"
-            title="Write all chapters sequentially — prefer Write Act buttons for better results"
-          >
-            <Zap className="w-3.5 h-3.5 mr-1.5" /> 
-            {writeAllActive ? "Writing..." : `Write All (${totalCount - generatedCount} remaining)`}
-          </Button>
-        )}
-      </div>
-      {allScenesProgress && (
-        <div className="text-sm text-indigo-600 font-medium text-right">{allScenesProgress}</div>
-      )}
-
-      {/* Chapters — grouped by Act */}
-      {chapters.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 text-base">Chapters</h3>
-            {acts && <ActSplitEditor acts={acts} totalChapters={totalCount} onSave={setCustomActSplits} />}
-          </div>
-          {[1, 2, 3].map(actNum => {
-            const act = acts?.[`act${actNum}`];
-            if (!act) return null;
-            const actChapters = getActChapters(chapters, acts, actNum);
-            if (actChapters.length === 0) return null;
-            const actStatus = getActStatus(chapters, acts, actNum);
-            const actGenerated = actChapters.filter(c => c.status === 'generated').length;
-            // Disable write if previous act isn't complete (except act 1)
-            const prevComplete = actNum === 1 || getActStatus(chapters, acts, actNum - 1) === 'complete';
-
-            return (
-              <div key={actNum} className="space-y-2">
-                <ActHeader
-                  actNumber={actNum}
-                  act={act}
-                  status={actStatus}
-                  chapterCount={actChapters.length}
-                  generatedCount={actGenerated}
-                  onWriteAct={handleWriteAct}
-                  isWriting={writingActNumber === actNum}
-                  disabled={!prevComplete || writeAllActive || interiorityMissing}
-                  prevActComplete={prevComplete}
-                />
-                {actChapters.map(chapter => {
-                  const olCh = parsedOutline?.chapters?.find(c => (c.number || c.chapter_number) === chapter.chapter_number);
-                  const beatData = olCh?.beat_function ? { beat_name: olCh.beat_name, beat_function: olCh.beat_function } : null;
-                  return (
-                    <ChapterItem
-                      key={chapter.id}
-                      chapter={chapter}
-                      spec={spec}
-                      project={projectData}
-                      onWrite={handleWriteChapter}
-                      onRewrite={handleWriteChapter}
-                      onResume={handleResumeFromChapter}
-                      streamingContent={streamingContent[chapter.id] || ""}
-                      isStreaming={streamingChapterId === chapter.id}
-                      isWriting={activeChapterIds.has(chapter.id)}
-                      isResuming={resumingFromChapter === chapter.chapter_number}
-                      chapterProgress={chapterProgress[chapter.id] || null}
-                      onScenesUpdated={refetchChapters}
-                      beatData={beatData}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Proceed button */}
-      {allGenerated && (
-        <div className="flex justify-end pt-2">
-          <Button onClick={onProceed} className="bg-indigo-600 hover:bg-indigo-700 px-6">
-            Proceed to Editor <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      )}
-
-      {/* Write All Chapters Modal */}
-      <WriteAllChaptersModal
-        isOpen={writeAllModalOpen}
-        onClose={() => setWriteAllModalOpen(false)}
-        onProceed={onProceed}
-        progress={writeAllProgress}
-        onStop={stopWriteAll}
-        targetLength={targetLength}
+      <OutlineSection
+        spec={spec} hasOutline={hasOutline} isPartial={isPartial}
+        generating={generating} generationProgress={generationProgress}
+        generateError={generateError} retryCountdown={retryCountdown}
+        onGenerateOutline={handleGenerateOutline} onResumeDetail={handleResumeDetail}
+        resolvedOutlineData={resolvedOutlineData} resolvedStoryBible={resolvedStoryBible}
+        resolvedBookMetadata={resolvedBookMetadata}
       />
-
-      {/* Regenerate Outline Confirmation */}
-      <AlertDialog open={regenOutlineConfirm} onOpenChange={setRegenOutlineConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Regenerate Outline?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will erase all written chapters and generate a completely new outline. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { setRegenOutlineConfirm(false); handleGenerateOutline(); }}>
-              Erase Chapters & Regenerate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <WriterSection
+        projectId={projectId} spec={spec} projectData={projectData}
+        chapters={chapters} acts={acts} parsedOutline={parsedOutline}
+        isPartial={isPartial} generating={generating} generateError={generateError}
+        onGenerateOutline={handleGenerateOutline} onResumeDetail={handleResumeDetail}
+        generatingAllScenes={generatingAllScenes} allScenesProgress={allScenesProgress}
+        onGenerateAllScenes={handleGenerateAllScenes}
+        activeChapterIds={activeChapterIds} streamingChapterId={streamingChapterId}
+        streamingContent={streamingContent} chapterProgress={chapterProgress}
+        resumingFromChapter={resumingFromChapter} writeAllActive={writeAllActive}
+        writeAllModalOpen={writeAllModalOpen} writeAllProgress={writeAllProgress}
+        writingActNumber={writingActNumber} targetLength={targetLength}
+        interiorityMissing={interiorityMissing}
+        onWriteChapter={handleWriteChapter} onResumeFromChapter={handleResumeFromChapter}
+        onWriteAllChapters={handleWriteAllChapters} onWriteAct={handleWriteAct}
+        onStopWriteAll={() => { writeAllAbortRef.current = true; }}
+        onSetWriteAllModalOpen={setWriteAllModalOpen}
+        onSetCustomActSplits={setCustomActSplits}
+        refetchChapters={refetchChapters} onProceed={onProceed}
+        resolvedOutlineData={resolvedOutlineData} outline={outline}
+        queryClient={queryClient}
+      />
     </div>
   );
 }
