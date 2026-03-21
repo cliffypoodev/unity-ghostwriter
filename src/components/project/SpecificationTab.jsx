@@ -722,12 +722,6 @@ export default function SpecificationTab({ projectId, onProceed }) {
         }).catch(err => console.warn("Failed to persist interiority on project:", err.message));
       }
 
-      // Persist story bible data on Project entity for cross-phase access
-      if (form.story_bible_data) {
-        base44.entities.Project.update(projectId, {
-          story_bible_user: form.story_bible_data,
-        }).catch(err => console.warn("Failed to persist story bible on project:", err.message));
-      }
       
       if (spec) return base44.entities.Specification.update(spec.id, payload);
       return base44.entities.Specification.create(payload);
