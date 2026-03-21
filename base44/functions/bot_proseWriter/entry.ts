@@ -1132,6 +1132,9 @@ This is a SHORT-FORM story. The ENTIRE story must be COMPLETE within ${totalChap
     systemParts.push(nameLock);
   }
 
+  // AI DNA Prevention — must appear in every prompt
+  systemParts.push(`\n${AI_DNA_PREVENTION}`);
+
   // Anti-padding + editorial rules (compact)
   systemParts.push(`\nANTI-PADDING: Every paragraph must introduce NEW information. No restating, no structural resets, no summarizing prior paragraphs. Never repeat quotes. No editorial notes or instructions in output.`);
 
