@@ -240,15 +240,15 @@ function extractIssueContext(prose, findings) {
       }
     }
 
-    // v14: Narrator transition repetition
+    // v14: Narrator transition repetition — keep only the first, fix all others
     if (f.category === 'narrator_repetition') {
-      const narrRx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|delved into|looked into|dug into|pored over|sifted through)\b/gi;
+      const narrRx = /\bI\s+(investigated|examined|explored|discovered|uncovered|researched|studied|analyzed|analysed|delved into|looked into|dug into|pored over|sifted through|turned to|turned my attention to|found myself|began to|set out to)\b/gi;
       let narrSeen = 0;
       for (let i = 0; i < segments.length; i++) {
         narrRx.lastIndex = 0;
         if (narrRx.test(segments[i])) {
           narrSeen++;
-          if (narrSeen > 2) {
+          if (narrSeen > 1) {
             tasks.push({
               type: 'narrator_repetition',
               segIndex: i,
