@@ -155,12 +155,12 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
                 className="font-serif text-sm leading-relaxed h-48 resize-none"
                 value={resolvedContent.current}
               />
-              <Button size="sm" className="mt-2 bg-indigo-600 hover:bg-indigo-700" onClick={handleCapture}>
+              <Button size="sm" className="mt-2 bg-[#5b50f0] hover:bg-[#4a40d0]" onClick={handleCapture}>
                 Use This Selection
               </Button>
               {selectedText && (
-                <div className="mt-2 p-2 bg-indigo-50 border border-indigo-200 rounded-md">
-                  <p className="text-xs font-semibold text-indigo-700 mb-1">Selected:</p>
+                <div className="mt-2 p-2 bg-violet-50 border border-violet-200 rounded-md">
+                  <p className="text-xs font-semibold text-[#5b50f0] mb-1">Selected:</p>
                   <p className="text-xs text-slate-700 italic line-clamp-3">{selectedText}</p>
                 </div>
               )}
@@ -177,7 +177,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
                     className={cn(
                       "text-left p-2 rounded-md border text-xs transition-colors",
                       mode === m.id
-                        ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                        ? "border-violet-400 bg-violet-50 text-[#5b50f0]"
                         : "border-slate-200 hover:border-slate-300 text-slate-600"
                     )}
                   >
@@ -209,7 +209,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
             </div>
 
             <Button
-              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              className="w-full bg-[#5b50f0] hover:bg-[#4a40d0]"
               disabled={!selectedText.trim() || !styleSample.trim() || loading}
               onClick={() => { setStep(2); handleRewrite(); }}
             >
@@ -220,7 +220,7 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
 
         {step === 2 && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#5b50f0] mb-4" />
             <p className="text-sm text-slate-600 font-medium">Rewriting in your voice...</p>
             <p className="text-xs text-slate-400 mt-1">Mode: {REWRITE_MODES.find(m => m.id === mode)?.label || 'Author Voice'}</p>
           </div>
@@ -235,8 +235,8 @@ export default function RewriteInVoiceModal({ isOpen, onClose, chapter, spec, pr
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium text-indigo-600">Your Rewrite ({REWRITE_MODES.find(m => m.id === mode)?.label})</Label>
-              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-md text-sm text-slate-800 leading-relaxed max-h-48 overflow-y-auto">
+              <Label className="text-sm font-medium text-[#5b50f0]">Your Rewrite ({REWRITE_MODES.find(m => m.id === mode)?.label})</Label>
+              <div className="p-3 bg-violet-50 border border-violet-200 rounded-md text-sm text-slate-800 leading-relaxed max-h-48 overflow-y-auto">
                 {rewrittenText}
               </div>
             </div>
