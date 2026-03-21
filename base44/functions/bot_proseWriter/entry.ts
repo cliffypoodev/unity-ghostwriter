@@ -88,6 +88,12 @@ function isRefusal(text) {
 // ═══ INLINED: shared/resolveModel ═══
 const HARDCODED_ROUTES = { outline:'gemini-pro', beat_sheet:'gemini-pro', post_gen_rewrite:'trinity', consistency_check:'trinity', style_rewrite:'trinity', chapter_state:'trinity', sfw_handoff_check:'trinity' };
 function resolveModel(callType, spec) {
+  // Erotica projects → always route to Lumimaid for prose (all call types)
+  const isErotica = /erotica|erotic/i.test(((spec?.genre || '') + ' ' + (spec?.subgenre || '')));
+  if (isErotica && (callType === 'explicit_scene' || callType === 'sfw_prose')) {
+    return 'lumimaid';
+  }
+
   if (HARDCODED_ROUTES[callType]) return HARDCODED_ROUTES[callType];
   if (callType === 'explicit_scene') return 'deepseek-chat';
   // Respect the user's model selection — no overrides
