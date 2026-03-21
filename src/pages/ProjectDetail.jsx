@@ -12,13 +12,15 @@ import ConversationTab from "../components/project/ConversationTab";
 import SourceFilesTab from "../components/project/SourceFilesTab";
 import EditExportTab from "../components/project/EditExportTab";
 import ReviewPolishTab from "../components/project/ReviewPolishTab";
+import CoverDesigner from "../components/project/CoverDesigner";
+import BookPreview from "../components/project/BookPreview";
 import DeleteProjectDialog from "../components/project/DeleteProjectDialog";
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import DiagnosticsPanel from "../components/DiagnosticsPanel";
 import NotebookShell from "../components/project/NotebookShell";
 import { cn } from "@/lib/utils";
 
-const PHASE_ORDER = ["specify", "generate", "export", "review"];
+const PHASE_ORDER = ["specify", "generate", "export", "review", "cover", "preview"];
 
 export default function ProjectDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -186,7 +188,21 @@ export default function ProjectDetail() {
              </AppErrorBoundary>
            </div>
          )}
-       </NotebookShell>
+         {activePhase === "cover" && (
+           <div className="notebook-phase-flush">
+             <AppErrorBoundary>
+               <CoverDesigner projectId={projectId} />
+             </AppErrorBoundary>
+           </div>
+         )}
+         {activePhase === "preview" && (
+           <div className="notebook-phase-flush">
+             <AppErrorBoundary>
+               <BookPreview projectId={projectId} />
+             </AppErrorBoundary>
+           </div>
+         )}
+         </NotebookShell>
 
       <DiagnosticsPanel />
     </div>

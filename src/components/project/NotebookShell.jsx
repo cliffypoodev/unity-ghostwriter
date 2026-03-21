@@ -8,9 +8,11 @@ const PHASES = [
   { id: "generate", label: "Generate", icon: "2" },
   { id: "export", label: "Edit & Export", icon: "3" },
   { id: "review", label: "Review", icon: "4" },
+  { id: "cover", label: "Cover", icon: "5" },
+  { id: "preview", label: "Preview", icon: "6" },
 ];
 
-const PHASE_ORDER = ["specify", "generate", "export", "review"];
+const PHASE_ORDER = ["specify", "generate", "export", "review", "cover", "preview"];
 
 function NotebookTab({ phase, index, state, onClick }) {
   return (
