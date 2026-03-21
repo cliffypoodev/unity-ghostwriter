@@ -92,7 +92,7 @@ export default function ProjectDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#5b50f0]" />
       </div>
     );
   }
@@ -102,9 +102,9 @@ export default function ProjectDetail() {
       <div className="text-center py-24">
          <p className="text-slate-500">Project not found</p>
          <Button variant="link" onClick={() => {
-           window.scrollTo(0, 0);
-           navigate(createPageUrl("Home"));
-         }} className="mt-2 text-indigo-600">
+          window.scrollTo(0, 0);
+          navigate(createPageUrl("Home"));
+         }} className="mt-2 text-[#5b50f0]">
            Go back
          </Button>
        </div>
@@ -137,7 +137,7 @@ export default function ProjectDetail() {
                    ref={(el) => el?.focus({ preventScroll: true })}
                    onKeyDown={(e) => { if (e.key === "Enter") updateMutation.mutate({ name: newName }); if (e.key === "Escape") setEditingName(false); }}
                  />
-                 <Button size="icon" className="h-8 w-8 bg-indigo-600 hover:bg-indigo-700 flex-shrink-0" onClick={() => updateMutation.mutate({ name: newName })}>
+                 <Button size="icon" className="h-8 w-8 bg-[#5b50f0] hover:bg-[#4a40d0] flex-shrink-0" onClick={() => updateMutation.mutate({ name: newName })}>
                    <Check className="w-4 h-4" />
                  </Button>
                  <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={() => setEditingName(false)}>
