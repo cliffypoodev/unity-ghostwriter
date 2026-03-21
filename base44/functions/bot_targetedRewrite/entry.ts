@@ -277,6 +277,39 @@ function extractIssueContext(prose, findings) {
       }
     }
 
+    // v14: Sentence rhythm monotony
+    if (f.category === 'sentence_rhythm') {
+      // Find runs of similar-length sentences and ask AI to vary them
+      for (let i = 0; i < segments.length; i++) {
+        const sents = segments[i].split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 10);
+        let run = 1;
+        for (let j = 1; j < sents.length; j++) {
+          const prevLen = sents[j-1].trim().split(/\s+/).length;
+          const currLen = sents[j].trim().split(/\s+/).length;
+          if (Math.abs(prevLen - currLen) <= 3) {
+            run++;
+          } else {
+            if (run >= 5) {
+              tasks.push({
+                type: 'sentence_rhythm',
+                segIndex: i,
+                instruction: 'This paragraph has ' + run + ' consecutive sentences of nearly identical length. Vary them dramatically: break a long sentence into two short ones, combine two short ones into a longer flowing sentence, or use a fragment for emphasis. Keep the same content.',
+              });
+              break;
+            }
+            run = 1;
+          }
+        }
+        if (run >= 5) {
+          tasks.push({
+            type: 'sentence_rhythm',
+            segIndex: i,
+            instruction: 'This paragraph has ' + run + ' consecutive sentences of nearly identical length. Vary them dramatically: break long sentences short, combine short ones, or use fragments. Keep the same content.',
+          });
+        }
+      }
+    }
+
     // v14: AI sensory defaults
     if (f.category === 'ai_sensory_default') {
       const aiDefRx = [
