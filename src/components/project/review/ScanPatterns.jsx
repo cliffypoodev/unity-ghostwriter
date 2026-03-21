@@ -566,7 +566,7 @@ export function autoFixChapter(text) {
   }
 
   // 3. REMOVE COFFEE SCENE PARAGRAPHS (only remove short paragraphs, not entire chapters)
-  var coffeeParas = fixed.split(PARA_SEP);
+  var coffeeParas = splitParas(fixed);
   var afterCoffee = [];
   for (var c = 0; c < coffeeParas.length; c++) {
     var cp = coffeeParas[c];
@@ -579,7 +579,7 @@ export function autoFixChapter(text) {
   fixed = afterCoffee.join(PARA_JOIN);
 
   // 4. CAP ARCHIVE FRAMING (keep first, remove rest)
-  var archiveParas2 = fixed.split(PARA_SEP);
+  var archiveParas2 = splitParas(fixed);
   var archiveFound = 0;
   var afterArchive2 = [];
   for (var a = 0; a < archiveParas2.length; a++) {
@@ -680,7 +680,7 @@ export function autoFixChapter(text) {
   }
 
   // 11. STRIP PHILOSOPHICAL PLATITUDE ENDINGS
-  var platParas = fixed.split(PARA_SEP);
+  var platParas = splitParas(fixed);
   if (platParas.length > 2) {
     var lastP = platParas[platParas.length - 1];
     var platBefore = lastP;
@@ -694,7 +694,7 @@ export function autoFixChapter(text) {
   }
 
   // 12. REPEATED PARAGRAPH OPENER COMPRESSION
-  var openerParas = fixed.split(PARA_SEP);
+  var openerParas = splitParas(fixed);
   var finalParas = [];
   for (var op = 0; op < openerParas.length; op++) {
     var prefix = ((openerParas[op].trim().toLowerCase().match(/\b[a-z]+\b/g) || []).slice(0, 4).join(" "));
