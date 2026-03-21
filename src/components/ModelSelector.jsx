@@ -69,12 +69,12 @@ export const WRITING_MODELS = {
     inPer1M: 0.32, outPer1M: 0.89, contextWindow: 163840, supportsExplicit: true,
   },
   'trinity': {
-    id: 'trinity', label: 'Trinity Large', platform: 'OpenRouter',
-    callHandler: 'openrouter', modelString: 'arcee-ai/trinity-large-preview:free',
-    description: '400B creative writing model · storytelling',
-    costLabel: 'FREE', costTier: 'free', qualityScore: 4, qualityColor: '#7c3aed',
-    inPer1M: 0, outPer1M: 0, contextWindow: 131000, supportsExplicit: true,
-    isFree: true, badge: 'FREE', note: 'May be slower during high-demand periods',
+    id: 'trinity', label: 'DeepSeek V3.2', platform: 'OpenRouter',
+    callHandler: 'openrouter', modelString: 'deepseek/deepseek-v3.2',
+    description: '#1 ranked creative writing model · fast & reliable',
+    costLabel: '$0.38/M', costTier: 'low', qualityScore: 5, qualityColor: '#7c3aed',
+    inPer1M: 0.26, outPer1M: 0.38, contextWindow: 164000, supportsExplicit: true,
+    badge: 'TOP',
   },
   'lumimaid': {
     id: 'lumimaid', label: 'Lumimaid 70B', platform: 'OpenRouter',
@@ -407,36 +407,36 @@ const FIT_MATRIX = {
     ]},
   },
   'trinity': {
-    default: { fitClass:'good', title:'Good fit — built for creative writing' },
-    thriller:   { fitClass:'good', title:'Good fit — built for creative writing', rows:[
-      ['green','<b>400B model</b> trained specifically for storytelling'],
-      ['blue', 'Beat style rules applied via context injection'],
-      ['blue', 'Author voice injection supported'],
-      ['yellow','Free tier — <b>may be slower</b> during high demand'],
+    default: { fitClass:'great', title:'Excellent fit — #1 creative writing model' },
+    thriller:   { fitClass:'great', title:'Excellent fit — top-ranked for creative writing', rows:[
+      ['green','<b>#1 ranked</b> creative writing model on OpenRouter'],
+      ['green', 'Beat style rules applied via context injection'],
+      ['green', 'Author voice injection supported'],
+      ['green','Fast and reliable — 164K context window'],
     ]},
-    romance:    { fitClass:'good', title:'Good fit — strong emotional tone', rows:[
+    romance:    { fitClass:'great', title:'Excellent fit — strong emotional tone', rows:[
       ['green','Excellent at <b>emotional tone and character voice</b>'],
-      ['blue', 'Slow Burn / Clean Romance beat styles applied'],
-      ['blue', 'Author voice injection supported'],
-      ['yellow','Free tier — response time may vary'],
+      ['green', 'Slow Burn / Clean Romance beat styles applied'],
+      ['green', 'Author voice injection supported'],
+      ['green','Fast, reliable, affordable ($0.38/M output)'],
     ]},
-    erotica:    { fitClass:'good', title:'Good fit — explicit content supported', rows:[
-      ['green','<b>Explicit content supported</b> on Trinity via OpenRouter'],
-      ['green','400B creative writing focus — strong tone control'],
+    erotica:    { fitClass:'great', title:'Excellent fit — explicit content supported', rows:[
+      ['green','<b>Explicit content supported</b> via OpenRouter'],
+      ['green','#1 ranked creative writing model — strong tone control'],
       ['blue', 'Budget Mode routes to Lumimaid if preferred'],
-      ['yellow','Free tier — may be slower during high demand'],
+      ['green','Fast and reliable — no rate limit issues'],
     ]},
-    nonfiction: { fitClass:'ok', title:'Acceptable — less specialized for nonfiction', rows:[
-      ['blue',  'Investigative beat style applied'],
-      ['yellow','<b>Less specialized</b> for evidence-based research writing'],
-      ['yellow','Monitor fabrication more carefully than Claude/DeepSeek'],
+    nonfiction: { fitClass:'good', title:'Strong fit for nonfiction', rows:[
+      ['green', 'Investigative beat style applied'],
+      ['blue',  'Strong analytical and structured writing'],
+      ['blue',  '164K context handles full research chapters'],
       ['blue',  'Strong for narrative nonfiction and memoir'],
     ]},
-    fantasy:    { fitClass:'great', title:'Excellent fit — storytelling is its specialty', rows:[
-      ['green','<b>Exceptional</b> creative writing and worldbuilding'],
+    fantasy:    { fitClass:'great', title:'Excellent fit — storytelling powerhouse', rows:[
+      ['green','<b>#1 ranked</b> creative writing and worldbuilding'],
       ['green','Epic / Urban Gritty beat styles applied'],
-      ['blue', 'Author voice injection supported'],
-      ['yellow','Free tier — monitor rate limits on high chapter counts'],
+      ['green', 'Author voice injection supported'],
+      ['green','Fast, reliable, 164K context window'],
     ]},
   },
   'lumimaid': {

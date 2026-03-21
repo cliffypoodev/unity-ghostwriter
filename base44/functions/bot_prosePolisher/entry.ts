@@ -13,7 +13,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 const MODEL_MAP = {
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.72, maxTokensLimit: null },
   "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.72, maxTokensLimit: null },
-  "trinity": { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "trinity": { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: null },
 };
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
   const config = MODEL_MAP[modelKey] || MODEL_MAP["trinity"];

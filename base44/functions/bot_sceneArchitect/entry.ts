@@ -13,7 +13,7 @@ const MODEL_MAP = {
   "gpt-4o": { provider: "openai", modelId: "gpt-4o", defaultTemp: 0.4, maxTokensLimit: null },
   "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.72, maxTokensLimit: null },
   "deepseek-chat": { provider: "deepseek", modelId: "deepseek-chat", defaultTemp: 0.72, maxTokensLimit: 8192 },
-  "trinity": { provider: "openrouter", modelId: "arcee-ai/trinity-large-preview:free", defaultTemp: 0.72, maxTokensLimit: 16384 },
+  "trinity": { provider: "openrouter", modelId: "deepseek/deepseek-v3.2", defaultTemp: 0.72, maxTokensLimit: null },
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
