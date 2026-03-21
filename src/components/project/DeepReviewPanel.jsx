@@ -183,14 +183,14 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
     <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-5 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-indigo-600" />
+          <Shield className="w-4 h-4 text-[#5b50f0]" />
           <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Deep Continuity Review</h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
             onClick={handleDeepReview}
             disabled={reviewing || generatedChapters.length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 gap-2 text-xs h-8"
+            className="bg-[#5b50f0] hover:bg-[#4a40d0] gap-2 text-xs h-8"
           >
             {reviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
             {reviewing ? "Reviewing…" : results ? "Re-Run Review" : "Run Deep Review"}
@@ -224,7 +224,7 @@ export default function DeepReviewPanel({ projectId, chapters, specs }) {
 
       {reviewing && (
         <div className="flex items-center gap-3 py-4">
-          <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+          <Loader2 className="w-4 h-4 animate-spin text-[#5b50f0]" />
           <p className="text-sm" style={{ color: 'var(--ink)' }}>{reviewProgress}</p>
         </div>
       )}
