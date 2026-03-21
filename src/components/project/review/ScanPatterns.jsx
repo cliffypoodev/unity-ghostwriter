@@ -525,22 +525,28 @@ function scanNarratorRepetition(text, chapterNum) {
 
 function scanParticipleChains(text, chapterNum) {
   var findings = [];
-  var sents = text.split(/(?<=[.!?])\s+/);
+  var clean = stripDialogue(text);
+  var sents = clean.split(/(?<=[.!?])\s+/);
   var badCount = 0;
   var samples = [];
   for (var i = 0; i < sents.length; i++) {
-    var ingMatches = sents[i].match(/\b\w+ing\b/g) || [];
-    // Lower threshold to 3 -ing words per sentence
-    if (ingMatches.length >= 3) {
+    // Only count -ing words that are likely participles (not "thing", "king", "ring", "string", etc.)
+    var words = sents[i].match(/\b\w+ing\b/g) || [];
+    var participles = words.filter(function(w) {
+      var lw = w.toLowerCase();
+      // Exclude common non-participle -ing words
+      return lw.length > 4 && !/^(thing|bring|ring|king|sing|spring|string|swing|wing|sting|cling|during|nothing|something|anything|everything|morning|evening|ceiling|feeling|meeting|building|according)$/i.test(lw);
+    });
+    if (participles.length >= 4) {
       badCount++;
       if (samples.length < 3) samples.push(sents[i].trim().slice(0, 80));
     }
   }
-  // Flag at 2+ bad sentences per chapter
-  if (badCount >= 2) {
+  // Only flag if 5+ problematic sentences per chapter
+  if (badCount >= 5) {
     findings.push({
       category: "participle_chain",
-      label: badCount + " sentences with 3+ \"-ing\" words — floaty/AI-like prose",
+      label: badCount + " sentences with 4+ participle \"-ing\" words",
       count: badCount,
       chapter: chapterNum,
       samples: samples,
