@@ -311,7 +311,7 @@ function ChapterItem({ chapter, spec, onWrite, onRewrite, onResume, streamingCon
   }
   const parsedScenes = safeParseCh(chapter.scenes);
   const hasScenes = isFiction && Array.isArray(parsedScenes) && parsedScenes.length > 0;
-  const hasNfBeatSheet = !isFiction && parsedScenes && typeof parsedScenes === 'object' && parsedScenes.opening_hook;
+  const hasNfBeatSheet = !isFiction && parsedScenes && typeof parsedScenes === 'object' && (parsedScenes.opening_hook || parsedScenes.sections);
 
   const resolvedContent = useResolvedContent(chapter.content);
   const content = isStreaming ? streamingContent : resolvedContent;
