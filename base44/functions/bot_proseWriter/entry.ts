@@ -614,190 +614,22 @@ function buildNonfictionBlock(spec) {
   const povLine = NF_POV[spec?.pov_mode] || NF_POV['nf-editorial'];
   const tenseLine = NF_TENSE[spec?.tense] || NF_TENSE['mixed'];
 
-  return `=== POV & TENSE (MANDATORY — DO NOT DEVIATE) ===
+  return `=== POV & TENSE ===
 ${povLine}
 ${tenseLine}
-Never refer to subjects as "the human," "the man," "the subject," or similar clinical descriptors. Use their NAME or role.
+Use subjects' NAMES or roles, never "the human" or "the subject."
 === END POV & TENSE ===
 
-=== NONFICTION ABSOLUTE RULES — VIOLATIONS WILL FAIL THE CHAPTER ===
-
-RULE 1 — SOURCE INTEGRITY (ZERO TOLERANCE FOR FABRICATION):
-You are writing NONFICTION. Every specific claim MUST be verifiable.
-- DO NOT invent specific archive file names, box numbers, or folder labels.
-- DO NOT invent specific dates for documents (e.g., "March 15, 1934").
-- DO NOT invent specific dollar amounts, statistics, or percentages unless from the knowledge base.
-- DO NOT invent specific dialogue or quotes and attribute them to real people.
-- DO NOT invent specific recordings, wiretap transcripts, or surveillance logs.
-- DO NOT invent specific medical records, psychiatric evaluations, or diagnoses.
-- DO NOT create fictional composite characters and present them as real sources.
-- If the knowledge base or chapter prompt provides a real source, USE IT with proper attribution.
-- If you need a source but don't have one, write: "According to [general description of source type]..." NOT a fabricated specific citation.
-- WRONG: "A memo dated March 15, 1948, marked CONFIDENTIAL, states..."
-- RIGHT: "Internal studio memos from the late 1940s document..."
-- WRONG: "His handwritten notes in red ink read: 'Handle it.'"
-- RIGHT: "Contemporary accounts suggest the executive's response was dismissive."
-
-RULE 2 — NO EDITORIAL INSTRUCTIONS IN PROSE (ZERO TOLERANCE):
-The chapter prompt, beat sheet, or scene directions may contain EDITING INSTRUCTIONS meant for you. These are NOT prose.
-
-PRE-FILTER STEP (do this BEFORE writing any prose):
-1. Read the entire chapter prompt / beat sheet / scene directions.
-2. IDENTIFY every sentence that begins with: Remove, Replace, Either, Frame, Use general, Provide, Label, Anchor, Source, Cite, Rewrite, Address, or any imperative verb directing YOU how to write.
-3. STRIP those sentences from your mental input. They are instructions TO you, not text FROM you.
-4. OBEY each stripped instruction by writing prose that follows the direction.
-5. Your output must contain ZERO instruction text. Not as a preface, not mid-sentence, not anywhere.
-
-FAILURE MODE TO AVOID: The model prints the instruction AND then writes the correct prose after it. This is WRONG. The instruction must be INVISIBLE in the output.
-
-WRONG: "Replace with documented examples of Warner's harsh management style from historical records to a staff meeting, he believed he was teaching efficiency."
-WRONG: "Remove specific time and use general timeframe with source attribution like 'Court records show...' from the overnight rain when Olivia de Havilland climbed them"
-WRONG: "Either identify Lucas as a real person with documentation or remove the detailed scene and replace with documented general patterns By 1955, substance abuse had become..."
-
-RIGHT: "Warner slammed his fist on the conference table at a staff meeting, believing he was teaching efficiency."
-RIGHT: "Court records show the trial began in October 1943, bringing an unseasonable chill to Los Angeles."
-RIGHT: "By 1955, substance abuse had become so endemic among performers that studio executives maintained standing accounts with specific doctors."
-
-ABSOLUTE TEST: If ANY sentence in your output begins with "Remove," "Replace," "Either identify," "Either cite," "Frame as," "Use general," "Provide documentary," "Label as," "Anchor to," "Source to," or "Cite specific" — YOU HAVE FAILED. Delete and rewrite.
-
-RULE 3 — FRAMING DIVERSITY (NO "ARCHIVE NARRATOR" IN EVERY CHAPTER):
-Do NOT use the same narrative framing device in every chapter. The following framings may be used AT MOST TWICE in a 20-chapter book:
-- "I sit in the archives examining a folder/box/document..."
-- "The manila folder sits heavy in my hands..."
-- "I discovered this while researching at [archive]..."
-- "Dawn breaks through the archive windows as I close the file..."
-- "I make myself coffee in the hallway..."
-Instead, ROTATE between these framing approaches:
-A) Open with a reconstructed historical scene (labeled as reconstruction)
-B) Open with a key quote from a documented source
-C) Open with a startling statistic or fact
-D) Open with the present-day consequences of what you're about to describe
-E) Open in media res — drop the reader into the action
-F) Open with a question that the chapter will answer
-Do NOT close every chapter with the narrator reflecting in the archive. End chapters with:
-- An unresolved question
-- A specific documented detail that resonates
-- A direct connection to the next chapter's subject
-- A quote from a source that encapsulates the chapter's argument
-
-RULE 4 — CHAPTER STRUCTURE DIVERSITY:
-Do NOT use the same structure in every chapter. Rotate between:
-- Chronological narrative (events in order)
-- Thematic analysis (organized by argument, not timeline)
-- Case study deep-dive (one person/event examined thoroughly)
-- Comparative analysis (two subjects contrasted)
-- Investigation narrative (following a trail of evidence)
-Each chapter MUST differ structurally from the chapter before it.
-
-RULE 5 — TRANSITION DIVERSITY:
-The following phrases are BANNED or capped at 1 use per chapter:
-- "Contemporary accounts describe/from the period" — MAX 1 per chapter
-- "The evidence suggests/reveals" — MAX 1 per chapter
-- "The psychological impact/toll" — MAX 1 per chapter
-- "The pattern becomes clear/extends beyond" — MAX 1 per chapter
-- "The financial implications" — MAX 1 per chapter
-- "You might assume" — MAX 1 per BOOK (do not use this in multiple chapters)
-- "Consider the case of..." — MAX 1 per BOOK
-- "This wasn't [X] — it was [stronger X]" rhetorical inversion — MAX 1 per chapter
-- "The most [superlative] aspect/element/dimension..." — MAX 1 per chapter
-- "This represented..." as transition — MAX 1 per chapter
-- "The [noun] proved [adjective]..." as transition — MAX 1 per chapter
-- "I make myself coffee" / coffee-making scenes — BANNED (0 per book)
-- "Dawn/morning light breaks/filters through..." as chapter ending — BANNED (0 per book)
-Use SPECIFIC transitions that arise from the content instead.
-
-RULE 6 — REAL PERSON FACT-CHECK (CRITICAL FOR NONFICTION):
-When writing about NAMED REAL PEOPLE, you MUST NOT:
-- Fabricate their cause of death or manner of death
-- Invent suicide narratives for people who died of natural causes
-- Create fictional medical records, psychiatric evaluations, or autopsy reports attributed to real people
-- Invent specific quotes and attribute them to real named individuals
-- Fabricate legal cases, court testimony, or depositions involving real people
-- Create fictional diary entries, letters, or personal correspondence attributed to real people
-This rule applies to ALL named individuals — not just famous people. Do NOT invent specific judges, doctors, detectives, or other minor figures with full names and fabricated career details. If you need a supporting figure and don't have a real documented name, use their ROLE only: "a studio physician," "a Los Angeles judge," "a private investigator employed by the studio."
-WRONG: "Judge William Harrison presided over seventeen cases with a zero percent conviction rate."
-RIGHT: "Judges hearing cases involving major studios faced pressure from multiple directions."
-If the knowledge base provides verified facts about a person, USE THOSE. If it doesn't, DO NOT INVENT specifics.
-
-RULE 7 — RECONSTRUCTION AND COMPOSITE LABELING:
-When you write a scene that reconstructs historical events (dialogue, settings, actions), you MUST signal to the reader that this is a reconstruction:
-- "Contemporary accounts describe scenes where..." 
-- "Based on testimony from the period, such encounters typically began..."
-- "The exchange, reconstructed from court records, went something like..."
-- "Witnesses later described a scene in which..."
-COMPOSITE CHARACTERS: If you create a composite character to represent documented patterns (e.g., a typical aspiring actress, a generic fixer), you MUST label them as composites:
-- "Betty Anne Kowalski is a composite figure, drawn from the documented experiences of dozens of young women who arrived in Hollywood during this period."
-- "The following case study combines elements from multiple documented incidents."
-Do NOT present composite characters with specific identifying details (exact dollar amounts, specific addresses, named family members) that make them appear to be real documented individuals.
-WRONG: presenting "Arthur Madison, Legal Counsel" as a real person with a brass nameplate and specific career history
-RIGHT: "Fixers like the ones studios retained operated from unmarked offices..." or clearly labeling: "Arthur Madison is a composite based on documented studio fixers of the era."
-
-RULE 8 — NO REPETITIVE PADDING:
-Each paragraph in a chapter must advance a NEW point, introduce NEW evidence, or provide a NEW perspective. Do NOT:
-- Restate the same argument in different words across multiple paragraphs
-- Write 3-4 paragraphs of general analysis that all make the same point
-- Use phrases like "The impact was severe" followed by "The consequences were devastating" followed by "The toll was enormous" — these are the same sentence repeated
-- Pad chapters with generalized observations to hit word count targets
-If you've made a point, MOVE ON to new evidence or a new aspect of the argument.
-
-RULE 9 — FINAL CHAPTER TONE:
-The final chapter of a nonfiction book should NOT read like a policy white paper or think-tank report. Do NOT:
-- List specific technological solutions (blockchain, AI monitoring, etc.)
-- Write prescriptive policy recommendations with bullet points
-- Shift into a completely different voice from the rest of the book
-Instead, the final chapter should:
-- Connect back to the opening chapter's themes and imagery
-- Reflect on what the investigation revealed
-- Give voice to survivors
-- Leave the reader with a resonant image or question, not a to-do list
-
-RULE 10 — NO NAMED COMPOSITE CHARACTERS (ZERO TOLERANCE):
-When writing nonfiction narrative chapters, you may describe PATTERNS and TYPICAL EXPERIENCES. You may NOT create named characters with specific biographical details to represent those patterns.
-- Do NOT invent characters with full names (first AND last) who are presented as real historical figures.
-- Do NOT give composite characters specific biographical details: universities attended, exact dollar amounts earned, family member names, specific addresses, job titles with dates.
-- If a person is not documented in the chapter prompt, story bible, or your knowledge base as a REAL person, do NOT name them.
-- Use ROLE descriptions instead: "a studio fixer," "a young actress from the Midwest," "a Beverly Hills psychiatrist."
-WRONG: "Arthur Madison, a junior publicist from Northwestern, witnessed the scene from the doorway of his third-floor office."
-WRONG: "Dr. Margaret Hoffman published her findings in the Journal of Clinical Psychology in 1958."
-WRONG: "Patricia Morrison's arrest file remains sealed in Los Angeles County Superior Court, case number 56-4429."
-RIGHT: "A junior publicist who later described the scene recalled watching from the doorway."
-RIGHT: "A psychiatrist treating entertainment industry clients documented these patterns in clinical notes."
-RIGHT: "One secretary's attempt to expose the system ended with her arrest on fabricated charges."
-EXCEPTION: If a real documented person appears in the story bible or chapter prompt (e.g., Frank Orsatti, Eddie Mannix, Howard Strickling), use their REAL name and VERIFIED facts only.
-
-RULE 11 — NO FABRICATED CITATIONS OR REFERENCE NUMBERS:
-Do NOT invent specific citations, document numbers, or archival references that a reader could attempt to verify.
-- Do NOT invent case numbers (e.g., "case number 56-4429")
-- Do NOT invent journal article citations (e.g., "published in the Journal of Clinical Psychology in 1958")
-- Do NOT invent specific FBI memo dates or FOIA document references
-- Do NOT invent specific archive box/folder numbers
-- Do NOT invent specific dollar amounts for settlements, budgets, or payments unless from the knowledge base
-Use GENERAL sourcing: "court records from the period," "psychiatric case files discovered decades later," "internal studio memos," "FBI surveillance files released under FOIA."
-
-RULE 12 — STUDIO ATTRIBUTION ACCURACY:
-When discussing real performers, attribute them to the CORRECT studio. Key attributions from the knowledge base:
-- Marilyn Monroe: 20th Century Fox (NOT Columbia — she had only a brief 6-month stint at Columbia in 1948)
-- Rita Hayworth: Columbia Pictures
-- Joan Crawford: MGM (1920s-1940s), then Warner Brothers, then freelance
-- Judy Garland: MGM
-- Rock Hudson: Universal Pictures
-- Kim Novak: Columbia Pictures
-- Loretta Young: Various studios (not exclusively any one)
-Do NOT default to Columbia Pictures for every performer. Check the chapter prompt and story bible for correct attribution.
-
-=== END NONFICTION ABSOLUTE RULES ===
-
-${NONFICTION_CHAPTER_PROGRESSION}`;
+=== NONFICTION RULES (MANDATORY) ===
+1. SOURCE INTEGRITY: Never fabricate specific dates, quotes, case numbers, archive references, dollar amounts, or citations. Use general sourcing: "court records from the period," "internal memos," etc.
+2. NO INSTRUCTION LEAKS: If the prompt contains editing directives (Remove, Replace, Either, Frame, Provide, Label, Cite), OBEY them silently. Never print instruction text in output.
+3. DIVERSITY: Vary chapter openings (scene, quote, fact, question, in media res), structures (chronological, thematic, case study, comparative), and transitions. No "archive narrator" framing more than twice per book.
+4. REAL PEOPLE: Never fabricate deaths, medical records, quotes, or legal cases for named real people. Use verified facts only. For unnamed figures, use role descriptions ("a studio physician").
+5. COMPOSITES: Label all composite characters explicitly. Do not give composites full names or specific biographical details.
+6. NO PADDING: Every paragraph must advance a NEW point. No restating arguments in different words.
+7. CHAPTER PROGRESSION: Build on prior chapter, add NEW evidence, set up next chapter. No standalone essays.
+=== END NONFICTION RULES ===`;
 }
-
-const NONFICTION_CHAPTER_PROGRESSION = `=== CHAPTER ARGUMENT PROGRESSION ===
-This chapter must advance a SPECIFIC NEW claim or body of evidence that no prior chapter has covered. If a person, institution, or event has a DEDICATED chapter elsewhere in the outline, this chapter may mention them in passing only (1-2 paragraphs max) and must NOT cover the same biographical ground.
-
-Do NOT write a standalone essay. This chapter must:
-1. Build on what the previous chapter established
-2. Add NEW evidence, cases, or analysis not seen before
-3. Set up what the next chapter will address
-=== END CHAPTER PROGRESSION ===`;
 
 function getOpeningType(chNum) {
   const idx = ((chNum - 1) % 5) + 1;
