@@ -68,7 +68,7 @@ function OutlineCard({ outlineData }) {
   const outline = safeParse(outlineData);
   if (!outline) return null;
   return (
-    <CollapsibleCard title={`Book Outline — ${outline.title || "Untitled"}`} icon={BookOpen} defaultOpen={false}>
+    <CollapsibleCard title={`Book Outline — ${outline.title || "Untitled"}`} emoji="📝" defaultOpen={false}>
       <div className="space-y-4">
         {outline.narrative_arc && <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Narrative Arc</p><p className="text-sm text-slate-700 leading-relaxed">{outline.narrative_arc}</p></div>}
         {outline.themes?.length > 0 && <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Themes</p><div className="flex gap-2 flex-wrap">{outline.themes.map((t, i) => <span key={i} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", THEME_COLORS[i % THEME_COLORS.length])}>{t}</span>)}</div></div>}
