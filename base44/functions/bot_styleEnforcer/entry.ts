@@ -842,6 +842,46 @@ function applyCodeFixes(prose) {
   }
   if (finalParas.length < openerParas.length) text = finalParas.join('\n\n');
 
+  // 7. CAP "Consider the/a..." openers — max 1 per chapter
+  let considerCount = 0;
+  text = text.replace(/\bConsider (the|a|an|how|what)\b/gi, function(match) {
+    considerCount++;
+    if (considerCount <= 1) return match;
+    fixCount++;
+    const alts = ['Look at', 'Take', 'Examine', 'Note', 'Observe'];
+    return alts[(considerCount - 2) % alts.length] + ' ' + match.split(' ').slice(1).join(' ');
+  });
+
+  // 8. CAP "You might assume/imagine..." — max 1 per chapter
+  let youMightCount = 0;
+  text = text.replace(/\bYou might (assume|imagine|picture|envision|wonder|think)\b/gi, function(match) {
+    youMightCount++;
+    if (youMightCount <= 1) return match;
+    fixCount++;
+    return '';
+  });
+
+  // 9. CAP thesis restatement phrases — max 2 each per chapter
+  const thesisPhrases = {
+    'gilded cage': ['luxurious prison', 'golden trap', 'opulent confinement', 'glittering enclosure'],
+    'absolute control': ['total authority', 'iron grip', 'complete dominion', 'unquestioned command'],
+    'systemic exploitation': ['institutional abuse', 'organized predation', 'structural coercion', 'embedded corruption'],
+    'dream factory': ['studio machine', 'Hollywood apparatus', 'entertainment empire', 'cinematic engine'],
+    'unchecked power': ['unaccountable authority', 'unrestrained dominance', 'unbridled influence', 'limitless command'],
+    'pervasive control': ['omnipresent authority', 'all-encompassing grip', 'sweeping dominion', 'inescapable oversight'],
+    'systematic abuse': ['methodical exploitation', 'organized mistreatment', 'calculated cruelty', 'institutional predation'],
+  };
+  for (const [phrase, alts] of Object.entries(thesisPhrases)) {
+    let phCount = 0;
+    const rx = new RegExp('\\b' + phrase.replace(/ /g, '\\s+') + '\\b', 'gi');
+    text = text.replace(rx, function(match) {
+      phCount++;
+      if (phCount <= 2) return match;
+      fixCount++;
+      return alts[(phCount - 3) % alts.length];
+    });
+  }
+
   // Final cleanup — collapse triple+ newlines
   text = text.replace(/\n{3,}/g, '\n\n').trim();
 
