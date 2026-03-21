@@ -550,20 +550,24 @@ function scanParticipleChains(text, chapterNum) {
 
 function scanGrammarAAn(text, chapterNum) {
   var findings = [];
-  // "a" before vowel sound
-  var aBeforeVowel = text.match(/\ba\s+[aeiou]\w+/gi) || [];
-  // Filter out false positives: "a unique", "a uniform", "a universal", "a used", "a one", "a once", "a European"
-  var falsePositives = /^a\s+(uni\w+|us(?:ed|ual|eful|ury)|one|once|europ)/i;
+  // Only match "a" immediately before a vowel-starting word that is clearly wrong
+  // Must be preceded by space/newline (not inside a word) and the vowel word must be common
+  var clean = stripDialogue(text);
+  var aBeforeVowel = clean.match(/(?:^|\s)a\s+(a[bcdgklmnprstw]\w+|e[bcdflmnpqrstvwx]\w+|i[cdlmnprstv]\w+|o[bcdflmnprstvw]\w+|u[bglmnprt]\w+)/gi) || [];
+  // Extended false positive list
+  var falsePositives = /\ba\s+(uni\w+|us(?:ed|ual|eful|ury|urp|urious)|one|once|europ\w*|ewe|ewer|utili\w+|ubiqu\w+|ukul\w+|urani\w+|uret\w+|urin\w+|usual\w*)/i;
   var errors = [];
   for (var i = 0; i < aBeforeVowel.length; i++) {
-    if (!falsePositives.test(aBeforeVowel[i])) {
-      errors.push(aBeforeVowel[i]);
+    var trimmed = aBeforeVowel[i].trim();
+    if (!falsePositives.test(trimmed)) {
+      errors.push(trimmed);
     }
   }
-  if (errors.length > 0) {
+  // Only flag if there are clear errors (threshold of 3+ to reduce noise)
+  if (errors.length >= 3) {
     findings.push({
       category: "grammar_a_an",
-      label: errors.length + " \"a\" before vowel (should be \"an\")",
+      label: errors.length + " likely \"a\" before vowel errors (should be \"an\")",
       count: errors.length,
       chapter: chapterNum,
       samples: errors.slice(0, 5).map(function(s) { return "\"" + s.trim() + "\""; }),
