@@ -28,6 +28,9 @@ export const SCAN_CATEGORIES = {
   repetitive_padding: { label: "Repetitive Padding", icon: "🔄", weight: 12, color: "amber" },
   coffee_scene: { label: "Coffee Scene", icon: "☕", weight: 8, color: "amber" },
   archive_framing: { label: "Archive Framing", icon: "📁", weight: 8, color: "amber" },
+  ai_adjective: { label: "AI-Preferred Adjective Overuse", icon: "🤖", weight: 8, color: "amber" },
+  philosophical_ending: { label: "Philosophical Platitude Ending", icon: "🎓", weight: 10, color: "red" },
+  the_noun_opener: { label: "\"The [Noun] [Verb]\" Monotony", icon: "📄", weight: 8, color: "amber" },
 };
 
 export const PATTERNS = {
