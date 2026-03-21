@@ -35,13 +35,20 @@ async function callGemini(systemPrompt, userMessage) {
       throw new Error('Gemini API error: ' + (d.error?.message || r.status));
     }
 
+    // Check for content blocking
+    const blockReason = d?.promptFeedback?.blockReason;
+    if (blockReason) {
+      console.warn('Gemini blocked content: ' + blockReason);
+      throw new Error('CONTENT_BLOCKED:' + blockReason);
+    }
+
     const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const finishReason = d?.candidates?.[0]?.finishReason;
     console.log('Gemini response: ' + text.length + ' chars, finishReason=' + finishReason);
 
     if (!text) {
       console.error('Empty response from Gemini:', JSON.stringify(d).slice(0, 500));
-      throw new Error('Empty response from Gemini');
+      throw new Error('CONTENT_BLOCKED:EMPTY');
     }
 
     return text;
@@ -49,6 +56,31 @@ async function callGemini(systemPrompt, userMessage) {
     clearTimeout(timeout);
     throw e;
   }
+}
+
+async function callClaude(systemPrompt, userMessage) {
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    }),
+  });
+
+  const d = await r.json();
+  if (!r.ok) throw new Error('Claude API error: ' + (d.error?.message || r.status));
+  return d.content[0].text;
 }
 
 function repairJSON(str) {
