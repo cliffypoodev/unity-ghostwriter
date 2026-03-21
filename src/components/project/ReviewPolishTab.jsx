@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  Loader2, Wand2, BookOpen, Zap, FileText, Target, BarChart3, Download
+  Loader2, Wand2, BookOpen, Zap, FileText, Target, BarChart3, Download, AlertTriangle
 } from "lucide-react";
 import ManuscriptUploader from "./ManuscriptUploader";
 import DeepReviewPanel from "./DeepReviewPanel";
@@ -76,10 +76,14 @@ export default function ReviewPolishTab({ projectId }) {
 
     const chapterData = [];
     const allFindings = [];
+    const emptyChapters = [];
 
     for (const ch of generatedChapters) {
       const content = await resolveChapterContent(ch);
-      if (!content || content.length < 50) continue;
+      if (!content || content.length < 50) {
+        emptyChapters.push({ number: ch.chapter_number, title: ch.title || `Chapter ${ch.chapter_number}` });
+        continue;
+      }
       const { findings, words } = scanChapter(content, ch.chapter_number, tense, targetWords);
       allFindings.push(...findings);
       chapterData.push({
@@ -112,6 +116,7 @@ export default function ReviewPolishTab({ projectId }) {
       score, allFindings, chapterData,
       totalWords: chapterData.reduce((sum, c) => sum + c.words, 0),
       totalChapters: chapterData.length, openerRatio,
+      emptyChapters,
       scannedAt: new Date().toISOString(),
     });
     setScanning(false);
@@ -354,7 +359,10 @@ export default function ReviewPolishTab({ projectId }) {
             <div className="rounded-xl border border-[var(--nb-border)] bg-white/50 p-6 flex flex-col items-center justify-center">
               <ScoreGauge score={scanResults.score} />
               <div className="mt-3 text-center">
-                <p className="text-xs" style={{ color: 'var(--ink2)' }}>{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapters</p>
+                <p className="text-xs" style={{ color: 'var(--ink2)' }}>{scanResults.totalWords.toLocaleString()} words · {scanResults.totalChapters} chapter{scanResults.totalChapters !== 1 ? "s" : ""} scanned</p>
+                {scanResults.emptyChapters?.length > 0 && (
+                  <p className="text-xs mt-0.5 text-amber-600 font-medium">{scanResults.emptyChapters.length} chapter{scanResults.emptyChapters.length !== 1 ? "s" : ""} empty — not included</p>
+                )}
                 <p className="text-xs mt-0.5" style={{ color: 'var(--ink2)' }}>Scanned {new Date(scanResults.scannedAt).toLocaleTimeString()}</p>
               </div>
             </div>
@@ -373,6 +381,23 @@ export default function ReviewPolishTab({ projectId }) {
               {scanResults.openerRatio > 0.5 && (
                 <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
                   <p className="text-xs text-amber-700 font-medium">👁 {Math.round(scanResults.openerRatio * 100)}% of chapters open with sensory atmosphere. Vary with dialogue, action, or thought openers.</p>
+                </div>
+              )}
+              {scanResults.emptyChapters?.length > 0 && (
+                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-red-700 font-semibold">
+                        {scanResults.emptyChapters.length} chapter{scanResults.emptyChapters.length !== 1 ? "s have" : " has"} no content (marked generated but empty):
+                      </p>
+                      <ul className="text-xs text-red-600 mt-1 space-y-0.5">
+                        {scanResults.emptyChapters.map(ec => (
+                          <li key={ec.number}>Ch {ec.number}: {ec.title} — go to Write tab to regenerate</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
