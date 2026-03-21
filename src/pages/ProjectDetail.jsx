@@ -181,11 +181,13 @@ export default function ProjectDetail() {
            </AppErrorBoundary>
          )}
          {activePhase === "export" && (
-           <div className="notebook-phase-flush">
-             <AppErrorBoundary>
-               <EditExportTab projectId={projectId} />
-             </AppErrorBoundary>
-           </div>
+           <AppErrorBoundary>
+             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 100px' }}>
+               <div className="p1-card" style={{ overflow: 'hidden' }}>
+                 <EditExportTab projectId={projectId} />
+               </div>
+             </div>
+           </AppErrorBoundary>
          )}
          {activePhase === "review" && (
            <div className="notebook-phase-padded">
