@@ -82,7 +82,7 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
     });
     const d = await r.json();
-    if (!r.ok) throw new Error('OpenRouter generation failed: ' + (d.error?.message || JSON.stringify(d.error) || r.status));
+    if (!r.ok) { const em = d.error?.message || JSON.stringify(d.error) || String(r.status); if (em.includes('No endpoints') || em.includes('not available')) { console.warn('OpenRouter unavailable (' + modelId + '), falling back to DeepSeek'); return callAI('deepseek-chat', systemPrompt, userMessage, options); } throw new Error('OpenRouter generation failed: ' + em); }
     if (!d.choices?.[0]?.message?.content) throw new Error('OpenRouter generation failed: empty response');
     return d.choices[0].message.content;
   }
