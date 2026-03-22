@@ -33,7 +33,14 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error('Anthropic error: ' + (data.error?.message || response.status));
+    if (!response.ok) {
+      const errMsg = data.error?.message || String(response.status);
+      if (errMsg.includes('credit balance') || errMsg.includes('rate limit') || errMsg.includes('overloaded')) {
+        console.warn('Anthropic unavailable (' + errMsg.slice(0, 80) + '), falling back to Gemini');
+        return callAI('gemini-pro', systemPrompt, userMessage, options);
+      }
+      throw new Error('Anthropic error: ' + errMsg);
+    }
     return data.content[0].text;
   }
   if (provider === "openai") {
