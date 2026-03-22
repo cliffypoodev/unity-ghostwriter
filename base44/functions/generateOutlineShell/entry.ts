@@ -77,18 +77,27 @@ async function callGemini(systemPrompt, userMessage, maxTokens = 4000) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-async function callLumimaid(systemPrompt, userMessage, maxTokens = 4000) {
+async function callOpenRouter(systemPrompt, userMessage, maxTokens = 4000) {
   const orKey = Deno.env.get('OPENROUTER_API_KEY');
   if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' },
-    body: JSON.stringify({ model: 'neversleep/llama-3.1-lumimaid-70b', max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
-  });
-  const d = await r.json();
-  if (!r.ok) throw new Error('Lumimaid error: ' + (d.error?.message || r.status));
-  if (!d.choices?.[0]?.message?.content) throw new Error('Lumimaid empty response');
-  return d.choices[0].message.content;
+  // Lumimaid 70b is discontinued; use Lumimaid v0.2 8B or fallback to another uncensored model
+  const models = ['neversleep/llama-3.1-lumimaid-8b', 'mistralai/mistral-nemo'];
+  let lastErr = null;
+  for (const model of models) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + orKey, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://unity-ghostwriter.base44.app', 'X-Title': 'Unity Ghostwriter' },
+        body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+      });
+      const d = await r.json();
+      if (!r.ok) { lastErr = new Error('OpenRouter error (' + model + '): ' + (d.error?.message || r.status)); continue; }
+      if (!d.choices?.[0]?.message?.content) { lastErr = new Error('OpenRouter empty response (' + model + ')'); continue; }
+      console.log('OpenRouter: used model ' + model);
+      return d.choices[0].message.content;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('All OpenRouter models failed');
 }
 
 function isEroticaGenre(genre, subgenre) {
