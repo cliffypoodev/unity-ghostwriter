@@ -4,6 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 const MODEL_MAP = {
   "gemini-pro": { provider: "google", modelId: "gemini-2.5-flash", defaultTemp: 0.6 },
   "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet-4-20250514", defaultTemp: 0.6 },
+  "deepseek-chat": { provider: "deepseek", modelId: "deepseek-chat", defaultTemp: 0.7 },
   "lumimaid": { provider: "openrouter", modelId: "neversleep/llama-3.1-lumimaid-70b", defaultTemp: 0.7 },
 };
 
@@ -51,6 +52,18 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       throw new Error('OpenRouter error: ' + errMsg);
     }
     if (!d.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
+    return d.choices[0].message.content;
+  }
+  if (config.provider === "deepseek") {
+    const dsKey = Deno.env.get('DEEPSEEK_API_KEY');
+    if (!dsKey) throw new Error('DEEPSEEK_API_KEY not configured');
+    const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + dsKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: config.modelId, max_tokens: Math.min(maxTokens, 8192), temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error('DeepSeek error: ' + (d.error?.message || r.status));
     return d.choices[0].message.content;
   }
   throw new Error('Unknown provider');
