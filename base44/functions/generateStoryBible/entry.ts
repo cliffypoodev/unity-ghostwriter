@@ -419,7 +419,9 @@ Deno.serve(async (req) => {
       const retryMessage = 'Take this broken JSON and return it as valid JSON. Fix any unescaped quotes, trailing commas, or malformed strings. Return the corrected JSON object only:\n\n' + raw;
       let retryRaw;
       if (erotica) {
-        retryRaw = await callLumimaid(retryPrompt, retryMessage);
+        try {
+          retryRaw = await callOpenRouter(retryPrompt, retryMessage);
+        } catch { retryRaw = await callClaude(retryPrompt, retryMessage); }
       } else {
         try {
           retryRaw = usedFallback ? await callClaude(retryPrompt, retryMessage) : await callGemini(retryPrompt, retryMessage);
