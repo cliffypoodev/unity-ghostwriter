@@ -187,7 +187,29 @@ INFERENCE RULES:
 - The expanded_brief must be rich, detailed prose — not bullet points.
 - Do not invent plot details not present or strongly implied by the premise.`;
 
-    const response = await callGemini(prompt);
+    let response = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      response = await callGemini(prompt);
+      if (response && response.trim().length > 10) break;
+      console.warn('expandPremise: empty/short Gemini response on attempt ' + (attempt + 1) + ', retrying...');
+    }
+
+    if (!response || response.trim().length < 10) {
+      console.error('expandPremise: Gemini returned empty after retries');
+      return Response.json({
+        expanded_brief: topic,
+        genre: genre || '',
+        subgenre: '',
+        beat_sheet_template: 'auto',
+        beat_style: { selected: '', reasoning: '' },
+        spice_level: { selected: 0, reasoning: '' },
+        language_intensity: { selected: 0, reasoning: '' },
+        detail_level: 'moderate',
+        chapter_count: 20,
+        target_audience: { selected: 'Adult General', secondary: '', reasoning: '' },
+        author_voice: { selected: 'basic', reasoning: '' },
+      });
+    }
 
     // Parse JSON with robust repair
     let parsed;
