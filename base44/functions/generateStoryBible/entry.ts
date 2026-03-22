@@ -373,20 +373,14 @@ Deno.serve(async (req) => {
       ? buildNonfictionPrompt(topic, genre || 'Nonfiction', subgenre, target_audience)
       : buildFictionPrompt(topic, genre || 'Fiction', subgenre, target_audience);
 
-    // Erotica → OpenRouter (uncensored models). Others → Gemini with Claude fallback.
-    const primaryModel = erotica ? 'openrouter' : 'gemini';
+    // Erotica → Lumimaid (no content filtering). Others → Gemini with Claude fallback.
+    const primaryModel = erotica ? 'lumimaid' : 'gemini';
     console.log('v2: generateStoryBible calling ' + primaryModel + ', type=' + book_type + (erotica ? ' (erotica route)' : ''));
     let raw;
     let usedFallback = false;
 
     if (erotica) {
-      try {
-        raw = await callOpenRouter(systemPrompt, userMessage);
-      } catch (orErr) {
-        console.warn('OpenRouter failed, falling back to Claude:', orErr.message);
-        raw = await callClaude(systemPrompt, userMessage);
-        usedFallback = true;
-      }
+      raw = await callLumimaid(systemPrompt, userMessage);
     } else {
       try {
         raw = await callGemini(systemPrompt, userMessage);
