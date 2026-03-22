@@ -91,6 +91,19 @@ async function callLumimaid(systemPrompt, userMessage, maxTokens = 4000) {
   return d.choices[0].message.content;
 }
 
+async function callDeepSeek(systemPrompt, userMessage, maxTokens = 4000) {
+  const dsKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!dsKey) throw new Error('DEEPSEEK_API_KEY not configured');
+  const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + dsKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'deepseek-chat', max_tokens: Math.min(maxTokens, 8192), temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error('DeepSeek error: ' + (d.error?.message || r.status));
+  return d.choices[0].message.content;
+}
+
 function isEroticaGenre(genre, subgenre) {
   return /erotica|erotic/i.test(((genre || '') + ' ' + (subgenre || '')));
 }
@@ -174,10 +187,19 @@ RULES:
     }
 
     const erotica = isEroticaGenre(spec.genre, spec.subgenre);
-    console.log('Shell: Calling ' + (erotica ? 'Lumimaid' : 'Gemini') + ' for titles+summaries...');
-    const rawText = erotica
-      ? await callLumimaid(systemPrompt, userPrompt, 4000)
-      : await callGemini(systemPrompt, userPrompt, 4000);
+    let rawText;
+    if (erotica) {
+      console.log('Shell: Calling Lumimaid for titles+summaries...');
+      try {
+        rawText = await callLumimaid(systemPrompt, userPrompt, 4000);
+      } catch (lumErr) {
+        console.warn('Lumimaid failed: ' + lumErr.message + ' — falling back to DeepSeek');
+        rawText = await callDeepSeek(systemPrompt, userPrompt, 4000);
+      }
+    } else {
+      console.log('Shell: Calling Gemini for titles+summaries...');
+      rawText = await callGemini(systemPrompt, userPrompt, 4000);
+    }
 
     // Timeout check after AI call
     if (Date.now() > DEADLINE) {
