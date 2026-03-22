@@ -83,33 +83,40 @@ async function callClaude(systemPrompt, userMessage) {
   return d.content[0].text;
 }
 
-async function callLumimaid(systemPrompt, userMessage) {
+async function callOpenRouter(systemPrompt, userMessage) {
   const orKey = Deno.env.get('OPENROUTER_API_KEY');
   if (!orKey) throw new Error('OPENROUTER_API_KEY not configured');
 
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + orKey,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://unity-ghostwriter.base44.app',
-      'X-Title': 'Unity Ghostwriter',
-    },
-    body: JSON.stringify({
-      model: 'neversleep/llama-3.1-lumimaid-70b',
-      max_tokens: 4096,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-    }),
-  });
-
-  const d = await r.json();
-  if (!r.ok) throw new Error('Lumimaid API error: ' + (d.error?.message || r.status));
-  if (!d.choices?.[0]?.message?.content) throw new Error('Lumimaid empty response');
-  return d.choices[0].message.content;
+  const models = ['neversleep/llama-3.1-lumimaid-8b', 'mistralai/mistral-nemo'];
+  let lastErr = null;
+  for (const model of models) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + orKey,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://unity-ghostwriter.base44.app',
+          'X-Title': 'Unity Ghostwriter',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          temperature: 0.7,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) { lastErr = new Error('OpenRouter error (' + model + '): ' + (d.error?.message || r.status)); continue; }
+      if (!d.choices?.[0]?.message?.content) { lastErr = new Error('OpenRouter empty response (' + model + ')'); continue; }
+      console.log('OpenRouter: used model ' + model);
+      return d.choices[0].message.content;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('All OpenRouter models failed');
 }
 
 function isEroticaGenre(genre, subgenre) {
