@@ -467,12 +467,12 @@ RULES:
       try {
         nfRaw = await callAI(nfModelKey, nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
       } catch (primaryErr) {
-        console.warn(`NF beat primary model failed: ${primaryErr.message} — retrying with gemini-pro`);
+        console.warn(`NF beat primary model failed: ${primaryErr.message} — retrying with deepseek-chat`);
         try {
+          nfRaw = await callAI('deepseek-chat', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+        } catch (dsErr) {
+          console.warn(`DeepSeek fallback failed: ${dsErr.message} — retrying with gemini-pro`);
           nfRaw = await callAI('gemini-pro', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
-        } catch (geminiErr) {
-          console.warn(`Gemini fallback failed: ${geminiErr.message} — retrying with claude-sonnet`);
-          nfRaw = await callAI('claude-sonnet', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
         }
       }
       const nfBeatSheet = await safeParseJSON(nfRaw, nfModelKey);
@@ -597,12 +597,12 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
     try {
       raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
     } catch (primaryErr) {
-      console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with gemini-pro`);
+      console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with deepseek-chat`);
       try {
+        raw = await callAI('deepseek-chat', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+      } catch (dsErr) {
+        console.warn(`DeepSeek fallback failed: ${dsErr.message} — retrying with gemini-pro`);
         raw = await callAI('gemini-pro', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
-      } catch (geminiErr) {
-        console.warn(`Gemini fallback failed: ${geminiErr.message} — retrying with claude-sonnet`);
-        raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
       }
     }
     const scenes = await safeParseJSON(raw, modelKey);

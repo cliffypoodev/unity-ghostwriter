@@ -45,8 +45,8 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       // Fallback to Gemini if OpenRouter/Lumimaid has no endpoints
       const errMsg = d.error?.message || String(r.status);
       if (errMsg.includes('No endpoints') || errMsg.includes('not available')) {
-        console.warn('OpenRouter model unavailable (' + config.modelId + '), falling back to Gemini');
-        return callAI('gemini-pro', systemPrompt, userMessage, options);
+        console.warn('OpenRouter model unavailable (' + config.modelId + '), falling back to DeepSeek');
+        return callAI('deepseek-chat', systemPrompt, userMessage, options);
       }
       throw new Error('OpenRouter error: ' + errMsg);
     }
