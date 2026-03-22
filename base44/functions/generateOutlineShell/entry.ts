@@ -183,10 +183,28 @@ RULES:
     }
 
     const erotica = isEroticaGenre(spec.genre, spec.subgenre);
-    console.log('Shell: Calling ' + (erotica ? 'Lumimaid' : 'Gemini') + ' for titles+summaries...');
-    const rawText = erotica
-      ? await callLumimaid(systemPrompt, userPrompt, 4000)
-      : await callGemini(systemPrompt, userPrompt, 4000);
+    console.log('Shell: Calling ' + (erotica ? 'OpenRouter' : 'Gemini') + ' for titles+summaries...');
+    let rawText;
+    if (erotica) {
+      try {
+        rawText = await callOpenRouter(systemPrompt, userPrompt, 4000);
+      } catch (orErr) {
+        console.warn('OpenRouter failed, falling back to Gemini:', orErr.message);
+        try {
+          rawText = await callGemini(systemPrompt, userPrompt, 4000);
+        } catch (gemErr) {
+          // If Gemini also blocks, provide a clear error
+          const isBlocked = gemErr.message?.includes('CONTENT_BLOCKED') || gemErr.message?.includes('safety') || gemErr.message?.includes('block');
+          if (isBlocked) {
+            await sr.entities.Outline.update(outlineId, { status: 'error', error_message: 'Content was blocked by AI safety filters. Please review your premise and ensure all characters are adults (18+).' });
+            return Response.json({ error: 'Content was blocked by AI safety filters. Please ensure all characters are adults (18+) and review your premise.' }, { status: 400 });
+          }
+          throw gemErr;
+        }
+      }
+    } else {
+      rawText = await callGemini(systemPrompt, userPrompt, 4000);
+    }
 
     // Timeout check after AI call
     if (Date.now() > DEADLINE) {
