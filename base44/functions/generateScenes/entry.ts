@@ -86,8 +86,8 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
     if (!response.ok) {
       const errMsg = data.error?.message || String(response.status);
       if (errMsg.includes('No endpoints') || errMsg.includes('not available')) {
-        console.warn('OpenRouter model unavailable (' + modelId + '), falling back to Gemini');
-        return callAI('gemini-pro', systemPrompt, userMessage, options);
+        console.warn('OpenRouter model unavailable (' + modelId + '), falling back to DeepSeek');
+        return callAI('deepseek-chat', systemPrompt, userMessage, options);
       }
       throw new Error('OpenRouter error: ' + errMsg);
     }
