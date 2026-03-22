@@ -8,7 +8,6 @@ const MODEL_MAP = {
 };
 
 async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
-  // callType: outline → all outline detail calls resolve to Gemini
   const config = MODEL_MAP[modelKey] || MODEL_MAP["gemini-pro"];
   const temperature = options.temperature ?? config.defaultTemp;
   const maxTokens = options.maxTokens ?? 8192;
@@ -42,7 +41,15 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       body: JSON.stringify({ model: config.modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
     });
     const d = await r.json();
-    if (!r.ok) throw new Error('OpenRouter error: ' + (d.error?.message || r.status));
+    if (!r.ok) {
+      // Fallback to Gemini if OpenRouter/Lumimaid has no endpoints
+      const errMsg = d.error?.message || String(r.status);
+      if (errMsg.includes('No endpoints') || errMsg.includes('not available')) {
+        console.warn('OpenRouter model unavailable (' + config.modelId + '), falling back to Gemini');
+        return callAI('gemini-pro', systemPrompt, userMessage, options);
+      }
+      throw new Error('OpenRouter error: ' + errMsg);
+    }
     if (!d.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
     return d.choices[0].message.content;
   }
