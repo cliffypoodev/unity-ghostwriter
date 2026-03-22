@@ -83,7 +83,14 @@ async function callAI(modelKey, systemPrompt, userMessage, options = {}) {
       body: JSON.stringify({ model: modelId, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }] }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error('OpenRouter error: ' + (data.error?.message || response.status));
+    if (!response.ok) {
+      const errMsg = data.error?.message || String(response.status);
+      if (errMsg.includes('No endpoints') || errMsg.includes('not available')) {
+        console.warn('OpenRouter model unavailable (' + modelId + '), falling back to Gemini');
+        return callAI('gemini-pro', systemPrompt, userMessage, options);
+      }
+      throw new Error('OpenRouter error: ' + errMsg);
+    }
     if (!data.choices?.[0]?.message?.content) throw new Error('OpenRouter empty response');
     return data.choices[0].message.content;
   }
@@ -460,8 +467,13 @@ RULES:
       try {
         nfRaw = await callAI(nfModelKey, nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
       } catch (primaryErr) {
-        console.warn(`NF beat primary model failed: ${primaryErr.message} — retrying with claude-sonnet`);
-        nfRaw = await callAI('claude-sonnet', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+        console.warn(`NF beat primary model failed: ${primaryErr.message} — retrying with gemini-pro`);
+        try {
+          nfRaw = await callAI('gemini-pro', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+        } catch (geminiErr) {
+          console.warn(`Gemini fallback failed: ${geminiErr.message} — retrying with claude-sonnet`);
+          nfRaw = await callAI('claude-sonnet', nfSystemPrompt, nfUserMessage, { maxTokens: 4096, temperature: 0.6 });
+        }
       }
       const nfBeatSheet = await safeParseJSON(nfRaw, nfModelKey);
 
@@ -585,8 +597,13 @@ Return ONLY a JSON array of ${sceneCount} scene objects. Each object must have e
     try {
       raw = await callAI(modelKey, systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
     } catch (primaryErr) {
-      console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with claude-sonnet`);
-      raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+      console.warn(`Primary model (${modelKey}) failed: ${primaryErr.message} — retrying with gemini-pro`);
+      try {
+        raw = await callAI('gemini-pro', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+      } catch (geminiErr) {
+        console.warn(`Gemini fallback failed: ${geminiErr.message} — retrying with claude-sonnet`);
+        raw = await callAI('claude-sonnet', systemPrompt, userMessage, { maxTokens, temperature: 0.6 });
+      }
     }
     const scenes = await safeParseJSON(raw, modelKey);
     if (!Array.isArray(scenes)) throw new Error('AI returned invalid scene structure — expected array');
