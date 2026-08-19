@@ -1,0 +1,49 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "outlining",
+        "writing",
+        "editing",
+        "complete"
+      ],
+      "default": "draft",
+      "description": "Current project status"
+    },
+    "chapter_state_log": {
+      "type": "string",
+      "description": "URL to uploaded file containing full chapter state log (all state documents concatenated). Never deleted during a project."
+    },
+    "banned_phrases_log": {
+      "type": "string",
+      "description": "JSON array of all phrases and metaphors used across all chapters, compiled from state documents. Grows with every chapter, never reset."
+    },
+    "chapter_subjects_log": {
+      "type": "string",
+      "description": "Newline-delimited log of subjects covered in each chapter. Format per line: [TIME PERIOD] | [PRIMARY SUBJECT] | [LOCATION]. Used to prevent thematic duplicate chapters in nonfiction."
+    },
+    "name_registry": {
+      "type": "string",
+      "description": "JSON object mapping character names to {role, first_chapter} for all named characters discovered across chapters. Used to prevent name collisions."
+    },
+    "style_sample": {
+      "type": "string",
+      "description": "User's writing style sample for 'Rewrite in My Voice' feature. Persisted across sessions."
+    },
+    "protagonist_interiority": {
+      "type": "string",
+      "description": "JSON object with persistent protagonist psychology: {core_wound, self_belief, secret_desire, behavioral_tells, life_purpose}. Injected into every chapter prompt."
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

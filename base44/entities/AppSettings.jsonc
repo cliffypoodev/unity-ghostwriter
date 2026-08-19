@@ -1,0 +1,98 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "ai_model": {
+      "type": "string",
+      "enum": [
+        "claude-opus-4-5",
+        "claude-sonnet-4-5",
+        "claude-haiku-4-5",
+        "gpt-4o",
+        "gpt-4-turbo",
+        "deepseek-chat"
+      ],
+      "default": "claude-opus-4-5",
+      "description": "AI model to use for generation"
+    },
+    "default_book_type": {
+      "type": "string",
+      "enum": [
+        "fiction",
+        "nonfiction"
+      ],
+      "default": "fiction",
+      "description": "Default book type"
+    },
+    "default_target_length": {
+      "type": "string",
+      "enum": [
+        "short",
+        "medium",
+        "long",
+        "epic"
+      ],
+      "default": "medium",
+      "description": "Default target length"
+    },
+    "default_detail_level": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "moderate",
+        "comprehensive"
+      ],
+      "default": "moderate",
+      "description": "Default outline detail level"
+    },
+    "auto_generate_all_chapters": {
+      "type": "boolean",
+      "default": false,
+      "description": "Auto-generate all chapters after outline is created"
+    },
+    "show_word_count": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show word count in editor"
+    },
+    "show_toc_by_default": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show table of contents by default in editor"
+    },
+    "default_body_font": {
+      "type": "string",
+      "default": "georgia",
+      "description": "Default body font for documents"
+    },
+    "default_heading_font": {
+      "type": "string",
+      "default": "georgia",
+      "description": "Default heading font for documents"
+    },
+    "default_font_size": {
+      "type": "string",
+      "default": "14px",
+      "description": "Default font size"
+    },
+    "default_line_spacing": {
+      "type": "string",
+      "default": "1.5",
+      "description": "Default line spacing"
+    },
+    "default_margins": {
+      "type": "string",
+      "default": "1in",
+      "description": "Default page margins"
+    },
+    "global_style_instructions": {
+      "type": "string",
+      "description": "Global writing style instructions injected into every generation"
+    },
+    "global_content_guidelines": {
+      "type": "string",
+      "description": "Global content guidelines injected into every generation"
+    }
+  },
+  "required": []
+}

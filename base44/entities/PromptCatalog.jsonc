@@ -1,0 +1,53 @@
+{
+  "name": "PromptCatalog",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Prompt title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short 1-2 sentence summary"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full prompt text"
+    },
+    "book_type": {
+      "type": "string",
+      "enum": [
+        "fiction",
+        "nonfiction"
+      ],
+      "description": "Fiction or Nonfiction"
+    },
+    "genre": {
+      "type": "string",
+      "description": "Primary genre (e.g. True Crime, Fantasy)"
+    },
+    "category": {
+      "type": "string",
+      "description": "Broader grouping (e.g. Crime & Law, Science & Technology)"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "More specific grouping within a category (e.g. Serial Killers, Space Exploration)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of tags (e.g. History, Psychology, Dark, Series)"
+    },
+    "word_count": {
+      "type": "number",
+      "description": "Approximate length of the prompt in words"
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ]
+}

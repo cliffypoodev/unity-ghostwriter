@@ -1,0 +1,80 @@
+{
+  "name": "Chapter",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project"
+    },
+    "chapter_number": {
+      "type": "number",
+      "description": "Chapter order number"
+    },
+    "title": {
+      "type": "string",
+      "description": "Chapter title"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Chapter summary"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Generation prompt"
+    },
+    "content": {
+      "type": "string",
+      "description": "Chapter content"
+    },
+    "scenes": {
+      "type": "string",
+      "description": "JSON string of scene objects array (fiction only)"
+    },
+    "distinctive_phrases": {
+      "type": "string",
+      "description": "JSON array of distinctive literary phrases extracted after generation, used to prevent cross-chapter repetition"
+    },
+    "state_document": {
+      "type": "string",
+      "description": "Post-chapter state document generated after chapter is accepted, tracking character positions, plot threads, banned phrases, and escalation stage"
+    },
+    "previous_chapter_endings": {
+      "type": "string",
+      "description": "JSON string of ending context from preceding completed chapters, rebuilt before each generation dispatch. Contains full last paragraph of the immediate predecessor and last-paragraph summaries of the 3 chapters before that."
+    },
+    "word_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Word count"
+    },
+    "quality_scan": {
+      "type": "string",
+      "description": "JSON string with quality scan results"
+    },
+    "consistency_flags": {
+      "type": "string",
+      "description": "JSON string of contradiction flags from the global consistency checker. Null or empty if no issues found."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "generating",
+        "generated",
+        "error"
+      ],
+      "default": "pending",
+      "description": "Generation status"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When content was generated"
+    }
+  },
+  "required": [
+    "project_id",
+    "chapter_number",
+    "title"
+  ]
+}

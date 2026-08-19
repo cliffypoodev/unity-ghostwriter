@@ -1,0 +1,155 @@
+{
+  "name": "Specification",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project"
+    },
+    "book_type": {
+      "type": "string",
+      "enum": [
+        "fiction",
+        "nonfiction"
+      ],
+      "description": "Type of book"
+    },
+    "genre": {
+      "type": "string",
+      "description": "Genre of the book"
+    },
+    "subgenre": {
+      "type": "string",
+      "description": "Subgenre of the book"
+    },
+    "topic": {
+      "type": "string",
+      "description": "Main topic or premise"
+    },
+    "target_length": {
+      "type": "string",
+      "enum": [
+        "short",
+        "medium",
+        "long",
+        "epic"
+      ],
+      "description": "Target book length"
+    },
+    "chapter_count": {
+      "type": "number",
+      "description": "Exact number of chapters to generate"
+    },
+    "detail_level": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "moderate",
+        "comprehensive"
+      ],
+      "description": "Level of detail"
+    },
+    "target_audience": {
+      "type": "string",
+      "description": "Intended audience"
+    },
+    "tone_style": {
+      "type": "string",
+      "description": "Beat style key (legacy / maps to beat_style)"
+    },
+    "beat_style": {
+      "type": "string",
+      "description": "Beat style key"
+    },
+    "beat_sheet_template": {
+      "type": "string",
+      "default": "auto",
+      "description": "Story structure template: auto, save-the-cat, romance-arc, thriller-tension, heros-journey"
+    },
+    "spice_level": {
+      "type": "number",
+      "default": 0,
+      "description": "Spice level 0-4"
+    },
+    "language_intensity": {
+      "type": "number",
+      "default": 0,
+      "description": "Language intensity 0-4"
+    },
+    "erotica_register": {
+      "type": "number",
+      "default": 0,
+      "description": "Erotica prose register 0-3: 0=Literary, 1=Naturalistic, 2=Vernacular, 3=Raw/Smut. Controls vocabulary and tone of intimate scenes only."
+    },
+    "pov_mode": {
+      "type": "string",
+      "description": "POV mode. Fiction: first-person, third-close, third-multi, third-omniscient, second-person. Nonfiction: nf-author, nf-direct, nf-third, nf-editorial."
+    },
+    "tense": {
+      "type": "string",
+      "description": "Narrative tense. Fiction: past, present. Nonfiction: past, present, mixed."
+    },
+    "author_voice": {
+      "type": "string",
+      "default": "basic",
+      "description": "Author voice style"
+    },
+    "ai_model": {
+      "type": "string",
+      "default": "",
+      "description": "Selected AI model for generation (legacy field)"
+    },
+    "writing_model": {
+      "type": "string",
+      "default": "claude-sonnet",
+      "description": "Primary writing model ID from WRITING_MODELS registry"
+    },
+    "budget_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, routes full manuscript to Lumimaid for cost savings"
+    },
+    "openrouter_model": {
+      "type": "string",
+      "default": "",
+      "description": "Optional OpenRouter model override for erotica routing"
+    },
+    "additional_requirements": {
+      "type": "string",
+      "description": "Extra requirements"
+    },
+    "enforce_genre_content": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enforce genre content gates for erotica/romance (DeepSeek only)"
+    },
+    "protagonist_core_wound": {
+      "type": "string",
+      "description": "What specific failure or loss from the protagonist's past still defines how they see themselves"
+    },
+    "protagonist_self_belief": {
+      "type": "string",
+      "description": "What the protagonist privately believes is wrong with them"
+    },
+    "protagonist_secret_desire": {
+      "type": "string",
+      "description": "What the supernatural/alien/fantasy element offers the protagonist that the human world never could"
+    },
+    "protagonist_life_purpose": {
+      "type": "string",
+      "description": "What the protagonist believed their life was FOR before the story started"
+    },
+    "protagonist_behavioral_tells": {
+      "type": "string",
+      "description": "Observable behavioral patterns that reveal the protagonist's interiority without stating it"
+    },
+    "story_bible_data": {
+      "type": "string",
+      "description": "JSON string of the user-edited story bible (characters, world, themes for fiction; figures, timeline, argument for nonfiction)"
+    }
+  },
+  "required": [
+    "project_id",
+    "book_type"
+  ]
+}

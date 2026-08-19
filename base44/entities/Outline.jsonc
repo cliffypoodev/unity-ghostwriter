@@ -1,0 +1,50 @@
+{
+  "name": "Outline",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project"
+    },
+    "outline_data": {
+      "type": "string",
+      "description": "JSON text or URL for outline structure"
+    },
+    "outline_url": {
+      "type": "string",
+      "description": "File URL for large outline JSON"
+    },
+    "story_bible": {
+      "type": "string",
+      "description": "JSON text or URL for story bible"
+    },
+    "story_bible_url": {
+      "type": "string",
+      "description": "File URL for large story bible JSON"
+    },
+    "book_metadata": {
+      "type": "string",
+      "description": "JSON string with title, subtitle, description, keywords"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "generating",
+        "shell_complete",
+        "partial",
+        "complete",
+        "error"
+      ],
+      "default": "pending",
+      "description": "Generation status for async polling"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if status is error"
+    }
+  },
+  "required": [
+    "project_id"
+  ]
+}

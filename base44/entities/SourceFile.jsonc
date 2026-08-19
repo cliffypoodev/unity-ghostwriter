@@ -1,0 +1,38 @@
+{
+  "name": "SourceFile",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project"
+    },
+    "filename": {
+      "type": "string",
+      "description": "File name"
+    },
+    "file_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "prompt",
+        "genre_catalog",
+        "style_guide",
+        "reference"
+      ],
+      "description": "Type of source file"
+    },
+    "content": {
+      "type": "string",
+      "description": "File content"
+    },
+    "description": {
+      "type": "string",
+      "description": "File description"
+    }
+  },
+  "required": [
+    "project_id",
+    "filename",
+    "file_type"
+  ]
+}
